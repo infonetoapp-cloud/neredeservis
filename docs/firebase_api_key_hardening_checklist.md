@@ -92,8 +92,8 @@ Baslangicta tipik gerekenler:
 - Firestore / Realtime Database / Cloud Functions cagrilarinin gerektirdigi minimum set
 
 Kontrol:
-- [ ] API listesi minimuma indirildi
-- [ ] Gereksiz API izinleri kaldirildi
+- [x] API listesi minimuma indirildi
+- [x] Gereksiz API izinleri kaldirildi
 
 ## 4) Rotasyon Karari
 

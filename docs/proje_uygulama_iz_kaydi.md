@@ -2344,3 +2344,58 @@ Durum: Tamamlandi
 - STEP-033:
   1) API restrictions minimizasyonuna gecelim (dev projesinden baslayalim).
   2) Ilk anahtar icin mevcut API listesini inceleyip gereksizleri daraltalim.
+
+## STEP-033 - API Restriction Minimizasyonu (CLI Otomasyon)
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Dev/Stg/Prod tum Firebase auto-created key'lerde API allowlist'i manuel panel yerine CLI ile tek seferde daraltmak.
+
+### Yapilan Isler
+- Yeni otomasyon scripti eklendi:
+  - `scripts/harden_firebase_api_keys.ps1`
+  - Modlar: `backup`, `apply`, `verify`
+- Yedek alindi (degisiklik oncesi):
+  - `docs/api_key_backups/api_key_restrictions_backup_20260217-171317.json`
+- Toplu apply yapildi (3 proje x 3 key = 9 key):
+  - `neredeservis-dev-01`
+  - `neredeservis-stg-01`
+  - `neredeservis-prod-01`
+- Verify sonucu:
+  - Her key icin `services=13`, `missing=0`, `extra=0`
+- Kullanilan daraltilmis API allowlist (13):
+  - `firebase.googleapis.com`
+  - `identitytoolkit.googleapis.com`
+  - `securetoken.googleapis.com`
+  - `firestore.googleapis.com`
+  - `firebasedatabase.googleapis.com`
+  - `firebaseinstallations.googleapis.com`
+  - `firebaseappcheck.googleapis.com`
+  - `firebaseremoteconfig.googleapis.com`
+  - `firebaseremoteconfigrealtime.googleapis.com`
+  - `firebasestorage.googleapis.com`
+  - `fcmregistrations.googleapis.com`
+  - `fpnv.googleapis.com`
+  - `datastore.googleapis.com`
+- `docs/firebase_api_key_hardening_checklist.md` guncellendi:
+  - API minimizasyon maddeleri `[x]` olarak isaretlendi.
+
+### Calistirilan Komutlar (Ham)
+1. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode backup`
+2. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode apply`
+3. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode verify`
+
+### Hata Kaydi (Silinmez)
+- Ilk envanter komutlarinda varsayilan timeout dusuk oldugu icin 2 komut timeout verdi (ciktiyi yazmis olsalar da adim tam bitmedi).
+- Duzeltme:
+  - Komutlar daha uzun timeout ile yeniden calistirildi ve tum apply/verify adimlari basariyla tamamlandi.
+
+### Sonuc
+- API key guvenligi panel isine bagli kalmadan script ile tekrar edilebilir hale geldi.
+- Tum ortamlarda app/bundle/referrer restriction korunarak API allowlist daraltildi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-034:
+  1) Rotasyon kararini verelim (simdilik ertele / hemen uygula).
+  2) Hemen uygulamayi secersek script'in rotation modu icin guvenli plan cikaralim.

@@ -1,0 +1,827 @@
+﻿[
+    {
+        "projectId":  "neredeservis-dev-01",
+        "keyName":  "projects/882097896542/locations/global/keys/f27cc9a5-afae-4d37-85bd-4579f7b1846d",
+        "uid":  "f27cc9a5-afae-4d37-85bd-4579f7b1846d",
+        "displayName":  "iOS key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "iosKeyRestrictions":  {
+                                                        "allowedBundleIds":  [
+                                                                                 "com.neredeservis.app.dev"
+                                                                             ]
+                                                    }
+                         }
+    },
+    {
+        "projectId":  "neredeservis-dev-01",
+        "keyName":  "projects/882097896542/locations/global/keys/052c2f12-e329-4677-a772-e45c84ffac6c",
+        "uid":  "052c2f12-e329-4677-a772-e45c84ffac6c",
+        "displayName":  "Android key (auto created by Firebase)",
+        "restrictions":  {
+                             "androidKeyRestrictions":  {
+                                                            "allowedApplications":  [
+                                                                                        {
+                                                                                            "packageName":  "com.neredeservis.app.dev",
+                                                                                            "sha1Fingerprint":  "2ef2d2516a8869eada22fd11572b820a955d253e"
+                                                                                        }
+                                                                                    ]
+                                                        },
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ]
+                         }
+    },
+    {
+        "projectId":  "neredeservis-dev-01",
+        "keyName":  "projects/882097896542/locations/global/keys/813f8ae0-aeca-4c20-b686-0d4da80e24d7",
+        "uid":  "813f8ae0-aeca-4c20-b686-0d4da80e24d7",
+        "displayName":  "Browser key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "browserKeyRestrictions":  {
+                                                            "allowedReferrers":  [
+                                                                                     "https://neredeservis-dev-01.web.app/*",
+                                                                                     "https://neredeservis-dev-01.firebaseapp.com/*",
+                                                                                     "http://localhost/*"
+                                                                                 ]
+                                                        }
+                         }
+    },
+    {
+        "projectId":  "neredeservis-stg-01",
+        "keyName":  "projects/691483247415/locations/global/keys/e55558bf-b2be-480d-bdad-a9160b676853",
+        "uid":  "e55558bf-b2be-480d-bdad-a9160b676853",
+        "displayName":  "iOS key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "iosKeyRestrictions":  {
+                                                        "allowedBundleIds":  [
+                                                                                 "com.neredeservis.app.stg"
+                                                                             ]
+                                                    }
+                         }
+    },
+    {
+        "projectId":  "neredeservis-stg-01",
+        "keyName":  "projects/691483247415/locations/global/keys/cc82b76b-22a4-4c21-8f69-ddd4c0907c76",
+        "uid":  "cc82b76b-22a4-4c21-8f69-ddd4c0907c76",
+        "displayName":  "Android key (auto created by Firebase)",
+        "restrictions":  {
+                             "androidKeyRestrictions":  {
+                                                            "allowedApplications":  [
+                                                                                        {
+                                                                                            "packageName":  "com.neredeservis.app.stg",
+                                                                                            "sha1Fingerprint":  "2ef2d2516a8869eada22fd11572b820a955d253e"
+                                                                                        }
+                                                                                    ]
+                                                        },
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ]
+                         }
+    },
+    {
+        "projectId":  "neredeservis-stg-01",
+        "keyName":  "projects/691483247415/locations/global/keys/2e7f367f-c512-481a-ab6f-f2dc0ba6b8f5",
+        "uid":  "2e7f367f-c512-481a-ab6f-f2dc0ba6b8f5",
+        "displayName":  "Browser key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "browserKeyRestrictions":  {
+                                                            "allowedReferrers":  [
+                                                                                     "https://neredeservis-stg-01.web.app/*",
+                                                                                     "https://neredeservis-stg-01.firebaseapp.com/*",
+                                                                                     "http://localhost/*"
+                                                                                 ]
+                                                        }
+                         }
+    },
+    {
+        "projectId":  "neredeservis-prod-01",
+        "keyName":  "projects/705689926965/locations/global/keys/5c370f56-cf5c-4a19-a101-372a1d72972a",
+        "uid":  "5c370f56-cf5c-4a19-a101-372a1d72972a",
+        "displayName":  "iOS key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "iosKeyRestrictions":  {
+                                                        "allowedBundleIds":  [
+                                                                                 "com.neredeservis.app"
+                                                                             ]
+                                                    }
+                         }
+    },
+    {
+        "projectId":  "neredeservis-prod-01",
+        "keyName":  "projects/705689926965/locations/global/keys/9d86ffe0-2102-44bc-811e-e03c936f646b",
+        "uid":  "9d86ffe0-2102-44bc-811e-e03c936f646b",
+        "displayName":  "Android key (auto created by Firebase)",
+        "restrictions":  {
+                             "androidKeyRestrictions":  {
+                                                            "allowedApplications":  [
+                                                                                        {
+                                                                                            "packageName":  "com.neredeservis.app",
+                                                                                            "sha1Fingerprint":  "2ef2d2516a8869eada22fd11572b820a955d253e"
+                                                                                        }
+                                                                                    ]
+                                                        },
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ]
+                         }
+    },
+    {
+        "projectId":  "neredeservis-prod-01",
+        "keyName":  "projects/705689926965/locations/global/keys/99180308-5079-43b4-93c6-1b42dc9f9b3d",
+        "uid":  "99180308-5079-43b4-93c6-1b42dc9f9b3d",
+        "displayName":  "Browser key (auto created by Firebase)",
+        "restrictions":  {
+                             "apiTargets":  [
+                                                {
+                                                    "service":  "firebasedatabase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasehosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaserules.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "sqladmin.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "datastore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fcmregistrations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebase.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappcheck.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseappdistribution.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapphosting.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseapptesters.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasedataconnect.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinappmessaging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseinstallations.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseml.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfig.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebaseremoteconfigrealtime.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasestorage.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firebasevertexai.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "firestore.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "identitytoolkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "logging.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "mlkit.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "securetoken.googleapis.com"
+                                                },
+                                                {
+                                                    "service":  "fpnv.googleapis.com"
+                                                }
+                                            ],
+                             "browserKeyRestrictions":  {
+                                                            "allowedReferrers":  [
+                                                                                     "https://neredeservis-prod-01.web.app/*",
+                                                                                     "https://neredeservis-prod-01.firebaseapp.com/*",
+                                                                                     "http://localhost/*"
+                                                                                 ]
+                                                        }
+                         }
+    }
+]
