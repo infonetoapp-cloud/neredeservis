@@ -256,20 +256,20 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 068 Consents koleksiyonu semasini ekle.
 - [x] 069 Guest sessions semasini ekle.
 - [x] 070 `trip_requests` idempotency semasini ekle.
-- [ ] 071 Composite indexleri ekle.
-- [ ] 072 `memberIds` + `routeWriters` yasam dongusu kuralini dokumante et (grant/revoke/ttl).
-- [ ] 073 `skip_requests` gizlilik kuralini ekle.
-- [ ] 073A `driver_directory` read kuralini kapat: toplu liste okuma yok, sadece callable arama sonucu ve limitli alanlar donsun.
-- [ ] 073B `driver_directory` arama callable'ini yaz (`searchDriverDirectory`): hash lookup + min query uzunlugu + rate limit + max 10 sonuc.
-- [ ] 074 Rules unit test dosyasi olustur.
-- [ ] 075 Auth test fixture kullanicilari olustur (driver/passenger/guest).
-- [ ] 076 Driver non-member read testini yaz (403 beklenir).
-- [ ] 077 Passenger non-member read testini yaz (403 beklenir).
-- [ ] 078 Guest expiry testini yaz (RTDB read kesilmeli).
-- [ ] 079 Direct write denial + stale `routeWriter` denial testini yaz.
-- [ ] 079A Rules test: driver roluyle `driver_directory` toplu read denemesi 403 veriyor mu.
-- [ ] 079B Rules test: RTDB `timestamp` penceresi disi (`now-30001`) write denemesi deny oluyor mu.
-- [ ] 080 DOGRULAMA: Tum rules testleri green mi?
+- [x] 071 Composite indexleri ekle.
+- [x] 072 `memberIds` + `routeWriters` yasam dongusu kuralini dokumante et (grant/revoke/ttl).
+- [x] 073 `skip_requests` gizlilik kuralini ekle.
+- [x] 073A `driver_directory` read kuralini kapat: toplu liste okuma yok, sadece callable arama sonucu ve limitli alanlar donsun.
+- [x] 073B `driver_directory` arama callable'ini yaz (`searchDriverDirectory`): hash lookup + min query uzunlugu + rate limit + max 10 sonuc.
+- [x] 074 Rules unit test dosyasi olustur.
+- [x] 075 Auth test fixture kullanicilari olustur (driver/passenger/guest).
+- [x] 076 Driver non-member read testini yaz (403 beklenir).
+- [x] 077 Passenger non-member read testini yaz (403 beklenir).
+- [x] 078 Guest expiry testini yaz (RTDB read kesilmeli).
+- [x] 079 Direct write denial + stale `routeWriter` denial testini yaz.
+- [x] 079A Rules test: driver roluyle `driver_directory` toplu read denemesi 403 veriyor mu.
+- [x] 079B Rules test: RTDB `timestamp` penceresi disi (`now-30001`) write denemesi deny oluyor mu.
+- [x] 080 DOGRULAMA: Tum rules testleri green mi?
 - [ ] 081 App Check debug tokenlarini sadece dev icin ac.
 - [ ] 082 Staging/prod debug tokenlerini kapat.
 - [ ] 083 KULLANICIDAN ONAY ISTE: "Play Integrity icin SHA-256 bilgilerini paylas".

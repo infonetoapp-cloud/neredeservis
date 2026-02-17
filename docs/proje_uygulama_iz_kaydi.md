@@ -3174,3 +3174,156 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 071-073B (indexler + routeWriters lifecycle + skip privacy + driver_directory callable/rules) adimlarina gecis.
+
+## STEP-071..073B - Index + Access Lifecycle + Privacy Rules + Driver Directory Callable
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Runbook 071-073B adimlarini kapatmak:
+  - composite index seti
+  - `memberIds` + `routeWriters` lifecycle dokumani
+  - `skip_requests` gizlilik kurali
+  - `driver_directory` direct-read kapatma
+  - `searchDriverDirectory` callable implementasyonu
+
+### Yapilan Isler
+- Firestore rules kontrollu erisim modeline guncellendi:
+  - `routes/{routeId}/skip_requests/{skipRequestId}` icin gizlilik kurali eklendi.
+  - `driver_directory` direct read tamamen kapali tutuldu.
+- RTDB rules tekrar route reader/writer modeline alindi:
+  - `/locations/{routeId}` read/write `routeReaders` + `routeWriters` uzerinden.
+  - `timestamp` penceresi korunarak sabit tutuldu (`<= now+5000`, `>= now-30000`).
+- Composite index seti deploy edildi (`firestore.indexes.json` teknik plan listesiyle uyumlu).
+- Lifecycle dokumani eklendi:
+  - `docs/route_access_lifecycle.md`
+- Callable eklendi:
+  - `functions/index.js` -> `searchDriverDirectory`
+  - Kurallar: auth zorunlu, role=`driver`, hash min-length, rate-limit, max 10 sonuc, masked output.
+- API kontrati guncellendi:
+  - `docs/api_contracts.md` -> driver directory guardrail notlari.
+- Runbook checkbox guncellendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `071`, `072`, `073`, `073A`, `073B` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `firebase deploy --project <dev|stg|prod> --only firestore:indexes,firestore:rules,database`
+2. `firebase deploy --project <dev|stg|prod> --only database`
+3. `firebase deploy --project <dev|stg|prod> --only functions`
+4. `firebase functions:artifacts:setpolicy --project <dev|stg|prod> --location europe-west3 --days 14 --force`
+5. `flutter analyze`
+6. `flutter test`
+
+### Bulgular
+- Firestore rules/index deploy:
+  - dev/stg/prod -> basarili
+- RTDB rules deploy:
+  - dev/stg/prod -> basarili
+- Functions deploy:
+  - `healthCheck` + `searchDriverDirectory` dev/stg/prod olustu ve son deployda no-change skip ile temiz tamamlandi
+- Artifact cleanup policy:
+  - dev/stg/prod `europe-west3` icin 14 gun olarak ayarlandi
+- Kalite kapisi:
+  - `flutter analyze` -> temiz
+  - `flutter test` -> tum testler gecti
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `routes.srvCode` icin ekstra composite index ekleme denemesi `400 this index is not necessary` hatasi verdi.
+  - Duzeltme:
+    - Gereksiz index kaldirildi; `srvCode` tek alan indexi Firestore tarafinda otomatik oldugu icin composite'e alinmadi.
+- Hata-2:
+  - `firebase deploy --only functions:healthCheck,functions:searchDriverDirectory` filtresi "No function matches given --only filters" hatasi verdi.
+  - Duzeltme:
+    - `--only functions` ile deploy edildi.
+- Hata-3:
+  - Ilk functions deploy sonunda cleanup policy olmadigi icin CLI hata kodu dondurdu (fonksiyonlar deploy edilmis olmasina ragmen).
+  - Duzeltme:
+    - `firebase functions:artifacts:setpolicy ... --days 14 --force` komutu 3 ortamda da calistirildi.
+
+### Sonuc
+- 071-073B adimlari kapatildi.
+- `driver_directory` direct read kapali + callable arama modeli aktif.
+- `skip_requests` gizlilik kurali ve route reader/writer akisi rules seviyesinde netlestirildi.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Functions deploy sonrasi artifact cleanup policy kontrolu zorunlu.
+- `searchDriverDirectory` degisikliginde zorunlu:
+  1. role gate testi
+  2. rate-limit testi
+  3. masked field testi
+  4. append-only iz kaydi
+
+### Sonraki Adim Icin Beklenen Onay
+- 074-080 (rules unit testleri + auth fixture + stale writer denial + timestamp window denial) adimlarina gecis.
+
+## STEP-074..080 - Rules Unit Test Paketi + Fixture + Emulator Dogrulamasi
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Runbook 074-080 adimlarini kapatmak:
+  - rules unit test dosyasini olusturmak
+  - auth fixture (driver/passenger/guest) tanimlamak
+  - non-member read denial, guest expiry, stale writer denial, timestamp window denial testlerini yazip kosmak
+
+### Yapilan Isler
+- Node tabanli rules test altyapisi eklendi:
+  - `functions/rules-tests/security_rules.test.mjs`
+  - `functions/rules-tests/fixtures.mjs`
+- `functions/package.json` guncellendi:
+  - script: `test:rules:unit`
+  - devDependencies: `@firebase/rules-unit-testing`, `firebase`
+- Test kapsamlari:
+  - STEP-076: driver non-member `routes/{routeId}` read -> deny
+  - STEP-077: passenger non-member `routes/{routeId}` read -> deny
+  - STEP-078: guest session suresi doldugunda RTDB live read -> deny
+  - STEP-079: Firestore direct write deny + RTDB stale routeWriter deny
+  - STEP-079A: `driver_directory` toplu read deny
+  - STEP-079B: RTDB `timestamp = now-30001` write deny (ve pencere ici write allow)
+- Runbook checklist satirlari isaretlendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `074`, `075`, `076`, `077`, `078`, `079`, `079A`, `079B`, `080` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `npm install` (`functions/` altinda)
+2. `firebase emulators:exec --project demo-neredeservis-rules --only "auth,firestore,database" "npm --prefix functions run test:rules:unit"`
+3. `winget install -e --id EclipseAdoptium.Temurin.21.JDK --accept-package-agreements --accept-source-agreements`
+4. `$env:PATH='C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.10.7-hotspot\\bin;' + $env:PATH; firebase emulators:exec --project demo-neredeservis-rules --only "auth,firestore,database" "npm --prefix functions run test:rules:unit"`
+
+### Bulgular
+- Final test sonucu:
+  - `tests=6, pass=6, fail=0`
+- 080 dogrulama kapandi: tum rules testleri green.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Ilk rules test calismasinda emulator acilisinda `Could not spawn java -version` hatasi alindi.
+  - Duzeltme:
+    - Temurin JDK 21 kuruldu ve PATH'e eklendi.
+- Hata-2:
+  - Ilk test iterasyonunda `STEP-079B` fail oldu.
+  - Koken:
+    - Test sonunda writer context ile RTDB read denemesi yapildigi icin read rule deny verdi.
+  - Duzeltme:
+    - Gereksiz read assertion kaldirildi; write window assertionlari korunarak test duzeltildi.
+- Hata-3:
+  - Sonraki iterasyonda `STEP-078` fail oldu (`ReferenceError: get is not defined`).
+  - Duzeltme:
+    - `firebase/database` importuna `get` geri eklendi.
+
+### Sonuc
+- 074-080 adimlari kapatildi.
+- Rules policy regressionlari icin tekrarlanabilir test paketi repo icine alindi.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Rules degisirse zorunlu komut:
+  1. `firebase emulators:exec --project demo-neredeservis-rules --only "auth,firestore,database" "npm --prefix functions run test:rules:unit"`
+  2. `flutter analyze`
+  3. `flutter test`
+- Java PATH sorunu olursa ayni oturumda gecici PATH export uygulanmali.
+
+### Sonraki Adim Icin Beklenen Onay
+- 081-082 (App Check debug token policy: sadece dev acik, stg/prod kapali) adimlarina gecis.

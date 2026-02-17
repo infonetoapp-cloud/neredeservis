@@ -1,7 +1,100 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // STEP-061 baseline: deny-all until callable-only access rules are hardened.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function routeDoc(routeId) {
+      return get(/databases/$(database)/documents/routes/$(routeId)).data;
+    }
+
+    function isRouteMember(routeId) {
+      return signedIn() &&
+        routeDoc(routeId).memberIds is list &&
+        request.auth.uid in routeDoc(routeId).memberIds;
+    }
+
+    function isRouteDriver(routeId) {
+      return signedIn() && routeDoc(routeId).driverId == request.auth.uid;
+    }
+
+    function isAuthorizedDriver(routeId) {
+      return signedIn() &&
+        routeDoc(routeId).authorizedDriverIds is list &&
+        request.auth.uid in routeDoc(routeId).authorizedDriverIds;
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid);
+      allow write, delete: if false;
+    }
+
+    // 073A: No direct Firestore reads. Search only via callable.
+    match /driver_directory/{driverId} {
+      allow read, write, delete: if false;
+    }
+
+    match /drivers/{driverId} {
+      allow read: if isSelf(driverId);
+      allow write, delete: if false;
+    }
+
+    match /routes/{routeId} {
+      allow read: if isRouteMember(routeId);
+      allow write: if false;
+    }
+
+    match /routes/{routeId}/stops/{stopId} {
+      allow read: if isRouteMember(routeId);
+      allow write: if false;
+    }
+
+    match /routes/{routeId}/passengers/{passengerId} {
+      allow read: if isSelf(passengerId) || isAuthorizedDriver(routeId) || isRouteDriver(routeId);
+      allow write: if false;
+    }
+
+    // 073: skip request visibility is limited to passenger + route drivers.
+    match /routes/{routeId}/skip_requests/{skipRequestId} {
+      allow read: if (
+        signedIn() && request.auth.uid == resource.data.passengerId
+      ) || isAuthorizedDriver(routeId) || isRouteDriver(routeId);
+      allow write: if false;
+    }
+
+    match /trips/{tripId} {
+      allow read: if signedIn() &&
+        routeDoc(resource.data.routeId).memberIds is list &&
+        request.auth.uid in routeDoc(resource.data.routeId).memberIds;
+      allow write: if false;
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if signedIn() &&
+        routeDoc(resource.data.routeId).memberIds is list &&
+        request.auth.uid in routeDoc(resource.data.routeId).memberIds;
+      allow write: if false;
+    }
+
+    match /guest_sessions/{sessionId} {
+      allow read: if signedIn() && request.auth.uid == resource.data.guestUid;
+      allow write: if false;
+    }
+
+    match /consents/{uid} {
+      allow read: if isSelf(uid);
+      allow write, delete: if false;
+    }
+
+    match /trip_requests/{id} {
+      allow read, write, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

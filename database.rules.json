@@ -4,15 +4,15 @@
     ".write": false,
     "locations": {
       "$routeId": {
-        ".read": false,
-        ".write": false,
+        ".read": "auth != null && (root.child('routeReaders').child($routeId).child(auth.uid).val() === true || (root.child('guestReaders').child($routeId).child(auth.uid).child('active').val() === true && root.child('guestReaders').child($routeId).child(auth.uid).child('expiresAtMs').val() > now))",
+        ".write": "auth != null && root.child('routeWriters').child($routeId).child(auth.uid).val() === true",
         "lat": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
         "lng": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
         "speed": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 80"},
         "heading": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 360"},
         "accuracy": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 200"},
         "tripId": {".validate": "newData.isString()"},
-        "driverId": {".validate": "newData.isString()"},
+        "driverId": {".validate": "newData.isString() && newData.val() === auth.uid"},
         "timestamp": {".validate": "newData.isNumber() && newData.val() <= now + 5000 && newData.val() >= now - 30000"}
       }
     },

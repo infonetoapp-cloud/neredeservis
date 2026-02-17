@@ -304,7 +304,7 @@ export interface GetSubscriptionStateOutput {
 }
 
 export interface SearchDriverDirectoryInput {
-  queryHash: string;
+  queryHash: string; // normalized hash string (min 8 chars)
   limit?: number; // 1..10
 }
 
@@ -316,6 +316,12 @@ export interface SearchDriverDirectoryOutput {
   }>;
 }
 ```
+
+Directory callable guardrails:
+- Caller must be authenticated with `users/{uid}.role == "driver"`.
+- Rate limit: max `30` request / `60s` per uid.
+- Query strategy: exact hash lookup on `searchPhoneHash` + `searchPlateHash`.
+- Returned fields are strictly masked: `driverId`, `displayName`, `plateMasked`.
 
 ## Guardrail Summary
 - Premium access is enforced server-side.
