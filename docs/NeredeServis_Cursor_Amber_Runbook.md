@@ -323,9 +323,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 099 Mapbox paketini exact versiyonla pinle ve minimum Flutter uyumunu not et.
 - [ ] 099A Mapbox Flutter PoC calistir (Android + iOS real device smoke).
 - [x] 099B MapLibre alternatif PoC notunu `docs/map_provider_decision.md` dosyasina yaz.
-- [ ] 099C KULLANICIDAN ONAY ISTE: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)".
+- [x] 099C KULLANICIDAN ONAY ISTE: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)".
 - [ ] 099D Token guvenlik ayarlarini yap: minimum scope + mobil app kisiti; URL restriction'a guvenme.
-- [ ] 099E In-app purchase stack'ini pinle: Google Play Billing Library `6.x` uyumunu dogrula (plugin surum notunu `docs/billing_lock.md` dosyasina yaz).
+- [x] 099E In-app purchase stack'ini pinle: Google Play Billing Library `6.x` uyumunu dogrula (plugin surum notunu `docs/billing_lock.md` dosyasina yaz).
 - [ ] 099F KULLANICIDAN ONAY ISTE: "Flutter lock 3.24.5 kabul mu?".
 - [ ] 100 Sentry paketi ekle (opsiyonel).
 - [ ] 101 `flutter pub get` calistir.

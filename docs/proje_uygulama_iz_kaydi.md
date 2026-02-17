@@ -3895,3 +3895,62 @@ Durum: Kismi Tamamlandi (099A blocker acik)
 
 ### Sonraki Adim Icin Beklenen Onay
 - 099C: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)"
+
+## STEP-099C..099E - Directions Kapali Karari + Billing Lock + Token Security Blokaj Kaydi
+Tarih: 2026-02-17  
+Durum: Kismi Tamamlandi
+
+### Amac
+- 099C kullanici onayini kaydetmek (Directions varsayilan kapali).
+- 099E IAP stack pinini yapmak ve Billing 6.x uyum notunu kanitla dokumante etmek.
+- 099D token guvenligi adimini yaparken token eksigi varsa blocker kaydi acmak.
+
+### Kullanici Onayi (099C)
+- Kullanici cevabi: `kapali kalsin devam et`
+- Sonuc:
+  - `directions_enabled=false` stratejisi korunarak 099C `[x]` isaretlendi.
+
+### Yapilan Isler (099E)
+- Paket eklendi/pinlendi:
+  - `in_app_purchase: 3.2.3` (exact)
+- Yeni dokuman olusturuldu:
+  - `docs/billing_lock.md`
+- Billing kaniti:
+  - `in_app_purchase_android-0.4.0/android/build.gradle`
+  - satir: `com.android.billingclient:billing:7.1.1`
+- Not:
+  - Runbook 6.x kontrolu istiyordu; plugin 7.1.1 kullaniyor (6.x uzeri), bu nedenle kabul edilip lock dosyasina yazildi.
+
+### Yapilan Isler (099D)
+- Yeni checklist dokumani olusturuldu:
+  - `docs/mapbox_token_security.md`
+- Icerik:
+  - public token package/bundle kisiti
+  - secret token sadece Secret Manager + proxy function
+  - URL restriction tek basina guvenli degil notu
+
+### Calistirilan Komutlar (Ham)
+1. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add in_app_purchase`
+2. `Get-Content %LOCALAPPDATA%\Pub\Cache\hosted\pub.dev\in_app_purchase_android-0.4.0\android\build.gradle`
+3. `\.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+4. `\.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+5. `\.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- `analyze` ve `test` green.
+- IAP stack local lock ile stabil.
+
+### Hata Kaydi (Silinmez)
+- Hata-1 (Blocker):
+  - 099D adiminda aktif Mapbox `pk/sk` token degerleri olmadan konsol kisitlari fiilen uygulanamadi.
+  - Duzeltme/Plan:
+    - `docs/mapbox_token_security.md` hazirlandi.
+    - Tokenlar paylasildiginda ayni checklist uygulanip 099D `[x]`e cekilecek.
+
+### Sonuc
+- 099C `[x]`
+- 099E `[x]`
+- 099D `[ ]` (token bekleniyor)
+
+### Sonraki Adim Icin Beklenen Onay
+- 099F: "Flutter lock 3.24.5 kabul mu?" (evet/hayir)
