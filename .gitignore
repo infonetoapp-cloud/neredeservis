@@ -55,3 +55,4 @@ android/app/google-services.json
 android/app/src/**/google-services.json
 ios/Runner/GoogleService-Info.plist
 ios/firebase/**/GoogleService-Info.plist
+lib/firebase/firebase_options_*.dart

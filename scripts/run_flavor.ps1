@@ -17,6 +17,7 @@ if (Test-Path $java17) {
   if ($env:Path -notlike "*$java17\bin*") {
     $env:Path = "$java17\bin;$env:Path"
   }
+  $env:GRADLE_OPTS = "-Dorg.gradle.java.home=`"$java17`""
 }
 
 switch ($Flavor) {

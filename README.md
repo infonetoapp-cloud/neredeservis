@@ -51,6 +51,7 @@ Windows:
 .\scripts\run_flavor.ps1 dev
 .\scripts\build_flavor.ps1 stg apk-debug
 ```
+Not: PowerShell scriptleri varsa yerel JDK17'yi otomatik baglar (`GRADLE_OPTS`).
 
 macOS/Linux:
 ```bash
@@ -58,10 +59,11 @@ macOS/Linux:
 ./scripts/build_flavor.sh dev apk-release
 ```
 
-## Firebase Opsiyon Dosyalari
-- `lib/firebase/firebase_options_dev.dart`
-- `lib/firebase/firebase_options_stg.dart`
-- `lib/firebase/firebase_options_prod.dart`
+## Firebase Konfig Kaynagi
+- V1.0 mobil kapsaminda Firebase init native dosyalardan okunur:
+  - Android: `android/app/src/<flavor>/google-services.json`
+  - iOS: `ios/Runner/GoogleService-Info.plist`
+- `lib/firebase/firebase_options_*.dart` dosyalari repoda tutulmaz.
 
 ## Not
 - iOS icin dev/stg/prod scheme/flavor ayrimi bir sonraki adimda (Mac + Xcode) tamamlanacaktir.

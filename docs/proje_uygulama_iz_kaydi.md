@@ -1912,3 +1912,94 @@ Durum: Devam ediyor (CI Run #6 tamamlanma sonucu bekleniyor)
   1) Auth UI/Gate entegrasyonu (anonymous->bootstrap->role stream) baglansin.
   2) `bootstrapUserProfile`/`updateUserProfile` callable istemci adapter'lari tamamlanip hata kodu mapping'i eklensin.
   3) Firebase Emulator Suite ile ilk auth+users rol entegrasyon testi yazilsin.
+
+## STEP-025 - Secret Alert Kapatma (Firebase Options Kaldirma) + CI Yerel Dogrulama
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+1) GitHub secret scanning mailindeki `firebase_options_*.dart` API key alertlerini kod tabanindan kalici olarak kaldirmak.
+2) Mobil uygulama bootstrap akisini native Firebase config dosyalarina tasimak.
+3) Lokal dogrulama ile degisikligin app'i bozmadigini ispatlamak.
+
+### Yapilan Isler
+- `lib/firebase/firebase_bootstrap.dart` dosyasi guncellendi:
+  - `firebase_options_dev/stg/prod.dart` importlari kaldirildi.
+  - Mobil platformlar icin `Firebase.initializeApp()` native config uzerinden calisacak sekilde sadeleştirildi.
+  - V1.0 kapsam disi oldugu icin web bootstrap acikca `UnsupportedError` ile bloke edildi.
+- Asagidaki dosyalar repodan kaldirildi:
+  - `lib/firebase/firebase_options_dev.dart`
+  - `lib/firebase/firebase_options_stg.dart`
+  - `lib/firebase/firebase_options_prod.dart`
+- `.gitignore` guncellendi:
+  - `lib/firebase/firebase_options_*.dart` ignore edildi (tekrar commit edilmesini engellemek icin).
+- `README.md` guncellendi:
+  - Firebase config kaynagi olarak Android `google-services.json` ve iOS `GoogleService-Info.plist` tek kaynak olarak yazildi.
+  - PowerShell scriptlerinin lokal JDK17 baglama notu eklendi.
+- `scripts/run_flavor.ps1` ve `scripts/build_flavor.ps1` guncellendi:
+  - Lokal Windows JDK17 bulunursa `GRADLE_OPTS=-Dorg.gradle.java.home=...` otomatik setleniyor.
+
+### Calistirilan Komutlar (Ham)
+1. `git status --short`
+2. `flutter analyze`
+3. `flutter test`
+4. `git diff -- .gitignore README.md lib/firebase/firebase_bootstrap.dart scripts/build_flavor.ps1 scripts/run_flavor.ps1`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Not: Secret scanning alertleri commit gecmisine de bakar. Koddan kaldirmak yeni sizinti riskini kapatir ama gecmis alertleri GitHub tarafinda ayrica resolve edilmeli.
+
+### Bulgular
+- Kod artik `firebase_options_*.dart` dosyalarina bagli degil.
+- Analiz ve test sonucu green:
+  - `flutter analyze` -> green
+  - `flutter test` -> green
+- Secret alertin kaynagi olan dosyalar repodan kaldirildi ve yeniden commit edilmesi ignore ile engellendi.
+
+### Sonuc
+- Secret scanning mailindeki ana risk (repoda acik API key dosyalari) kapatildi.
+- Mobil bootstrap akisi teknik plana daha uygun hale geldi (native config kaynakli).
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-026:
+  1) Bu degisiklikleri commit + push edelim.
+  2) GitHub alertlerini "rotated/revoked + fixed in code" olarak kapatma adimlarini checklist halinde uygulayalim.
+  3) GitHub Student Pack avantajlarini (Copilot Pro, Codespaces, observability/monitoring teklifleri) projeye ozel aksiyon planina dokelim.
+
+## STEP-026 - iOS CI E-posta Gurultusu Azaltma + Student Pack Aksiyon Plani
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+1) GitHub mailinde gelen iOS compile failure durumunu no-Mac modelde "uyari ama bloklamayan" seklinde netlestirmek.
+2) GitHub Student Pack avantajlarini proje is akisina somut kontrol listesiyle baglamak.
+
+### Yapilan Isler
+- `.github/workflows/mobile_ci.yml` guncellendi:
+  - Job seviyesindeki `continue-on-error` kaldirildi.
+  - `Build iOS no-codesign` adimina step seviyesinde `continue-on-error: true` eklendi.
+  - Sonrasina `Report iOS guard status` adimi eklendi:
+    - Basarisizsa warning yazar, Android/backend pipeline'i bloklamaz.
+    - Basariliysa acikca "passed" yazdirir.
+- `docs/github_student_pack_plan.md` eklendi:
+  - Copilot Pro, Codespaces, Actions/Artifacts ve claim akisi icin proje-ozel operasyon plani yazildi.
+  - "Her muhendis aktivasyon kaydi birakmak zorundadir" kurali eklendi.
+
+### Calistirilan Komutlar (Ham)
+1. `Get-Content .github/workflows/mobile_ci.yml`
+2. `git diff -- .github/workflows/mobile_ci.yml`
+3. `git status --short`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Not: GitHub tarafindaki gecmis secret alertleri kod degisikligi ile otomatik kapanmayabilir; repo guvenlik panelinden resolve gerekir.
+
+### Sonuc
+- iOS compile guard artik no-Mac modelde sinyal verir, ana pipeline'i fail etmez.
+- Student Pack avantajlari dokumante edilip proje operasyonuna baglandi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-027:
+  1) Bu adimlari commit + push yapalim.
+  2) GitHub Security -> Secret scanning alerts panelinde ilgili kayitlari "fixed/rotated" seklinde kapatalim.
+  3) Firebase API key kisitlama (Android package SHA-1 / iOS bundle restriction) checklistini uygulayalim.

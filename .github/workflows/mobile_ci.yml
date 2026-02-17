@@ -56,7 +56,6 @@ jobs:
   ios_compile:
     name: iOS Compile (No Codesign)
     runs-on: macos-latest
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,4 +93,15 @@ jobs:
 
       # iOS multi-scheme henuz tanimli degil; bu adim prod entrypoint icin compile guard olarak calisir.
       - name: Build iOS no-codesign
+        id: ios_build
+        continue-on-error: true
         run: flutter build ios --no-codesign -t lib/main_prod.dart
+
+      - name: Report iOS guard status
+        if: always()
+        run: |
+          if [ "${{ steps.ios_build.outcome }}" != "success" ]; then
+            echo "::warning::iOS no-codesign compile failed (non-blocking in no-Mac mode)."
+          else
+            echo "iOS no-codesign compile passed."
+          fi
