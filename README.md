@@ -13,8 +13,9 @@ Flutter 3.24.5 (FVM) tabanli cok-ortam (dev/stg/prod) iskeleti.
 ## On Kosul
 - FVM ile kilitli Flutter: `3.24.5`
 - Android build icin JDK 17
-  - Bu repoda `android/gradle.properties` icinde `org.gradle.java.home` pinlenmistir.
+  - Lokal terminalde `JAVA_HOME` JDK17'yi isaret etmelidir.
 - Android `minSdk` degeri Firebase Auth uyumu icin `23` olarak sabittir.
+- iOS deployment target Firebase Auth uyumu icin `13.0` olarak sabittir.
 
 ## Calistirma
 Windows'ta FVM PATH'te degilse:

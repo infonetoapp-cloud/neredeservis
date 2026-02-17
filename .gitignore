@@ -18,6 +18,9 @@ pubspec_overrides.yaml
 # OS files
 .DS_Store
 Thumbs.db
+_ci_repro/
+run_logs_*.zip
+job_*.log
 
 # Android
 android/.gradle/
