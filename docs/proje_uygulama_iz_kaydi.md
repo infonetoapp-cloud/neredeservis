@@ -2188,3 +2188,23 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.B:
   1) STG `Browser key (auto created by Firebase)` icin websites restriction uygulansin.
+
+### STEP-031.B Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- STG `Browser key (auto created by Firebase)` icin `Websites` restriction uygulandi.
+  - `https://neredeservis-stg-01.web.app/*`
+  - `https://neredeservis-stg-01.firebaseapp.com/*`
+  - `http://localhost/*`
+- `docs/firebase_api_key_hardening_checklist.md` guncellendi:
+  - Browser key kisitlari icin yeni bolum (`2.3`) eklendi.
+  - `Stg Browser key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.C:
+  1) DEV projesinde Android key restriction uygulansin.

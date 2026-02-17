@@ -57,6 +57,31 @@ Kontrol:
 - [x] Stg iOS key restricted
 - [ ] Prod iOS key restricted
 
+### 2.3 Browser key kisitlari (Firebase Hosting / Web)
+Her environment icin:
+1. Ilgili `Browser key (auto created by Firebase)` kaydini ac.
+2. `Application restrictions`:
+   - `Websites`
+   - Yetkili referrer'lari ekle:
+     - dev:
+       - `https://neredeservis-dev-01.web.app/*`
+       - `https://neredeservis-dev-01.firebaseapp.com/*`
+       - `http://localhost/*`
+     - stg:
+       - `https://neredeservis-stg-01.web.app/*`
+       - `https://neredeservis-stg-01.firebaseapp.com/*`
+       - `http://localhost/*`
+     - prod:
+       - `https://neredeservis-prod-01.web.app/*`
+       - `https://neredeservis-prod-01.firebaseapp.com/*`
+       - `https://nerede.servis/*` (domain aktif oldugunda)
+3. Kaydet.
+
+Kontrol:
+- [ ] Dev Browser key restricted
+- [x] Stg Browser key restricted
+- [ ] Prod Browser key restricted
+
 ## 3) API Seti Minimize Etme
 
 Prensip: "Needed only". Gereksiz API secilmez.
