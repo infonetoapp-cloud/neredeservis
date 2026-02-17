@@ -311,9 +311,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 099C KULLANICIDAN ONAY ISTE: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)".
 - [ ] 099D Token guvenlik ayarlarini yap: minimum scope + mobil app kisiti; URL restriction'a guvenme.
 - [x] 099E In-app purchase stack'ini pinle: Google Play Billing Library `6.x` uyumunu dogrula (plugin surum notunu `docs/billing_lock.md` dosyasina yaz).
-- [ ] 099F KULLANICIDAN ONAY ISTE: "Flutter lock 3.24.5 kabul mu?".
-- [ ] 100 Sentry paketi ekle (opsiyonel).
-- [ ] 101 `flutter pub get` calistir.
+- [x] 099F KULLANICIDAN ONAY ISTE: "Flutter lock 3.24.5 kabul mu?".
+- [x] 100 Sentry paketi ekle (opsiyonel).
+- [x] 101 `flutter pub get` calistir.
 - [ ] 102 Klasor yapisini runbook standardina gore kur.
 - [ ] 103 App flavor ayarlarini Android tarafinda yap.
 - [ ] 104 App flavor ayarlarini iOS tarafinda yap.

@@ -3954,3 +3954,50 @@ Durum: Kismi Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 099F: "Flutter lock 3.24.5 kabul mu?" (evet/hayir)
+
+## STEP-099F..101 - Flutter Lock Onayi + Sentry Paket Kilidi + Pub Get
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 099F: Flutter lock onayini kayda almak.
+- 100: Opsiyonel Sentry paketini exact pin ile eklemek.
+- 101: `flutter pub get` adimini resmi olarak calistirmak.
+
+### Kullanici Onayi (099F)
+- Kullanici cevabi: `evet`
+- Sonuc:
+  - Flutter lock `3.24.5` kabul edildi ve 099F `[x]` isaretlendi.
+
+### Yapilan Isler
+- `pubspec.yaml` guncellendi:
+  - `sentry_flutter: 9.13.0` (exact)
+- `pub get` + kalite dogrulama komutlari calistirildi:
+  - `flutter pub get`
+  - `flutter analyze`
+  - `flutter test`
+- Runbook checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md` -> `099F`, `100`, `101` `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` -> `099F`, `100`, `101` `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add sentry_flutter`
+2. `\.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+3. `\.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+4. `\.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- `analyze`: temiz
+- `test`: tum testler gecti
+- Sentry paketi lock toolchain ile uyumlu cozuldu.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni bloklayici hata yok.
+
+### Sonuc
+- 099F `[x]`
+- 100 `[x]`
+- 101 `[x]`
+
+### Sonraki Adim Icin Beklenen Onay
+- 102 adimi: klasor yapisini runbook standardina gore tarayip eksik varsa sadece eksikleri tamamlayayim.
