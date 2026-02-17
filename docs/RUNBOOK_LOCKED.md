@@ -230,21 +230,21 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 043 Anonymous auth'u ac (guest flow icin).
 - [x] 044 FCM'i aktif et.
 - [x] 045 App Check konfigurasyon taslagi cikar.
-- [ ] 046 Android app'i Firebase'e kaydet.
-- [ ] 047 iOS app'i Firebase'e kaydet.
-- [ ] 048 KULLANICIDAN ONAY ISTE: "Android package id ve iOS bundle id nedir?".
-- [ ] 049 `google-services.json` (dev) al.
-- [ ] 050 `GoogleService-Info.plist` (dev) al.
-- [ ] 051 staging dosyalarini al.
-- [ ] 052 prod dosyalarini al.
+- [x] 046 Android app'i Firebase'e kaydet.
+- [x] 047 iOS app'i Firebase'e kaydet.
+- [x] 048 KULLANICIDAN ONAY ISTE: "Android package id ve iOS bundle id nedir?".
+- [x] 049 `google-services.json` (dev) al.
+- [x] 050 `GoogleService-Info.plist` (dev) al.
+- [x] 051 staging dosyalarini al.
+- [x] 052 prod dosyalarini al.
 - [ ] 053 `firebase_options.dart` generate et.
-- [ ] 054 Auth domain ve redirect ayarlarini kontrol et.
-- [ ] 055 Firestore index json dosyasini olustur.
-- [ ] 056 Functions runtime `nodejs20` ayarla.
-- [ ] 057 Hosting site targetlarini tanimla (`dev/staging/prod`).
-- [ ] 058 Local emulator config yaz (`firestore/auth/functions/database`).
-- [ ] 059 Emulator port cakismasi var mi kontrol et.
-- [ ] 060 DOGRULAMA: Emulatorlar tek komutla kalkiyor mu?
+- [x] 054 Auth domain ve redirect ayarlarini kontrol et.
+- [x] 055 Firestore index json dosyasini olustur.
+- [x] 056 Functions runtime `nodejs20` ayarla.
+- [x] 057 Hosting site targetlarini tanimla (`dev/staging/prod`).
+- [x] 058 Local emulator config yaz (`firestore/auth/functions/database`).
+- [x] 059 Emulator port cakismasi var mi kontrol et.
+- [x] 060 DOGRULAMA: Emulatorlar tek komutla kalkiyor mu?
 - [ ] 061 Firestore rules dosyasini baslangicta deny-all yap.
 - [ ] 062 RTDB rules dosyasini deny-all yap.
 - [ ] 062A RTDB live location timestamp validate penceresini daralt: `<= now+5000` ve `>= now-30000` (2 dk pencere yok).

@@ -1,4 +1,7 @@
 ﻿{
+    "functions":  {
+                      "source":  "functions"
+                  },
     "firestore":  {
                       "rules":  "firestore.rules",
                       "indexes":  "firestore.indexes.json"
@@ -41,16 +44,5 @@
                                  "port":  4000
                              },
                       "singleProjectMode":  true
-                  },
-    "flutter":  {
-                    "platforms":  {
-                                      "android":  {
-                                                      "default":  {
-                                                                      "projectId":  "neredeservis-prod-01",
-                                                                      "appId":  "1:705689926965:android:9c8cd8fa043d295ed7e07c",
-                                                                      "fileOutput":  "android/app/google-services.json"
-                                                                  }
-                                                  }
-                                  }
-                }
+                  }
 }

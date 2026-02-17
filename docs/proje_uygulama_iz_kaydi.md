@@ -2843,3 +2843,74 @@ Durum: Kismen Tamamlandi (kritik bulgu var)
 - push: `origin/main`
 - test: `flutter test test/firebase/emulator_config_contract_test.dart` -> passed
 - CI run: `22106835971` (kayit aninda `in_progress`)
+
+## STEP-046..060 - Firebase App/Emulator Sertlestirme
+Tarih: 2026-02-17  
+Durum: Tamamlandi (053 haricinde notlu)
+
+### Amac
+- 046-060 araligini teknik olarak dogrulamak.
+- Cloud durumunu yeniden denetleyip Google giris tarafinda kalan riskleri netlestirmek.
+
+### Yapilan Isler
+- Cloud health denetimi tekrarlandi (dev/stg/prod):
+  - Auth provider: `email=true`, `anonymous=true`, `google=true`
+  - API: Functions/Run/FCM/RTDB/AppCheck/Auth enabled
+  - RTDB instance: aktif (`europe-west1`)
+- Android SHA eksigi giderildi (3 ortam):
+  - Debug SHA-1 + SHA-256 eklendi.
+- Functions iskeleti eklendi ve runtime kilidi ayarlandi:
+  - `functions/package.json` -> `engines.node = 20`
+  - `functions/index.js` -> `setGlobalOptions(region='europe-west3')`
+  - `firebase.json` -> `functions.source = "functions"`
+- Emulator setup ve smoke:
+  - Firestore/RTDB/UI emulator jar/zip indirildi.
+  - Port kontrolu yapildi.
+  - `auth,firestore,database,functions` emulators `emulators:exec` ile smoke green.
+- Runbook ilerleme isaretlendi:
+  - 046,047,048,049,050,051,052,054,055,056,057,058,059,060 -> `[x]`
+  - 053 notu asagida.
+
+### Calistirilan Komutlar (Ham)
+1. `firebase apps:list --project <dev|stg|prod>`
+2. `gcloud services list --enabled --project <dev|stg|prod>`
+3. `Invoke-RestMethod identitytoolkit config/provider kontrolleri`
+4. `firebase apps:android:sha:list/create ...`
+5. `npm install` (`functions/`)
+6. `firebase setup:emulators:firestore`
+7. `firebase setup:emulators:database`
+8. `firebase setup:emulators:ui`
+9. `firebase emulators:exec --only \"auth,firestore,database,functions\" \"cmd /c echo EMULATOR_SMOKE_OK_ALL\"`
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `flutterfire` PATH'te yoktu.
+  - Duzeltme:
+    - `dart pub global activate flutterfire_cli` calistirildi.
+- Hata-2:
+  - `flutterfire configure` komutu 20 dk timeout ile takildi.
+  - Duzeltme:
+    - Islem sonlandirildi, asili kalan `dart/dartvm` processleri temizlendi.
+    - 053 adimi bu turda "notlu acik" birakildi.
+- Hata-3:
+  - Emulator komutunda `--only auth,firestore,...` degeri tirnaksiz verildiginde PowerShell arguman parcasi bozuldu ve `No emulators to start` hatasi alindi.
+  - Duzeltme:
+    - `--only "auth,firestore,database,functions"` formatina gecildi.
+- Hata-4:
+  - Java PATH'te olmadigi icin emulator baslatma denemesinde `spawn java ENOENT` alindi.
+  - Duzeltme:
+    - PATH'e Android Studio JBR (`...\\Android Studio\\jbr\\bin`) eklendi.
+- Hata-5:
+  - Portlar onceki timeout denemelerinden dolu kaldi.
+  - Duzeltme:
+    - Ilgili PID'ler taskkill ile temizlendi, sonra smoke tekrarlandi.
+
+### Kritik Acik Risk (Google Giris)
+- Google provider cloud'da enabled olsa da:
+  - Android `google-services.json` dosyalarinda `oauth_client` bos.
+  - iOS plist dosyalarinda `CLIENT_ID` / `REVERSED_CLIENT_ID` yok.
+- Bu nedenle Google Sign-In sahada kirilabilir (potansiyel `DEVELOPER_ERROR`/token akis sorunu).
+
+### Sonraki Adim (Bloker Kapatma)
+- Firebase Console uzerinden Google Sign-In providerinin standart OAuth client seti ile yeniden baglanmasi,
+- sonrasinda Android/iOS config dosyalarinin yeniden alinip smoke test edilmesi.
