@@ -4252,3 +4252,113 @@ Durum: Tamamlandi
 
 ### Sonraki Adim
 - 114: Theme provider iskeleti.
+
+## STEP-114..119 - Theme Provider + Local Storage + Repository/Mapper + Exception/Failure + Logger
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 114: Theme provider iskeletini kurmak.
+- 115: Local storage abstraction katmanini olusturmak.
+- 116: Repository interface katmanini tanimlamak.
+- 117: DTO-model mapper iskeletini olusturmak.
+- 118: Exception/failure hiyerarsisini kurmak.
+- 119: Logger servis katmanini olusturmak.
+
+### Yapilan Isler
+- `ProviderScope` root seviyesinde aktif edildi:
+  - `lib/bootstrap/app_bootstrap.dart`
+- Theme provider iskeleti:
+  - `lib/app/providers/theme_provider.dart`
+  - `ThemeModeController`, `themeModeProvider`, `amberLightThemeProvider`.
+- App root, provider tabanli tema okuyacak sekilde guncellendi:
+  - `lib/app/nerede_servis_app.dart` (`ConsumerWidget`, `themeMode` + `theme`).
+- Local storage abstraction:
+  - `lib/core/storage/local_storage.dart`
+  - `InMemoryLocalStorage` fallback implementasyonu.
+  - `lib/app/providers/local_storage_provider.dart`
+- Repository interface katmani:
+  - `lib/services/repository_interfaces.dart`
+  - `RouteRepository`, `TripRepository`, `AnnouncementRepository` + komut/snapshot modelleri.
+- DTO-model mapper:
+  - `lib/models/trip_summary.dart`
+  - `lib/core/mappers/trip_summary_mapper.dart`
+- Exception/failure hiyerarsisi:
+  - `lib/core/exceptions/app_exception.dart`
+  - `lib/core/failures/app_failure.dart`
+- Logger servis katmani:
+  - `lib/core/logging/app_logger.dart`
+  - `lib/app/providers/logger_provider.dart`
+- Yeni router adiminda eklenen dependency exact pin olarak sabitlendi:
+  - `pubspec.yaml`: `go_router: 15.1.2`
+- Widget test ProviderScope ile uyumlu hale getirildi:
+  - `test/widget_test.dart`
+
+### Calistirilan Komutlar (Ham)
+1. `.\.fvm\flutter_sdk\bin\flutter.bat pub add go_router`
+2. `.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+3. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+4. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- Son durumda `flutter analyze` temiz.
+- Son durumda `flutter test` tum testleri gecti.
+- 114-119 kapsamindaki iskelet katmanlari repo seviyesinde olusturuldu.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Ilk `analyze` kosusunda `DebugAppLogger implements AppLogger` nedeniyle abstract metod tamamlama hatasi alindi.
+  - Duzeltme:
+    - `DebugAppLogger` sinifi `extends AppLogger` yapildi.
+    - `AppLogger` tabanina `const AppLogger();` constructor eklendi.
+- Hata-2:
+  - `NeredeServisApp` `ConsumerWidget` olduktan sonra widget testinde `No ProviderScope found` hatasi alindi.
+  - Duzeltme:
+    - `test/widget_test.dart` icinde test widgeti `ProviderScope` ile sarildi.
+- Hata-3:
+  - Test dosyasinda import sirasi linter kuralina takildi.
+  - Duzeltme:
+    - Import sirasi linter beklentisine gore duzeltildi.
+
+### Sonuc
+- 114 `[x]`
+- 115 `[x]`
+- 116 `[x]`
+- 117 `[x]`
+- 118 `[x]`
+- 119 `[x]`
+
+### Sonraki Adim
+- 120: DOGRULAMA - dev flavor acilis kontrolu.
+
+## STEP-120-TRY - Dev Flavor Build Dogrulamasi (Blokaj Kaydi)
+Tarih: 2026-02-17  
+Durum: Blokeli (Ortam kaynakli)
+
+### Amac
+- 120 adimini dogrulamak: dev flavor Android build aliniyor mu.
+
+### Calistirilan Komut (Ham)
+1. `.\.fvm\flutter_sdk\bin\flutter.bat build apk --debug --flavor dev -t lib/main_dev.dart`
+
+### Sonuc / Hata
+- Build fail:
+  - `:firebase_core:compileDebugJavaWithJavac`
+  - `Could not resolve ... :firebase_core:androidJdkImage`
+  - `JdkImageTransform ... android-34/core-for-system-modules.jar`
+  - `jlink.exe` cagrisi fail
+
+### Bulgular
+- Bu hata onceki kayitlarla tutarli sekilde flavor kodundan degil, lokal Android SDK/JDK arac zincirinden kaynaklaniyor.
+- `android/gradle.properties` icinde `android.disableJdkImageTransform=true` zaten mevcut; buna ragmen hata devam ediyor.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - 120 dogrulamasi bu ortamda tamamlanamadi.
+  - Plan:
+    - Lokal Android SDK platform 34/35 yeniden kurulum veya temizleme,
+    - JDK/Gradle uyum kontrolu,
+    - Ardindan ayni komutla 120 yeniden denenerek kapatilacak.
+
+### Sonuc
+- 120 `[ ]` acik kaldi (dogrulama blocker).

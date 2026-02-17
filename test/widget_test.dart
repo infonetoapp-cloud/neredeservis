@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:neredeservis/app/nerede_servis_app.dart';
@@ -8,10 +9,12 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
-      const NeredeServisApp(
-        flavorConfig: AppFlavorConfig(
-          flavor: AppFlavor.dev,
-          appName: 'NeredeServis Dev',
+      const ProviderScope(
+        child: NeredeServisApp(
+          flavorConfig: AppFlavorConfig(
+            flavor: AppFlavor.dev,
+            appName: 'NeredeServis Dev',
+          ),
         ),
       ),
     );

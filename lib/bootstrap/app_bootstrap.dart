@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/nerede_servis_app.dart';
 import '../config/app_environment.dart';
@@ -19,5 +20,9 @@ Future<void> bootstrapNeredeServis({
     flavor: flavor,
     environment: environment,
   );
-  runApp(NeredeServisApp(flavorConfig: configForFlavor(flavor)));
+  runApp(
+    ProviderScope(
+      child: NeredeServisApp(flavorConfig: configForFlavor(flavor)),
+    ),
+  );
 }

@@ -341,12 +341,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 111 Router iskeletini kur.
 - [x] 112 Auth guard iskeletini kur.
 - [x] 113 Role guard iskeletini kur.
-- [ ] 114 Theme provider iskeletini kur.
-- [ ] 115 Local storage abstraction yaz.
-- [ ] 116 Repository interface katmanini olustur.
-- [ ] 117 DTO-model mapperlari olustur.
-- [ ] 118 Exception ve failure hiyerarsisini olustur.
-- [ ] 119 Logger servis katmanini olustur.
+- [x] 114 Theme provider iskeletini kur.
+- [x] 115 Local storage abstraction yaz.
+- [x] 116 Repository interface katmanini olustur.
+- [x] 117 DTO-model mapperlari olustur.
+- [x] 118 Exception ve failure hiyerarsisini olustur.
+- [x] 119 Logger servis katmanini olustur.
 - [ ] 120 DOGRULAMA: Uygulama dev flavor ile aciliyor mu?
 - [ ] 121 CI icin `flutter analyze` job'u ekle.
 - [ ] 122 CI icin `flutter test` job'u ekle.
