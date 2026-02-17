@@ -2914,3 +2914,11 @@ Durum: Tamamlandi (053 haricinde notlu)
 ### Sonraki Adim (Bloker Kapatma)
 - Firebase Console uzerinden Google Sign-In providerinin standart OAuth client seti ile yeniden baglanmasi,
 - sonrasinda Android/iOS config dosyalarinin yeniden alinip smoke test edilmesi.
+
+### Git ve CI Notu
+- commit: `b75aae0`
+- push: `origin/main`
+- quality gate:
+  - `flutter analyze` -> passed
+  - `flutter test` -> passed
+- CI run: `22108576483` (kayit aninda `in_progress`)
