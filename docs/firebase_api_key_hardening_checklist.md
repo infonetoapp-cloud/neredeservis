@@ -133,5 +133,5 @@ Kontrol:
 3. Secret scanning alerti gelirse once kod kaynagini kapat, sonra panelden resolve et.
 
 Kontrol:
-- [ ] Onboarding notuna eklendi
-- [ ] `proje_uygulama_iz_kaydi.md` adim kapanis kaydi yazildi
+- [x] Onboarding notuna eklendi
+- [x] `proje_uygulama_iz_kaydi.md` adim kapanis kaydi yazildi

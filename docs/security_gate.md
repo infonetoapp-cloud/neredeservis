@@ -68,6 +68,10 @@
 - Sentry/logging must avoid PII leakage.
 - Secrets (Mapbox secret, keys) must never be present in client build.
 - Incident response and rollback procedures must exist before production rollout.
+- API key restriction hardening must be reproducible via script:
+  - `scripts/harden_firebase_api_keys.ps1 -Mode backup|apply|verify`
+  - Any key/restriction change requires `apply` + `verify` evidence in trace log.
+  - New engineer onboarding must include at least `backup` + `verify` execution evidence.
 
 ## 4) Gate Checklist (Release Blocking)
 - `SG-01` Firestore rules emulator tests green.
@@ -82,6 +86,7 @@
 - `SG-10` Data Safety and background location declarations aligned with runtime behavior.
 - `SG-11` Billing labels/copy match paywall source doc.
 - `SG-12` Secret leakage scan green (no secret token in app artifacts).
+- `SG-13` API key hardening script evidence exists in `docs/proje_uygulama_iz_kaydi.md`.
 
 ## 5) Decision Rule
 - Any failed `SG-*` item blocks release.

@@ -16,6 +16,10 @@
 - Belirsizlik olursa Cursor tahmin etmez; once sorar.
 - Ucretsiz limitleri asmak icin coklu hesap kullanimi yapilmaz (ToS ihlali riski).
 - Cursor'a ayni anda tum fazlar verilmez; her calismada sadece aktif faz + onceki fazin cikti dosyalari context'e verilir.
+- API key hardening onboarding kuralı zorunlu:
+  - Yeni muhendis/ajan ilk gun `scripts/harden_firebase_api_keys.ps1` scriptini en az `backup` ve `verify` modlarinda calistirir.
+  - Firebase key/restriction degisikligi yapildiginda `apply` + `verify` birlikte calistirilir.
+  - Cikti kaniti `docs/proje_uygulama_iz_kaydi.md` dosyasina ayni gun eklenir.
 
 ---
 

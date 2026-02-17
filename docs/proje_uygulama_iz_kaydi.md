@@ -2461,3 +2461,97 @@ Durum: Tamamlandi
 - STEP-036:
   1) CI run'larin tamamlanmasini bekleyip final sonucu rapora gecelim.
   2) Ardindan onboarding notuna API key hardening script kullanim adimini ekleyelim.
+
+## STEP-036 - CI Final Durum Kapanisi
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Bekleyen CI kosularinin final durumunu kesinlestirip raporu kapatmak.
+
+### Yapilan Isler
+- CI polling tamamlandi.
+- Sonuc:
+  - `22102035922` (`94b8fc1`) -> `success`
+  - `22101978814` (`3f9411c`) -> `success`
+  - Yeni push sonrasi run:
+    - `22102371756` (`04cc144`) -> `success`
+
+### Calistirilan Komutlar (Ham)
+1. `Invoke-RestMethod https://api.github.com/repos/infonetoapp-cloud/neredeservis/actions/runs?per_page=6`
+2. `Invoke-RestMethod https://api.github.com/repos/infonetoapp-cloud/neredeservis/actions/runs/22102371756`
+
+### Bulgular
+- Bekleyen tum CI kosulari tamamlandi ve son 5 kosu ard arda `success`.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- Security hardening sonrasinda CI zinciri yesil kaldi.
+
+## STEP-037 - Onboarding Guvenlik Kurali Kalicilastirma
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Sonraki muhendislerin API key hardening adimini atlamasini teknik olarak engellemek.
+
+### Yapilan Isler
+- Asagidaki dokumanlara onboarding zorunlulugu eklendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `docs/security_gate.md` (`SG-13` eklendi)
+- Yeni onboarding baseline dokumani eklendi:
+  - `docs/engineer_onboarding_security.md`
+  - Ilk gun zorunlu komutlar:
+    - `scripts/harden_firebase_api_keys.ps1 -Mode backup`
+    - `scripts/harden_firebase_api_keys.ps1 -Mode verify`
+  - Degisiklikte zorunlu komutlar:
+    - `backup -> apply -> verify`
+- Checklist guncellendi:
+  - `Onboarding notuna eklendi` -> `[x]`
+  - `proje_uygulama_iz_kaydi.md adim kapanis kaydi yazildi` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+2. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+3. `apply_patch` -> `docs/security_gate.md`
+4. `apply_patch` -> `docs/engineer_onboarding_security.md`
+5. `apply_patch` -> `docs/firebase_api_key_hardening_checklist.md`
+
+### Bulgular
+- Onboarding guvenlik kurali artik tek dosyaya bagli degil; runbook + gate + checklist uclu modeline dagitildi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- API key guvenligi artik kisiye bagli degil; script + gate + iz kaydi ile kurumsallasti.
+
+## STEP-038 - Uc Adim Otomatik Kapanis
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Kullanici onayi olmadan talep edilen ardil 3 adimi tek zincirde bitirip kayda almak.
+
+### Tamamlanan 3 Adim
+1. Bekleyen CI kosulari finalize edilip rapora islenmistir.
+2. Onboarding guvenlik zorunlulugu runbook + security gate + yeni onboarding dokumanina yazilmistir.
+3. Checklist ve iz kaydi kapanis maddeleri isaretlenmis, kayitlar append-only olarak tamamlanmistir.
+
+### Calistirilan Komutlar (Ham)
+1. `Invoke-RestMethod .../actions/runs`
+2. `apply_patch` dokuman guncellemeleri
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- Talep edilen 3 adim kullanicidan ek onay alinmadan tamamlandi ve raporlandi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-039:
+  1) Auth + role bootstrap akisini Emulator uzerinden entegrasyon testiyle ilerletelim.
+  2) `bootstrapUserProfile`/`updateUserProfile` callable hata kodu mapping'ini netlestirelim.
