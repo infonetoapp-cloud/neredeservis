@@ -1,7 +1,7 @@
 # Faz B Kapanis Raporu (STEP-090D)
 
 Tarih: 2026-02-17  
-Durum: KISMEN_KAPANIS (Release gate bagli acik maddeler var)
+Durum: KISMEN_KAPANIS (Store + iOS dis bagimliliklari acik)
 
 ## 1) Ozet
 - Faz B cekirdek altyapi, guvenlik, rules ve app-check adimlari buyuk oranda tamamlandi.
@@ -25,26 +25,25 @@ Durum: KISMEN_KAPANIS (Release gate bagli acik maddeler var)
   - Neden: fiziksel iPhone + Apple ekosistem gereksinimi
 - [ ] 090:
   - Neden: dev push testi iOS tarafi bloke, Android tarafi ayrik planlanacak
-- [ ] 090B:
-  - Neden: kullanici-hukuk onayi bekleniyor
+- [x] 090B:
+  - Neden: kullanici beyanina gore hukuki onay alindi ve kayda gecirildi
 
 ## 4) KVKK Hukuk Gate Durumu
 - `docs/legal_kvkk_review.md` olusturuldu (090A paketi hazir).
-- Hukuki onay su an `legal_approval: HAYIR` durumunda.
+- Hukuki onay su an `legal_approval: EVET` durumunda.
 - Release branch guard aktif:
   - Script: `scripts/release_branch_guard.ps1`
-  - Onay yoksa release branch acmayi engeller (090C).
+  - Onay yoksa release branch acmayi engeller (090C), onay varsa gecirir.
 
 ## 5) Risk Durumu
-- Yasal risk: Orta/Yuksek (hukuk onayi alinana kadar)
+- Yasal risk: Orta (hukuki onay kayitli, uygulama/store policy gate'leri acik)
 - Store risk: Orta (Play/App Store declaration adimlari release gate'te)
 - Teknik risk: Dusuk/Orta (backend + rules test coverage var)
 
 ## 6) Sonraki Zorunlu Aksiyonlar
-1. Hukuk review geribildirimi topla, `docs/legal_kvkk_review.md` append et.
-2. 090B icin kullanici onayi kaydi al (`evet/hayir`).
-3. Apple Developer hesabini ac; 087 blokajini kaldir.
-4. Internal test hazirliginda 083-085 release gate'ini tamamla.
+1. Apple Developer hesabini ac; 087 blokajini kaldir.
+2. Internal test hazirliginda 083-085 release gate'ini tamamla.
+3. Dev push testini (090) Android/iOS ayrik kanitla.
 
 ## 7) Faz B Cikis Karari
 - Faz B teknik temel acisindan yeterli olgunlukta.

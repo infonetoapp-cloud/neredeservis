@@ -19,7 +19,7 @@ if (-not (Test-Path $LegalReviewFile)) {
 }
 
 $content = Get-Content $LegalReviewFile -Raw
-$hasApproval = $content -match "(?im)^- legal_approval:\s*`?EVET`?\s*$"
+$hasApproval = $content -match '(?im)^- legal_approval:\s*`?EVET`?\s*$'
 
 if (-not $hasApproval) {
     Fail "KVKK hukuki onay EVET degil. Release branch acma. (090C gate aktif)"

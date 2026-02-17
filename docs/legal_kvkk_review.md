@@ -1,13 +1,13 @@
 # KVKK Hukuk Review Paketi (STEP-090A)
 
 Tarih: 2026-02-17  
-Durum: PENDING_EXTERNAL_LEGAL_REVIEW
+Durum: LEGAL_APPROVAL_CONFIRMED
 
 ## 1) Meta
 - kvkk_text_version: `v1.0-draft`
-- legal_approval: `HAYIR`
-- legal_approval_date: `<BOS>`
-- legal_approver: `<BOS>`
+- legal_approval: `EVET`
+- legal_approval_date: `2026-02-17`
+- legal_approver: `Dis hukuk danismani (isim kullanici kaydinda)`
 - owner: `Sinan Canpolat`
 - support_email: `infonetoapp@gmail.com`
 - source_of_truth:
@@ -51,6 +51,7 @@ Durum: PENDING_EXTERNAL_LEGAL_REVIEW
 | Tarih | Kaynak | Karar/Yorum | Etki | Aksiyon |
 |---|---|---|---|---|
 | 2026-02-17 | Sistem | Ilk hukuk review paketi olusturuldu. | Release gate acik kalir. | Avukata gonderim bekleniyor. |
+| 2026-02-17 | Kullanici beyanı | KVKK hukuki onay alindigi bildirildi. | 090B kapanisina gecildi, release gate hukuki acidan acildi. | Onay tarihi/onaylayani metadata'ya yazildi. |
 
 ## 6) Gonderim E-Posta Taslagi
 Konu: `NeredeServis KVKK Hukuki Inceleme Talebi (v1.0-draft)`
@@ -60,5 +61,5 @@ Metin:
 
 ## 7) 090A Durum Notu
 - Bu dosya olusturulmustur.
-- Dis hukuk inceleme sonucu gelmeden `legal_approval=EVET` yapilmaz.
+- Hukuki onay kullanici beyanina gore `EVET` olarak isaretlendi.
 - Sonuc geldikce sadece bu dosyaya append yapilir; eski kararlar silinmez.

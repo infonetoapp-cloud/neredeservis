@@ -284,17 +284,17 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 088A Cross-device PoC kos: iPhone 11 (iOS 17+) + Samsung A24 (Android 14+) 60 dk ekran kapali publish stabil mi.
 - [ ] 089 DOGRULAMA: iOS/Android 60 dk ekran kapali PoC stabil mi? (fail ise FAZ C'ye gecme).
 - [ ] 090 DOGRULAMA: Test push dev ortamda aliniyor mu?
-- [ ] 090A KVKK metnini hukuk review'una gonder ve yorumlari `docs/legal_kvkk_review.md` dosyasina yaz.
-- [ ] NOTE: `docs/legal_kvkk_review.md` hazirlandi; dis hukuk geri bildirimi bekleniyor.
-- [ ] 090B KULLANICIDAN ONAY ISTE: "KVKK hukuki onay alindi mi? (evet/hayir)".
+- [x] 090A KVKK metnini hukuk review'una gonder ve yorumlari `docs/legal_kvkk_review.md` dosyasina yaz.
+- [x] NOTE: `docs/legal_kvkk_review.md` uzerinde hukuki onay `EVET` olarak kayda alindi.
+- [x] 090B KULLANICIDAN ONAY ISTE: "KVKK hukuki onay alindi mi? (evet/hayir)".
 - [x] 090C Onay yoksa release branch acma, sadece teknik gelistirmeye devam et.
 - [x] 090D Faz B kapanis raporu yaz.
 
 ## FAZ C - Flutter Iskeleti ve Paketler (091-130)
 
-- [ ] 091 Flutter surumunu exact pinle (`fvm use 3.24.5`) ve `stable` etiketine bagimli kalma.
-- [ ] 092 `flutter --version` + `flutter doctor -v` ciktisini `docs/flutter_lock.md` dosyasina kaydet.
-- [ ] 092A `docs/flutter_lock.md` icine `Flutter=3.24.5`, `Dart`, `FVM`, `channel` ve host OS hash bilgisini sabitle.
+- [x] 091 Flutter surumunu exact pinle (`fvm use 3.24.5`) ve `stable` etiketine bagimli kalma.
+- [x] 092 `flutter --version` + `flutter doctor -v` ciktisini `docs/flutter_lock.md` dosyasina kaydet.
+- [x] 092A `docs/flutter_lock.md` icine `Flutter=3.24.5`, `Dart`, `FVM`, `channel` ve host OS hash bilgisini sabitle.
 - [ ] 093 Projeyi olustur (`flutter create`).
 - [ ] 094 `analysis_options.yaml` standardini ekle.
 - [ ] 094A `docs/flutter_upgrade_guard.md` dosyasini olustur (deprecation takibi + migration notlari).

@@ -3612,3 +3612,77 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 090B: `KVKK hukuki onay alindi mi? (evet/hayir)` kullanici cevabi alinacak.
+
+## STEP-090B - KVKK Hukuki Onay Cevabi (Kullanici Beyani)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Kullanici Cevabi
+- `evet onay alindi devam edelim`
+
+### Yapilan Isler
+- `docs/legal_kvkk_review.md` guncellendi:
+  - `legal_approval: EVET`
+  - `legal_approval_date: 2026-02-17`
+  - `legal_approver` alani dolduruldu
+  - Append-only yorum tablosuna yeni satir eklendi
+- Checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md` -> `090A`, `090B` `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` -> `090A`, `090B` `[x]`
+- Faz B raporu guncellendi:
+  - `docs/faz_b_kapanis_raporu.md` hukuk gate durumu `EVET`e cekildi
+
+### 090C Guard Dogrulamasi
+- Calistirilan komut:
+  - `powershell -ExecutionPolicy Bypass -File .\\scripts\\release_branch_guard.ps1`
+- Sonuc:
+  - `KVKK hukuki onay EVET. Release gate gecildi.`
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Guard script ilk denemede, regex icindeki backtick kacisi nedeniyle `EVET` olmasina ragmen false-negative verdi.
+  - Duzeltme:
+    - `scripts/release_branch_guard.ps1` regex ifadesi single-quoted regex ile duzeltildi.
+  - Tekrar dogrulama:
+    - Script basariyla gecti.
+
+### Sonuc
+- 090B kapandi.
+- Faz B kapanis raporunda hukuk gate aciklandi.
+
+## STEP-091..092A - Flutter Lock Dogrulamasi ve Sabitleme
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 091: Flutter surum pinini dogrulamak (`3.24.5`)
+- 092/092A: versiyon/doctor kanitini ve host fingerprint bilgisini lock dosyasina yazmak
+
+### Yapilan Isler
+- Dogrulama:
+  - `.fvmrc` -> `3.24.5`
+  - lokal SDK -> `.fvm/flutter_sdk`
+- Komutlar:
+  - `.\.fvm\flutter_sdk\bin\flutter.bat --version`
+  - `.\.fvm\flutter_sdk\bin\flutter.bat --version --machine`
+  - `.\.fvm\flutter_sdk\bin\flutter.bat doctor -v`
+- `docs/flutter_lock.md` guncellendi:
+  - Flutter/Dart/DevTools versiyonlari
+  - framework/engine revision
+  - host OS bilgisi
+  - host fingerprint sha256
+  - PowerShell fallback komutlari
+
+### Bulgular
+- Global `fvm` komutu bu ortamda PATH'te bulunmuyor.
+- Buna ragmen proje ici `.fvm/flutter_sdk` uzerinden lock toolchain calisiyor.
+- `flutter doctor -v` ciktisinda PATH mismatch uyarisi var; lock dosyasina operasyon notu eklendi.
+
+### Hata Kaydi (Silinmez)
+- Hata yok (bilinen ortam uyarilari dokumante edildi).
+
+### Sonuc
+- 091, 092, 092A checklist maddeleri `[x]` oldu.
+
+### Sonraki Adim Icin Beklenen Onay
+- 093 (flutter create) mevcut repoda zaten yapili oldugu icin "mevcut proje dogrulama" notuyla ilerleme karari verilecek.
