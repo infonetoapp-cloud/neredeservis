@@ -3848,3 +3848,50 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 099 adimina gecis: Mapbox exact pin + uyumluluk notu (`docs/map_provider_decision.md` ile birlikte).
+
+## STEP-099..099B - Mapbox Exact Pin + Provider Karari
+Tarih: 2026-02-17  
+Durum: Kismi Tamamlandi (099A blocker acik)
+
+### Amac
+- 099: Mapbox paketini exact surumle pinlemek ve minimum Flutter uyumunu dokumante etmek.
+- 099B: MapLibre alternatif notunu resmi karar dosyasina yazmak.
+
+### Yapilan Isler
+- `pubspec.yaml` icine `mapbox_maps_flutter` eklendi ve exact pinlendi:
+  - `mapbox_maps_flutter: 2.12.0`
+- Yeni karar dosyasi olusturuldu:
+  - `docs/map_provider_decision.md`
+  - Icerige sunlar yazildi:
+    - V1.0 birincil provider: Mapbox
+    - Minimum uyum: Flutter `>=3.22.3`, Dart `>=3.4.4`
+    - MapLibre fallback notu ve nedenleri
+    - 099A real-device gate notu
+- Runbook checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md` -> `099` ve `099B` `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` -> `099` ve `099B` `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add mapbox_maps_flutter`
+2. `\.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+3. `\.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+4. `\.\.fvm\flutter_sdk\bin\flutter.bat test`
+5. `Get-Content $env:LOCALAPPDATA\Pub\Cache\hosted\pub.dev\mapbox_maps_flutter-2.12.0\pubspec.yaml`
+
+### Bulgular
+- Resolver bu lock toolchain'de `mapbox_maps_flutter 2.12.0` secimini yapti (latest degil, uyumlu surum).
+- Paket kanitina gore minimum uyum:
+  - Flutter `>=3.22.3`
+  - Dart `>=3.4.4`
+- `flutter analyze` ve `flutter test` green kaldI.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni bloklayici hata yok.
+- Not: `099A` real-device smoke (Android + iOS) bu ortamda iOS fiziksel cihaz ve Apple hesap eksigi nedeniyle su an tamamlanamaz.
+
+### Sonuc
+- 099 ve 099B tamamlandi.
+- 099A acik ve blocker notu ile takipte.
+
+### Sonraki Adim Icin Beklenen Onay
+- 099C: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)"

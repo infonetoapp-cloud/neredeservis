@@ -305,9 +305,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 096A `build_runner` watch scripti ekle (`dart run build_runner watch -d`).
 - [x] 097 Drift ve sqlite paketlerini ekle.
 - [x] 098 Firebase core/auth/firestore/rtdb/messaging paketlerini ekle.
-- [ ] 099 Mapbox paketini exact versiyonla pinle ve minimum Flutter uyumunu not et.
+- [x] 099 Mapbox paketini exact versiyonla pinle ve minimum Flutter uyumunu not et.
 - [ ] 099A Mapbox Flutter PoC calistir (Android + iOS real device smoke).
-- [ ] 099B MapLibre alternatif PoC notunu `docs/map_provider_decision.md` dosyasina yaz.
+- [x] 099B MapLibre alternatif PoC notunu `docs/map_provider_decision.md` dosyasina yaz.
 - [ ] 099C KULLANICIDAN ONAY ISTE: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)".
 - [ ] 099D Token guvenlik ayarlarini yap: minimum scope + mobil app kisiti; URL restriction'a guvenme.
 - [ ] 099E In-app purchase stack'ini pinle: Google Play Billing Library `6.x` uyumunu dogrula (plugin surum notunu `docs/billing_lock.md` dosyasina yaz).
