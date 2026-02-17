@@ -61,3 +61,11 @@ Durum: Tamamlandi
   - `docs/app_check_konfig_taslagi.md`
 - App Check API dogrulamasi:
   - `firebaseappcheck.googleapis.com` dev/stg/prod enabled
+
+## Duzeltme Notu (Append-Only) - 2026-02-17
+
+- STEP-042 icinde gecen "IAM uzerinden uretilen OAuth client" yaklasimi mobil Google Sign-In icin uygun degildir.
+- Mevcut dogru durum:
+  - Google provider acik olsa da mobil configlerde `oauth_client`/`CLIENT_ID` alanlari dolmamis kaldi.
+  - Koken neden ve duzeltme akisi:
+    - `docs/firebase_google_signin_repair_playbook.md`

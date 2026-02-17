@@ -2922,3 +2922,56 @@ Durum: Tamamlandi (053 haricinde notlu)
   - `flutter analyze` -> passed
   - `flutter test` -> passed
 - CI run: `22108576483` (kayit aninda `in_progress`)
+
+## STEP-046B - Google Sign-In Koken Neden ve Tamir Playbook'u
+Tarih: 2026-02-17  
+Durum: Kismen Tamamlandi (manual gate acik)
+
+### Amac
+- Google Sign-In config blokerinin koken nedenini kesinlestirmek.
+- Sonraki muhendislerin ayni hataya dusmesini engellemek icin kalici playbook + otomatik kontrol scripti eklemek.
+
+### Yapilan Isler
+- Google provider `clientId` degerleri API uzerinden tekrar dogrulandi.
+- Tum ortamlarda provider `clientId` formatinin standart olmadigi teyit edildi:
+  - Beklenen: `*.apps.googleusercontent.com`
+  - Mevcut: UUID-benzeri ID
+- Otomatik readiness kontrol scripti eklendi:
+  - `scripts/check_google_signin_readiness.ps1`
+- Kalici duzeltme playbook dokumani eklendi:
+  - `docs/firebase_google_signin_repair_playbook.md`
+
+### Calistirilan Komutlar (Ham)
+1. `Invoke-RestMethod GET .../defaultSupportedIdpConfigs/google.com` (`x-goog-user-project` ile)
+2. `firebase apps:sdkconfig android <appId> --project <project>`
+3. `firebase apps:sdkconfig ios <appId> --project <project>`
+4. `powershell -ExecutionPolicy Bypass -File .\\scripts\\check_google_signin_readiness.ps1`
+
+### Bulgular
+- `check_google_signin_readiness.ps1` sonucu:
+  - `neredeservis-dev-01` -> FAIL
+  - `neredeservis-stg-01` -> FAIL
+  - `neredeservis-prod-01` -> FAIL
+- Fail nedenleri:
+  - `providerClientIdStandard = False`
+  - `androidOauthClientPresent = False`
+  - `iosClientIdPresent = False`
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Onceki adimlarda Google provider, `gcloud iam oauth-clients` uretimi ile baglandi.
+  - Bu istemci tipi Firebase mobil Google Sign-In icin uygun degil.
+- Duzeltme:
+  - `docs/firebase_google_signin_repair_playbook.md` olusturuldu.
+  - Standard OAuth client seti ile console uzerinden yeniden baglama adimi zorunlu hale getirildi.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Google Sign-In icin `gcloud iam oauth-clients` kullanma.
+- Sadece standart OAuth client seti (Google Cloud Credentials) ile ilerle.
+- Her degisiklikten sonra zorunlu:
+  1. `.\scripts\check_google_signin_readiness.ps1`
+  2. `flutter analyze`
+  3. `flutter test`
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-046C: Firebase Console'da manual tamir (dev/stg/prod) tamamlandiktan sonra scripti tekrar calistirip PASS raporunu alalim.
