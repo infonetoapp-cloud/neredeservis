@@ -2782,3 +2782,58 @@ Durum: Tamamlandi
 ### Sonraki Adim
 - STEP-046+:
   - App kayitlari/flavor config + emulator smoke + stale `firebase.json` girislerinin temizligi.
+
+## STEP-046-PRECHECK - Cloud Saglik Denetimi (Google Giris Dahil)
+Tarih: 2026-02-17  
+Durum: Kismen Tamamlandi (kritik bulgu var)
+
+### Amac
+- Simdiye kadar yapilan cloud/Firebase ayarlarinin saglamligini denetlemek.
+- Ozellikle Google ile giris akisinda gizli konfigurasyon acigi var mi bakmak.
+
+### Yapilan Isler
+- Dev/Stg/Prod icin asagidaki kontroller terminalden alindi:
+  - Firebase app kayitlari (Android/iOS)
+  - Enabled API listesi (Functions/Run/FCM/RTDB/App Check/Auth)
+  - RTDB instance ve region
+  - Auth provider durumlari (email, anonymous, google)
+  - Android SHA hash listesi
+  - iOS plist ve Android google-services icerik kontrolu
+- Android SHA eksigi tespit edildi ve giderildi:
+  - Debug SHA-1 ve SHA-256 uc ortama da eklendi.
+- `firebase.json` stale flutter dart map girisleri temizlendi (kaldirildi).
+
+### Bulgular
+- Guclu taraflar:
+  - Auth provider state: email/anonymous/google -> `true` (dev/stg/prod)
+  - RTDB instance -> aktif (dev/stg/prod)
+  - FCM + Functions + Run + AppCheck API -> enabled (dev/stg/prod)
+  - Android SHA eksigi kapatildi (dev/stg/prod)
+- Kritik risk:
+  - Android `google-services.json` dosyalarinda `oauth_client` halen bos.
+  - iOS `GoogleService-Info.plist` dosyalarinda `CLIENT_ID` / `REVERSED_CLIENT_ID` alanlari yok.
+  - Bu durum Google ile girisin sahada kirilmasina neden olabilir (ozellikle mobil SDK token akisinda).
+  - Auth google provider `clientId` degeri `*.apps.googleusercontent.com` formatinda degil; su an UUID formatinda.
+
+### Calistirilan Komutlar (Ham)
+1. `firebase apps:list --project <dev|stg|prod>`
+2. `gcloud services list --enabled --project <dev|stg|prod>`
+3. `Invoke-RestMethod identitytoolkit admin config + google provider`
+4. `firebase apps:android:sha:list <appId> --project <project>`
+5. `firebase apps:android:sha:create <appId> <sha> --project <project>` (SHA eksigi duzeltme)
+6. `firebase apps:sdkconfig ANDROID/IOS ...` (icerik kontrolu)
+7. `firebase.json` stale `flutter.platforms.dart` giris temizligi
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Android SHA ilk kontrolde 3 ortamda da bos geldi.
+  - Duzeltme:
+    - Debug SHA-1 ve SHA-256 uc ortama da eklendi.
+- Hata-2:
+  - Google Sign-In config dosyalarinda OAuth client alanlari beklenen sekilde dolmadi.
+  - Duzeltme (planlanan):
+    - Cloud Console/Firebase Auth Google provider ayari, standart OAuth client seti ile yeniden baglanacak.
+    - Sonrasinda app config dosyalari yeniden alinip smoke test yapilacak.
+
+### Sonraki Adim
+- STEP-046 devaminda once Google Sign-In config blokeri kapatilacak, sonra emulator + auth smoke testine gecilecek.

@@ -1,1 +1,56 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"database":{"rules":"database.rules.json"},"storage":{"rules":"storage.rules"},"hosting":[{"target":"app","public":"prototype","ignore":["firebase.json","**/.*","**/node_modules/**"]}],"emulators":{"auth":{"port":9099},"functions":{"port":5001},"firestore":{"port":8080},"database":{"port":9000},"hosting":{"port":5000},"ui":{"enabled":true,"port":4000},"singleProjectMode":true},"flutter":{"platforms":{"android":{"default":{"projectId":"neredeservis-prod-01","appId":"1:705689926965:android:9c8cd8fa043d295ed7e07c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase/firebase_options_dev.dart":{"projectId":"neredeservis-dev-01","configurations":{"android":"1:882097896542:android:df71941b8689ead1db88cf","ios":"1:882097896542:ios:a729dd50b64a442ddb88cf"}},"lib/firebase/firebase_options_stg.dart":{"projectId":"neredeservis-stg-01","configurations":{"android":"1:691483247415:android:61c42d64a84312938f90b2","ios":"1:691483247415:ios:792bc9b1a3b45a718f90b2"}},"lib/firebase/firebase_options_prod.dart":{"projectId":"neredeservis-prod-01","configurations":{"android":"1:705689926965:android:9c8cd8fa043d295ed7e07c","ios":"1:705689926965:ios:3d3ba8b962fe4a05d7e07c"}}}}}}
+﻿{
+    "firestore":  {
+                      "rules":  "firestore.rules",
+                      "indexes":  "firestore.indexes.json"
+                  },
+    "database":  {
+                     "rules":  "database.rules.json"
+                 },
+    "storage":  {
+                    "rules":  "storage.rules"
+                },
+    "hosting":  [
+                    {
+                        "target":  "app",
+                        "public":  "prototype",
+                        "ignore":  [
+                                       "firebase.json",
+                                       "**/.*",
+                                       "**/node_modules/**"
+                                   ]
+                    }
+                ],
+    "emulators":  {
+                      "auth":  {
+                                   "port":  9099
+                               },
+                      "functions":  {
+                                        "port":  5001
+                                    },
+                      "firestore":  {
+                                        "port":  8080
+                                    },
+                      "database":  {
+                                       "port":  9000
+                                   },
+                      "hosting":  {
+                                      "port":  5000
+                                  },
+                      "ui":  {
+                                 "enabled":  true,
+                                 "port":  4000
+                             },
+                      "singleProjectMode":  true
+                  },
+    "flutter":  {
+                    "platforms":  {
+                                      "android":  {
+                                                      "default":  {
+                                                                      "projectId":  "neredeservis-prod-01",
+                                                                      "appId":  "1:705689926965:android:9c8cd8fa043d295ed7e07c",
+                                                                      "fileOutput":  "android/app/google-services.json"
+                                                                  }
+                                                  }
+                                  }
+                }
+}
