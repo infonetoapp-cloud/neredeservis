@@ -2243,3 +2243,22 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.E:
   1) DEV `Browser key (auto created by Firebase)` icin websites restriction uygulansin.
+
+### STEP-031.E Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- DEV `Browser key (auto created by Firebase)` icin `Websites` restriction tamamlandi:
+  - `https://neredeservis-dev-01.web.app/*`
+  - `https://neredeservis-dev-01.firebaseapp.com/*`
+  - `http://localhost/*`
+- `docs/firebase_api_key_hardening_checklist.md` dosyasinda:
+  - `Dev Browser key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.F:
+  1) PROD projesinde `Android key (auto created by Firebase)` restriction uygulansin.

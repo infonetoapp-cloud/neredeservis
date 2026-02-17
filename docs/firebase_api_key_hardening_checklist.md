@@ -78,7 +78,7 @@ Her environment icin:
 3. Kaydet.
 
 Kontrol:
-- [ ] Dev Browser key restricted
+- [x] Dev Browser key restricted
 - [x] Stg Browser key restricted
 - [ ] Prod Browser key restricted
 
