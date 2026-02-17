@@ -295,11 +295,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 091 Flutter surumunu exact pinle (`fvm use 3.24.5`) ve `stable` etiketine bagimli kalma.
 - [x] 092 `flutter --version` + `flutter doctor -v` ciktisini `docs/flutter_lock.md` dosyasina kaydet.
 - [x] 092A `docs/flutter_lock.md` icine `Flutter=3.24.5`, `Dart`, `FVM`, `channel` ve host OS hash bilgisini sabitle.
-- [ ] 093 Projeyi olustur (`flutter create`).
-- [ ] 094 `analysis_options.yaml` standardini ekle.
-- [ ] 094A `docs/flutter_upgrade_guard.md` dosyasini olustur (deprecation takibi + migration notlari).
+- [x] 093 Projeyi olustur (`flutter create`).
+- [x] 094 `analysis_options.yaml` standardini ekle.
+- [x] 094A `docs/flutter_upgrade_guard.md` dosyasini olustur (deprecation takibi + migration notlari).
 - [ ] 094B Material 3 migration checklist'i olustur ve ThemeData'da M3 uyumunu kilitle.
-- [ ] 094C `flutter pub outdated` + `dart fix --dry-run` raporunu her sprint cikisinda zorunlu kil.
+- [x] 094C `flutter pub outdated` + `dart fix --dry-run` raporunu her sprint cikisinda zorunlu kil.
 - [ ] 095 `pubspec.yaml` bagimliliklarini teknik plana gore exact versiyon pinleyerek ekle.
 - [ ] 096 Riverpod generator paketlerini ekle.
 - [ ] 096A `build_runner` watch scripti ekle (`dart run build_runner watch -d`).
