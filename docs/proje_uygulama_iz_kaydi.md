@@ -2630,3 +2630,143 @@ Durum: Tamamlandi
 - STEP-040:
   1) Emulator bootstrap (Auth + Firestore + RTDB + Functions) smoke calistirip callable contract testlerini emulatorde dogrulayalim.
   2) `firebase.json` icindeki stale `flutter.platforms.dart` referanslarini temizleyelim.
+
+## STEP-040 - RTDB Instance (Region Uyumlu)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Dev/Stg/Prod ortamlarda RTDB instance'in aktif ve region uyumlu oldugunu dogrulamak.
+
+### Yapilan Isler
+- `firebasedatabase.googleapis.com` uzerinden instance listeleri cekildi.
+- Tum ortamlarda default instance aktif dogrulandi:
+  - `neredeservis-dev-01-default-rtdb`
+  - `neredeservis-stg-01-default-rtdb`
+  - `neredeservis-prod-01-default-rtdb`
+- Region sonucu: `europe-west1` (RTDB urun kisiti nedeniyle `europe-west3` yerine kontrollu istisna).
+
+### Calistirilan Komutlar (Ham)
+1. `firebase database:instances:list --project neredeservis-dev-01`
+2. `firebase database:instances:list --project neredeservis-stg-01`
+3. `firebase database:instances:list --project neredeservis-prod-01`
+4. `Invoke-RestMethod GET https://firebasedatabase.googleapis.com/v1beta/projects/<project>/locations/-/instances`
+
+---
+
+## STEP-041 - Cloud Functions Region Kilidi (`europe-west3`)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Functions runtime region'unu tum kod tabaninda tek kaynaga baglamak.
+
+### Yapilan Isler
+- Merkezi region sabit dosyasi eklendi:
+  - `lib/config/firebase_regions.dart`
+- Callable clientlar string literal yerine merkezi sabiti kullanacak sekilde guncellendi:
+  - `lib/features/auth/data/bootstrap_user_profile_client.dart`
+  - `lib/features/auth/data/update_user_profile_client.dart`
+- Cloud Functions/Run API etkinligi tum ortamlarda dogrulandi:
+  - `cloudfunctions.googleapis.com`
+  - `run.googleapis.com`
+
+### Calistirilan Komutlar (Ham)
+1. `gcloud services enable cloudfunctions.googleapis.com run.googleapis.com --project <dev|stg|prod>`
+2. `gcloud services list --enabled --project <dev|stg|prod>`
+
+---
+
+## STEP-042 - Firebase Auth Providerlari (Email + Google)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Tum ortamlarda Email/Password + Google providerlarini terminalden aktif hale getirmek.
+
+### Yapilan Isler
+- Auth altyapisi initialize edildi (`identityPlatform:initializeAuth`).
+- Email/Password aktif edildi:
+  - `signIn.email.enabled=true`
+  - `signIn.email.passwordRequired=true`
+- Google provider aktif edildi:
+  - Her ortamda IAM OAuth client + credential uretildi.
+  - `defaultSupportedIdpConfigs/google.com` provider config'i `enabled=true` yapildi.
+
+### Calistirilan Komutlar (Ham)
+1. `POST https://identitytoolkit.googleapis.com/v2/projects/<project>/identityPlatform:initializeAuth`
+2. `PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/<project>/config?updateMask=signIn.email.enabled,signIn.email.passwordRequired,...`
+3. `gcloud iam oauth-clients create ...`
+4. `gcloud iam oauth-clients credentials create ...`
+5. `POST/PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/<project>/defaultSupportedIdpConfigs?idpId=google.com`
+
+---
+
+## STEP-043 - Anonymous Auth (Guest Flow)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Yapilan Isler
+- Tum ortamlarda `signIn.anonymous.enabled=true` olarak ayarlandi.
+
+---
+
+## STEP-044 - FCM Aktivasyonu
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Yapilan Isler
+- Dev/Stg/Prod ortamlarinda FCM servisleri aktif/dogrulandi:
+  - `fcm.googleapis.com`
+  - `fcmregistrations.googleapis.com`
+
+### Calistirilan Komutlar (Ham)
+1. `gcloud services enable fcm.googleapis.com fcmregistrations.googleapis.com --project <dev|stg|prod>`
+2. `gcloud services list --enabled --project <dev|stg|prod>`
+
+---
+
+## STEP-045 - App Check Konfigurasyon Taslagi
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Yapilan Isler
+- App Check taslak dokumani olusturuldu:
+  - `docs/app_check_konfig_taslagi.md`
+- App Check API tum ortamlarda aktif/dogrulandi:
+  - `firebaseappcheck.googleapis.com`
+
+### Calistirilan Komutlar (Ham)
+1. `gcloud services enable firebaseappcheck.googleapis.com --project <dev|stg|prod>`
+2. `gcloud services list --enabled --project <dev|stg|prod>`
+
+---
+
+## Hata Kaydi (Silinmez) - STEP 040..045
+
+- Hata-1:
+  - `identitytoolkit.googleapis.com/admin/v2/projects/<id>/config` cagrisi ilk denemede `403` verdi.
+  - Sebep:
+    - Quota project header eksikti (`x-goog-user-project`).
+  - Duzeltme:
+    - Tum Identity Toolkit admin cagrilarinda `x-goog-user-project=<hedef_proje>` zorunlu kullanildi.
+
+- Hata-2:
+  - `initializeAuth` endpoint ilk denemede yanlis path ile cagrildi (`/v2/projects/<id>:initializeAuth`) ve `404` alindi.
+  - Duzeltme:
+    - Dogru endpoint kullanildi:
+      - `/v2/projects/<id>/identityPlatform:initializeAuth`
+
+- Hata-3:
+  - OAuth credential olusturmada ID uzunlugu/pattern hatasi alindi (`INVALID_ARGUMENT`).
+  - Duzeltme:
+    - Credential ID kisaltildi ve sadece izinli karakter seti kullanildi (`[a-z0-9-]`, max 32).
+
+### Sonuc
+- Runbook 040-045 adimlari uygulandi ve `RUNBOOK_LOCKED.md` ile `NeredeServis_Cursor_Amber_Runbook.md` icinde isaretlendi.
+- Kanit dosyasi eklendi:
+  - `docs/firebase_step_040_045_evidence.md`
+
+### Sonraki Adim
+- STEP-046+:
+  - App kayitlari/flavor config + emulator smoke + stale `firebase.json` girislerinin temizligi.

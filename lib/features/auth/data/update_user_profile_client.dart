@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:neredeservis/config/firebase_regions.dart';
 
 import 'bootstrap_user_profile_client.dart';
 import 'profile_callable_exception.dart';
@@ -39,7 +40,8 @@ class UpdateUserProfileClient {
   final CallableInvoker? _invoker;
 
   FirebaseFunctions get _resolvedFunctions =>
-      _functions ??= FirebaseFunctions.instanceFor(region: 'europe-west3');
+      _functions ??=
+          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
 
   Future<UpdateUserProfileResult> update(
     UpdateUserProfileInput input,

@@ -238,13 +238,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 038B Proje environment tag'lerini ekle: dev=`Development`, staging=`Staging`, prod=`Production` (gcloud Resource Manager tag binding).
 - [ ] 038A Her ortam icin budget ve alarm esiklerini olustur (50/75/90/100) ve dokumante et.
 - [ ] 039 Firestore database olustur (prod icin locked mode).
-- [ ] 040 RTDB instance olustur (region uyumlu).
-- [ ] 041 Cloud Functions region ayarini `europe-west3` yap.
+- [x] 040 RTDB instance olustur (region uyumlu).
+- [x] 041 Cloud Functions region ayarini `europe-west3` yap.
 - [ ] 041A Service account baseline'ini uygula (`nsv-ci-deployer`, `nsv-functions-runtime`, `nsv-scheduler`) ve minimum yetki prensibiyle role bagla.
-- [ ] 042 Firebase Auth providerlarini ac: Email, Google.
-- [ ] 043 Anonymous auth'u ac (guest flow icin).
-- [ ] 044 FCM'i aktif et.
-- [ ] 045 App Check konfigurasyon taslagi cikar.
+- [x] 042 Firebase Auth providerlarini ac: Email, Google.
+- [x] 043 Anonymous auth'u ac (guest flow icin).
+- [x] 044 FCM'i aktif et.
+- [x] 045 App Check konfigurasyon taslagi cikar.
 - [ ] 046 Android app'i Firebase'e kaydet.
 - [ ] 047 iOS app'i Firebase'e kaydet.
 - [ ] 048 KULLANICIDAN ONAY ISTE: "Android package id ve iOS bundle id nedir?".

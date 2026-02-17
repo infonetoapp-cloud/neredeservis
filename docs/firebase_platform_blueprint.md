@@ -23,7 +23,7 @@
 
 ### 2.2 Region standardi
 - Firestore: `europe-west3`
-- RTDB: `europe-west3`
+- RTDB: `europe-west1` (Firebase RTDB lokasyon kisiti nedeniyle zorunlu istisna)
 - Cloud Functions Gen2: `europe-west3`
 - Cloud Storage default lokasyon: `eu`
 
@@ -206,7 +206,9 @@
 - Proje koku: `neredeservis`
 - Proje sahipligi: personal account
 - Billing: kullanici beyanina gore Blaze aktif; CLI tarafinda dogrudan billing API dogrulamasi (gcloud) bu makinede beklemede
-- Region: `europe-west3` standardi
+- Region standardi:
+  - Firestore/Functions/Storage -> `europe-west3`
+  - RTDB -> `europe-west1` (zorunlu urun kisiti istisnasi)
 - Project ID fallback: `-01` suffix politikasina hazir
 
 ## 15) Cloud API Enable Checklist (Non-Negotiable)

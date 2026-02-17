@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:neredeservis/config/firebase_regions.dart';
 
 import '../domain/user_role.dart';
 import 'profile_callable_exception.dart';
@@ -46,7 +47,8 @@ class BootstrapUserProfileClient {
   final CallableInvoker? _invoker;
 
   FirebaseFunctions get _resolvedFunctions =>
-      _functions ??= FirebaseFunctions.instanceFor(region: 'europe-west3');
+      _functions ??=
+          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
 
   Future<BootstrapUserProfileResult> bootstrap(
     BootstrapUserProfileInput input,

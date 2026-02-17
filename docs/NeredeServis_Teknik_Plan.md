@@ -86,9 +86,10 @@ Bu dokuman V1.0 teknik kaynak dokumanidir. Urun stratejisiyle hizali, belirsizli
 - Client tarafi role claim'ine tek basina guvenmez
 
 ### 1.5 Region standardi
-- Functions/RTDB/Storage: `europe-west3`
+- Functions/Storage: `europe-west3`
 - Firestore: `europe-west3`
-- Tum ortamlarda ayni region kullanilir
+- RTDB: `europe-west1` (urun kisiti: `europe-west3` desteklenmedigi icin kontrollu istisna)
+- Tum ortamlarda ayni dagilim kullanilir (dev/stg/prod birebir)
 
 ### 1.6 Zaman standardi
 - Tum server timestamp alanlari UTC saklanir.
@@ -975,7 +976,9 @@ Input validasyon kurallari:
 - Support kanalina (email/slack) giden payload da ayni redaction kurallarina tabidir.
 
 ### 7.6 Region
-- Tum runtime servisleri `europe-west3` standardina bagli
+- Runtime region standardi:
+  - Functions/Firestore/Storage -> `europe-west3`
+  - RTDB -> `europe-west1` (urun kisiti istisnasi)
 - Region degisikligi ancak migration runbook ile
 
 ### Risk
