@@ -16,9 +16,9 @@ Sorumlu: Sinan + Codex
 3. Asagidaki notla resolve et:
    - `Key removed from tracked source in commit 57ca6b7. Firebase init moved to native config files. Key restrictions/rotation applied.`
 4. Tum alertler icin durum:
-   - [ ] Dev alert kapandi
-   - [ ] Stg alert kapandi
-   - [ ] Prod alert kapandi
+   - [x] Dev alert kapandi
+   - [x] Stg alert kapandi
+   - [x] Prod alert kapandi
 
 ## 2) Firebase/GCP API Key Restriction (Zorunlu)
 

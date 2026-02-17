@@ -2318,3 +2318,29 @@ Durum: Tamamlandi
 - STEP-032:
   1) GitHub Secret Scanning ekraninda 6 adet acik alert tek tek resolve edilsin.
   2) Alert notu standart metinle doldurulsun.
+
+## STEP-032 - GitHub Secret Scanning Alert Kapatma (6/6)
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Acik kalan 6 adet `Google API Key` secret scanning alertini kontrollu sekilde kapatmak.
+
+### Yapilan Isler
+- Alert #6 kullanici tarafinda kapatildi, sonra kalan 5 alert ayni metotla kapatildi.
+- Kapanis notu standartlastirildi:
+  - `Removed from source in commit 57ca6b7. Firebase keys restricted for Android/iOS/Web in dev/stg/prod projects.`
+- `docs/firebase_api_key_hardening_checklist.md` guncellendi:
+  - `Dev/Stg/Prod alert kapandi` maddeleri isaretlendi (`[x]`).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- GitHub Secret Scanning acik alert sayisi `0` olacak sekilde kapanis tamamlandi (kullanici beyanina gore 6/6).
+- Kod, key restriction ve alert operasyonu birlikte kapatildi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-033:
+  1) API restrictions minimizasyonuna gecelim (dev projesinden baslayalim).
+  2) Ilk anahtar icin mevcut API listesini inceleyip gereksizleri daraltalim.
