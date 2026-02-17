@@ -329,10 +329,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 099F KULLANICIDAN ONAY ISTE: "Flutter lock 3.24.5 kabul mu?".
 - [x] 100 Sentry paketi ekle (opsiyonel).
 - [x] 101 `flutter pub get` calistir.
-- [ ] 102 Klasor yapisini runbook standardina gore kur.
-- [ ] 103 App flavor ayarlarini Android tarafinda yap.
+- [x] 102 Klasor yapisini runbook standardina gore kur.
+- [x] 103 App flavor ayarlarini Android tarafinda yap.
 - [ ] 104 App flavor ayarlarini iOS tarafinda yap.
-- [ ] 105 `main_dev.dart`, `main_staging.dart`, `main_prod.dart` dosyalarini olustur.
+- [x] 105 `main_dev.dart`, `main_staging.dart`, `main_prod.dart` dosyalarini olustur.
 - [ ] 106 Environment loader yapisini kur.
 - [ ] 107 Firebase init'i flavor'a gore ayarla.
 - [ ] 108 App Check init'i flavor'a gore ayarla.

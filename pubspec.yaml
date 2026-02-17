@@ -49,7 +49,7 @@ dependencies:
   firebase_messaging: 15.2.10
   mapbox_maps_flutter: 2.12.0
   in_app_purchase: 3.2.3
-  sentry_flutter: 9.13.0
+  sentry_flutter: 8.14.0
 
 dev_dependencies:
   flutter_test:

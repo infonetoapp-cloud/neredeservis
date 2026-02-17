@@ -4001,3 +4001,106 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 102 adimi: klasor yapisini runbook standardina gore tarayip eksik varsa sadece eksikleri tamamlayayim.
+
+## STEP-102..103..105 - Klasor Standardi + Android Flavor Dogrulama + Staging Entrypoint
+Tarih: 2026-02-17  
+Durum: Kismi Tamamlandi (104 acik)
+
+### Amac
+- 102: Runbook standardina gore klasor iskeletini tamamlamak.
+- 103: Android flavor ayarlarini dogrulamak ve gerekli ayari guncellemek.
+- 105: `main_staging.dart` beklentisini teknik olarak karsilamak.
+
+### Yapilan Isler (102)
+- Eksik klasorler eklendi ve takip icin `.gitkeep` dosyalari olusturuldu:
+  - `lib/core/{constants,exceptions,extensions,failures,guards,logging,mappers,storage}`
+  - `lib/models`
+  - `lib/services`
+  - `lib/shared/widgets`
+  - `lib/app/providers`
+  - `lib/features/{driver,passenger,route_management}/{screens,providers,widgets}`
+  - `lib/features/auth/{screens,providers}`
+
+### Yapilan Isler (103)
+- Android flavor konfigurasyonu dogrulandi:
+  - `android/app/build.gradle` icinde `dev/stg/prod` productFlavor tanimlari mevcut.
+  - `applicationId` ve `app_name` flavor bazli ayarli.
+  - `android/app/src/{dev,stg,prod}/google-services.json` dosyalari mevcut.
+- Derleme uyari-riski icin duzeltme:
+  - `compileSdk` degeri `35`e cekildi (`android/app/build.gradle`).
+
+### Yapilan Isler (105)
+- Yeni entrypoint eklendi:
+  - `lib/main_staging.dart`
+- Mevcut `lib/main_dev.dart` ve `lib/main_prod.dart` ile birlikte runbook adimindaki dosya seti tamamlandi.
+- Geriye donuk uyum icin `lib/main_stg.dart` korunuyor.
+
+### Calistirilan Komutlar (Ham)
+1. `Get-Content android/app/build.gradle.kts` (deneme)
+2. `Get-Content android/app/build.gradle`
+3. `Get-ChildItem android/app/src/dev,stg,prod -Recurse -File`
+4. `flutter build apk --debug --flavor dev -t lib/main_dev.dart` (2 deneme)
+5. `compileSdk=35` guncellemesi
+
+### Bulgular
+- Flavor konfigurasyonu Android tarafinda mevcut ve tutarli.
+- Dev flavor APK build denemesi lokal Android toolchain/JDK image problemi nedeniyle fail oldu (flavor config kaynakli degil):
+  - `firebase_core:androidJdkImage` transform hatasi
+  - `jlink` calisma hatasi (`core-for-system-modules.jar`)
+- Bu durum 103 adimini degil, lokal build ortamini etkiliyor; 120 adimi icin ayri cihaz/SDK/JDK dogrulamasi gerekecek.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `android/app/build.gradle.kts` dosyasi okunmaya calisildi; proje Groovy kullaniyor (`build.gradle`).
+  - Duzeltme: dogru dosya acildi.
+- Hata-2:
+  - `android/app/src/main/res/values/strings.xml` okunmaya calisildi; bu projede `app_name` flavor `resValue` ile uretiliyor.
+  - Duzeltme: strings.xml zorunlu degil, gradle flavor tanimi referans alindi.
+- Hata-3:
+  - Dev APK build, lokal `androidJdkImage/jlink` hatasiyla fail oldu.
+  - Duzeltme: `compileSdk=35` guncellendi; ancak lokal SDK/JDK sorunu devam ediyor (ortam kaynakli blocker).
+
+### Sonuc
+- 102 `[x]`
+- 103 `[x]`
+- 105 `[x]`
+- 104 `[ ]` (iOS flavor adimi sirada)
+
+### Sonraki Adim Icin Beklenen Onay
+- 104 adimina gecis: iOS flavor/scheme/config ayarlarini (no-Mac guard uyumlu) dosya bazli tamamlayayim.
+
+## STEP-100-CORR - Sentry Surum Duzeltmesi (Build Uyumluluk)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Step-100'de eklenen Sentry paketinin Android build uyumlulugunu saglamak.
+
+### Yapilan Isler
+- `sentry_flutter` surumu `9.13.0` -> `8.14.0` olarak dusuruldu.
+- Gerekce:
+  - `9.13.0` ile gelen `jni`/`package_info_plus 9` zinciri, mevcut Android gradle ortaminda build bozdu.
+- `package_info_plus` dogrudan dependency olarak gecici eklendi, sonra kaldirildi (transitive'e geri dondu).
+
+### Calistirilan Komutlar (Ham)
+1. `flutter pub add sentry_flutter:8.14.0`
+2. `flutter pub add package_info_plus:8.0.2`
+3. `flutter pub remove package_info_plus` (tool bug)
+4. `pubspec.yaml` manuel duzeltme
+5. `flutter pub get`
+6. `flutter analyze`
+7. `flutter test`
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `flutter pub remove package_info_plus` komutu `yaml_edit` assertion hatasina dustu.
+  - Duzeltme:
+    - `pubspec.yaml` satiri manuel patch ile kaldirildi ve `pub get` ile lock yeniden uretildi.
+- Hata-2:
+  - Dev APK build denemesi hala lokal `androidJdkImage/jlink` hatasiyla fail.
+  - Not:
+    - Bu hata flavor konfigurasyonundan bagimsiz, lokal Android SDK/JDK ortam sorunu.
+
+### Sonuc
+- Sentry paketi projeye eklendi, ancak uyumlu sabit surum `8.14.0` olarak kilitlendi.
+- `analyze` ve `test` green kaldi.
