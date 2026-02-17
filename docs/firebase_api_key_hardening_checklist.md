@@ -37,7 +37,7 @@ Her environment icin (dev/stg/prod):
 
 Kontrol:
 - [ ] Dev Android key restricted
-- [ ] Stg Android key restricted
+- [x] Stg Android key restricted
 - [ ] Prod Android key restricted
 
 ### 2.2 iOS key kisitlari
@@ -54,7 +54,7 @@ Her environment icin:
 
 Kontrol:
 - [ ] Dev iOS key restricted
-- [ ] Stg iOS key restricted
+- [x] Stg iOS key restricted
 - [ ] Prod iOS key restricted
 
 ## 3) API Seti Minimize Etme

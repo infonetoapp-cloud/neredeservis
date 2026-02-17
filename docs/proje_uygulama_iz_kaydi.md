@@ -2148,3 +2148,43 @@ Durum: Devam ediyor (yeni CI run sonuclari bekleniyor)
   1) Sen GitHub Secret Scanning panelinde alertleri checklist'e gore resolve et.
   2) Sen Firebase/GCP key restriction adimlarini uygula.
   3) Ben checklist ve iz raporunu "DONE" olarak kapatayim.
+
+## STEP-031 - Firebase Key Restriction Manual Uygulama (Kademeli)
+Tarih: 2026-02-17
+Durum: Devam ediyor
+
+### Amac
+- Dev/Stg/Prod API key'leri icin uygulama bazli kisitlari manuel panelden tamamlamak.
+
+### Yapilan Isler
+- STG projesinde Android key restriction tamamlandi:
+  - Package: `com.neredeservis.app.stg`
+  - SHA-1: `2E:F2:D2:51:6A:88:69:EA:DA:22:FD:11:57:2B:82:0A:95:5D:25:3E`
+- `docs/firebase_api_key_hardening_checklist.md` dosyasi guncellendi:
+  - `Stg Android key restricted` -> isaretlendi (`[x]`).
+
+### Hata Kaydi (Silinmez)
+- Kullanici panelinde package name gecerlilik hatasi goruldu.
+- Kok neden:
+  - "Select a resource" popup acik oldugu icin Android app restriction formu normal akista degildi.
+- Duzeltme:
+  - Popup kapatildi, package/SHA-1 elle yeniden girilerek kayit alindi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-031.A:
+  1) STG `iOS key (auto created by Firebase)` icin iOS app restriction ekleyelim.
+  2) Sonra Browser key'e websites restriction gecelim.
+
+### STEP-031.A Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- STG `iOS key (auto created by Firebase)` restriction kaydi tamamlandi.
+  - Bundle ID: `com.neredeservis.app.stg`
+- `docs/firebase_api_key_hardening_checklist.md` dosyasinda:
+  - `Stg iOS key restricted` maddesi isaretlendi (`[x]`).
+
+#### Sonraki Alt Adim
+- STEP-031.B:
+  1) STG `Browser key (auto created by Firebase)` icin websites restriction uygulansin.
