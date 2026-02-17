@@ -3327,3 +3327,66 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 081-082 (App Check debug token policy: sadece dev acik, stg/prod kapali) adimlarina gecis.
+
+## STEP-081..082 - App Check Debug Token Politikasi (Dev-Only + Stg/Prod Kapali)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Runbook 081-082 adimlarini kapatmak:
+  - debug token politikasini script ile dogrulanabilir hale getirmek
+  - stg/prod ortamlarda debug token bulunmasini otomatik engellemek
+
+### Yapilan Isler
+- Yeni operasyon scripti eklendi:
+  - `scripts/appcheck_debug_token_policy.ps1`
+- Script yetenekleri:
+  - dev/stg/prod app listelerini Firebase CLI ile ceker
+  - App Check API uzerinden app bazinda debug tokenlari listeler
+  - `-Enforce` modunda stg/prod debug tokenlarini siler
+  - tablo halinde kalan token sayisini raporlar
+- Dokuman guncellendi:
+  - `docs/app_check_konfig_taslagi.md` icine STEP-081/082 komutu eklendi
+- Checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `081`, `082` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `firebase apps:list --project neredeservis-dev-01 --json`
+2. `firebase apps:list --project neredeservis-stg-01 --json`
+3. `firebase apps:list --project neredeservis-prod-01 --json`
+4. `powershell -ExecutionPolicy Bypass -File .\\scripts\\appcheck_debug_token_policy.ps1 -Enforce`
+
+### Bulgular
+- Enforce sonucu:
+  - `dev` Android/iOS debugTokenCount = `0`
+  - `stg` Android/iOS debugTokenCount = `0`
+  - `prod` Android/iOS debugTokenCount = `0`
+- Son durumda stg/prod debug token kapali (sifir token).
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Script ilk calismada `firebase apps:list` stderr progress satirlari nedeniyle native command error verdi.
+  - Duzeltme:
+    - `cmd /c "firebase apps:list ... --json 2>nul"` kullanilarak parse stabil hale getirildi.
+- Hata-2:
+  - Strict mode altinda `debugTokens` property yokken property access hatasi alindi.
+  - Duzeltme:
+    - Property access `try/catch` + dizi normalizasyonu ile guvenli hale getirildi.
+- Hata-3:
+  - Strict mode altinda tek obje donen filtrelerde `.Count` erisimi hatasi alindi.
+  - Duzeltme:
+    - `@(...)` dizi sarmalama ile count kontrolleri idempotent hale getirildi.
+
+### Sonuc
+- 081-082 adimlari kapatildi.
+- App Check debug token hijyeni artik script ile tekrar edilebilir ve denetlenebilir.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Her release oncesi su komut kosulacak:
+  - `powershell -ExecutionPolicy Bypass -File .\\scripts\\appcheck_debug_token_policy.ps1 -Enforce`
+- Enforce sonucunda `stg/prod debugTokenCount` sifir degilse release durdurulur.
+
+### Sonraki Adim Icin Beklenen Onay
+- 083 (Play Integrity icin SHA-256 bilgisi isteme) adimina gecis.

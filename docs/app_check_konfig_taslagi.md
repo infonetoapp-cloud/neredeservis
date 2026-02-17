@@ -55,3 +55,11 @@ Durum: Draft hazir (uygulama + console enforce adimi faz B-081..085 ile tamamlan
   2) Hata kaynagini loglardan ayikla
   3) Duzeltme sonrasi tekrar enforce
 
+## 8) Debug Token Hijyen Komutu (STEP-081/082)
+- Script: `scripts/appcheck_debug_token_policy.ps1`
+- Komut (enforce):
+  - `powershell -ExecutionPolicy Bypass -File .\\scripts\\appcheck_debug_token_policy.ps1 -Enforce`
+- Beklenen sonuc:
+  - `stg` ve `prod` icin `debugTokenCount=0`
+  - `dev` tokenlari silinmez (yalnizca audit edilir)
+

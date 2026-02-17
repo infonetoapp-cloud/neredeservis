@@ -285,8 +285,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 079A Rules test: driver roluyle `driver_directory` toplu read denemesi 403 veriyor mu.
 - [x] 079B Rules test: RTDB `timestamp` penceresi disi (`now-30001`) write denemesi deny oluyor mu.
 - [x] 080 DOGRULAMA: Tum rules testleri green mi?
-- [ ] 081 App Check debug tokenlarini sadece dev icin ac.
-- [ ] 082 Staging/prod debug tokenlerini kapat.
+- [x] 081 App Check debug tokenlarini sadece dev icin ac.
+- [x] 082 Staging/prod debug tokenlerini kapat.
 - [ ] 083 KULLANICIDAN ONAY ISTE: "Play Integrity icin SHA-256 bilgilerini paylas".
 - [ ] 084 Android App Check provider olarak Play Integrity sec.
 - [ ] 085 iOS App Check provider olarak DeviceCheck sec.
