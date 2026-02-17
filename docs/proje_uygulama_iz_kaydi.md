@@ -3518,3 +3518,97 @@ Durum: Beklemede (External Dependency / Blocked)
 
 ### Sonraki Adim Icin Beklenen Onay
 - iOS blokajli akisi atlayip Android/backend odakli bir sonraki uygulanabilir adima gecis.
+
+## STEP-090A - KVKK Hukuk Review Dosyasi Olusturma (Kritik)
+Tarih: 2026-02-17  
+Durum: Kismen Tamamlandi (paket hazir, dis hukuk yorumu bekleniyor)
+
+### Amac
+- KVKK hukuki inceleme surecini tek dosyada izlenebilir hale getirmek.
+- Avukat geri bildirimlerinin silinmeden append edilecegi resmi kaydi olusturmak.
+
+### Yapilan Isler
+- Yeni dosya olusturuldu:
+  - `docs/legal_kvkk_review.md`
+- Icerige eklendi:
+  - meta alanlari (`legal_approval`, `kvkk_text_version`, onaylayan/tarih)
+  - hukuk paket checklist'i
+  - zorunlu soru listesi
+  - teknik uyum haritasi (`consents/{uid}` vb.)
+  - append-only hukuk yorum tablosu
+  - gonderim e-posta taslagi
+
+### Calistirilan Komutlar (Ham)
+1. `if (Test-Path docs/legal_kvkk_review.md) { Get-Content docs/legal_kvkk_review.md -Raw } else { 'MISSING: docs/legal_kvkk_review.md' }`
+2. `apply_patch` -> `docs/legal_kvkk_review.md`
+
+### Bulgular
+- Dosya ilk kez olusturuldu; `legal_approval` varsayilan olarak `HAYIR`.
+- Dis hukuk geri bildirimi gelmeden 090A tam kapatilmaz.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- 090A icin gereken kayit altyapisi tamamlandi.
+- Dis bagimlilik: avukat geri bildirimi bekleniyor.
+
+## STEP-090C - KVKK Onayi Yoksa Release Branch Acma Guard'i
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Hukuki onay yokken release branch acilmasini teknik olarak engellemek.
+
+### Yapilan Isler
+- Yeni guard scripti eklendi:
+  - `scripts/release_branch_guard.ps1`
+- Kural:
+  - `docs/legal_kvkk_review.md` icinde `legal_approval: EVET` yoksa script `fail` verir ve cikis yapar.
+- Teknik plan referansi eklendi:
+  - `docs/NeredeServis_Teknik_Plan.md` -> `7.7 Hukuk review gate (KVKK)`
+
+### Calistirilan Komutlar (Ham)
+1. `powershell -ExecutionPolicy Bypass -File .\\scripts\\release_branch_guard.ps1`
+
+### Bulgular
+- Beklenen blokaj calisti:
+  - `KVKK hukuki onay EVET degil. Release branch acma. (090C gate aktif)`
+- 090C maddesi runbook'ta `[x]` olarak isaretlendi.
+
+### Hata Kaydi (Silinmez)
+- Hata yok (beklenen fail davranisi dogrulama amaclidir).
+
+### Sonuc
+- Hukuk onayi gelene kadar release branch acilmasi teknik olarak bloke edildi.
+
+## STEP-090D - Faz B Kapanis Raporu
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Faz B'nin kapanis durumunu, acik gate'leri ve blokajlari tek raporda toplamak.
+
+### Yapilan Isler
+- Yeni rapor dosyasi olusturuldu:
+  - `docs/faz_b_kapanis_raporu.md`
+- Icerik:
+  - tamamlanan adimlar
+  - acik kalan release gate maddeleri
+  - KVKK hukuk gate durumu
+  - risk seviyesi ve sonraki zorunlu aksiyonlar
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `docs/faz_b_kapanis_raporu.md`
+2. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+3. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+
+### Bulgular
+- 090D checklist maddesi `[x]` oldu.
+- 090A bilinci acikta birakildi (dis hukuk yorumu bekleniyor).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonraki Adim Icin Beklenen Onay
+- 090B: `KVKK hukuki onay alindi mi? (evet/hayir)` kullanici cevabi alinacak.

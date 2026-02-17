@@ -999,6 +999,13 @@ Input validasyon kurallari:
   - RTDB -> `europe-west1` (urun kisiti istisnasi)
 - Region degisikligi ancak migration runbook ile
 
+### 7.7 Hukuk review gate (KVKK)
+- Referans dosya: `docs/legal_kvkk_review.md`
+- Release branch gate:
+  - Hukuki onay `EVET` olmadan release branch acilmaz.
+  - Teknik guard scripti: `scripts/release_branch_guard.ps1`
+- Bu gate sadece dokumanla degil, operasyon komutuyla da enforce edilir.
+
 ### Risk
 - Riza ve veri silme sureclerinin eksik kalmasi.
 

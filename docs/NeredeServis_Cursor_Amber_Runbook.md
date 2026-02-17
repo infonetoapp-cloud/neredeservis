@@ -300,9 +300,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 089 DOGRULAMA: iOS/Android 60 dk ekran kapali PoC stabil mi? (fail ise FAZ C'ye gecme).
 - [ ] 090 DOGRULAMA: Test push dev ortamda aliniyor mu?
 - [ ] 090A KVKK metnini hukuk review'una gonder ve yorumlari `docs/legal_kvkk_review.md` dosyasina yaz.
+- [ ] NOTE: `docs/legal_kvkk_review.md` hazirlandi; dis hukuk geri bildirimi bekleniyor.
 - [ ] 090B KULLANICIDAN ONAY ISTE: "KVKK hukuki onay alindi mi? (evet/hayir)".
-- [ ] 090C Onay yoksa release branch acma, sadece teknik gelistirmeye devam et.
-- [ ] 090D Faz B kapanis raporu yaz.
+- [x] 090C Onay yoksa release branch acma, sadece teknik gelistirmeye devam et.
+- [x] 090D Faz B kapanis raporu yaz.
 
 ## FAZ C - Flutter Iskeleti ve Paketler (091-130)
 
