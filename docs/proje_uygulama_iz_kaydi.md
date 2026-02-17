@@ -1719,3 +1719,63 @@ Durum: Tamamlandi
   1) Firebase Auth + role bootstrap (driver/passenger/guest) katmanini yazalim.
   2) Platform izin orkestrasyonu (Android tam, iOS dokuman + kod-hazir) temelini kuralim.
   3) Emulator test iskeletini acip ilk entegrasyon testlerini yesile cekelim.
+
+## STEP-022 - Git Guvenlik Sertlestirme + Ilk Commit
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Kullanici Talebi
+- GitHub'a commit alinacak.
+- Ozel/sensitive dosyalar kesin olarak `.gitignore` ile disarida tutulacak.
+
+### Amac
+- Firebase config dosyalarinin (json/plist) yanlislikla repoya cikmasini engellemek.
+- Guvenli bir ilk commit almak.
+
+### Calistirilan Komutlar (Ham)
+1. `Get-Content .gitignore`
+2. `git status --short`
+3. Hassas dosya kesfi:
+   - `Get-ChildItem -Recurse -Filter google-services.json`
+   - `Get-ChildItem -Recurse -Filter GoogleService-Info.plist`
+4. `.gitignore` production seviyesinde yeniden yazildi.
+5. `firebase_app_configs/README.md` eklendi (secrets policy).
+6. `git check-ignore -v <kritik dosyalar>` ile ignore dogrulamasi yapildi.
+7. `git add .`
+8. `git diff --cached --name-only | rg "google-services.json|GoogleService-Info.plist|service-account|\.env"` (staged leak kontrolu)
+9. `git commit -m "chore: bootstrap firebase-flavored flutter app with ci guardrails"`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda bloklayici hata yok.
+
+### Yapilan Dosya Degisiklikleri
+- `.gitignore` tamamen guncellendi:
+  - Flutter/IDE/build cache ignore
+  - Android/iOS yerel dosya ignore
+  - Firebase app config dosyalari ignore
+  - log/env/sertifika/secrets ignore
+- `firebase_app_configs/README.md` eklendi.
+
+### Bulgular
+- Asagidaki hassas dosyalar commit disinda tutuldu:
+  - `android/app/src/**/google-services.json`
+  - `ios/Runner/GoogleService-Info.plist`
+  - `ios/firebase/**/GoogleService-Info.plist`
+  - `firebase_app_configs/**/*.json`
+  - `firebase_app_configs/**/*.plist`
+- Ilk commit basarili:
+  - Commit: `b3c1d11`
+  - Mesaj: `chore: bootstrap firebase-flavored flutter app with ci guardrails`
+
+### Sureklilik Kurali (Mecburi)
+- Sonraki muhendisler Firebase config dosyalarini git'e ekleyemez.
+- Yeni sensitive dosya tipi cikarsa `.gitignore` ve bu iz kaydi ayni adimda guncellenir.
+
+### Sonuc
+- Repo artik GitHub push icin guvenli seviyede hazir.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-023:
+  1) Remote'a push (`origin`) yapalim.
+  2) GitHub Action ilk calisma sonucunu kontrol edelim.
+  3) STEP-022'de planlanan Auth+Role bootstrap kodlamasina gececek backlog'u kilitleyelim.
