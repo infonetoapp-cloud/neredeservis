@@ -65,11 +65,6 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Pod install
-        run: |
-          cd ios
-          pod install
-
       # iOS multi-scheme henuz tanimli degil; bu adim prod entrypoint icin compile guard olarak calisir.
       - name: Build iOS no-codesign
         run: flutter build ios --no-codesign -t lib/main_prod.dart

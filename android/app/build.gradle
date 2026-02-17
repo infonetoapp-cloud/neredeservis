@@ -3,7 +3,6 @@ plugins {
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
 }
 
 android {
@@ -22,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.neredeservis.app"
-        minSdk = flutter.minSdkVersion
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -58,4 +57,14 @@ android {
 
 flutter {
     source = "../.."
+}
+
+def hasGoogleServicesConfig =
+        file("google-services.json").exists() ||
+        file("src/dev/google-services.json").exists() ||
+        file("src/stg/google-services.json").exists() ||
+        file("src/prod/google-services.json").exists()
+
+if (hasGoogleServicesConfig) {
+    apply plugin: "com.google.gms.google-services"
 }
