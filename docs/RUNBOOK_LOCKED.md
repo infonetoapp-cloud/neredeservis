@@ -275,6 +275,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 083 KULLANICIDAN ONAY ISTE: "Play Integrity icin SHA-256 bilgilerini paylas".
 - [ ] 084 Android App Check provider olarak Play Integrity sec.
 - [ ] 085 iOS App Check provider olarak DeviceCheck sec.
+- [ ] NOTE (Release Gate): 083-085 adimlari uygulama Play Console'da ilk AAB ile internal teste cikana kadar beklemede tutulur. App signing SHA-256 / upload SHA-256 olusmadan uygulanmaz.
 - [ ] 086 APNs/FCM + iOS background location entitlement gereksinim notunu ekle.
 - [ ] 086A Google Play background location justification taslagini yaz: `Sofor aktif sefer baslattiginda yolcularin guvenli ve dogru takip edebilmesi icin uygulama arka planda konum paylasir; sefer bitince takip durur`.
 - [ ] 087 KULLANICIDAN ONAY ISTE: "APNs key (.p8, key id, team id) + Apple Team bilgisi var mi?".

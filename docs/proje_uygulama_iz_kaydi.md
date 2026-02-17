@@ -3390,3 +3390,36 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 083 (Play Integrity icin SHA-256 bilgisi isteme) adimina gecis.
+
+## STEP-083..085 - Play Integrity / DeviceCheck Adimlari Erteleme Karari (Release Gate)
+Tarih: 2026-02-17  
+Durum: Beklemede (Bilincli Erteleme)
+
+### Amac
+- 083-085 adimlarinin zamanlamasini urun gercegine gore duzeltmek:
+  - Uygulama daha hazir degilken Play Console tarafinda erken baglama yapmamak
+  - Internal test asamasinda tek seferde dogru sertifika ile baglamak
+
+### Karar
+- Kullanici onayi ile 083-085 adimlari release gate'e ertelendi.
+- Bu adimlar su kosul olusmadan uygulanmayacak:
+  1. `com.neredeservis.app` icin Play Console'da uygulama olusturulmus olacak
+  2. Ilk AAB internal track'e yuklenecek
+  3. `App signing SHA-256` ve `Upload key SHA-256` gorunur olacak
+
+### Neden
+- Yeni uygulamada App signing SHA-256 degeri ilk upload oncesinde hazir olmayabilir.
+- Erken baglama yanlis fingerprint ile yapilirsa tekrar konfigurasyon maliyeti artar.
+- Runbook akisinda bu adimlar release gate olarak daha guvenli.
+
+### Hata Kaydi (Silinmez)
+- Hata yok.
+- Bu bir teknik risk azaltma karari (intentional defer).
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- 083-085 adimlari icin zorunlu kanit:
+  - Play Console > App Integrity ekranindan iki SHA-256 degeri (app signing + upload key)
+- Bu kanit olmadan 084/085 tamamlandi isaretlenmeyecek.
+
+### Sonraki Adim Icin Beklenen Onay
+- 086 adimina gecis: APNs/FCM + iOS background location entitlement gereksinim notu.
