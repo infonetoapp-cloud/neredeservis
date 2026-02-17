@@ -2334,7 +2334,10 @@ Durum: Tamamlandi
   - `Dev/Stg/Prod alert kapandi` maddeleri isaretlendi (`[x]`).
 
 ### Hata Kaydi (Silinmez)
-- Bu adimda yeni hata yok.
+- Hata-1:
+  - `git add` ve `git commit` ilk denemede paralel tetiklendigi icin `commit` add oncesi calisti ve `no changes added to commit` hatasi verdi.
+  - Duzeltme:
+    - `git add` ve `git commit` sira ile tekrar calistirildi; commit basariyla alindi.
 
 ### Sonuc
 - GitHub Secret Scanning acik alert sayisi `0` olacak sekilde kapanis tamamlandi (kullanici beyanina gore 6/6).
