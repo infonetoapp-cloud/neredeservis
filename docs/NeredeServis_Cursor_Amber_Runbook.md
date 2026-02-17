@@ -313,7 +313,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 093 Projeyi olustur (`flutter create`).
 - [x] 094 `analysis_options.yaml` standardini ekle.
 - [x] 094A `docs/flutter_upgrade_guard.md` dosyasini olustur (deprecation takibi + migration notlari).
-- [ ] 094B Material 3 migration checklist'i olustur ve ThemeData'da M3 uyumunu kilitle.
+- [x] 094B Material 3 migration checklist'i olustur ve ThemeData'da M3 uyumunu kilitle.
 - [x] 094C `flutter pub outdated` + `dart fix --dry-run` raporunu her sprint cikisinda zorunlu kil.
 - [ ] 095 `pubspec.yaml` bagimliliklarini teknik plana gore exact versiyon pinleyerek ekle.
 - [ ] 096 Riverpod generator paketlerini ekle.

@@ -12,9 +12,18 @@ class NeredeServisApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFFB86A00),
+        brightness: Brightness.light,
+      ),
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: flavorConfig.appName,
+      theme: theme,
       home: Scaffold(
         appBar: AppBar(
           title: Text(flavorConfig.appName),

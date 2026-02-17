@@ -3738,3 +3738,40 @@ Durum: Tamamlandi (094B haric)
 
 ### Sonraki Adim Icin Beklenen Onay
 - 094B (Material 3 migration checklist + ThemeData M3 kilidi) adimina gecis.
+
+## STEP-094B - Material 3 Checklist + ThemeData Kilidi
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Material 3 migration checklist dosyasini olusturmak.
+- Uygulama temasini M3 baseline ile sabitlemek.
+
+### Yapilan Isler
+- Yeni dosya:
+  - `docs/material3_migration_checklist.md`
+- Kod degisikligi:
+  - `lib/app/nerede_servis_app.dart`
+  - `ThemeData(useMaterial3: true)` eklendi.
+  - Seed tabanli `ColorScheme` tanimlandi.
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` -> `094B` `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` -> `094B` `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `flutter analyze`
+2. `flutter test`
+
+### Bulgular
+- `flutter analyze` -> temiz
+- `flutter test` -> tum testler gecti
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- 094B adimi kapandi.
+- Material 3 baseline teknik olarak kilitlendi; detay token/component tuning Faz D'de genisletilecek.
+
+### Sonraki Adim Icin Beklenen Onay
+- 095 (pubspec bagimliliklarini teknik plana gore exact pinleme) adimina gecis.
