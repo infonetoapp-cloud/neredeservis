@@ -3063,3 +3063,65 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - Runbook sirasinda 061-065 (rules/semalar) adimlarina gecis.
+
+## STEP-061..065 - Rules Baseline Deny-All + Cekirdek Sema Kaydi
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Runbook 061-065 adimlarini kapatmak:
+  - Firestore deny-all baseline
+  - RTDB deny-all baseline
+  - RTDB timestamp penceresi (`<= now+5000`, `>= now-30000`)
+  - `users`, `drivers`, `routes` semalarini tek kaynakta netlemek
+
+### Yapilan Isler
+- `firestore.rules` deny-all baseline'a cekildi.
+- `database.rules.json` deny-all baseline'a cekildi.
+- RTDB `locations/$routeId/timestamp` validate penceresi korunarak sabitlendi:
+  - `newData.val() <= now + 5000`
+  - `newData.val() >= now - 30000`
+- `docs/api_contracts.md` icine `users/drivers/routes` dokuman semalari eklendi.
+- Runbook checklist satirlari isaretlendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `061`, `062`, `062A`, `063`, `064`, `065` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `firebase deploy --project neredeservis-dev-01 --only firestore:rules,database`
+2. `firebase deploy --project neredeservis-stg-01 --only firestore:rules,database`
+3. `firebase deploy --project neredeservis-prod-01 --only firestore:rules,database`
+4. `firebase deploy --project neredeservis-dev-01 --only database`
+5. `firebase deploy --project neredeservis-stg-01 --only database`
+6. `firebase deploy --project neredeservis-prod-01 --only database`
+7. `flutter analyze`
+8. `flutter test`
+
+### Bulgular
+- Firestore rules deploy:
+  - dev/stg/prod -> basarili
+- RTDB rules deploy:
+  - dev/stg/prod -> basarili
+- Kalite kapisi:
+  - `flutter analyze` -> temiz
+  - `flutter test` -> tum testler gecti
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `--only firestore:rules,database` deploy cikisinda `database` yayini logda gorunmedi.
+  - Duzeltme:
+    - Her ortam icin `--only database` ayrica kosuldu ve basarili release logu alindi.
+
+### Sonuc
+- 061-065 adimlari kapatildi.
+- Auth/OAuth blokeri kapandiktan sonra security baseline tekrar deny-all kilidine alinmis oldu.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Rules degisikliginden sonra zorunlu:
+  1. Firestore + RTDB deploy cikti kaniti
+  2. `flutter analyze`
+  3. `flutter test`
+  4. Append-only iz kaydi
+
+### Sonraki Adim Icin Beklenen Onay
+- 066-070 (trips/announcements/consents/guest_sessions/trip_requests sema + idempotency semasi) adimlarina gecis.

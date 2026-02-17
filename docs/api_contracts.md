@@ -22,6 +22,64 @@ export interface GeoPointDto {
 }
 ```
 
+## Firestore Collection Schemas (STEP-063..065)
+```ts
+export interface UserDoc {
+  role: Role; // server authority
+  displayName: string;
+  phone: string | null;
+  email: string | null;
+  createdAt: string; // server timestamp (UTC)
+  updatedAt: string; // server timestamp (UTC)
+  deletedAt: string | null; // server timestamp (UTC)
+}
+
+export interface DriverDoc {
+  name: string;
+  phone: string;
+  plate: string;
+  showPhoneToPassengers: boolean;
+  companyId: string | null;
+  subscriptionStatus: "trial" | "active" | "expired";
+  trialStartDate: string | null; // UTC timestamp
+  trialEndsAt: string | null; // UTC timestamp
+  lastPaywallShownAt: string | null; // UTC timestamp
+  activeDeviceToken: string | null;
+  createdAt: string; // UTC timestamp
+  updatedAt: string; // UTC timestamp
+}
+
+export interface RouteDoc {
+  name: string;
+  driverId: string;
+  authorizedDriverIds: string[];
+  memberIds: string[]; // server-managed
+  companyId: string | null;
+  srvCode: string; // server-generated unique code
+  visibility: "private"; // V1.0 fixed
+  allowGuestTracking: boolean;
+  creationMode: "manual_pin" | "ghost_drive";
+  routePolyline: string | null; // encoded polyline
+  startPoint: GeoPointDto;
+  startAddress: string;
+  endPoint: GeoPointDto;
+  endAddress: string;
+  scheduledTime: string; // HH:mm (Europe/Istanbul)
+  timeSlot: "morning" | "evening" | "midday" | "custom";
+  isArchived: boolean;
+  vacationUntil: string | null; // UTC timestamp
+  passengerCount: number; // server-managed
+  lastTripStartedNotificationAt: string | null; // UTC timestamp
+  createdAt: string; // UTC timestamp
+  updatedAt: string; // UTC timestamp
+}
+```
+
+Schema guardrails:
+- Direct client writes to `users`, `drivers`, `routes` are forbidden.
+- Only callable/server paths may mutate these collections.
+- `memberIds` is server-derived: `driverId U authorizedDriverIds U passengerIds`.
+
 ## Route and Trip
 ```ts
 export interface CreateRouteInput {

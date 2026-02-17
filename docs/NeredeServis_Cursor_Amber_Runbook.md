@@ -260,12 +260,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 058 Local emulator config yaz (`firestore/auth/functions/database`).
 - [x] 059 Emulator port cakismasi var mi kontrol et.
 - [x] 060 DOGRULAMA: Emulatorlar tek komutla kalkiyor mu?
-- [ ] 061 Firestore rules dosyasini baslangicta deny-all yap.
-- [ ] 062 RTDB rules dosyasini deny-all yap.
-- [ ] 062A RTDB live location timestamp validate penceresini daralt: `<= now+5000` ve `>= now-30000` (2 dk pencere yok).
-- [ ] 063 Users koleksiyonu role semasini ekle.
-- [ ] 064 Drivers koleksiyonu semasini ekle.
-- [ ] 065 Routes koleksiyonu semasini ekle.
+- [x] 061 Firestore rules dosyasini baslangicta deny-all yap.
+- [x] 062 RTDB rules dosyasini deny-all yap.
+- [x] 062A RTDB live location timestamp validate penceresini daralt: `<= now+5000` ve `>= now-30000` (2 dk pencere yok).
+- [x] 063 Users koleksiyonu role semasini ekle.
+- [x] 064 Drivers koleksiyonu semasini ekle.
+- [x] 065 Routes koleksiyonu semasini ekle.
 - [ ] 066 Trips koleksiyonu semasini ekle.
 - [ ] 067 Announcements koleksiyonu semasini ekle.
 - [ ] 068 Consents koleksiyonu semasini ekle.
