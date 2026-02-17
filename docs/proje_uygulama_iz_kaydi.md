@@ -3415,6 +3415,10 @@ Durum: Beklemede (Bilincli Erteleme)
 ### Hata Kaydi (Silinmez)
 - Hata yok.
 - Bu bir teknik risk azaltma karari (intentional defer).
+- Operasyon notu:
+  - Commit adiminda PowerShell `&&` separator uyumsuzlugu ve paralel komut sirasi nedeniyle ilk deneme commit olusmadi.
+  - Duzeltme:
+    - `git add` -> `git commit` -> `git push` adimlari sirali sekilde tekrar calistirildi.
 
 ### Sonraki Muhendisler Icin Zorunlu Kural
 - 083-085 adimlari icin zorunlu kanit:
