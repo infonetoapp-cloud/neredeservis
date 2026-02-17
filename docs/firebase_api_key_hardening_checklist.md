@@ -53,7 +53,7 @@ Her environment icin:
 4. Kaydet.
 
 Kontrol:
-- [ ] Dev iOS key restricted
+- [x] Dev iOS key restricted
 - [x] Stg iOS key restricted
 - [ ] Prod iOS key restricted
 

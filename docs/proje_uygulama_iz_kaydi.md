@@ -2226,3 +2226,20 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.D:
   1) DEV projesinde `iOS key (auto created by Firebase)` icin iOS apps restriction uygulansin.
+
+### STEP-031.D Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- DEV projesinde `iOS key (auto created by Firebase)` restriction tamamlandi.
+  - Bundle ID: `com.neredeservis.app.dev`
+- `docs/firebase_api_key_hardening_checklist.md` guncellendi:
+  - `Dev iOS key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.E:
+  1) DEV `Browser key (auto created by Firebase)` icin websites restriction uygulansin.
