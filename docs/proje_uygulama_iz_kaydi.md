@@ -2385,6 +2385,8 @@ Durum: Tamamlandi
 1. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode backup`
 2. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode apply`
 3. `powershell -ExecutionPolicy Bypass -File scripts/harden_firebase_api_keys.ps1 -Mode verify`
+4. `flutter analyze`
+5. `flutter test`
 
 ### Hata Kaydi (Silinmez)
 - Ilk envanter komutlarinda varsayilan timeout dusuk oldugu icin 2 komut timeout verdi (ciktiyi yazmis olsalar da adim tam bitmedi).
@@ -2394,6 +2396,9 @@ Durum: Tamamlandi
 ### Sonuc
 - API key guvenligi panel isine bagli kalmadan script ile tekrar edilebilir hale geldi.
 - Tum ortamlarda app/bundle/referrer restriction korunarak API allowlist daraltildi.
+- Kod tabani dogrulamasi green:
+  - `flutter analyze` -> green
+  - `flutter test` -> green
 
 ### Sonraki Adim Icin Beklenen Onay
 - STEP-034:
