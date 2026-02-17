@@ -3775,3 +3775,76 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 095 (pubspec bagimliliklarini teknik plana gore exact pinleme) adimina gecis.
+
+## STEP-095..098 - Exact Dependency Pinleme + Codegen Watch + Drift/RTDB/Messaging Paketleri
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 095: `pubspec.yaml` bagimliliklarini exact pinlemek.
+- 096: Riverpod generator paketlerini uyumlu surumle eklemek.
+- 096A: `build_runner watch` scriptlerini eklemek.
+- 097: Drift + sqlite runtime paketlerini kilitlemek.
+- 098: Firebase RTDB + Messaging paketlerini kilitlemek.
+
+### Yapilan Isler
+- `pubspec.yaml` exact pin seti netlestirildi:
+  - `flutter_riverpod: 2.6.1`
+  - `riverpod_annotation: 2.6.1`
+  - `riverpod_generator: 2.4.0`
+  - `build_runner: 2.4.13`
+  - `drift: 2.31.0`
+  - `sqlite3_flutter_libs: 0.5.41`
+  - `path: 1.9.0`
+  - `path_provider: 2.1.5`
+  - `firebase_database: 11.3.10`
+  - `firebase_messaging: 15.2.10`
+- Codegen watch scriptleri eklendi:
+  - `scripts/watch_codegen.ps1`
+  - `scripts/watch_codegen.sh`
+- Runbook checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md` -> `095`, `096`, `096A`, `097`, `098` `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` -> `095`, `096`, `096A`, `097`, `098` `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `\.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+2. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add riverpod_annotation:^2.6.1`
+3. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add --dev drift_dev:2.31.0`
+4. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add --dev build_runner:^2.10.0 drift_dev:2.31.0`
+5. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add drift:2.28.1`
+6. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add --dev drift_dev:2.28.1`
+7. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add drift:2.27.0`
+8. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add --dev drift_dev:2.27.0`
+9. `\.\.fvm\flutter_sdk\bin\flutter.bat pub add drift:2.31.0`
+10. `\.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+11. `\.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- FVM toolchain ile `analyze` ve `test` temiz gecti.
+- Riverpod tarafinda stabil kombinasyon su oldu:
+  - `riverpod_annotation 2.6.1` + `riverpod_generator 2.4.0` + `build_runner 2.4.13`
+- `drift_dev` bu lock toolchain'de (Flutter 3.24.5 / Dart 3.5.4) cozumlenemedi.
+  - Neden: `drift_dev` yeni surumleri `build_runner >=2.4.14` veya `build>=3` istiyor; bu da Dart 3.6+ gerektiriyor.
+  - Karar: Bu fazda runtime drift/sqlite pinlendi; `drift_dev` ekleme upgrade fazina ertelendi.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `riverpod_annotation 2.4.0` cozumlenemedi (`doesn't match any versions`).
+  - Duzeltme:
+    - `riverpod_annotation` `2.6.1`e cekildi.
+- Hata-2:
+  - `drift_dev 2.31.0` + `build_runner 2.4.13` version conflict verdi.
+  - Duzeltme:
+    - Farkli drift/drift_dev kombinasyonlari denendi; Dart 3.5.4 siniri nedeniyle `drift_dev` bu fazda ertelendi.
+- Hata-3:
+  - `build_runner >=2.4.14` denemesi Dart `>=3.6.0` gerektirdigi icin reddedildi.
+  - Duzeltme:
+    - `build_runner 2.4.13` kilidinde kalindi.
+
+### Sonuc
+- 095-098 adimlari runbook checklist seviyesinde kapatildi.
+- Paket seti FVM lock ile stabil (analyze/test green).
+- `drift_dev` icin teknik not olusturularak sonraki upgrade fazina defer karari alindi.
+
+### Sonraki Adim Icin Beklenen Onay
+- 099 adimina gecis: Mapbox exact pin + uyumluluk notu (`docs/map_provider_decision.md` ile birlikte).

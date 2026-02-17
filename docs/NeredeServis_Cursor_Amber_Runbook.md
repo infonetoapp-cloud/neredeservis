@@ -315,11 +315,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 094A `docs/flutter_upgrade_guard.md` dosyasini olustur (deprecation takibi + migration notlari).
 - [x] 094B Material 3 migration checklist'i olustur ve ThemeData'da M3 uyumunu kilitle.
 - [x] 094C `flutter pub outdated` + `dart fix --dry-run` raporunu her sprint cikisinda zorunlu kil.
-- [ ] 095 `pubspec.yaml` bagimliliklarini teknik plana gore exact versiyon pinleyerek ekle.
-- [ ] 096 Riverpod generator paketlerini ekle.
-- [ ] 096A `build_runner` watch scripti ekle (`dart run build_runner watch -d`).
-- [ ] 097 Drift ve sqlite paketlerini ekle.
-- [ ] 098 Firebase core/auth/firestore/rtdb/messaging paketlerini ekle.
+- [x] 095 `pubspec.yaml` bagimliliklarini teknik plana gore exact versiyon pinleyerek ekle.
+- [x] 096 Riverpod generator paketlerini ekle.
+- [x] 096A `build_runner` watch scripti ekle (`dart run build_runner watch -d`).
+- [x] 097 Drift ve sqlite paketlerini ekle.
+- [x] 098 Firebase core/auth/firestore/rtdb/messaging paketlerini ekle.
 - [ ] 099 Mapbox paketini exact versiyonla pinle ve minimum Flutter uyumunu not et.
 - [ ] 099A Mapbox Flutter PoC calistir (Android + iOS real device smoke).
 - [ ] 099B MapLibre alternatif PoC notunu `docs/map_provider_decision.md` dosyasina yaz.
