@@ -2262,3 +2262,21 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.F:
   1) PROD projesinde `Android key (auto created by Firebase)` restriction uygulansin.
+
+### STEP-031.F Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- PROD projesinde `Android key (auto created by Firebase)` restriction tamamlandi.
+  - Package: `com.neredeservis.app`
+  - SHA-1: `2E:F2:D2:51:6A:88:69:EA:DA:22:FD:11:57:2B:82:0A:95:5D:25:3E`
+- `docs/firebase_api_key_hardening_checklist.md` dosyasinda:
+  - `Prod Android key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.G:
+  1) PROD projesinde `iOS key (auto created by Firebase)` icin iOS apps restriction uygulansin.

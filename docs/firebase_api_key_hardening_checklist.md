@@ -38,7 +38,7 @@ Her environment icin (dev/stg/prod):
 Kontrol:
 - [x] Dev Android key restricted
 - [x] Stg Android key restricted
-- [ ] Prod Android key restricted
+- [x] Prod Android key restricted
 
 ### 2.2 iOS key kisitlari
 Her environment icin:
