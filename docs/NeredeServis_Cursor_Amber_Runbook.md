@@ -294,6 +294,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 086 APNs/FCM + iOS background location entitlement gereksinim notunu ekle.
 - [x] 086A Google Play background location justification taslagini yaz: `Sofor aktif sefer baslattiginda yolcularin guvenli ve dogru takip edebilmesi icin uygulama arka planda konum paylasir; sefer bitince takip durur`.
 - [ ] 087 KULLANICIDAN ONAY ISTE: "APNs key (.p8, key id, team id) + Apple Team bilgisi var mi?".
+- [ ] NOTE (Blocker): Apple Developer/App Store Connect hesabi acilmadan 087 tamamlanmaz. Bu blokaj kalkmadan 088-089 iOS kismi release gate'te bekler.
 - [ ] 088 iOS background GPS proof-of-concept olustur (Always permission + app terminate + 60 dk ekran kapali surus).
 - [ ] 088A Cross-device PoC kos: iPhone 11 (iOS 17+) + Samsung A24 (Android 14+) 60 dk ekran kapali publish stabil mi.
 - [ ] 089 DOGRULAMA: iOS/Android 60 dk ekran kapali PoC stabil mi? (fail ise FAZ C'ye gecme).

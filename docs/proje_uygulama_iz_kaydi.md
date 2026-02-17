@@ -3475,3 +3475,46 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 087: APNs key (`.p8`, key id, team id) + Apple Team bilgisi kullanicidan alinacak.
+
+## STEP-087 - Apple Developer/App Store Connect Hesabi Yok (Dis Blokaj Kaydi)
+Tarih: 2026-02-17  
+Durum: Beklemede (External Dependency / Blocked)
+
+### Amac
+- 087 adiminin mevcut durumda tamamlanamama nedenini resmi kayda almak.
+- Sonraki muhendisler icin dogru bekleme kosulunu netlestirmek.
+
+### Kullanici Beyani
+- `Henuz App Store hesabi acmadim.`
+
+### Etki Analizi
+- 087 icin istenen veriler su an saglanamiyor:
+  - APNs `.p8`
+  - `Key ID`
+  - `Team ID`
+  - Apple Team bilgisi
+- Bu nedenle:
+  - 087 tamamlanamaz
+  - 088 ve 089 adimlarinin iOS kismi release gate'te bekler
+
+### Karar
+- 087 adimi blokaj kalkana kadar acik birakildi (`[ ]`).
+- Runbook dosyalarina blocker notu eklendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+
+### Hata Kaydi (Silinmez)
+- Hata yok.
+- Durum: dis bagimlilik eksigi (hesap/kimlik bilgisi).
+
+### Blokaj Kaldirma Kosulu
+1. Apple Developer hesabinin acilmasi
+2. App Store Connect erisiminin aktif olmasi
+3. APNs key setinin olusturulmasi (`.p8`, key id, team id)
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Bu kosullar saglanmadan 087 tamamlandi isaretlenmeyecek.
+- 088/089 iOS kanitlari ancak 087 tamamlandiktan sonra toplanacak.
+
+### Sonraki Adim Icin Beklenen Onay
+- iOS blokajli akisi atlayip Android/backend odakli bir sonraki uygulanabilir adima gecis.
