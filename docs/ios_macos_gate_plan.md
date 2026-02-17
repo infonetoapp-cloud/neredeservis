@@ -14,6 +14,7 @@ Mac veya iPhone erisimi yokken gelistirmeyi durdurmadan ilerlemek, ama iOS yayin
   - Firebase iOS baglantisi bozuldu mu?
   - Flutter kodu iOS'ta derlenebilir mi?
   sorulari her PR'da kontrol edilir.
+- Not: Mac/iPhone yok donemde iOS compile job'i `continue-on-error` modunda calisir (non-blocking sinyal).
 
 ## Asama 3 - Final iOS Gate (Zorunlu)
 Yayina cikmadan once tek seferde tamamlanmasi gereken fiziksel gate:

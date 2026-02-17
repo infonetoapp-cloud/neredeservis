@@ -1242,6 +1242,7 @@ Exit kriteri:
 ### 10.1) No-Mac/iPhone Operasyon Modu (Gecici)
 - Lokal Mac/iPhone yoksa iOS gelistirmesi durdurulmaz; asagidaki guard zorunludur:
   - Her PR'da `flutter build ios --no-codesign` CI compile kontrolu calisir.
+  - Bu kontrol no-Mac donemde non-blocking (`continue-on-error`) calisir; Android/backend pipeline'ini bloke etmez.
   - iOS flavor/scheme fiziksel olarak acilmadan once prod entrypoint compile guard korunur.
   - App Store yayini oncesi tek seferlik fiziksel iOS gate zorunludur (Mac + en az 1 iPhone).
 - Operasyon referansi: `docs/ios_macos_gate_plan.md`
