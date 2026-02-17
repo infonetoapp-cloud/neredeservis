@@ -2280,3 +2280,20 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.G:
   1) PROD projesinde `iOS key (auto created by Firebase)` icin iOS apps restriction uygulansin.
+
+### STEP-031.G Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- PROD projesinde `iOS key (auto created by Firebase)` restriction tamamlandi.
+  - Bundle ID: `com.neredeservis.app`
+- `docs/firebase_api_key_hardening_checklist.md` dosyasinda:
+  - `Prod iOS key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.H:
+  1) PROD `Browser key (auto created by Firebase)` icin websites restriction uygulansin.

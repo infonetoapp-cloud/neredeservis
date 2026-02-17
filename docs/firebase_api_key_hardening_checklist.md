@@ -55,7 +55,7 @@ Her environment icin:
 Kontrol:
 - [x] Dev iOS key restricted
 - [x] Stg iOS key restricted
-- [ ] Prod iOS key restricted
+- [x] Prod iOS key restricted
 
 ### 2.3 Browser key kisitlari (Firebase Hosting / Web)
 Her environment icin:
