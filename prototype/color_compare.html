@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeredeServis — Renk Karşılaştırma</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #1A73E8;
+            --accent-light: #E8F0FE;
+            --accent-dark: #1557B0;
+            --bg: #FFFFFF;
+            --surface: #F8F9FA;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --text-tertiary: #9CA3AF;
+            --border: #E5E7EB;
+            --danger: #DC2626;
+            --success: #16A34A;
+            --warning: #F59E0B;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+            --radius: 16px;
+            --radius-sm: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #F3F4F6;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        /* ── Theme Switcher ── */
+        .theme-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            background: #fff;
+            padding: 6px;
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 12px;
+            z-index: 100;
+        }
+
+        .theme-btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .theme-btn.active-blue {
+            background: #1A73E8;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
+        }
+
+        .theme-btn.active-amber {
+            background: #E8760A;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(232, 118, 10, 0.35);
+        }
+
+        /* ── Phone Frame ── */
+        .phones {
+            display: flex;
+            gap: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .phone-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .phone-label {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-tertiary);
+        }
+
+        .phone {
+            width: 375px;
+            height: 812px;
+            background: var(--bg);
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .phone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 28px;
+            background: #1F2937;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+
+        /* ── Status Bar ── */
+        .status-bar {
+            height: 48px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 24px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        /* ── Header ── */
+        .header {
+            padding: 16px 20px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* ── Content ── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 16px;
+        }
+
+        /* ── Güzergah Kartları ── */
+        .route-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .route-card:active {
+            transform: scale(0.98);
+        }
+
+        .route-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .route-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+
+        .route-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .route-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+
+        .route-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .route-cta {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            transition: opacity 0.15s;
+        }
+
+        .route-cta:active {
+            opacity: 0.85;
+        }
+
+        /* ── Yolcu Kartları ── */
+        .passenger-section {
+            margin-top: 4px;
+        }
+
+        .passenger-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            padding: 0 4px;
+        }
+
+        .passenger-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .passenger-item:last-child {
+            border-bottom: none;
+        }
+
+        .passenger-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .passenger-info {
+            flex: 1;
+        }
+
+        .passenger-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .passenger-area {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 1px;
+        }
+
+        .passenger-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* ── Empty State ── */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 24px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: 72px;
+            margin-bottom: 20px;
+            filter: grayscale(0.15);
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .empty-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            max-width: 260px;
+            margin-bottom: 28px;
+        }
+
+        .empty-cta {
+            width: 100%;
+            max-width: 280px;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+        }
+
+        /* ── Bottom Sheet (Yolcu Katılım) ── */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            padding: 20px;
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
+            z-index: 20;
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+
+        .sheet-route-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sheet-route-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .sheet-route-name {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .sheet-route-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .sheet-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: var(--surface);
+            color: var(--text-primary);
+        }
+
+        .sheet-input:focus {
+            border-color: var(--accent);
+            background: #fff;
+        }
+
+        .sheet-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .sheet-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .sheet-checkbox input[type=checkbox] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+        }
+
+        .sheet-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sheet-btn-primary {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .sheet-btn-secondary {
+            flex: 0;
+            padding: 14px 20px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: #fff;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* ── Bottom Nav ── */
+        .bottom-nav {
+            display: flex;
+            border-top: 1px solid var(--border);
+            padding: 8px 0 20px;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            padding: 6px 0 0;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+        /* ── Snackbar ── */
+        .snackbar {
+            position: absolute;
+            bottom: 80px;
+            left: 16px;
+            right: 16px;
+            background: #1F2937;
+            color: #fff;
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 30;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .snackbar-undo {
+            font-weight: 700;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* ── Vacation Badge ── */
+        .vacation-strip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* ── Quick Actions ── */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .quick-btn {
+            flex: 1;
+            padding: 10px 8px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+        }
+
+        .quick-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ── Map placeholder ── */
+        .map-area {
+            flex: 1;
+            background: #E8F0E8;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .map-road {
+            position: absolute;
+            background: #fff;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .map-pin {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+        }
+
+        .map-eta-card {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 10;
+        }
+
+        .eta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .eta-time {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .eta-unit {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .eta-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .eta-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .eta-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ── Duyuru Bottom Sheet ── */
+        .announce-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .announce-btn {
+            padding: 14px 10px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            background: #fff;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+
+        .announce-btn:active {
+            transform: scale(0.96);
+        }
+
+        .announce-emoji {
+            font-size: 24px;
+        }
+
+        .announce-btn.danger {
+            border-color: #FEE2E2;
+            background: #FFF5F5;
+            color: var(--danger);
+        }
+
+        .announce-btn.full {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 850px) {
+            .phones {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .phone {
+                width: 340px;
+                height: 740px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="theme-bar">
+        <button class="theme-btn active-blue" onclick="setTheme('blue')" id="btn-blue">🔵 Koyu Mavi</button>
+        <button class="theme-btn" onclick="setTheme('amber')" id="btn-amber">🟠 Amber</button>
+    </div>
+
+    <div class="phones">
+
+        <!-- ═══ PHONE 1: ŞOFÖR ANA EKRAN ═══ -->
+        <div class="phone-column">
+            <span class="phone-label">Şoför — Ana Ekran</span>
+            <div class="phone" id="phone1">
+                <div class="status-bar">
+                    <span>21:30</span>
+                    <div class="status-icons">📶 🔋 58%</div>
+                </div>
+                <div class="header">
+                    <span class="header-title">Güzergahlarım</span>
+                    <div class="header-avatar" id="avatar1">M</div>
+                </div>
+                <div class="content">
+                    <!-- Card 1: Active -->
+                    <div class="route-card">
+                        <div class="route-card-header">
+                            <span class="route-name">🚐 Darıca → GOSB</span>
+                            <span class="route-badge" id="badge1">Sabah</span>
+                        </div>
+                        <div class="route-meta">
+                            <span>🕐 06:30</span>
+                            <span>👥 14 yolcu</span>
+                            <span>📍 6 durak</span>
+                        </div>
+                        <button class="route-cta" id="cta1">SEFERİ BAŞLAT</button>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="route-card">
+                        <div class="route-card-header">
+                            <span class="route-name">🚐 GOSB → Darıca</span>
+                            <span class="route-badge" id="badge2">Akşam</span>
+                        </div>
+                        <div class="route-meta">
+                            <span>🕐 17:30</span>
+                            <span>👥 12 yolcu</span>
+                            <span>📍 6 durak</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Vacation -->
+                    <div class="route-card" style="opacity: 0.7;">
+                        <div class="route-card-header">
+                            <span class="route-name">🚐 Gebze → Tuzla</span>
+                            <span class="route-badge" id="badge3">Sabah</span>
+                        </div>
+                        <div class="route-meta">
+                            <span>🕐 07:00</span>
+                            <span>👥 8 yolcu</span>
+                            <span>📍 duraksız</span>
+                        </div>
+                        <div class="vacation-strip">🏖️ Tatilde — 22 Şubat'ta devam</div>
+                    </div>
+
+                    <!-- Card 4: small -->
+                    <div class="route-card">
+                        <div class="route-card-header">
+                            <span class="route-name">🚐 Çayırova → Pendik</span>
+                            <span class="route-badge" id="badge4">Öğle</span>
+                        </div>
+                        <div class="route-meta">
+                            <span>🕐 12:00</span>
+                            <span>👥 6 yolcu</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="nav-item active" id="nav1a"><span class="nav-icon">🚐</span>Güzergahlar</div>
+                    <div class="nav-item" id="nav1b"><span class="nav-icon">📡</span>Sefer</div>
+                    <div class="nav-item"><span class="nav-icon">👤</span>Profil</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PHONE 2: YOLCU CANLI TAKİP ═══ -->
+        <div class="phone-column">
+            <span class="phone-label">Yolcu — Canlı Takip</span>
+            <div class="phone" id="phone2">
+                <div class="status-bar">
+                    <span>06:28</span>
+                    <div class="status-icons">📶 🔋 91%</div>
+                </div>
+                <div class="map-area">
+                    <div class="map-grid"></div>
+                    <!-- Stylized roads -->
+                    <div class="map-road" style="width:200px;height:8px;top:180px;left:40px;transform:rotate(-15deg)">
+                    </div>
+                    <div class="map-road" style="width:160px;height:8px;top:240px;left:100px;transform:rotate(25deg)">
+                    </div>
+                    <div class="map-road" style="width:250px;height:8px;top:320px;left:20px;transform:rotate(-5deg)">
+                    </div>
+                    <div class="map-road" style="width:6px;height:200px;top:100px;left:200px;transform:rotate(10deg)">
+                    </div>
+                    <!-- Driver pin -->
+                    <div class="map-pin" id="driver-pin" style="top:200px;left:140px;">🚐</div>
+                    <!-- Passenger pin -->
+                    <div class="map-pin" style="top:380px;left:220px;background:#6B7280;font-size:12px;">📍</div>
+                    <!-- ETA Card -->
+                    <div class="map-eta-card">
+                        <div class="eta-row">
+                            <div>
+                                <div style="display:flex;align-items:baseline;gap:6px;">
+                                    <span class="eta-time" id="eta-num">4</span>
+                                    <span class="eta-unit">dakika</span>
+                                </div>
+                                <div class="eta-label">Tahmini varış — Sahil Sitesi</div>
+                            </div>
+                            <div class="eta-status" id="eta-badge">
+                                <div class="eta-pulse" id="eta-dot"></div>
+                                Yolda
+                            </div>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="quick-btn">🚫 Bugün Binmiyorum</button>
+                            <button class="quick-btn">⏰ Geç Kalıyorum</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="nav-item"><span class="nav-icon">🏠</span>Servislerim</div>
+                    <div class="nav-item active" id="nav2a"><span class="nav-icon">🗺️</span>Harita</div>
+                    <div class="nav-item"><span class="nav-icon">👤</span>Profil</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PHONE 3: YOLCU KATILIM (Bottom Sheet) ═══ -->
+        <div class="phone-column">
+            <span class="phone-label">Yolcu — Katılım Akışı</span>
+            <div class="phone" id="phone3">
+                <div class="status-bar">
+                    <span>14:22</span>
+                    <div class="status-icons">📶 🔋 73%</div>
+                </div>
+                <div class="map-area" style="filter: brightness(0.85);">
+                    <div class="map-grid"></div>
+                    <div class="map-road" style="width:200px;height:8px;top:120px;left:60px;transform:rotate(-10deg)">
+                    </div>
+                    <div class="map-road" style="width:180px;height:8px;top:200px;left:80px;transform:rotate(15deg)">
+                    </div>
+                </div>
+                <!-- Bottom Sheet -->
+                <div class="bottom-sheet" id="sheet3">
+                    <div class="sheet-handle"></div>
+                    <div class="sheet-route-info">
+                        <div class="sheet-route-icon" id="sheet-icon">🚐</div>
+                        <div>
+                            <div class="sheet-route-name">Darıca → GOSB Sabah</div>
+                            <div class="sheet-route-detail">Şoför: Mehmet Usta · 06:30</div>
+                        </div>
+                    </div>
+                    <input class="sheet-input" placeholder="Adınız" value="Ahmet" id="input1">
+                    <input class="sheet-input" placeholder="Telefon" value="0532 845 67 89" id="input2">
+                    <input class="sheet-input" placeholder="Nereden binersiniz?" value="Sahil Sitesi yanı" id="input3">
+                    <div class="sheet-checkbox">
+                        <input type="checkbox" checked id="check1">
+                        <label for="check1">Numaramı şoföre göster</label>
+                    </div>
+                    <div class="sheet-actions">
+                        <button class="sheet-btn-primary" id="join-btn">KATIL</button>
+                        <button class="sheet-btn-secondary">👁 Takip</button>
+                    </div>
+                </div>
+                <div class="bottom-nav" style="position:relative;z-index:25;">
+                    <div class="nav-item"><span class="nav-icon">🏠</span>Servislerim</div>
+                    <div class="nav-item active" id="nav3a"><span class="nav-icon">🗺️</span>Harita</div>
+                    <div class="nav-item"><span class="nav-icon">👤</span>Profil</div>
+                </div>
+                <!-- Snackbar -->
+                <div class="snackbar" style="display:none;" id="snackbar3">
+                    ✅ Güzergaha katıldınız!
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const themes = {
+            blue: {
+                accent: '#1A73E8',
+                accentLight: '#E8F0FE',
+                accentDark: '#1557B0',
+                pinBg: '#1A73E8',
+                etaBg: '#E8F0FE',
+                etaColor: '#1A73E8',
+                dotColor: '#1A73E8',
+                badgeBg: '#E8F0FE',
+                badgeColor: '#1A73E8',
+            },
+            amber: {
+                accent: '#E8760A',
+                accentLight: '#FEF3E2',
+                accentDark: '#C4620A',
+                pinBg: '#E8760A',
+                etaBg: '#FEF3E2',
+                etaColor: '#C4620A',
+                dotColor: '#E8760A',
+                badgeBg: '#FEF3E2',
+                badgeColor: '#C4620A',
+            }
+        };
+
+        function setTheme(t) {
+            const c = themes[t];
+
+            // Theme buttons
+            document.getElementById('btn-blue').className = t === 'blue' ? 'theme-btn active-blue' : 'theme-btn';
+            document.getElementById('btn-amber').className = t === 'amber' ? 'theme-btn active-amber' : 'theme-btn';
+
+            // CSS variable
+            document.documentElement.style.setProperty('--accent', c.accent);
+
+            // Avatars + map pin
+            document.getElementById('avatar1').style.background = c.accent;
+            document.getElementById('driver-pin').style.background = c.accent;
+
+            // Route badges
+            ['badge1', 'badge2', 'badge3', 'badge4'].forEach(id => {
+                const el = document.getElementById(id);
+                el.style.background = c.badgeBg;
+                el.style.color = c.badgeColor;
+            });
+
+            // CTA buttons
+            document.getElementById('cta1').style.background = c.accent;
+            document.getElementById('join-btn').style.background = c.accent;
+
+            // ETA badge
+            const eta = document.getElementById('eta-badge');
+            eta.style.background = c.etaBg;
+            eta.style.color = c.etaColor;
+            document.getElementById('eta-dot').style.background = c.dotColor;
+            document.getElementById('eta-num').style.color = c.accent;
+
+            // Sheet icon
+            document.getElementById('sheet-icon').style.background = c.accentLight;
+
+            // Active nav items
+            ['nav1a', 'nav2a', 'nav3a'].forEach(id => {
+                document.getElementById(id).style.color = c.accent;
+            });
+            document.getElementById('nav1b').style.color = '';
+
+            // Input focus (via CSS var already handled)
+        }
+
+        // Init
+        setTheme('blue');
+    </script>
+
+</body>
+
+</html>

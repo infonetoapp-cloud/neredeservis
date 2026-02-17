@@ -1,0 +1,54 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+pubspec_overrides.yaml
+
+# FVM
+.fvm/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# iOS / CocoaPods
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# Logs
+*.log
+firebase-debug.log
+
+# Env / Secrets
+.env
+.env.*
+*.pem
+*.p12
+*.mobileprovision
+service-account*.json
+
+# Firebase app config secrets (do not commit)
+firebase_app_configs/**/*.json
+firebase_app_configs/**/*.plist
+android/app/google-services.json
+android/app/src/**/google-services.json
+ios/Runner/GoogleService-Info.plist
+ios/firebase/**/GoogleService-Info.plist

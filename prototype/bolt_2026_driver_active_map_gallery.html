@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeredeServis - Driver Active Map Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0f1413;
+      --ink-soft: #27312d;
+      --surface: #f3f7ef;
+      --line: #d5ddcf;
+      --muted: #6a746d;
+      --lime: #c7ff34;
+      --amber: #e8760a;
+      --yellow: #f2b94a;
+      --green: #3da66a;
+      --red: #d64e45;
+      --shadow: 0 24px 52px rgba(12, 20, 16, 0.16);
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 12%, rgba(232, 118, 10, 0.20), transparent 30%),
+        radial-gradient(circle at 88% 90%, rgba(199, 255, 52, 0.28), transparent 28%),
+        linear-gradient(135deg, #fbfdf8 0%, #eff4ea 52%, #edf3e8 100%);
+      padding: 36px 28px 56px;
+    }
+
+    .wrap {
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 26px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 38px;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.82);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--ink-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(300px, 1fr));
+      gap: 26px;
+    }
+
+    .tile {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tile h2 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #fff;
+      border-radius: 42px;
+      border: 2px solid #1a1f1d;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 154px;
+      height: 34px;
+      border-radius: 0 0 20px 20px;
+      background: #101413;
+      z-index: 5;
+    }
+
+    .status {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px 0;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1d2422;
+      z-index: 3;
+      position: relative;
+    }
+
+    .dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #1f2624;
+      opacity: 0.82;
+    }
+
+    .screen {
+      position: relative;
+      height: calc(100% - 52px);
+      overflow: hidden;
+      background: #edf3e8;
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(#dce4d8 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(90deg, #dce4d8 1px, transparent 1px) 0 0 / 24px 24px,
+        #e8efe3;
+    }
+
+    .road {
+      position: absolute;
+      height: 7px;
+      border-radius: 20px;
+      background: #f9fbf8;
+      box-shadow: 0 2px 8px rgba(40, 50, 45, 0.18);
+    }
+
+    .marker {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 900;
+      border: 3px solid #fff;
+      box-shadow: 0 6px 14px rgba(18, 25, 23, 0.24);
+      z-index: 2;
+    }
+
+    .bus {
+      background: #1a211f;
+      color: #d8ff67;
+    }
+
+    .stop {
+      background: #e8760a;
+      color: #fff9f1;
+    }
+
+    .pulse {
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(61, 166, 106, 0.65);
+      left: 147px;
+      top: 302px;
+      z-index: 1;
+      opacity: 0.68;
+    }
+
+    .hud {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .state {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(4px);
+    }
+
+    .state.live {
+      color: #194026;
+      background: rgba(228, 245, 233, 0.94);
+      border-color: #b7d9c1;
+    }
+
+    .state.warn {
+      color: #5f4511;
+      background: rgba(255, 241, 216, 0.94);
+      border-color: #f1d79f;
+    }
+
+    .state.down {
+      color: #5f1814;
+      background: rgba(255, 229, 227, 0.94);
+      border-color: #f1b9b5;
+    }
+
+    .state .left {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.yellow { background: var(--yellow); }
+    .dot.red { background: var(--red); }
+
+    .guidance {
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid var(--line);
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(21, 28, 25, 0.1);
+    }
+
+    .guidance .kicker {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .guidance .row {
+      margin-top: 6px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .guidance b {
+      font-size: 18px;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -0.2px;
+    }
+
+    .guidance span {
+      color: #304038;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .bottom {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      border-radius: 20px;
+      background: rgba(248, 251, 246, 0.96);
+      border: 1px solid var(--line);
+      box-shadow: 0 14px 28px rgba(19, 28, 24, 0.18);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mini {
+      border-radius: 12px;
+      border: 1px solid #d6ded1;
+      background: #ffffff;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .mini b {
+      display: block;
+      font-size: 18px;
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: -0.3px;
+    }
+
+    .mini span {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn {
+      border: none;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.25px;
+      font-family: "Manrope", sans-serif;
+    }
+
+    .btn-amber {
+      background: #e8760a;
+      color: #fff8f1;
+    }
+
+    .btn-danger {
+      background: #d64e45;
+      color: #fff8f7;
+    }
+
+    .btn-muted {
+      background: #ffffff;
+      border: 1px solid #d0d9cc;
+      color: #20302a;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1>Driver Active Trip - Map + Guidance</h1>
+        <p class="sub">Sade harita + heartbeat + siradaki durak mesafesi. 2026 production prototype.</p>
+      </div>
+      <div class="chips">
+        <span class="chip">Driver Guidance Lite</span>
+        <span class="chip">Peripheral Heartbeat</span>
+        <span class="chip">Apple Review Shield</span>
+      </div>
+    </div>
+
+    <section class="grid">
+      <article class="tile">
+        <h2>State A - Canli Yayin</h2>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="status"><strong>06:44</strong><div class="dots"><span></span><span></span><span></span></div></div>
+          <div class="screen">
+            <div class="map">
+              <div class="road" style="width:278px; top:188px; left:48px; transform:rotate(-13deg);"></div>
+              <div class="road" style="width:220px; top:296px; left:100px; transform:rotate(22deg);"></div>
+              <div class="road" style="width:268px; top:422px; left:40px; transform:rotate(-6deg);"></div>
+              <div class="road" style="width:180px; top:548px; left:112px; transform:rotate(10deg);"></div>
+              <div class="pulse"></div>
+              <div class="marker bus" style="top:316px; left:162px;">S</div>
+              <div class="marker stop" style="top:454px; left:242px;">D4</div>
+            </div>
+
+            <div class="hud">
+              <div class="state live">
+                <div class="left"><span class="dot green"></span>YAYINDASIN</div>
+                <span>Canli</span>
+              </div>
+              <div class="guidance">
+                <div class="kicker">Siradaki Durak</div>
+                <div class="row"><b>D4 - Millet Cad.</b><span>Kus ucusu 320 m</span></div>
+              </div>
+            </div>
+
+            <div class="bottom">
+              <div class="mini-grid">
+                <div class="mini"><b>14</b><span>Aktif yolcu</span></div>
+                <div class="mini"><b>3 dk</b><span>Durak ETA</span></div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-amber">Hazir Duyuru</button>
+                <button class="btn btn-danger">Seferi Bitir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <h2>State B - Baglanti Dalgali</h2>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="status"><strong>06:45</strong><div class="dots"><span></span><span></span><span></span></div></div>
+          <div class="screen">
+            <div class="map">
+              <div class="road" style="width:278px; top:188px; left:48px; transform:rotate(-13deg);"></div>
+              <div class="road" style="width:220px; top:296px; left:100px; transform:rotate(22deg);"></div>
+              <div class="road" style="width:268px; top:422px; left:40px; transform:rotate(-6deg);"></div>
+              <div class="road" style="width:180px; top:548px; left:112px; transform:rotate(10deg);"></div>
+              <div class="marker bus" style="top:344px; left:176px;">S</div>
+              <div class="marker stop" style="top:454px; left:242px;">D4</div>
+            </div>
+
+            <div class="hud">
+              <div class="state warn">
+                <div class="left"><span class="dot yellow"></span>YAYINDASIN</div>
+                <span>Baglanti Dalgali</span>
+              </div>
+              <div class="guidance">
+                <div class="kicker">Siradaki Durak</div>
+                <div class="row"><b>D4 - Millet Cad.</b><span>Kus ucusu 290 m</span></div>
+              </div>
+            </div>
+
+            <div class="bottom">
+              <div class="mini-grid">
+                <div class="mini"><b>14</b><span>Aktif yolcu</span></div>
+                <div class="mini"><b>-</b><span>Buluta yaziliyor...</span></div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-amber">Hazir Duyuru</button>
+                <button class="btn btn-muted">Yeniden Dene</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <h2>State C - Yayin Durdu</h2>
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="status"><strong>06:46</strong><div class="dots"><span></span><span></span><span></span></div></div>
+          <div class="screen">
+            <div class="map">
+              <div class="road" style="width:278px; top:188px; left:48px; transform:rotate(-13deg);"></div>
+              <div class="road" style="width:220px; top:296px; left:100px; transform:rotate(22deg);"></div>
+              <div class="road" style="width:268px; top:422px; left:40px; transform:rotate(-6deg);"></div>
+              <div class="road" style="width:180px; top:548px; left:112px; transform:rotate(10deg);"></div>
+              <div class="marker bus" style="top:372px; left:188px; filter:grayscale(0.2);">S</div>
+              <div class="marker stop" style="top:454px; left:242px;">D4</div>
+            </div>
+
+            <div class="hud">
+              <div class="state down">
+                <div class="left"><span class="dot red"></span>YAYIN DURDU</div>
+                <span>Mudahale Gerekli</span>
+              </div>
+              <div class="guidance">
+                <div class="kicker">Siradaki Durak</div>
+                <div class="row"><b>D4 - Millet Cad.</b><span>Son bilinen 250 m</span></div>
+              </div>
+            </div>
+
+            <div class="bottom">
+              <div class="mini-grid">
+                <div class="mini"><b>14</b><span>Aktif yolcu</span></div>
+                <div class="mini"><b>Offline</b><span>Kuyruk birikti</span></div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-muted">Baglantiyi Kontrol Et</button>
+                <button class="btn btn-danger">Acil Duyuru</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
+</body>
+</html>
+

@@ -1,0 +1,588 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeredeServis - Bolt 2026 UI Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0f1312;
+      --ink-soft: #1a201f;
+      --surface: #f2f5ef;
+      --card: #ffffff;
+      --line: #d8dfd4;
+      --muted: #6e776f;
+      --lime: #c7ff34;
+      --lime-deep: #8ab700;
+      --orange: #ff9042;
+      --green: #3da66a;
+      --danger: #d64e45;
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow: 0 24px 60px rgba(11, 17, 15, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(199, 255, 52, 0.36), transparent 35%),
+        radial-gradient(circle at 85% 90%, rgba(255, 144, 66, 0.24), transparent 34%),
+        linear-gradient(135deg, #f7faf2 0%, #edf2e9 52%, #e9efe4 100%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 40px 32px 60px;
+    }
+
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 28px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 40px;
+      letter-spacing: -1.2px;
+      line-height: 1;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      color: var(--ink-soft);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(240px, 1fr));
+      gap: 26px;
+    }
+
+    .tile {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .tile h2 {
+      margin: 0 2px;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 17px;
+      letter-spacing: -0.2px;
+    }
+
+    .phone {
+      width: 100%;
+      aspect-ratio: 390 / 844;
+      max-width: 390px;
+      border-radius: 42px;
+      background: var(--card);
+      border: 2px solid #1a1d1c;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+
+    .notch {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 152px;
+      height: 34px;
+      border-radius: 0 0 20px 20px;
+      background: #101413;
+      z-index: 20;
+    }
+
+    .status {
+      height: 52px;
+      padding: 12px 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1b211f;
+    }
+
+    .bubbles {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .bubbles span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #1e2522;
+      opacity: 0.75;
+    }
+
+    .screen {
+      height: calc(100% - 52px);
+      padding: 16px 18px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+    }
+
+    .title {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -0.6px;
+      margin: 0;
+    }
+
+    .caption {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      height: 50px;
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-lime {
+      background: var(--lime);
+      color: #172008;
+      box-shadow: 0 10px 20px rgba(140, 183, 0, 0.25);
+    }
+
+    .btn-dark {
+      background: #121715;
+      color: #f3f6f1;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #eef4e9;
+      color: #273027;
+      border: 1px solid #d9e5d2;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #42b56d;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .mini {
+      background: #f9fbf7;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 10px;
+      min-height: 76px;
+    }
+
+    .mini b {
+      display: block;
+      font-size: 17px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .mini span {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .route-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .row strong {
+      font-size: 14px;
+      letter-spacing: -0.1px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      background: #eef8d8;
+      color: #3f5600;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 5px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta {
+      margin-top: 7px;
+      display: flex;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, #eaf0e8 0%, #e4ebe1 65%, #dde6d8 100%);
+    }
+
+    .map::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(31, 39, 36, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 39, 36, 0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    .road {
+      position: absolute;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #d7dfd3;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(12, 16, 14, 0.07);
+    }
+
+    .pin-bus,
+    .pin-user {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 900;
+      z-index: 4;
+      border: 3px solid #fff;
+    }
+
+    .pin-bus { background: #1b2421; color: #d6ff58; }
+    .pin-user { background: #43a96f; color: #fff; }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 24px 24px 0 0;
+      background: #fbfdf9;
+      border-top: 1px solid #d7dfd2;
+      box-shadow: 0 -14px 34px rgba(13, 19, 17, 0.14);
+      padding: 10px 16px 22px;
+      z-index: 5;
+    }
+
+    .handle {
+      width: 38px;
+      height: 5px;
+      border-radius: 3px;
+      background: #c6cfc2;
+      margin: 4px auto 10px;
+    }
+
+    .eta {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+    }
+
+    .eta b {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 42px;
+      line-height: 0.9;
+      letter-spacing: -1px;
+    }
+
+    .eta span {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .announce {
+      margin-top: 10px;
+      border-radius: 12px;
+      background: #fff4ea;
+      border: 1px solid #ffd7bc;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #5f3518;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .notice {
+      border: 1px dashed #cad5c6;
+      background: #f9fcf5;
+      border-radius: 14px;
+      padding: 10px;
+      font-size: 11px;
+      color: #5e695f;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1080px) {
+      .grid { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 22px 16px 30px; }
+      .header { flex-direction: column; align-items: flex-start; margin-bottom: 20px; }
+      .chips { justify-content: flex-start; }
+      .grid { grid-template-columns: 1fr; gap: 18px; }
+      h1 { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>NeredeServis UIX v2026</h1>
+      <p class="sub">Bolt referansli: hizli, net, tek bakista karar verdiren arayuz dili</p>
+    </div>
+    <div class="chips">
+      <span class="chip">Lime + Graphite</span>
+      <span class="chip">Large Action First</span>
+      <span class="chip">8s cognitive loop</span>
+    </div>
+  </div>
+
+  <section class="grid">
+    <article class="tile">
+      <h2>1) Splash + Hook</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>09:41</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="background: radial-gradient(circle at 50% 20%, rgba(199,255,52,.65), rgba(255,255,255,.4) 42%, transparent 70%), linear-gradient(180deg, #f8fbf3 0%, #eef4e9 100%); display:grid; place-items:center;">
+          <div style="text-align:center; width:100%; max-width:290px;">
+            <div style="width:136px;height:136px;border-radius:34px;margin:0 auto;background:#111614;color:#d8ff63;display:grid;place-items:center;font:800 48px/1 'Space Grotesk';box-shadow:0 24px 40px rgba(17,22,20,.22);">NS</div>
+            <h3 class="title" style="margin-top:20px;">Servisin Nerede Oldugu 8 Saniyede Net</h3>
+            <p class="caption">Sade baslangic, tek mesaj, tek hareket. Gereksiz metin yok.</p>
+            <button class="btn btn-lime" style="width:100%; margin-top:20px;">Basla</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="tile">
+      <h2>2) Rol Secimi</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>09:42</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="background:#f3f7ef;">
+          <h3 class="title" style="margin:8px 0 4px;">Nasil Devam Edelim?</h3>
+          <p class="caption">Ayni islev, farkli akis. Ikisi de iki dokunusla biter.</p>
+
+          <div class="card" style="margin-top:16px; border:2px solid #d1dbcd; padding:16px;">
+            <div class="row"><strong>Yolcuyum</strong><span class="tag">Track</span></div>
+            <p class="caption" style="margin-top:8px;">Canli harita, ETA, tek tikla "Bugun Binmiyorum".</p>
+            <button class="btn btn-lime" style="width:100%; margin-top:12px;">Yolcu Olarak Gir</button>
+          </div>
+
+          <div class="card" style="margin-top:12px; border:2px solid #d1dbcd; padding:16px;">
+            <div class="row"><strong>Soforum</strong><span class="tag" style="background:#ebf0e9;color:#2f3a32;">Control</span></div>
+            <p class="caption" style="margin-top:8px;">Guzergah, sefer baslat/bitir, hazir duyuru gonder.</p>
+            <button class="btn btn-dark" style="width:100%; margin-top:12px;">Sofor Olarak Gir</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="tile">
+      <h2>3) Sofor Ana Ekran</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>06:20</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="background:#f6faf2; overflow:auto;">
+          <div class="row"><h3 class="title" style="font-size:26px; margin:0;">Guzergahlar</h3><span class="pill"><span class="dot"></span>Hazir</span></div>
+
+          <div class="route-card">
+            <div class="row"><strong>Darica -> GOSB Sabah</strong><span class="tag">06:30</span></div>
+            <div class="meta"><span>14 yolcu</span><span>6 durak</span><span>SRV4821</span></div>
+            <button class="btn btn-lime" style="width:100%; margin-top:10px;">Seferi Baslat</button>
+          </div>
+
+          <div class="route-card">
+            <div class="row"><strong>GOSB -> Darica Aksam</strong><span class="tag" style="background:#fff0e4;color:#80430f;">17:30</span></div>
+            <div class="meta"><span>12 yolcu</span><span>5 durak</span><span>Ikame: Acik</span></div>
+            <button class="btn btn-dark" style="width:100%; margin-top:10px;">Detay</button>
+          </div>
+
+          <div class="notice" style="margin-top:10px;">Tatil modu: 18-22 Subat. Yolculara tek push gonderilecek.</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="tile">
+      <h2>4) Aktif Sefer Paneli</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>06:44</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="background:#eef5e9;">
+          <h3 class="title" style="margin-top:4px;">Sefer Aktif</h3>
+          <p class="caption">Harita yok. Yol dikkatini dagitmayacak kontrol paneli.</p>
+
+          <div class="split" style="margin-top:14px;">
+            <div class="mini"><b>14</b><span>Aktif yolcu</span></div>
+            <div class="mini"><b>4 dk</b><span>Sonraki durak ETA</span></div>
+          </div>
+
+          <div class="controls">
+            <button class="btn btn-lime">Hazir Duyuru Gonder</button>
+            <button class="btn btn-dark" style="background:#d94f46;color:#fff;">Seferi Bitir</button>
+          </div>
+
+          <div class="card" style="margin-top:14px; background:#fff9f2; border-color:#ffd7b8;">
+            <p class="caption" style="margin:0; color:#6a3d15; font-weight:700;">Duyuru ornekleri: "5 dk gecikme", "D3 atlandi", "Trafik var ama geliyorum"</p>
+          </div>
+
+          <div class="notice" style="margin-top:14px;">Background izleme acik. OEM kill riski icin kalici bildirim acik tutulur.</div>
+        </div>
+      </div>
+    </article>
+
+    <article class="tile">
+      <h2>5) Yolcu Canli Harita</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>06:46</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="padding:0;">
+          <div class="map">
+            <div class="road" style="width:260px; top:210px; left:40px; transform:rotate(-14deg);"></div>
+            <div class="road" style="width:190px; top:320px; left:120px; transform:rotate(18deg);"></div>
+            <div class="road" style="width:240px; top:430px; left:50px; transform:rotate(-4deg);"></div>
+            <div class="pin-bus" style="top:280px; left:160px;">S</div>
+            <div class="pin-user" style="top:500px; left:225px;">U</div>
+          </div>
+
+          <div class="sheet">
+            <div class="handle"></div>
+            <div class="eta"><b>4</b><span>dakika uzakta</span></div>
+            <div class="pill" style="margin-top:8px;"><span class="dot"></span>Canli - son guncelleme 8 sn</div>
+            <div class="announce"><strong>Sofor notu:</strong> D3 bugun pas gecilecek. Direkt ana yola cikiyorum.</div>
+            <div class="split" style="margin-top:10px;">
+              <button class="btn btn-dark" style="height:44px; background:#27312d; font-size:12px;">Bugun Binmiyorum</button>
+              <button class="btn" style="height:44px; background:#fff; border:1px solid #cfd8cc; font-size:12px; font-weight:800;">Paylas</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="tile">
+      <h2>6) Katilim + Ayarlar</h2>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="status"><strong>14:08</strong><div class="bubbles"><span></span><span></span><span></span></div></div>
+        <div class="screen" style="background:#f3f7ef; overflow:auto;">
+          <h3 class="title" style="margin-top:6px;">SRV ile Katil</h3>
+          <p class="caption">Kisa form + gizlilik toggle. 20 saniyede tamam.</p>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="caption" style="margin:0 0 6px; font-weight:800; color:#2e352f;">SRV kodu</div>
+            <div style="height:52px;border:1px solid #ccd6c9;border-radius:12px;background:#fbfef8;display:flex;align-items:center;justify-content:center;font:800 24px 'Space Grotesk';letter-spacing:3px;">SRV4821</div>
+            <div class="split" style="margin-top:10px;">
+              <button class="btn btn-lime" style="height:44px;">Katil</button>
+              <button class="btn" style="height:44px; background:#fff; border:1px solid #ccd6c9; font-weight:800;">Sadece Takip</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <div class="row"><strong>Gizlilik</strong><span class="tag" style="background:#edf2ea;color:#2c3b32;">KVKK</span></div>
+            <p class="caption">Numarami sofore goster: Kapaliysa telefon alanin null yazilir.</p>
+            <div class="row" style="margin-top:10px;">
+              <div class="pill" style="background:#fff6ed;border-color:#ffd8bb;color:#6b3d19;">Riza versiyonu v1.0</div>
+              <button class="btn" style="height:38px; min-width:96px; background:#121715; color:#f5f8f3;">Acik</button>
+            </div>
+          </div>
+
+          <div class="notice" style="margin-top:12px;">Mapbox token mobile tarafta kisitli, secret token sadece server'da.</div>
+        </div>
+      </div>
+    </article>
+  </section>
+</body>
+</html>

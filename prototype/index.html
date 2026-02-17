@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NeredeServis — Prototip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --bg: #0a0e1a;
+            --bg2: #111827;
+            --card: #1a2035;
+            --card2: #1e2a45;
+            --accent: #3b82f6;
+            --accent2: #60a5fa;
+            --green: #22c55e;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --text: #f1f5f9;
+            --text2: #94a3b8;
+            --text3: #64748b;
+            --radius: 16px;
+            --radius2: 24px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text);
+            overflow: hidden
+        }
+
+        /* Phone Frame */
+        .phone {
+            width: 390px;
+            height: 844px;
+            background: var(--bg);
+            border-radius: 44px;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid #222;
+            box-shadow: 0 0 80px rgba(59, 130, 246, .15), 0 0 200px rgba(59, 130, 246, .05)
+        }
+
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px;
+            height: 34px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 100
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 54px;
+            z-index: 99;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 28px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .status-bar span:first-child {
+            width: 54px
+        }
+
+        .status-bar span:last-child {
+            display: flex;
+            gap: 5px;
+            align-items: center
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .5s, transform .5s;
+            transform: translateX(30px)
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(0)
+        }
+
+        .screen.out {
+            opacity: 0;
+            transform: translateX(-30px)
+        }
+
+        /* Splash */
+        #splash {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at 50% 40%, #1a2a5e 0%, var(--bg) 70%)
+        }
+
+        #splash .logo-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse-ring 2s infinite;
+            position: relative
+        }
+
+        #splash .logo-ring::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 1px solid rgba(59, 130, 246, .2);
+            animation: pulse-ring 2s .5s infinite
+        }
+
+        #splash .logo-icon {
+            font-size: 48px
+        }
+
+        #splash h1 {
+            margin-top: 24px;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px
+        }
+
+        #splash h1 span {
+            color: var(--accent2)
+        }
+
+        #splash p {
+            color: var(--text2);
+            margin-top: 8px;
+            font-size: 14px
+        }
+
+        #splash .loader {
+            margin-top: 48px;
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--card2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .8s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes pulse-ring {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1
+            }
+
+            50% {
+                transform: scale(1.08);
+                opacity: .7
+            }
+        }
+
+        /* Onboarding */
+        #onboarding {
+            padding: 54px 0 0
+        }
+
+        .onb-slides {
+            height: 65%;
+            position: relative;
+            overflow: hidden
+        }
+
+        .onb-slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 32px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all .5s cubic-bezier(.4, 0, .2, 1)
+        }
+
+        .onb-slide.active {
+            opacity: 1;
+            transform: translateX(0)
+        }
+
+        .onb-slide.out {
+            opacity: 0;
+            transform: translateX(-100%)
+        }
+
+        .onb-slide .icon-box {
+            width: 180px;
+            height: 180px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 72px;
+            margin-bottom: 32px
+        }
+
+        .onb-slide h2 {
+            font-size: 24px;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1.3
+        }
+
+        .onb-slide p {
+            color: var(--text2);
+            text-align: center;
+            margin-top: 12px;
+            font-size: 15px;
+            line-height: 1.6;
+            max-width: 300px
+        }
+
+        .onb-bottom {
+            height: 35%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 32px
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--text3);
+            transition: all .3s
+        }
+
+        .dot.active {
+            width: 24px;
+            background: var(--accent)
+        }
+
+        .btn {
+            width: 100%;
+            height: 56px;
+            border-radius: 14px;
+            border: none;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff
+        }
+
+        .btn-primary:active {
+            transform: scale(.97);
+            background: #2563eb
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text2);
+            margin-top: 8px
+        }
+
+        .btn-ghost:active {
+            color: var(--text)
+        }
+
+        /* Role Select */
+        #role {
+            padding: 54px 24px 40px;
+            display: flex;
+            flex-direction: column
+        }
+
+        #role h2 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-top: 40px
+        }
+
+        #role p {
+            color: var(--text2);
+            margin-top: 8px;
+            font-size: 15px
+        }
+
+        .role-cards {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 32px;
+            justify-content: center
+        }
+
+        .role-card {
+            background: var(--card);
+            border: 2px solid transparent;
+            border-radius: var(--radius2);
+            padding: 28px 24px;
+            cursor: pointer;
+            transition: all .3s;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden
+        }
+
+        .role-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .08), transparent);
+            opacity: 0;
+            transition: opacity .3s
+        }
+
+        .role-card:hover,
+        .role-card:active {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, .15)
+        }
+
+        .role-card:hover::before,
+        .role-card:active::before {
+            opacity: 1
+        }
+
+        .role-card .rc-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0
+        }
+
+        .role-card h3 {
+            font-size: 18px;
+            font-weight: 700
+        }
+
+        .role-card span {
+            font-size: 13px;
+            color: var(--text2);
+            display: block;
+            margin-top: 4px
+        }
+
+        .role-card .arrow {
+            position: absolute;
+            right: 20px;
+            color: var(--text3);
+            font-size: 20px
+        }
+
+        /* Passenger Entry */
+        #passenger-entry {
+            padding: 54px 24px 40px;
+            display: flex;
+            flex-direction: column
+        }
+
+        .pe-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px
+        }
+
+        .pe-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--card);
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        #passenger-entry h2 {
+            font-size: 24px;
+            font-weight: 800
+        }
+
+        #passenger-entry .pe-desc {
+            color: var(--text2);
+            margin-top: 24px;
+            font-size: 15px;
+            line-height: 1.6
+        }
+
+        .srv-input-wrap {
+            margin-top: 32px;
+            position: relative
+        }
+
+        .srv-input {
+            width: 100%;
+            height: 64px;
+            background: var(--card);
+            border: 2px solid var(--card2);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+            text-align: center;
+            letter-spacing: 8px;
+            outline: none;
+            transition: border-color .3s
+        }
+
+        .srv-input:focus {
+            border-color: var(--accent)
+        }
+
+        .srv-input::placeholder {
+            letter-spacing: 4px;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text3)
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 28px 0;
+            color: var(--text3);
+            font-size: 13px
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--card2)
+        }
+
+        .btn-qr {
+            background: var(--card);
+            color: var(--text);
+            border: 2px solid var(--card2)
+        }
+
+        .btn-qr:active {
+            border-color: var(--accent)
+        }
+
+        .pe-bottom {
+            margin-top: auto;
+            padding-top: 24px
+        }
+
+        /* Passenger Main (Map) */
+        #passenger-main {
+            background: #0f1729
+        }
+
+        .map-fake {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, #0c1425 0%, #111f3a 40%, #0f1729 100%);
+            overflow: hidden
+        }
+
+        .map-fake::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='g' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 20h40M20 0v40' stroke='%23162040' stroke-width='.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill='url(%23g)' width='400' height='400'/%3E%3C/svg%3E");
+            opacity: .6
+        }
+
+        .map-road {
+            position: absolute;
+            width: 200%;
+            height: 6px;
+            background: rgba(59, 130, 246, .25);
+            top: 45%;
+            left: -20%;
+            transform: rotate(-8deg);
+            border-radius: 3px
+        }
+
+        .map-road:nth-child(2) {
+            top: 55%;
+            transform: rotate(5deg);
+            background: rgba(59, 130, 246, .15)
+        }
+
+        .map-road:nth-child(3) {
+            top: 38%;
+            transform: rotate(-15deg);
+            width: 80%;
+            left: 10%;
+            background: rgba(59, 130, 246, .12)
+        }
+
+        .service-marker {
+            position: absolute;
+            top: 38%;
+            left: 38%;
+            z-index: 10;
+            animation: marker-drive 4s ease-in-out infinite alternate
+        }
+
+        .service-marker .marker-dot {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, .5), 0 0 60px rgba(59, 130, 246, .2)
+        }
+
+        .service-marker .marker-pulse {
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            opacity: 0;
+            animation: m-pulse 2s infinite
+        }
+
+        .service-marker .marker-pulse:nth-child(2) {
+            animation-delay: .7s
+        }
+
+        .user-marker {
+            position: absolute;
+            top: 62%;
+            left: 55%;
+            z-index: 10
+        }
+
+        .user-marker .u-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 3px solid #fff;
+            box-shadow: 0 0 12px rgba(34, 197, 94, .4)
+        }
+
+        .route-line {
+            position: absolute;
+            top: 40%;
+            left: 40%;
+            width: 120px;
+            height: 160px;
+            z-index: 5;
+            border: none;
+            border-right: 3px dashed rgba(59, 130, 246, .3);
+            border-bottom: 3px dashed rgba(59, 130, 246, .3);
+            border-radius: 0 0 40px 0;
+            transform: rotate(-5deg)
+        }
+
+        @keyframes marker-drive {
+            0% {
+                top: 38%;
+                left: 38%
+            }
+
+            50% {
+                top: 44%;
+                left: 42%
+            }
+
+            100% {
+                top: 50%;
+                left: 48%
+            }
+        }
+
+        @keyframes m-pulse {
+            0% {
+                transform: scale(1);
+                opacity: .6
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0
+            }
+        }
+
+        /* Bottom Sheet */
+        .bottom-sheet {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg);
+            border-radius: 24px 24px 0 0;
+            z-index: 20;
+            transition: transform .4s cubic-bezier(.4, 0, .2, 1);
+            padding-bottom: 34px
+        }
+
+        .bs-handle {
+            width: 36px;
+            height: 5px;
+            background: var(--text3);
+            border-radius: 3px;
+            margin: 10px auto 0
+        }
+
+        .bs-eta {
+            padding: 20px 24px 0;
+            display: flex;
+            align-items: center;
+            gap: 16px
+        }
+
+        .bs-eta-time {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--accent2);
+            line-height: 1
+        }
+
+        .bs-eta-label div:first-child {
+            font-size: 15px;
+            font-weight: 600
+        }
+
+        .bs-eta-label div:last-child {
+            font-size: 13px;
+            color: var(--text2);
+            margin-top: 2px
+        }
+
+        .bs-status {
+            margin: 16px 24px 0;
+            padding: 12px 16px;
+            background: rgba(34, 197, 94, .1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--green)
+        }
+
+        .bs-status .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.5s infinite
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        .bs-info {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px 0
+        }
+
+        .bs-info-card {
+            flex: 1;
+            background: var(--card);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center
+        }
+
+        .bs-info-card .ic-val {
+            font-size: 18px;
+            font-weight: 700
+        }
+
+        .bs-info-card .ic-label {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 4px
+        }
+
+        .bs-announce {
+            margin: 16px 24px 0;
+            padding: 14px 16px;
+            background: var(--card);
+            border-radius: 14px;
+            border-left: 3px solid var(--orange);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px
+        }
+
+        .bs-announce .ann-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .bs-announce .ann-text {
+            font-size: 13px;
+            color: var(--text2);
+            line-height: 1.5
+        }
+
+        .bs-announce .ann-text strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 2px;
+            font-size: 14px
+        }
+
+        /* Driver Main */
+        #driver-main {
+            padding: 54px 24px 40px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg)
+        }
+
+        .dm-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 16px
+        }
+
+        .dm-header h2 {
+            font-size: 22px;
+            font-weight: 800
+        }
+
+        .dm-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: var(--card2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px
+        }
+
+        .dm-card {
+            background: var(--card);
+            border-radius: var(--radius2);
+            padding: 24px;
+            margin-top: 24px
+        }
+
+        .dm-card-label {
+            font-size: 12px;
+            color: var(--text3);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        .dm-card-srv {
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            margin-top: 8px;
+            color: var(--accent2)
+        }
+
+        .dm-card-sub {
+            color: var(--text2);
+            font-size: 13px;
+            margin-top: 8px
+        }
+
+        .dm-qr {
+            width: 120px;
+            height: 120px;
+            background: #fff;
+            border-radius: 16px;
+            margin: 20px auto 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative
+        }
+
+        .dm-qr-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            width: 80px;
+            height: 80px
+        }
+
+        .dm-qr-grid div {
+            background: #1a1a2e;
+            border-radius: 1px
+        }
+
+        .dm-qr-grid div:nth-child(odd) {
+            background: #2d2d5e
+        }
+
+        .dm-qr-grid div:nth-child(3n) {
+            background: #0a0e1a
+        }
+
+        .dm-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px
+        }
+
+        .dm-stat {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center
+        }
+
+        .dm-stat .ds-val {
+            font-size: 22px;
+            font-weight: 800
+        }
+
+        .dm-stat .ds-label {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 4px
+        }
+
+        .btn-trip {
+            width: 100%;
+            height: 64px;
+            border-radius: var(--radius);
+            border: none;
+            font-family: inherit;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all .3s
+        }
+
+        .btn-trip.start {
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            color: #fff;
+            box-shadow: 0 8px 32px rgba(34, 197, 94, .3)
+        }
+
+        .btn-trip.start:active {
+            transform: scale(.97)
+        }
+
+        .btn-trip.stop {
+            background: linear-gradient(135deg, var(--red), #dc2626);
+            color: #fff;
+            box-shadow: 0 8px 32px rgba(239, 68, 68, .3)
+        }
+
+        .dm-announce-btn {
+            width: 100%;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--card2);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px
+        }
+
+        .home-ind {
+            width: 140px;
+            height: 5px;
+            background: var(--text3);
+            border-radius: 3px;
+            margin: 8px auto 0;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%)
+        }
+
+        /* Nav hint */
+        .nav-hint {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: var(--text3);
+            font-size: 11px;
+            z-index: 50;
+            pointer-events: none;
+            animation: fade-hint 3s 2s both
+        }
+
+        @keyframes fade-hint {
+            0% {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateY(0)
+            }
+
+            80% {
+                opacity: 1
+            }
+
+            100% {
+                opacity: 0
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone">
+        <div class="notch"></div>
+        <div class="status-bar">
+            <span>09:41</span>
+            <span>
+                <svg width="16" height="12" fill="none">
+                    <rect x="0" y="4" width="3" height="8" rx="1" fill="#fff" />
+                    <rect x="4.5" y="2" width="3" height="10" rx="1" fill="#fff" />
+                    <rect x="9" y="0" width="3" height="12" rx="1" fill="#fff" />
+                </svg>
+                <svg width="16" height="12" fill="none">
+                    <rect x="1" y="1" width="12" height="10" rx="2" stroke="#fff" stroke-width="1.5" />
+                    <rect x="13" y="4" width="2" height="4" rx="1" fill="#fff" />
+                    <rect x="3" y="3" width="8" height="6" rx="1" fill="#4ade80" />
+                </svg>
+            </span>
+        </div>
+
+        <!-- SPLASH -->
+        <div class="screen active" id="splash">
+            <div class="logo-ring">
+                <div class="marker-pulse"></div>
+                <div class="marker-pulse"></div>
+                <span class="logo-icon">🚐</span>
+            </div>
+            <h1>Nerede<span>Servis</span></h1>
+            <p>Bir bakışta servisin nerede</p>
+            <div class="loader"></div>
+        </div>
+
+        <!-- ONBOARDING -->
+        <div class="screen" id="onboarding">
+            <div class="onb-slides">
+                <div class="onb-slide active" data-idx="0">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#1e3a6e,#2563eb)">📍</div>
+                    <h2>Servisinin Tam Yerini<br>Canlı İzle</h2>
+                    <p>Haritada servisin nerede olduğunu anlık gör. Durakta boşuna bekleme son bulsun.</p>
+                </div>
+                <div class="onb-slide" data-idx="1">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#164e3a,#16a34a)">⏱️</div>
+                    <h2>Dakika Dakika<br>Tahmini Varış</h2>
+                    <p>"4 dakika uzakta" — tam bu kadar net. Hazırlanman için yeterli süre, kapında beklemek yok.</p>
+                </div>
+                <div class="onb-slide" data-idx="2">
+                    <div class="icon-box" style="background:linear-gradient(135deg,#5b2c6f,#7c3aed)">🔔</div>
+                    <h2>Akıllı Sabah<br>Bildirimi</h2>
+                    <p>Servisin hareket ettiğinde ve durağına yaklaştığında otomatik bildirim. Telefonu kontrol etmene
+                        gerek yok.</p>
+                </div>
+            </div>
+            <div class="onb-bottom">
+                <div class="dots">
+                    <div class="dot active"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <button class="btn btn-primary" id="onb-next">Devam Et →</button>
+                <button class="btn btn-ghost" id="onb-skip">Atla</button>
+            </div>
+        </div>
+
+        <!-- ROLE SELECT -->
+        <div class="screen" id="role">
+            <h2>Nasıl devam<br>etmek istersin?</h2>
+            <p>Aşağıdan rolünü seç</p>
+            <div class="role-cards">
+                <div class="role-card" onclick="goTo('passenger-entry')">
+                    <div class="rc-icon" style="background:linear-gradient(135deg,#1e3a6e,#2563eb)">🧑‍💼</div>
+                    <div>
+                        <h3>Yolcuyum</h3><span>Servisi canlı takip et</span>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+                <div class="role-card" onclick="goTo('driver-main')">
+                    <div class="rc-icon" style="background:linear-gradient(135deg,#164e3a,#16a34a)">🚐</div>
+                    <div>
+                        <h3>Şoförüm</h3><span>Konumunu yolcularla paylaş</span>
+                    </div>
+                    <span class="arrow">›</span>
+                </div>
+            </div>
+            <div class="home-ind"></div>
+        </div>
+
+        <!-- PASSENGER ENTRY -->
+        <div class="screen" id="passenger-entry">
+            <div class="pe-header">
+                <button class="pe-back" onclick="goTo('role')">←</button>
+                <h2>Servise Katıl</h2>
+            </div>
+            <p class="pe-desc">Şoförünüzden aldığınız SRV kodunu girin<br>veya araçtaki QR kodu okutun.</p>
+            <div class="srv-input-wrap">
+                <input class="srv-input" type="text" maxlength="7" placeholder="SRV kodu" value="SRV4821"
+                    autocomplete="off">
+            </div>
+            <div class="or-divider">veya</div>
+            <button class="btn btn-qr" onclick="goTo('passenger-main')">📷 QR Kod Tara</button>
+            <div class="pe-bottom">
+                <button class="btn btn-primary" onclick="goTo('passenger-main')">Servisi Bul →</button>
+            </div>
+            <div class="home-ind"></div>
+        </div>
+
+        <!-- PASSENGER MAIN -->
+        <div class="screen" id="passenger-main">
+            <div class="map-fake">
+                <div class="map-road"></div>
+                <div class="map-road"></div>
+                <div class="map-road"></div>
+                <div class="route-line"></div>
+                <div class="service-marker">
+                    <div class="marker-pulse"></div>
+                    <div class="marker-pulse"></div>
+                    <div class="marker-dot">🚐</div>
+                </div>
+                <div class="user-marker">
+                    <div class="u-dot"></div>
+                </div>
+            </div>
+            <div class="bottom-sheet">
+                <div class="bs-handle"></div>
+                <div class="bs-eta">
+                    <div class="bs-eta-time" id="eta-timer">4</div>
+                    <div class="bs-eta-label">
+                        <div>dakika uzakta</div>
+                        <div>Durağınız: <strong style="color:var(--text);font-weight:600;display:inline">Darıca
+                                Sanayi</strong></div>
+                    </div>
+                </div>
+                <div class="bs-status">
+                    <div class="pulse-dot"></div>Canlı · Son güncelleme: 8 sn önce
+                </div>
+                <div class="bs-info">
+                    <div class="bs-info-card">
+                        <div class="ic-val">42 <span style="font-size:12px;color:var(--text2)">km/s</span></div>
+                        <div class="ic-label">Hız</div>
+                    </div>
+                    <div class="bs-info-card">
+                        <div class="ic-val">2.3 <span style="font-size:12px;color:var(--text2)">km</span></div>
+                        <div class="ic-label">Mesafe</div>
+                    </div>
+                    <div class="bs-info-card">
+                        <div class="ic-val">14</div>
+                        <div class="ic-label">Yolcu</div>
+                    </div>
+                </div>
+                <div class="bs-announce">
+                    <span class="ann-icon">📢</span>
+                    <div class="ann-text"><strong>Şoför Duyurusu</strong>Bugün D3 durağı atlanıyor. Trafik sakin,
+                        vaktinde geliyorum. 🙏</div>
+                </div>
+            </div>
+            <div class="nav-hint">↓ Aşağı kaydırarak detayları gör</div>
+            <div class="home-ind"></div>
+        </div>
+
+        <!-- DRIVER MAIN -->
+        <div class="screen" id="driver-main">
+            <div class="dm-header">
+                <h2>Hoş geldin, Mehmet 👋</h2>
+                <div class="dm-avatar">🚐</div>
+            </div>
+            <div class="dm-card">
+                <div class="dm-card-label">Servis Kodun</div>
+                <div class="dm-card-srv">SRV 4821</div>
+                <div class="dm-card-sub">Yolcularına bu kodu ver veya QR'ı göster</div>
+                <div class="dm-qr">
+                    <div class="dm-qr-grid"></div>
+                </div>
+            </div>
+            <div class="dm-stats">
+                <div class="dm-stat">
+                    <div class="ds-val" style="color:var(--accent2)">14</div>
+                    <div class="ds-label">Aktif Yolcu</div>
+                </div>
+                <div class="dm-stat">
+                    <div class="ds-val" style="color:var(--green)">6</div>
+                    <div class="ds-label">Durak</div>
+                </div>
+                <div class="dm-stat">
+                    <div class="ds-val" style="color:var(--orange)">08:15</div>
+                    <div class="ds-label">Tahmini Bitiş</div>
+                </div>
+            </div>
+            <button class="btn-trip start" id="trip-btn" onclick="toggleTrip()">▶ SEFERİ BAŞLAT</button>
+            <button class="dm-announce-btn">📢 Duyuru Gönder</button>
+            <div class="home-ind"></div>
+        </div>
+    </div>
+
+    <script>
+        // Screen navigation
+        let current = 'splash';
+        function goTo(id) {
+            const cur = document.getElementById(current);
+            const next = document.getElementById(id);
+            cur.classList.add('out');
+            cur.classList.remove('active');
+            setTimeout(() => { cur.classList.remove('out'); }, 500);
+            next.classList.add('active');
+            current = id;
+        }
+
+        // Auto splash → onboarding
+        setTimeout(() => goTo('onboarding'), 2200);
+
+        // Onboarding slides
+        let slide = 0;
+        const slides = document.querySelectorAll('.onb-slide');
+        const dots = document.querySelectorAll('.dot');
+        function showSlide(n) {
+            slides.forEach((s, i) => {
+                s.classList.remove('active', 'out');
+                if (i < n) s.classList.add('out');
+                if (i === n) s.classList.add('active');
+            });
+            dots.forEach((d, i) => d.classList.toggle('active', i === n));
+        }
+        document.getElementById('onb-next').addEventListener('click', () => {
+            slide++;
+            if (slide >= 3) { goTo('role'); return; }
+            showSlide(slide);
+        });
+        document.getElementById('onb-skip').addEventListener('click', () => goTo('role'));
+
+        // Trip toggle
+        let tripActive = false;
+        function toggleTrip() {
+            const btn = document.getElementById('trip-btn');
+            tripActive = !tripActive;
+            if (tripActive) {
+                btn.className = 'btn-trip stop';
+                btn.innerHTML = '■ SEFERİ BİTİR';
+            } else {
+                btn.className = 'btn-trip start';
+                btn.innerHTML = '▶ SEFERİ BAŞLAT';
+            }
+        }
+
+        // QR grid fill
+        const qrGrid = document.querySelector('.dm-qr-grid');
+        if (qrGrid) { for (let i = 0; i < 49; i++) qrGrid.appendChild(document.createElement('div')); }
+
+        // ETA countdown animation
+        let etaVal = 4;
+        setInterval(() => {
+            const el = document.getElementById('eta-timer');
+            if (el && current === 'passenger-main') {
+                etaVal = etaVal <= 1 ? 4 : etaVal - 1;
+                el.textContent = etaVal;
+            }
+        }, 3000);
+    </script>
+</body>
+
+</html>

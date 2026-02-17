@@ -1,0 +1,31 @@
+{
+  "projects": {
+    "default": "neredeservis-dev-01",
+    "dev": "neredeservis-dev-01",
+    "stg": "neredeservis-stg-01",
+    "prod": "neredeservis-prod-01"
+  },
+  "targets": {
+    "neredeservis-dev-01": {
+      "hosting": {
+        "app": [
+          "neredeservis-dev-01"
+        ]
+      }
+    },
+    "neredeservis-stg-01": {
+      "hosting": {
+        "app": [
+          "neredeservis-stg-01"
+        ]
+      }
+    },
+    "neredeservis-prod-01": {
+      "hosting": {
+        "app": [
+          "neredeservis-prod-01"
+        ]
+      }
+    }
+  }
+}
