@@ -36,7 +36,7 @@ Her environment icin (dev/stg/prod):
 4. Kaydet.
 
 Kontrol:
-- [ ] Dev Android key restricted
+- [x] Dev Android key restricted
 - [x] Stg Android key restricted
 - [ ] Prod Android key restricted
 

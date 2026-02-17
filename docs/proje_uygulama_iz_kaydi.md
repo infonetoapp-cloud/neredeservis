@@ -2208,3 +2208,21 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.C:
   1) DEV projesinde Android key restriction uygulansin.
+
+### STEP-031.C Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- DEV projesinde `Android key (auto created by Firebase)` restriction tamamlandi.
+  - Package: `com.neredeservis.app.dev`
+  - SHA-1: `2E:F2:D2:51:6A:88:69:EA:DA:22:FD:11:57:2B:82:0A:95:5D:25:3E`
+- `docs/firebase_api_key_hardening_checklist.md` guncellendi:
+  - `Dev Android key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-031.D:
+  1) DEV projesinde `iOS key (auto created by Firebase)` icin iOS apps restriction uygulansin.
