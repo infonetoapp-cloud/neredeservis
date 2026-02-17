@@ -2588,6 +2588,9 @@ Durum: Tamamlandi
 ### Calistirilan Komutlar (Ham)
 1. `flutter analyze`
 2. `flutter test`
+3. `git add ...`
+4. `git commit -m "feat(auth): add callable error mapping and role bootstrap integration tests"`
+5. `git push origin main`
 
 ### Hata Kaydi (Silinmez)
 - Hata-1:
@@ -2606,6 +2609,10 @@ Durum: Tamamlandi
   - Duzeltme:
     - `watchCurrentRole` stream mantigi switch benzeri yapida yeniden yazildi (onceki role subscription iptal, yeni session icin yeni subscription).
     - Entegrasyon testi bu davranisi dogruladi.
+- Hata-4:
+  - PowerShell uzerinde `git add ... && git commit ...` tek satir komutu parser hatasi verdi (`&&` bu shell versiyonunda gecerli degil).
+  - Duzeltme:
+    - `git add` ve `git commit` komutlari ayri satirlarda calistirildi ve push basariyla tamamlandi.
 
 ### Sonuc
 - `flutter analyze` -> basarili
