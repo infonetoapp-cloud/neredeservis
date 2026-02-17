@@ -3029,3 +3029,37 @@ Durum: Kismen Tamamlandi (prod duzeldi, dev/stg manuel gate)
 ### Sonraki Adim Icin Beklenen Onay
 - Dev ve Stg projeleri icin prod ile ayni manual OAuth client olusturma + Firebase Google provider save adimlarini tamamla.
 - Tamamlandiginda readiness script tekrar kosulacak ve PASS raporu alinacak.
+
+## STEP-046D - Google Sign-In Bloker Kapanisi (Dev/Stg/Prod PASS)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Manual OAuth duzeltmeleri sonrasi tum ortamlarda Google Sign-In readiness durumunu kapatmak.
+
+### Calistirilan Komutlar (Ham)
+1. `powershell -ExecutionPolicy Bypass -File .\\scripts\\check_google_signin_readiness.ps1`
+
+### Bulgular
+- Script sonucu:
+  - `neredeservis-dev-01` -> PASS
+  - `neredeservis-stg-01` -> PASS
+  - `neredeservis-prod-01` -> PASS
+- Provider client id formati tum ortamlarda standarda dondu:
+  - `*.apps.googleusercontent.com`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- STEP-046 icindeki Google Sign-In kritik blokeri kapandi.
+- Sonraki adimlarda (rules/domain/functions) auth tarafi artik bloklayici degil.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Google provider ayari degistiginde yeniden zorunlu dogrulama:
+  1. `.\scripts\check_google_signin_readiness.ps1`
+  2. `flutter analyze`
+  3. `flutter test`
+
+### Sonraki Adim Icin Beklenen Onay
+- Runbook sirasinda 061-065 (rules/semalar) adimlarina gecis.
