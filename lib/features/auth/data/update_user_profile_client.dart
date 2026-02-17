@@ -1,15 +1,10 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
-import '../domain/user_role.dart';
+import 'bootstrap_user_profile_client.dart';
 import 'profile_callable_exception.dart';
 
-typedef CallableInvoker = Future<dynamic> Function(
-  String callableName,
-  Map<String, dynamic> input,
-);
-
-class BootstrapUserProfileInput {
-  const BootstrapUserProfileInput({
+class UpdateUserProfileInput {
+  const UpdateUserProfileInput({
     required this.displayName,
     this.phone,
   });
@@ -23,20 +18,18 @@ class BootstrapUserProfileInput {
       };
 }
 
-class BootstrapUserProfileResult {
-  const BootstrapUserProfileResult({
+class UpdateUserProfileResult {
+  const UpdateUserProfileResult({
     required this.uid,
-    required this.role,
-    required this.createdOrUpdated,
+    required this.updatedAt,
   });
 
   final String uid;
-  final UserRole role;
-  final bool createdOrUpdated;
+  final String updatedAt;
 }
 
-class BootstrapUserProfileClient {
-  BootstrapUserProfileClient({
+class UpdateUserProfileClient {
+  UpdateUserProfileClient({
     FirebaseFunctions? functions,
     CallableInvoker? invoker,
   })  : _functions = functions,
@@ -48,17 +41,16 @@ class BootstrapUserProfileClient {
   FirebaseFunctions get _resolvedFunctions =>
       _functions ??= FirebaseFunctions.instanceFor(region: 'europe-west3');
 
-  Future<BootstrapUserProfileResult> bootstrap(
-    BootstrapUserProfileInput input,
+  Future<UpdateUserProfileResult> update(
+    UpdateUserProfileInput input,
   ) async {
-    const callableName = 'bootstrapUserProfile';
+    const callableName = 'updateUserProfile';
     try {
       final rawResponse = await _call(callableName, input.toJson());
       final payload = _extractData(rawResponse);
-      return BootstrapUserProfileResult(
+      return UpdateUserProfileResult(
         uid: payload['uid'] as String? ?? '',
-        role: userRoleFromRaw(payload['role'] as String?),
-        createdOrUpdated: payload['createdOrUpdated'] as bool? ?? false,
+        updatedAt: payload['updatedAt'] as String? ?? '',
       );
     } catch (error) {
       throw mapProfileCallableException(
@@ -79,7 +71,7 @@ class BootstrapUserProfileClient {
 
   static Map<String, dynamic> _extractData(dynamic raw) {
     if (raw is! Map) {
-      throw StateError('bootstrapUserProfile returned non-map payload.');
+      throw StateError('updateUserProfile returned non-map payload.');
     }
 
     final payload = Map<String, dynamic>.from(raw);

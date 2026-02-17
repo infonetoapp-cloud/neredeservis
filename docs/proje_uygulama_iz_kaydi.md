@@ -2555,3 +2555,71 @@ Durum: Tamamlandi
 - STEP-039:
   1) Auth + role bootstrap akisini Emulator uzerinden entegrasyon testiyle ilerletelim.
   2) `bootstrapUserProfile`/`updateUserProfile` callable hata kodu mapping'ini netlestirelim.
+
+## STEP-039 - Auth Bootstrap + Callable Error Mapping + Entegrasyon Testleri
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Auth/role bootstrap akisini kod seviyesinde saglamlastirmak.
+- `bootstrapUserProfile` ve `updateUserProfile` callable hatalarini tek bir domain exception modeline baglamak.
+- Emulator konfigurasyonu icin contract testi eklemek.
+
+### Yapilan Isler
+- Yeni hata mapping katmani eklendi:
+  - `lib/features/auth/data/profile_callable_exception.dart`
+  - `ProfileCallableErrorCode` + `ProfileCallableException` + mapper fonksiyonu.
+- Update profile callable client eklendi:
+  - `lib/features/auth/data/update_user_profile_client.dart`
+- Bootstrap client genislletildi:
+  - `lib/features/auth/data/bootstrap_user_profile_client.dart`
+  - Test odakli `CallableInvoker` enjeksiyonu korundu ve exception mapping eklendi.
+- Auth service genislletildi:
+  - `lib/features/auth/application/auth_role_bootstrap_service.dart`
+  - `updateCurrentUserProfile(...)` metodu eklendi.
+  - `watchCurrentRole()` akisi `asyncExpand` yerine auth degisimlerinde onceki role aboneligini kapatan stream yapisina cevrildi.
+- Yeni testler eklendi:
+  - `test/auth/profile_callable_exception_test.dart`
+  - `test/auth/bootstrap_user_profile_client_test.dart`
+  - `test/auth/update_user_profile_client_test.dart`
+  - `test/auth/auth_role_bootstrap_service_integration_test.dart`
+  - `test/firebase/emulator_config_contract_test.dart`
+
+### Calistirilan Komutlar (Ham)
+1. `flutter analyze`
+2. `flutter test`
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - Test dosyalarinda `const FirebaseException(...)` kullanimi nedeniyle analyzer hatasi olustu.
+  - Duzeltme:
+    - `const` kaldirildi, lint uyumlu constructor ve const literal duzenleri yapildi.
+- Hata-2:
+  - Testlerde Firebase app initialize edilmedigi halde client kurucusu `FirebaseFunctions.instanceFor(...)` cagirdigi icin `core/no-app` hatasi alindi.
+  - Duzeltme:
+    - Clientlarda FirebaseFunctions olusturma lazy (gerektiginde) hale getirildi.
+    - `invoker` verildiginde Firebase app ihtiyaci ortadan kaldirildi.
+- Hata-3:
+  - `watchCurrentRole` testi final `unknown` degerini alamadi.
+  - Koken:
+    - `asyncExpand` + kapanmayan role stream kombinasyonu auth degisimini bloke ediyordu.
+  - Duzeltme:
+    - `watchCurrentRole` stream mantigi switch benzeri yapida yeniden yazildi (onceki role subscription iptal, yeni session icin yeni subscription).
+    - Entegrasyon testi bu davranisi dogruladi.
+
+### Sonuc
+- `flutter analyze` -> basarili
+- `flutter test` -> tum testler basarili
+- Auth bootstrap ve callable hata mapping akisi testle guvence altina alindi.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Bu adimdan sonra auth/callable katmaninda yapilan her degisiklikte asagidakiler **zorunlu**:
+  1) `flutter analyze`
+  2) `flutter test`
+  3) `docs/proje_uygulama_iz_kaydi.md` dosyasina append-only kayit
+- Hata varsa kayit **silinmeyecek**, yalnizca "duzeltildi" notu ile devam edilecek.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-040:
+  1) Emulator bootstrap (Auth + Firestore + RTDB + Functions) smoke calistirip callable contract testlerini emulatorde dogrulayalim.
+  2) `firebase.json` icindeki stale `flutter.platforms.dart` referanslarini temizleyelim.
