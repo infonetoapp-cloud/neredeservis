@@ -2109,3 +2109,42 @@ Durum: Tamamlandi
 - STEP-030:
   1) Sen checklist'e gore panel adimlarini uygula.
   2) Ben her tamamlanan maddeyi dosyada isaretleyip kapanis kaydi yazayim.
+
+## STEP-030 - Checklist Commit/Push + CI Takip
+Tarih: 2026-02-17
+Durum: Devam ediyor (yeni CI run sonuclari bekleniyor)
+
+### Amac
+1) STEP-028/029 dokuman degisikliklerini merkezi repoya almak.
+2) Hata kaydini (PowerShell `&&`) silinmez sekilde loglamak.
+
+### Yapilan Isler
+- Commit:
+  - `93a3d92` - `docs: add api key hardening checklist and step logs`
+- Sonraki hata kaydi guncellemesi icin ek commit:
+  - `a13481e` - `docs: log powershell command separator error in trace report`
+- Push:
+  - `main -> origin/main`
+- Actions kontrolu:
+  - `22099934373` (`93a3d92`) -> `in_progress`
+  - `22099956529` (`a13481e`) -> `in_progress`
+
+### Calistirilan Komutlar (Ham)
+1. `git add docs/proje_uygulama_iz_kaydi.md docs/firebase_api_key_hardening_checklist.md`
+2. `git commit -m "docs: add api key hardening checklist and step logs"`
+3. `git push origin main`
+4. `git add docs/proje_uygulama_iz_kaydi.md`
+5. `git commit -m "docs: log powershell command separator error in trace report"`
+6. `git push origin main`
+7. `Invoke-RestMethod https://api.github.com/repos/infonetoapp-cloud/neredeservis/actions/runs?per_page=5`
+
+### Hata Kaydi (Silinmez)
+- Tekrar eden PowerShell komut separator hatasi:
+  - Hatali komut: `git add ... && git commit ...`
+  - Duzeltme: Komutlar tek tek calistirildi.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-031:
+  1) Sen GitHub Secret Scanning panelinde alertleri checklist'e gore resolve et.
+  2) Sen Firebase/GCP key restriction adimlarini uygula.
+  3) Ben checklist ve iz raporunu "DONE" olarak kapatayim.
