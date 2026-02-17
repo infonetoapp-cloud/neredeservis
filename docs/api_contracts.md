@@ -73,12 +73,65 @@ export interface RouteDoc {
   createdAt: string; // UTC timestamp
   updatedAt: string; // UTC timestamp
 }
+
+export interface TripDoc {
+  routeId: string;
+  driverId: string;
+  driverSnapshot: {
+    name: string;
+    plate: string;
+    phone: string | null;
+  };
+  status: "active" | "completed" | "abandoned";
+  startedAt: string; // UTC timestamp
+  endedAt: string | null; // UTC timestamp
+  lastLocationAt: string; // UTC timestamp
+  endReason: "driver_finished" | "auto_abandoned" | null;
+  startedByDeviceId: string;
+  transitionVersion: number;
+  updatedAt: string; // UTC timestamp
+}
+
+export interface AnnouncementDoc {
+  routeId: string;
+  driverId: string;
+  templateKey: string;
+  customText: string | null;
+  channels: Array<"fcm" | "whatsapp_link">;
+  createdAt: string; // UTC timestamp
+}
+
+export interface ConsentDoc {
+  privacyVersion: string;
+  kvkkTextVersion: string;
+  locationConsent: boolean;
+  acceptedAt: string; // UTC timestamp
+  platform: "android" | "ios";
+}
+
+export interface GuestSessionDoc {
+  routeId: string;
+  guestUid: string;
+  expiresAt: string; // UTC timestamp
+  status: "active" | "expired" | "revoked";
+  createdAt: string; // UTC timestamp
+}
+
+export interface TripRequestDoc {
+  requestType: "start_trip" | "finish_trip";
+  uid: string;
+  resultRef: string;
+  createdAt: string; // UTC timestamp
+  expiresAt: string; // UTC timestamp
+}
 ```
 
 Schema guardrails:
 - Direct client writes to `users`, `drivers`, `routes` are forbidden.
 - Only callable/server paths may mutate these collections.
 - `memberIds` is server-derived: `driverId U authorizedDriverIds U passengerIds`.
+- Direct client writes to `trips`, `announcements`, `consents`, `guest_sessions`, `trip_requests` are forbidden.
+- `trip_requests` document id contract: `{uid}_{idempotencyKey}`.
 
 ## Route and Trip
 ```ts

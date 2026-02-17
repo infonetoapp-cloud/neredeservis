@@ -251,11 +251,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 063 Users koleksiyonu role semasini ekle.
 - [x] 064 Drivers koleksiyonu semasini ekle.
 - [x] 065 Routes koleksiyonu semasini ekle.
-- [ ] 066 Trips koleksiyonu semasini ekle.
-- [ ] 067 Announcements koleksiyonu semasini ekle.
-- [ ] 068 Consents koleksiyonu semasini ekle.
-- [ ] 069 Guest sessions semasini ekle.
-- [ ] 070 `trip_requests` idempotency semasini ekle.
+- [x] 066 Trips koleksiyonu semasini ekle.
+- [x] 067 Announcements koleksiyonu semasini ekle.
+- [x] 068 Consents koleksiyonu semasini ekle.
+- [x] 069 Guest sessions semasini ekle.
+- [x] 070 `trip_requests` idempotency semasini ekle.
 - [ ] 071 Composite indexleri ekle.
 - [ ] 072 `memberIds` + `routeWriters` yasam dongusu kuralini dokumante et (grant/revoke/ttl).
 - [ ] 073 `skip_requests` gizlilik kuralini ekle.

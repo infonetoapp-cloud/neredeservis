@@ -3125,3 +3125,49 @@ Durum: Tamamlandi
 
 ### Sonraki Adim Icin Beklenen Onay
 - 066-070 (trips/announcements/consents/guest_sessions/trip_requests sema + idempotency semasi) adimlarina gecis.
+
+## STEP-066..070 - Firestore Cekirdek Sema Sozlesmesi (Trip + Duyuru + Consent + Guest + Idempotency)
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- Runbook 066-070 adimlarini tek kaynak kontrat dosyasinda kapatmak.
+- `trips`, `announcements`, `consents`, `guest_sessions`, `trip_requests` semalarini netlestirmek.
+
+### Yapilan Isler
+- `docs/api_contracts.md` icine asagidaki sema interface'leri eklendi:
+  - `TripDoc`
+  - `AnnouncementDoc`
+  - `ConsentDoc`
+  - `GuestSessionDoc`
+  - `TripRequestDoc`
+- `trip_requests` idempotency kurali acik yazildi:
+  - document id kontrati: `{uid}_{idempotencyKey}`
+- Runbook checklist satirlari guncellendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `066`, `067`, `068`, `069`, `070` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `flutter analyze`
+2. `flutter test`
+
+### Bulgular
+- `flutter analyze` -> temiz
+- `flutter test` -> tum testler gecti
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- 066-070 adimlari kapatildi.
+- Idempotency semasi artik API kontratinda acik ve tek kaynakta.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- Sema degisikliginde ayni anda su uc yeri guncelle:
+  1. `docs/api_contracts.md`
+  2. `docs/NeredeServis_Teknik_Plan.md` (gerekiyorsa)
+  3. `docs/proje_uygulama_iz_kaydi.md` append-only kaydi
+
+### Sonraki Adim Icin Beklenen Onay
+- 071-073B (indexler + routeWriters lifecycle + skip privacy + driver_directory callable/rules) adimlarina gecis.
