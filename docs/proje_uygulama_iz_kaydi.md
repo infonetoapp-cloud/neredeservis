@@ -2003,3 +2003,106 @@ Durum: Tamamlandi
   1) Bu adimlari commit + push yapalim.
   2) GitHub Security -> Secret scanning alerts panelinde ilgili kayitlari "fixed/rotated" seklinde kapatalim.
   3) Firebase API key kisitlama (Android package SHA-1 / iOS bundle restriction) checklistini uygulayalim.
+
+## STEP-027 - Commit/Push Tamamlama + CI Durum Teyidi
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+1) STEP-025/026 degisikliklerini merkezi repoya almak.
+2) CI'nin son durumunu netlestirmek.
+
+### Yapilan Isler
+- Commit olusturuldu:
+  - `57ca6b7` - `security: remove firebase options files and harden ci guard`
+- Push tamamlandi:
+  - `main -> origin/main`
+- GitHub Actions kontrol edildi:
+  - Run `22099022193` (`d48b324`) -> `success`
+  - Run `22098973640` (`23bf563`) -> `success`
+  - Yeni run `22099602402` (`57ca6b7`) -> `success`
+
+### Calistirilan Komutlar (Ham)
+1. `git commit -m "security: remove firebase options files and harden ci guard"`
+2. `git push origin main`
+3. `Invoke-RestMethod https://api.github.com/repos/infonetoapp-cloud/neredeservis/actions/runs?per_page=3`
+4. `Invoke-RestMethod https://api.github.com/repos/infonetoapp-cloud/neredeservis/actions/runs/22099602402/jobs`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Sonuc
+- Secret remediation + CI guard + student pack plan degisiklikleri repoya basariyla alindi.
+- Yeni CI run basariyla tamamlandi; pipeline durumu green.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-028:
+  1) CI run `22099602402` final sonucunu loglayalim.
+  2) GitHub secret scanning alertlerini repo panelinden kapatma (resolve) adimlarini uygulayalim.
+  3) Firebase API key kisitlama/rotasyon checklistini birlikte tamamlayalim.
+
+## STEP-028 - Secret Alert Operasyon Kilidi (GitHub + Firebase API Key Hardening)
+Tarih: 2026-02-17
+Durum: Devam ediyor (kullanici panel adimlari bekleniyor)
+
+### Amac
+1) GitHub secret scanning alertlerini guvenli sekilde kapatmak.
+2) Firebase/GCP API key'leri "minimum yetki + uygulama kisiti" prensibine sabitlemek.
+3) Secret benzeri dosyalarin tekrar repoya sizmasini operasyonel olarak engellemek.
+
+### Yapilan Isler
+- CI final teyidi alindi:
+  - `22099602402` -> `success`
+- Secret kaynagini tetikleyen dosyalarin repodan kalktigi ve ignore edildigi bir kez daha dogrulandi.
+- Bu adim icin kalici operasyon checklist dokumani olusturulmasina karar verildi.
+
+### Kullanici Onayi Gerektiren Panel Adimlari (Bekliyor)
+1. GitHub Security -> Secret scanning alerts ekranina giris.
+2. Her `Google API Key` alerti icin:
+   - "Reviewed" ve not olarak: `Removed from code in commit 57ca6b7; key restrictions/rotation applied in Firebase/GCP`.
+3. Firebase/GCP tarafinda API key kisitlamalari:
+   - Android key: package + SHA-1 restriction
+   - iOS key: bundle id restriction
+   - API restriction: sadece gerekli Firebase API seti
+4. Gerekirse anahtar rotasyonu (yeni key + eski key disable/silme).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda otomatik CLI ile GitHub secret alert resolve islemi yapilamadi (lokalde `gh` CLI kurulu degil).
+- Cozum:
+  - Panel adimlari manuel tamamlanacak.
+  - Tamamlanma kaniti (ekran goruntusu / panel sonucu) sonraki adimda loglanacak.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-029:
+  1) `docs/firebase_api_key_hardening_checklist.md` dosyasini olusturup tam adimlari yazalim.
+  2) Sen panelden uyguladikca ben checklist'i "DONE" olarak isleyeyim.
+
+## STEP-029 - API Key Hardening Checklist Dokumani
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- GitHub alert kapatma + Firebase API key kisitlama/rotasyon adimlarini tek kaynak checklist haline getirmek.
+
+### Yapilan Isler
+- Yeni dosya eklendi:
+  - `docs/firebase_api_key_hardening_checklist.md`
+- Dokuman kapsaminda:
+  - GitHub secret alert resolve adimlari
+  - Android/iOS app restriction adimlari
+  - API restriction minimizasyon adimlari
+  - Rotasyon karar agaci
+  - Dogrulama testleri
+  - Kalici koruma kurallari
+
+### Hata Kaydi (Silinmez)
+- Bu adimda hata yok.
+
+### Sonuc
+- Panel operasyonlari artik adim adim uygulanabilir hale geldi.
+- Sonraki adim tamamen kullanici panel islemlerinin tamamlanmasina bagli.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-030:
+  1) Sen checklist'e gore panel adimlarini uygula.
+  2) Ben her tamamlanan maddeyi dosyada isaretleyip kapanis kaydi yazayim.
