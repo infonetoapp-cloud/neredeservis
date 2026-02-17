@@ -2694,6 +2694,7 @@ Durum: Tamamlandi
   - `defaultSupportedIdpConfigs/google.com` provider config'i `enabled=true` yapildi.
 
 ### Calistirilan Komutlar (Ham)
+0. `gcloud components copy-bundled-python` + `gcloud components install beta alpha --quiet`
 1. `POST https://identitytoolkit.googleapis.com/v2/projects/<project>/identityPlatform:initializeAuth`
 2. `PATCH https://identitytoolkit.googleapis.com/admin/v2/projects/<project>/config?updateMask=signIn.email.enabled,signIn.email.passwordRequired,...`
 3. `gcloud iam oauth-clients create ...`
