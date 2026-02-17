@@ -2297,3 +2297,24 @@ Durum: Tamamlandi
 #### Sonraki Alt Adim
 - STEP-031.H:
   1) PROD `Browser key (auto created by Firebase)` icin websites restriction uygulansin.
+
+### STEP-031.H Guncelleme
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+#### Yapilan Is
+- PROD `Browser key (auto created by Firebase)` icin `Websites` restriction tamamlandi:
+  - `https://neredeservis-prod-01.web.app/*`
+  - `https://neredeservis-prod-01.firebaseapp.com/*`
+  - `http://localhost/*`
+  - `https://nerede.servis/*` (domain aktif oldugunda)
+- `docs/firebase_api_key_hardening_checklist.md` dosyasinda:
+  - `Prod Browser key restricted` maddesi isaretlendi (`[x]`).
+
+#### Hata Kaydi (Silinmez)
+- Bu alt adimda yeni hata yok.
+
+#### Sonraki Alt Adim
+- STEP-032:
+  1) GitHub Secret Scanning ekraninda 6 adet acik alert tek tek resolve edilsin.
+  2) Alert notu standart metinle doldurulsun.

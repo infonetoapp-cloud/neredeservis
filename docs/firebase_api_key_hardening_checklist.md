@@ -80,7 +80,7 @@ Her environment icin:
 Kontrol:
 - [x] Dev Browser key restricted
 - [x] Stg Browser key restricted
-- [ ] Prod Browser key restricted
+- [x] Prod Browser key restricted
 
 ## 3) API Seti Minimize Etme
 
