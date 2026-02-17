@@ -104,6 +104,7 @@ Risk yuksekse rotasyon zorunlu:
 4. Eski key'i disable et (veya sil).
 
 Kontrol:
+- [x] Rotasyon karari verildi: su asamada ertelendi (urun sahibi onayi ile)
 - [ ] Dev key rotation tamam
 - [ ] Stg key rotation tamam
 - [ ] Prod key rotation tamam
@@ -123,6 +124,7 @@ Kontrol:
 - [ ] Stg app auth/firestore baglandi
 - [ ] Prod app auth/firestore baglandi
 - [ ] CI green
+- [x] Dev/Stg/Prod debug APK derleme smoke testi gecti
 
 ## 6) Kalici Koruma
 

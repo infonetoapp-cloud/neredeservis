@@ -2404,3 +2404,60 @@ Durum: Tamamlandi
 - STEP-034:
   1) Rotasyon kararini verelim (simdilik ertele / hemen uygula).
   2) Hemen uygulamayi secersek script'in rotation modu icin guvenli plan cikaralim.
+
+## STEP-034 - Rotasyon Karari
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Karar
+- Urun sahibi karariyla API key rotasyonu su asamada **ertelendi**.
+- Gerekce:
+  - Source sizintisi kapatildi (`57ca6b7`).
+  - App/bundle/referrer restriction + API allowlist hardening tamamlandi.
+  - Kisa vadede operasyonel risk dusuk, once uygulama akisi stabilitesi izlenecek.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda hata yok.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-035:
+  1) Rotasyon sonrasi zorunlu teknik dogrulama yerine, mevcut durumda derleme smoke testleri yapilsin.
+  2) CI run durumlari takip edilerek rapora islensin.
+
+## STEP-035 - Derleme Smoke Dogrulamasi (Dev/Stg/Prod)
+Tarih: 2026-02-17
+Durum: Tamamlandi
+
+### Amac
+- Key hardening sonrasi Android flavor derlemelerinin bozulmadigini dogrulamak.
+
+### Yapilan Isler
+- Asagidaki komutlar calistirildi:
+  1) `./scripts/build_flavor.ps1 dev apk-debug`
+  2) `./scripts/build_flavor.ps1 stg apk-debug`
+  3) `./scripts/build_flavor.ps1 prod apk-debug`
+- Sonuc:
+  - `app-dev-debug.apk` olustu
+  - `app-stg-debug.apk` olustu
+  - `app-prod-debug.apk` olustu
+- Checklist guncellendi:
+  - `Dev/Stg/Prod debug APK derleme smoke testi gecti` -> `[x]`
+  - Rotasyon karari maddesi -> `[x]` (ertelendi)
+
+### CI Durumu (Kayit Aninda)
+- `22102035922` (`94b8fc1`) -> `in_progress`
+- `22101978814` (`3f9411c`) -> `in_progress`
+- Son tamamlanan run: `22101347747` -> `success`
+
+### Hata Kaydi (Silinmez)
+- Derleme sirasinda Android SDK XML surum uyari mesaji goruldu:
+  - `This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered.`
+- Etki:
+  - Build'i durdurmadi, tum flavorlar basariyla cikti.
+- Aksiyon:
+  - Android command-line tools / Studio versiyon senkronizasyonu sonraki teknik bakim adimina alinacak.
+
+### Sonraki Adim Icin Beklenen Onay
+- STEP-036:
+  1) CI run'larin tamamlanmasini bekleyip final sonucu rapora gecelim.
+  2) Ardindan onboarding notuna API key hardening script kullanim adimini ekleyelim.
