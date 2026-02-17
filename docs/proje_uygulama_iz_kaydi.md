@@ -2837,3 +2837,9 @@ Durum: Kismen Tamamlandi (kritik bulgu var)
 
 ### Sonraki Adim
 - STEP-046 devaminda once Google Sign-In config blokeri kapatilacak, sonra emulator + auth smoke testine gecilecek.
+
+### Git ve CI Notu
+- commit: `36bdaea`
+- push: `origin/main`
+- test: `flutter test test/firebase/emulator_config_contract_test.dart` -> passed
+- CI run: `22106835971` (kayit aninda `in_progress`)
