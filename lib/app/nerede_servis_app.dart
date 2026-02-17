@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_flavor.dart';
+import '../features/auth/domain/user_role.dart';
+import 'router/app_router.dart';
+import 'router/auth_guard.dart';
+import 'router/role_guard.dart';
 
 class NeredeServisApp extends StatelessWidget {
   const NeredeServisApp({
@@ -12,6 +16,12 @@ class NeredeServisApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final router = buildAppRouter(
+      flavorConfig: flavorConfig,
+      authGuard: const AuthGuard(isSignedIn: false),
+      roleGuard: const RoleGuard(currentRole: UserRole.unknown),
+    );
+
     final theme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
@@ -20,21 +30,11 @@ class NeredeServisApp extends StatelessWidget {
       ),
     );
 
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: flavorConfig.appName,
       theme: theme,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(flavorConfig.appName),
-        ),
-        body: Center(
-          child: Text(
-            'Firebase init ok (${flavorConfig.flavor.name})',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
-      ),
+      routerConfig: router,
     );
   }
 }

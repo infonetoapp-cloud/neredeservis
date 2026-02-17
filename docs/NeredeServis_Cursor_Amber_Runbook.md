@@ -338,9 +338,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 108 App Check init'i flavor'a gore ayarla.
 - [x] 109 Global error handler (`runZonedGuarded`) kur.
 - [x] 110 Sentry entegrasyonu (varsa) dev disinda ac.
-- [ ] 111 Router iskeletini kur.
-- [ ] 112 Auth guard iskeletini kur.
-- [ ] 113 Role guard iskeletini kur.
+- [x] 111 Router iskeletini kur.
+- [x] 112 Auth guard iskeletini kur.
+- [x] 113 Role guard iskeletini kur.
 - [ ] 114 Theme provider iskeletini kur.
 - [ ] 115 Local storage abstraction yaz.
 - [ ] 116 Repository interface katmanini olustur.

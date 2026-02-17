@@ -4201,3 +4201,54 @@ Durum: Tamamlandi (No-Mac fiziksel iOS gate acik)
 
 ### Sonraki Adim
 - 111: Router iskeletinin kurulumu.
+
+## STEP-111..113 - Router + Auth Guard + Role Guard Iskeleti
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 111: Uygulama genel router iskeletini kurmak.
+- 112: Auth guard iskeletini router akisina baglamak.
+- 113: Role guard iskeletini router akisina baglamak.
+
+### Yapilan Isler
+- Router path sabitleri eklendi:
+  - `lib/app/router/app_route_paths.dart`
+- Auth guard iskeleti eklendi:
+  - `lib/app/router/auth_guard.dart`
+  - Public path listesi + login degilse `/auth` yonlendirmesi.
+- Role guard iskeleti eklendi:
+  - `lib/app/router/role_guard.dart`
+  - Driver/passenger path ayrimi icin yonlendirme kurali.
+- GoRouter iskeleti eklendi:
+  - `lib/app/router/app_router.dart`
+  - Route listesi: splash/auth/driver/passenger/join/settings.
+  - Redirect zinciri: once auth guard, sonra role guard.
+- App root widget router tabanli hale getirildi:
+  - `lib/app/nerede_servis_app.dart` -> `MaterialApp.router`.
+- Yeni dependency:
+  - `pubspec.yaml` -> `go_router: 15.1.2` (exact pin).
+- Widget testi yeni splash/router metnine gore guncellendi:
+  - `test/widget_test.dart`
+
+### Calistirilan Komutlar (Ham)
+1. `.\.fvm\flutter_sdk\bin\flutter.bat pub add go_router`
+2. `.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+3. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+4. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- `flutter analyze`: temiz.
+- `flutter test`: tum testler gecti.
+- Router iskeleti guard zinciriyle birlikte calisir durumda.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni bloklayici hata yok.
+
+### Sonuc
+- 111 `[x]`
+- 112 `[x]`
+- 113 `[x]`
+
+### Sonraki Adim
+- 114: Theme provider iskeleti.

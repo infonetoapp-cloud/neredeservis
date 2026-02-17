@@ -16,7 +16,9 @@ void main() {
       ),
     );
 
+    await tester.pumpAndSettle();
+
     expect(find.text('NeredeServis Dev'), findsOneWidget);
-    expect(find.text('Firebase init ok (dev)'), findsOneWidget);
+    expect(find.text('Splash / Router Skeleton (dev)'), findsOneWidget);
   });
 }
