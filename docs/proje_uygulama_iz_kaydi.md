@@ -2984,3 +2984,48 @@ Durum: Kismen Tamamlandi (manual gate acik)
 - commit: `178fd28`
 - push: `origin/main`
 - CI: push sonrasi Mobile CI kosumu GitHub Actions uzerinden takip edilecek.
+
+## STEP-046C - Google OAuth Otomasyon Denemesi (CLI Limit Tespiti)
+Tarih: 2026-02-17  
+Durum: Kismen Tamamlandi (prod duzeldi, dev/stg manuel gate)
+
+### Amac
+- Kullanici prod Google OAuth fix'i yaptiktan sonra kalan dev/stg ortamlari terminalden otomatik kapatmak.
+
+### Yapilan Isler
+- Readiness script tekrar kosuldu:
+  - prod provider client formati duzeldi (`*.apps.googleusercontent.com`).
+  - dev/stg halen eski UUID formatinda.
+- CLI ile yeni Google Auth Platform API denemesi yapildi:
+  - `clientauthconfig.googleapis.com` servisini enable etme denemesi (dev/stg/prod).
+  - Sonuc: `PERMISSION_DENIED`.
+- IAP OAuth API alternatifi denendi:
+  - `gcloud iap oauth-brands list` / `oauth-clients --help`
+  - Sonuc: API deprecated ve generic OAuth yonetimi icin uygun degil.
+
+### Calistirilan Komutlar (Ham)
+1. `powershell -ExecutionPolicy Bypass -File .\\scripts\\check_google_signin_readiness.ps1`
+2. `gcloud services enable clientauthconfig.googleapis.com --project <dev|stg|prod>`
+3. `gcloud iap oauth-brands list --project <dev|stg>`
+4. `gcloud iap oauth-clients --help`
+
+### Bulgular
+- Prod:
+  - `providerClientIdStandard = true` (duzeldi)
+- Dev/Stg:
+  - `providerClientIdStandard = false` (acik risk devam)
+- Google Auth Platform OAuth client olusturma adimi bu hesap/proje kombinasyonunda terminalden tam otomasyona acik degil.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - `clientauthconfig.googleapis.com` enable denemeleri `PERMISSION_DENIED` ile reddedildi.
+  - Duzeltme:
+    - Bu adim icin Firebase/Google Cloud Console manual akisi zorunlu birakildi.
+- Hata-2:
+  - IAP OAuth komutlari deprecated ve "generic OAuth client management" icin uygun degil.
+  - Duzeltme:
+    - IAP tabanli workaround kullanilmadi.
+
+### Sonraki Adim Icin Beklenen Onay
+- Dev ve Stg projeleri icin prod ile ayni manual OAuth client olusturma + Firebase Google provider save adimlarini tamamla.
+- Tamamlandiginda readiness script tekrar kosulacak ve PASS raporu alinacak.
