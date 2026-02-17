@@ -2762,10 +2762,21 @@ Durum: Tamamlandi
   - Duzeltme:
     - Credential ID kisaltildi ve sadece izinli karakter seti kullanildi (`[a-z0-9-]`, max 32).
 
+- Hata-4:
+  - PowerShell'de `git add ... && git commit ...` komutu parser hatasi verdi (`&&` gecerli ayirac degil).
+  - Duzeltme:
+    - `git add` ve `git commit` ayri komutlarla calistirildi.
+
 ### Sonuc
 - Runbook 040-045 adimlari uygulandi ve `RUNBOOK_LOCKED.md` ile `NeredeServis_Cursor_Amber_Runbook.md` icinde isaretlendi.
 - Kanit dosyasi eklendi:
   - `docs/firebase_step_040_045_evidence.md`
+- Git kaydi:
+  - commit: `9dd1c90`
+  - branch: `main`
+  - push: `origin/main`
+- CI:
+  - Mobile CI run id: `22106081255` (kayit aninda `in_progress`)
 
 ### Sonraki Adim
 - STEP-046+:
