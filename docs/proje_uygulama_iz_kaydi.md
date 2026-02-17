@@ -3427,3 +3427,51 @@ Durum: Beklemede (Bilincli Erteleme)
 
 ### Sonraki Adim Icin Beklenen Onay
 - 086 adimina gecis: APNs/FCM + iOS background location entitlement gereksinim notu.
+
+## STEP-086..086A - APNs/FCM Entitlement Notu + Play Background Location Metni
+Tarih: 2026-02-17  
+Durum: Tamamlandi
+
+### Amac
+- 086: APNs/FCM + iOS background location entitlement gereksinimini dokumante etmek.
+- 086A: Google Play background location justification metnini sabitlemek.
+
+### Yapilan Isler
+- Yeni dokuman eklendi:
+  - `docs/ios_apns_fcm_background_entitlements.md`
+  - Icerik: APNs `.p8`/Key ID/Team ID gereksinimi, Xcode capability seti, `Info.plist` anahtarlari, izin kontrati, release gate testi.
+- Yeni dokuman eklendi:
+  - `docs/google_play_background_location_justification_tr.md`
+  - Icerik: kisa + uzun Play declaration metni, form cevap standardi, review kanit listesi.
+- Teknik plan guncellendi:
+  - `docs/NeredeServis_Teknik_Plan.md`
+  - `6.1F` ve `6.1G` altinda iki dokumana resmi referans eklendi.
+- Runbook checklist guncellendi:
+  - `docs/RUNBOOK_LOCKED.md`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`
+  - `086`, `086A` -> `[x]`
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "APNs|FCM|background location|entitlement|UIBackgroundModes|DeviceCheck|Play Integrity|086A|Google Play background location" docs -S`
+2. `Get-Content docs/NeredeServis_Cursor_Amber_Runbook.md | Select-Object -Skip 284 -First 30`
+3. `Get-Content docs/RUNBOOK_LOCKED.md | Select-Object -Skip 268 -First 30`
+4. `Get-Content docs/NeredeServis_Teknik_Plan.md | Select-Object -Skip 410 -First 120`
+
+### Bulgular
+- Teknik planda Play background location kisa metni zaten vardi; 086A ile ayri referans dokumanina tasinip release gate icin tek kaynak haline getirildi.
+- APNs/FCM + entitlement gereksinimleri artik tek dokumanda net.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda yeni hata yok.
+
+### Sonuc
+- 086 ve 086A adimlari kapatildi.
+- 087 adiminda kullanicidan APNs bilgileri istenecek.
+
+### Sonraki Muhendisler Icin Zorunlu Kural
+- iOS push/background location degisikliginde bu iki dokuman birlikte guncellenecek:
+  1. `docs/ios_apns_fcm_background_entitlements.md`
+  2. `docs/google_play_background_location_justification_tr.md`
+
+### Sonraki Adim Icin Beklenen Onay
+- 087: APNs key (`.p8`, key id, team id) + Apple Team bilgisi kullanicidan alinacak.

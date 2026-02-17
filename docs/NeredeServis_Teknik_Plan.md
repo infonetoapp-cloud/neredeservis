@@ -805,6 +805,24 @@ Input validasyon kurallari:
   - uygun kosulda flush/restart tetikler
 - iOS agresif guc modunda bile "kesintisiz degil ama toparlanabilir" davranis hedeflenir.
 
+### 6.1F APNs/FCM + iOS entitlement gereksinim notu
+- Referans dosya: `docs/ios_apns_fcm_background_entitlements.md`
+- Zorunlu capability seti:
+  - `Push Notifications`
+  - `Background Modes -> remote-notification + location`
+- Zorunlu `Info.plist` anahtarlari:
+  - `NSLocationWhenInUseUsageDescription`
+  - `NSLocationAlwaysAndWhenInUseUsageDescription`
+  - `UIBackgroundModes` icinde `location`, `remote-notification`
+- Firebase tarafinda her ortam icin APNs key baglantisi dogrulanmadan iOS release acilmaz.
+
+### 6.1G Google Play background location justification
+- Referans dosya: `docs/google_play_background_location_justification_tr.md`
+- Play formunda su kisa metin birebir kullanilir:
+  - `Sofor aktif sefer baslattiginda yolcularin guvenli ve dogru takip edebilmesi icin uygulama arka planda konum paylasir. Sefer bitince takip durur.`
+- Release gate:
+  - Play declaration metni ile uygulama ici izin/fallback davranisi birebir uyumlu olmalidir.
+
 ### 6.2 Stale-data seviyeleri
 - `0-30 sn`: Fresh
 - `31-120 sn`: Gecikmeli
