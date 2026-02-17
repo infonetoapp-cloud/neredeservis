@@ -559,7 +559,10 @@ Durum: Tamamlandi
 2. `$gcloud projects list --filter='projectId:gen-lang-client-* OR projectId:project-fb* OR projectId:stunning-ripsaw*' --format='table(projectId,name,lifecycleState)'`
 
 ### Hata Kaydi (Silinmez)
-- Bu adimda hata yok.
+- PowerShell komut zinciri hatasi:
+  - Hatali komut: `git add ... && git commit ...`
+  - Hata: `The token '&&' is not a valid statement separator in this version.`
+  - Duzeltme: Komutlar ayri ayri calistirildi (`git add` sonra `git commit`).
 
 ### Bulgular
 - Su an `ACTIVE` proje sayisi yuksek ve kota blokaji devam ediyor.
