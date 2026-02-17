@@ -2964,6 +2964,10 @@ Durum: Kismen Tamamlandi (manual gate acik)
 - Duzeltme:
   - `docs/firebase_google_signin_repair_playbook.md` olusturuldu.
   - Standard OAuth client seti ile console uzerinden yeniden baglama adimi zorunlu hale getirildi.
+- Hata-2:
+  - Bu adimda `git add ... && git commit ...` tek satir denemesi PowerShell parser hatasi verdi (`&&` gecersiz ayirac).
+  - Duzeltme:
+    - `git add` ve `git commit` ayri komutlarla calistirildi.
 
 ### Sonraki Muhendisler Icin Zorunlu Kural
 - Google Sign-In icin `gcloud iam oauth-clients` kullanma.
@@ -2975,3 +2979,8 @@ Durum: Kismen Tamamlandi (manual gate acik)
 
 ### Sonraki Adim Icin Beklenen Onay
 - STEP-046C: Firebase Console'da manual tamir (dev/stg/prod) tamamlandiktan sonra scripti tekrar calistirip PASS raporunu alalim.
+
+### Git ve CI Notu
+- commit: `178fd28`
+- push: `origin/main`
+- CI: push sonrasi Mobile CI kosumu GitHub Actions uzerinden takip edilecek.
