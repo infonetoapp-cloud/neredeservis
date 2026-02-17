@@ -1,0 +1,5 @@
+#include "Debug.xcconfig"
+
+APP_FLAVOR=stg
+PRODUCT_BUNDLE_IDENTIFIER=com.neredeservis.app.stg
+INFOPLIST_KEY_CFBundleDisplayName=NeredeServis Stg

@@ -4104,3 +4104,100 @@ Durum: Tamamlandi
 ### Sonuc
 - Sentry paketi projeye eklendi, ancak uyumlu sabit surum `8.14.0` olarak kilitlendi.
 - `analyze` ve `test` green kaldi.
+
+## STEP-104..110 - iOS Flavor + Environment Loader + Firebase/AppCheck Bootstrap + Guarded Entrypoint
+Tarih: 2026-02-17  
+Durum: Tamamlandi (No-Mac fiziksel iOS gate acik)
+
+### Amac
+- 104: iOS flavor ayarlarini dosya bazli tamamlamak.
+- 106: Environment loader altyapisini kurmak.
+- 107: Firebase init'i flavor kontratina baglamak.
+- 108: App Check init'i flavor bazli dev/stg/prod davranisina baglamak.
+- 109: Global error handler (`runZonedGuarded`) eklemek.
+- 110: Sentry entegrasyonunu dev disinda ve DSN varsa aktif etmek.
+
+### Yapilan Isler (104)
+- iOS flavor `xcconfig` dosyalari olusturuldu:
+  - `ios/Flutter/Debug-dev.xcconfig`
+  - `ios/Flutter/Debug-stg.xcconfig`
+  - `ios/Flutter/Debug-prod.xcconfig`
+  - `ios/Flutter/Release-dev.xcconfig`
+  - `ios/Flutter/Release-stg.xcconfig`
+  - `ios/Flutter/Release-prod.xcconfig`
+  - `ios/Flutter/Profile-dev.xcconfig`
+  - `ios/Flutter/Profile-stg.xcconfig`
+  - `ios/Flutter/Profile-prod.xcconfig`
+- `ios/Podfile` icindeki build configuration map'i dev/stg/prod varyantlarini kapsayacak sekilde genisletildi.
+- `ios/Runner.xcodeproj/project.pbxproj` icinde:
+  - Yeni flavor xcconfig referanslari eklendi.
+  - `Debug/Release/Profile` icin dev/stg/prod build configuration setleri eklendi.
+  - `Runner` target build config listesi dev/stg/prod konfigurasyonlari ile genisletildi.
+  - `PBXShellScriptBuildPhase` eklendi:
+    - `Copy Firebase Plist by Flavor`
+    - `APP_FLAVOR` degerine gore `ios/firebase/<flavor>/GoogleService-Info.plist` dosyasini app bundle'a kopyalar.
+- Yeni shared scheme dosyalari eklendi:
+  - `ios/Runner.xcodeproj/xcshareddata/xcschemes/dev.xcscheme`
+  - `ios/Runner.xcodeproj/xcshareddata/xcschemes/stg.xcscheme`
+  - `ios/Runner.xcodeproj/xcshareddata/xcschemes/prod.xcscheme`
+
+### Yapilan Isler (106-110)
+- Yeni environment loader dosyasi eklendi:
+  - `lib/config/app_environment.dart`
+  - `APP_FLAVOR`, `SENTRY_DSN`, `SENTRY_ENABLED` degerlerini parse eder.
+- Guarded entrypoint katmani eklendi:
+  - `lib/bootstrap/app_entrypoint.dart`
+  - `FlutterError.onError`, `PlatformDispatcher.instance.onError`, `runZonedGuarded` akisini tek yerde yonetir.
+- App bootstrap genisletildi:
+  - `lib/bootstrap/app_bootstrap.dart`
+  - Firebase init + App Check init + runApp sirasi sabitlendi.
+- Firebase bootstrap flavor kontratiyla guncellendi:
+  - `lib/firebase/firebase_bootstrap.dart`
+  - iOS/Android native flavor config kaynaklarini yorum + assert ile netlestirdi.
+- App Check bootstrap eklendi:
+  - `lib/firebase/app_check_bootstrap.dart`
+  - `prod`: `PlayIntegrity` + `DeviceCheck`
+  - `dev/stg`: `debug provider`
+- Tum entrypointler yeni guarded runner'a tasindi:
+  - `lib/main.dart`
+  - `lib/main_dev.dart`
+  - `lib/main_staging.dart`
+  - `lib/main_stg.dart`
+  - `lib/main_prod.dart`
+- App Check bagimliligi exact pin ile eklendi:
+  - `pubspec.yaml`: `firebase_app_check: 0.3.2+10`
+
+### Calistirilan Komutlar (Ham)
+1. `.\.fvm\flutter_sdk\bin\flutter.bat pub add firebase_app_check`
+2. `.\.fvm\flutter_sdk\bin\flutter.bat pub get`
+3. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+4. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+5. `rg -n "Debug-dev|Debug-stg|Debug-prod|Release-dev|Release-stg|Release-prod|Profile-dev|Profile-stg|Profile-prod|Copy Firebase Plist by Flavor" ios/Runner.xcodeproj/project.pbxproj ios/Podfile`
+
+### Bulgular
+- `flutter analyze`: temiz.
+- `flutter test`: tum testler gecti.
+- iOS flavor kurgusu repo seviyesinde tamamlandi (scheme + config + plist copy phase).
+- No-Mac modu nedeniyle lokal `flutter build ios --no-codesign` dogrulamasi bu Windows ortaminda calistirilamadi; fiziksel/CI Mac gate adimi acik.
+
+### Hata Kaydi (Silinmez)
+- Hata-1:
+  - PowerShell altinda `rg` komutunda wildcard path (`*.xcscheme`) sozdizimi hatasi alindi.
+  - Duzeltme:
+    - Komut daraltilip dogrudan dosya yollarinda regex taramasi yapildi.
+- Hata-2 (Ortam/Gate):
+  - Bu adimda iOS derleme kaniti lokal ortamda alinamadi (Mac yok).
+  - Duzeltme/Plan:
+    - No-Mac operasyon planina uygun sekilde bu adim dosya-konfig seviyesinde tamamlandi.
+    - Fiziksel iOS compile/test gate daha sonra Mac CI veya fiziksel Mac adiminda zorunlu calistirilacak.
+
+### Sonuc
+- 104 `[x]`
+- 106 `[x]`
+- 107 `[x]`
+- 108 `[x]`
+- 109 `[x]`
+- 110 `[x]`
+
+### Sonraki Adim
+- 111: Router iskeletinin kurulumu.

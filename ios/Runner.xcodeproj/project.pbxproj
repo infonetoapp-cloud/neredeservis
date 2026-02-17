@@ -48,6 +48,15 @@
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D101 /* Debug-dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Debug-dev.xcconfig"; path = "Flutter/Debug-dev.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D102 /* Debug-stg.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Debug-stg.xcconfig"; path = "Flutter/Debug-stg.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D103 /* Debug-prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Debug-prod.xcconfig"; path = "Flutter/Debug-prod.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D104 /* Release-dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Release-dev.xcconfig"; path = "Flutter/Release-dev.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D105 /* Release-stg.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Release-stg.xcconfig"; path = "Flutter/Release-stg.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D106 /* Release-prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Release-prod.xcconfig"; path = "Flutter/Release-prod.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D107 /* Profile-dev.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Profile-dev.xcconfig"; path = "Flutter/Profile-dev.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D108 /* Profile-stg.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Profile-stg.xcconfig"; path = "Flutter/Profile-stg.xcconfig"; sourceTree = "<group>"; };
+		8F4BEB7A3CF94D7EA6A1D109 /* Profile-prod.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Profile-prod.xcconfig"; path = "Flutter/Profile-prod.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -81,7 +90,16 @@
 			children = (
 				3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */,
 				9740EEB21CF90195004384FC /* Debug.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D101 /* Debug-dev.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D102 /* Debug-stg.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D103 /* Debug-prod.xcconfig */,
 				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D104 /* Release-dev.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D105 /* Release-stg.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D106 /* Release-prod.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D107 /* Profile-dev.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D108 /* Profile-stg.xcconfig */,
+				8F4BEB7A3CF94D7EA6A1D109 /* Profile-prod.xcconfig */,
 				9740EEB31CF90195004384FC /* Generated.xcconfig */,
 			);
 			name = Flutter;
@@ -146,6 +164,7 @@
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
 				9740EEB61CF901F6004384FC /* Run Script */,
+				C101AAAB3E4F000100000020 /* Copy Firebase Plist by Flavor */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
@@ -252,6 +271,21 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
+		};
+		C101AAAB3E4F000100000020 /* Copy Firebase Plist by Flavor */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Firebase Plist by Flavor";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nFLAVOR=\"${APP_FLAVOR:-prod}\"\nSRC_PLIST=\"${PROJECT_DIR}/firebase/${FLAVOR}/GoogleService-Info.plist\"\nDEST_PLIST=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GoogleService-Info.plist\"\n\nif [ ! -f \"${SRC_PLIST}\" ]; then\n  echo \"error: Missing Firebase plist for flavor '${FLAVOR}' at ${SRC_PLIST}\"\n  exit 1\nfi\n\nmkdir -p \"$(dirname \"${DEST_PLIST}\")\"\ncp \"${SRC_PLIST}\" \"${DEST_PLIST}\"\necho \"Copied ${SRC_PLIST} -> ${DEST_PLIST}\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -577,6 +611,243 @@
 			};
 			name = Release;
 		};
+		C101AAAB3E4F000100000001 /* Debug-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Debug-dev";
+		};
+		C101AAAB3E4F000100000002 /* Debug-stg */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Debug-stg";
+		};
+		C101AAAB3E4F000100000003 /* Debug-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Debug-prod";
+		};
+		C101AAAB3E4F000100000004 /* Release-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Release-dev";
+		};
+		C101AAAB3E4F000100000005 /* Release-stg */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Release-stg";
+		};
+		C101AAAB3E4F000100000006 /* Release-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Release-prod";
+		};
+		C101AAAB3E4F000100000007 /* Profile-dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Profile-dev";
+		};
+		C101AAAB3E4F000100000008 /* Profile-stg */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Profile-stg";
+		};
+		C101AAAB3E4F000100000009 /* Profile-prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = "Profile-prod";
+		};
+		C101AAAB3E4F000100000011 /* Debug-dev */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D101 /* Debug-dev.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-dev";
+		};
+		C101AAAB3E4F000100000012 /* Debug-stg */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D102 /* Debug-stg.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-stg";
+		};
+		C101AAAB3E4F000100000013 /* Debug-prod */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D103 /* Debug-prod.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-prod";
+		};
+		C101AAAB3E4F000100000014 /* Release-dev */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D104 /* Release-dev.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-dev";
+		};
+		C101AAAB3E4F000100000015 /* Release-stg */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D105 /* Release-stg.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-stg";
+		};
+		C101AAAB3E4F000100000016 /* Release-prod */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D106 /* Release-prod.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-prod";
+		};
+		C101AAAB3E4F000100000017 /* Profile-dev */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D107 /* Profile-dev.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Profile-dev";
+		};
+		C101AAAB3E4F000100000018 /* Profile-stg */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D108 /* Profile-stg.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Profile-stg";
+		};
+		C101AAAB3E4F000100000019 /* Profile-prod */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F4BEB7A3CF94D7EA6A1D109 /* Profile-prod.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Profile-prod";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -594,8 +865,17 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				97C147031CF9000F007C117D /* Debug */,
+				C101AAAB3E4F000100000001 /* Debug-dev */,
+				C101AAAB3E4F000100000002 /* Debug-stg */,
+				C101AAAB3E4F000100000003 /* Debug-prod */,
 				97C147041CF9000F007C117D /* Release */,
+				C101AAAB3E4F000100000004 /* Release-dev */,
+				C101AAAB3E4F000100000005 /* Release-stg */,
+				C101AAAB3E4F000100000006 /* Release-prod */,
 				249021D3217E4FDB00AE95B9 /* Profile */,
+				C101AAAB3E4F000100000007 /* Profile-dev */,
+				C101AAAB3E4F000100000008 /* Profile-stg */,
+				C101AAAB3E4F000100000009 /* Profile-prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -604,8 +884,17 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				97C147061CF9000F007C117D /* Debug */,
+				C101AAAB3E4F000100000011 /* Debug-dev */,
+				C101AAAB3E4F000100000012 /* Debug-stg */,
+				C101AAAB3E4F000100000013 /* Debug-prod */,
 				97C147071CF9000F007C117D /* Release */,
+				C101AAAB3E4F000100000014 /* Release-dev */,
+				C101AAAB3E4F000100000015 /* Release-stg */,
+				C101AAAB3E4F000100000016 /* Release-prod */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
+				C101AAAB3E4F000100000017 /* Profile-dev */,
+				C101AAAB3E4F000100000018 /* Profile-stg */,
+				C101AAAB3E4F000100000019 /* Profile-prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

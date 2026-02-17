@@ -1,6 +1,6 @@
-import 'bootstrap/app_bootstrap.dart';
+import 'bootstrap/app_entrypoint.dart';
 import 'config/app_flavor.dart';
 
 Future<void> main() async {
-  await bootstrapNeredeServis(AppFlavor.dev);
+  await runFlavorEntrypoint(AppFlavor.dev);
 }

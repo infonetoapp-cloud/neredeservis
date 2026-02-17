@@ -331,13 +331,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 101 `flutter pub get` calistir.
 - [x] 102 Klasor yapisini runbook standardina gore kur.
 - [x] 103 App flavor ayarlarini Android tarafinda yap.
-- [ ] 104 App flavor ayarlarini iOS tarafinda yap.
+- [x] 104 App flavor ayarlarini iOS tarafinda yap.
 - [x] 105 `main_dev.dart`, `main_staging.dart`, `main_prod.dart` dosyalarini olustur.
-- [ ] 106 Environment loader yapisini kur.
-- [ ] 107 Firebase init'i flavor'a gore ayarla.
-- [ ] 108 App Check init'i flavor'a gore ayarla.
-- [ ] 109 Global error handler (`runZonedGuarded`) kur.
-- [ ] 110 Sentry entegrasyonu (varsa) dev disinda ac.
+- [x] 106 Environment loader yapisini kur.
+- [x] 107 Firebase init'i flavor'a gore ayarla.
+- [x] 108 App Check init'i flavor'a gore ayarla.
+- [x] 109 Global error handler (`runZonedGuarded`) kur.
+- [x] 110 Sentry entegrasyonu (varsa) dev disinda ac.
 - [ ] 111 Router iskeletini kur.
 - [ ] 112 Auth guard iskeletini kur.
 - [ ] 113 Role guard iskeletini kur.
