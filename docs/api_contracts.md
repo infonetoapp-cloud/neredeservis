@@ -582,6 +582,10 @@ Account delete guardrails (`deleteUserData`) (STEP-291/291A/291B):
 - Aktif abonelik yoksa:
   - `dryRun=true` ise mutasyon yapmadan plan bilgisi dondurulur.
   - `dryRun=false` ise `_delete_requests/{uid}` kaydi + `users/{uid}.deletedAt` soft-delete alanlari yazilir.
+- Hard-delete islemesi `cleanupStaleData` scheduler'i tarafindan yapilir:
+  - `hardDeleteAfter <= now` ve `status=pending` requestleri icin
+  - `users/{uid}`, `drivers/{uid}`, `consents/{uid}` kalici silinir
+  - request `status=completed` + `completedAt` ile kapanir.
 - Privacy audit zorunlu: `_audit_privacy_events` icine `user_delete_blocked_subscription` veya `user_delete_requested|user_delete_dry_run` eventi yazilir.
 
 Audit event contract (STEP-290):

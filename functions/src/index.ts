@@ -3597,6 +3597,42 @@ export const cleanupStaleData = onSchedule(
       }
       await staleSkipDeleteBatch.commit();
     }
+
+    const dueDeleteRequestSnap = await db
+      .collection('_delete_requests')
+      .where('hardDeleteAfter', '<=', nowIso)
+      .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+      .get();
+    for (const deleteRequestDoc of dueDeleteRequestSnap.docs) {
+      const deleteRequestData = asRecord(deleteRequestDoc.data()) ?? {};
+      if (pickString(deleteRequestData, 'status') !== 'pending') {
+        continue;
+      }
+      const targetUid = pickString(deleteRequestData, 'uid') ?? deleteRequestDoc.id;
+
+      const deleteBatch = db.batch();
+      deleteBatch.delete(db.collection('users').doc(targetUid));
+      deleteBatch.delete(db.collection('drivers').doc(targetUid));
+      deleteBatch.delete(db.collection('consents').doc(targetUid));
+      deleteBatch.set(
+        deleteRequestDoc.ref,
+        {
+          status: 'completed',
+          completedAt: nowIso,
+          updatedAt: nowIso,
+        },
+        { merge: true },
+      );
+      await deleteBatch.commit();
+
+      await db.collection('_audit_privacy_events').add({
+        eventType: 'user_delete_completed',
+        uid: targetUid,
+        deleteRequestId: deleteRequestDoc.id,
+        completedAt: nowIso,
+        createdAt: nowIso,
+      });
+    }
   },
 );
 

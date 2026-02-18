@@ -40,6 +40,7 @@ const {
   mapboxDirectionsProxy,
   mapboxMapMatchingProxy,
   morningReminderDispatcher,
+  cleanupStaleData,
   searchDriverDirectory,
   startTrip,
   abandonedTripGuard,
@@ -1454,3 +1455,68 @@ test(
     assert.equal(typeof allowedUserData.deletedAt, "string");
   },
 );
+
+test("STEP-293 cleanupStaleData: due _delete_requests icin hard-delete uygular", async () => {
+  const uid = "driver-delete-hard-1";
+  const nowIso = new Date().toISOString();
+  const dueIso = new Date(Date.now() - 60_000).toISOString();
+
+  await firestore.collection("users").doc(uid).set({
+    role: "driver",
+    displayName: "Delete Candidate",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    deletedAt: nowIso,
+  });
+  await firestore.collection("drivers").doc(uid).set({
+    name: "Delete Candidate",
+    phone: "+905550000001",
+    plate: "34DEL34",
+    showPhoneToPassengers: false,
+    subscriptionStatus: "expired",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    deletedAt: nowIso,
+  });
+  await firestore.collection("consents").doc(uid).set({
+    privacyVersion: "v1",
+    kvkkTextVersion: "v1",
+    locationConsent: false,
+    acceptedAt: nowIso,
+    platform: "android",
+    deleteRequestedAt: nowIso,
+    updatedAt: nowIso,
+  });
+  await firestore.collection("_delete_requests").doc(uid).set({
+    uid,
+    role: "driver",
+    requestedAt: nowIso,
+    hardDeleteAfter: dueIso,
+    status: "pending",
+    updatedAt: nowIso,
+  });
+
+  await cleanupStaleData.run();
+
+  const userSnap = await firestore.collection("users").doc(uid).get();
+  const driverSnap = await firestore.collection("drivers").doc(uid).get();
+  const consentSnap = await firestore.collection("consents").doc(uid).get();
+  assert.equal(userSnap.exists, false);
+  assert.equal(driverSnap.exists, false);
+  assert.equal(consentSnap.exists, false);
+
+  const deleteRequestSnap = await firestore.collection("_delete_requests").doc(uid).get();
+  assert.equal(deleteRequestSnap.exists, true);
+  const deleteRequestData = deleteRequestSnap.data() ?? {};
+  assert.equal(deleteRequestData.status, "completed");
+  assert.equal(typeof deleteRequestData.completedAt, "string");
+
+  const auditSnap = await firestore
+    .collection("_audit_privacy_events")
+    .where("eventType", "==", "user_delete_completed")
+    .limit(1)
+    .get();
+  assert.equal(auditSnap.empty, false);
+  const auditData = auditSnap.docs[0]?.data();
+  assert.equal(auditData?.uid, uid);
+});

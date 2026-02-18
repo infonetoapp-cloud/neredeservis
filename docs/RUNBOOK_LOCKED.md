@@ -614,8 +614,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 291B Interceptor metnini policy uyumlu yaz: `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et`.
 - [x] 292 Delete flow dry-run test yap.
 - [x] 292A DOGRULAMA: aktif abonelikte interceptor calisiyor, abonelik yoksa delete akisi normal devam ediyor mu?
-- [ ] 293 Retention cleanup fonksiyonunu verify et.
-- [ ] 294 DOGRULAMA: KVKK test seti green mi?
+- [x] 293 Retention cleanup fonksiyonunu verify et.
+- [x] 294 DOGRULAMA: KVKK test seti green mi?
 - [ ] 295 Error catalog dosyasini guncelle.
 - [ ] 296 Function telemetry dashboard notlarini ekle.
 - [ ] 297 Alert esiklerini tanimla.

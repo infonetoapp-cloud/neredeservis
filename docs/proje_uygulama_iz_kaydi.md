@@ -8481,3 +8481,61 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 293: retention cleanup akisi icinde `_delete_requests` hard-delete isleyicisini uygulayip dogrulamak.
+
+## STEP-293-294 - Retention Cleanup Verify + KVKK Test Seti Green
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 293: `cleanupStaleData` icinde `_delete_requests` hard-delete islemesini aktif ederek retention/delete zincirini tamamlamak.
+- 294: KVKK test setinin tumuyle green oldugunu teknik olarak dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts`
+   - `cleanupStaleData` icine `_delete_requests` tarama ve hard-delete islemi eklendi:
+     - kosul: `hardDeleteAfter <= now` ve `status == pending`
+     - silinenler: `users/{uid}`, `drivers/{uid}`, `consents/{uid}`
+     - request kapanisi: `status=completed`, `completedAt`
+     - audit: `_audit_privacy_events` -> `user_delete_completed`
+2. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs`
+   - `STEP-293 cleanupStaleData` integration testi eklendi
+3. `apply_patch` -> `docs/api_contracts.md`
+   - account delete guardrail bolumune scheduler hard-delete kontrati eklendi
+4. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+   - `293`, `294` checkbox -> `[x]`
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+   - `293`, `294` checkbox -> `[x]`
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Retention cleanup zinciri KVKK delete flow ile butunlesti:
+  - `deleteUserData` ile olusan `_delete_requests/pending` kaydi,
+  - `cleanupStaleData` scheduler tarafinda due oldugunda hard-delete ile kapatiliyor.
+- Hard-delete sonrasi talep kaydi silinmiyor; `completed` status + timestamp ile auditlenebilir sekilde korunuyor.
+- `STEP-293` integration testi, silme + request kapanisi + audit event yazimini dogruladi.
+- KVKK ilgili test seti artik green:
+  - `STEP-292`
+  - `STEP-292A`
+  - `STEP-293`
+  - tum paket sonucu: `34/34`.
+
+### Hata Kaydi (Silinmez)
+- Rules test kosusunda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: test sonucunu etkilemedi.
+- Rules deny senaryolarinda beklenen `permission_denied` warningleri goruldu.
+  - Not: guvenlik policy testlerinin dogal sonucu.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass (`34/34`).
+
+### Sonraki Adim
+- Faz F / 295: error catalog dosyasini guncellemek.
