@@ -34,20 +34,18 @@ Future<void> runFlavorEntrypoint(AppFlavor entrypointFlavor) async {
   };
 
   Future<void> guardedBootstrap() async {
-    await runZonedGuarded(
-      () async {
-        await bootstrapNeredeServis(
-          flavor: environment.flavor,
-          environment: environment,
-        );
-      },
-      (Object error, StackTrace stackTrace) {
-        if (environment.sentryEnabled) {
-          unawaited(Sentry.captureException(error, stackTrace: stackTrace));
-        }
-        debugPrint('Unhandled bootstrap error: $error');
-      },
-    );
+    try {
+      await bootstrapNeredeServis(
+        flavor: environment.flavor,
+        environment: environment,
+      );
+    } catch (error, stackTrace) {
+      if (environment.sentryEnabled) {
+        unawaited(Sentry.captureException(error, stackTrace: stackTrace));
+      }
+      debugPrint('Unhandled bootstrap error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   if (environment.sentryEnabled && environment.sentryDsn != null) {

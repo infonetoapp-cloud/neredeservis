@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_flavor.dart';
+import '../../ui/components/layout/amber_screen_scaffold.dart';
+import '../../ui/screens/active_trip_screen.dart';
+import '../../ui/screens/auth_hero_login_screen.dart';
+import '../../ui/screens/driver_home_screen.dart';
+import '../../ui/screens/passenger_tracking_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
 import 'role_guard.dart';
@@ -12,41 +17,54 @@ GoRouter buildAppRouter({
   required RoleGuard roleGuard,
 }) {
   return GoRouter(
-    initialLocation: AppRoutePath.splash,
+    initialLocation: AppRoutePath.auth,
     routes: <RouteBase>[
       GoRoute(
-        path: AppRoutePath.splash,
-        builder: (context, state) => _ShellPlaceholderPage(
-          title: flavorConfig.appName,
-          body: 'Splash / Router Skeleton (${flavorConfig.flavor.name})',
+        path: AppRoutePath.auth,
+        builder: (context, state) => AuthHeroLoginScreen(
+          appName: flavorConfig.appName,
+          onSignInTap: () => context.go(AppRoutePath.join),
+          onGoogleSignInTap: () => context.go(AppRoutePath.join),
+          onRegisterTap: () => context.go(AppRoutePath.join),
         ),
       ),
       GoRoute(
-        path: AppRoutePath.auth,
-        builder: (context, state) => const _ShellPlaceholderPage(
-          title: 'Auth',
-          body: 'Auth guard entrypoint placeholder',
+        path: AppRoutePath.splash,
+        builder: (context, state) => AuthHeroLoginScreen(
+          appName: flavorConfig.appName,
+          onSignInTap: () => context.go(AppRoutePath.join),
+          onGoogleSignInTap: () => context.go(AppRoutePath.join),
+          onRegisterTap: () => context.go(AppRoutePath.join),
         ),
       ),
       GoRoute(
         path: AppRoutePath.driverHome,
-        builder: (context, state) => const _ShellPlaceholderPage(
-          title: 'Driver Home',
-          body: 'Driver area placeholder',
+        builder: (context, state) => DriverHomeScreen(
+          appName: flavorConfig.appName,
+          onStartTripTap: () => context.go(AppRoutePath.activeTrip),
+          onManageRouteTap: () => context.go(AppRoutePath.settings),
+          onAnnouncementTap: () => context.go(AppRoutePath.settings),
         ),
+      ),
+      GoRoute(
+        path: AppRoutePath.activeTrip,
+        builder: (context, state) => const ActiveTripScreen(),
       ),
       GoRoute(
         path: AppRoutePath.passengerHome,
-        builder: (context, state) => const _ShellPlaceholderPage(
-          title: 'Passenger Home',
-          body: 'Passenger area placeholder',
-        ),
+        builder: (context, state) => const PassengerTrackingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutePath.passengerTracking,
+        builder: (context, state) => const PassengerTrackingScreen(),
       ),
       GoRoute(
         path: AppRoutePath.join,
-        builder: (context, state) => const _ShellPlaceholderPage(
+        builder: (context, state) => _ShellPlaceholderPage(
           title: 'Join',
-          body: 'Join by srv code placeholder',
+          body: _joinPlaceholderBody(
+            state.uri.queryParameters['role'],
+          ),
         ),
       ),
       GoRoute(
@@ -75,6 +93,17 @@ GoRouter buildAppRouter({
   );
 }
 
+String _joinPlaceholderBody(String? selectedRole) {
+  switch (selectedRole) {
+    case 'driver':
+      return 'Driver join flow placeholder';
+    case 'passenger':
+      return 'Passenger join flow placeholder';
+    default:
+      return 'Join by srv code placeholder';
+  }
+}
+
 class _ShellPlaceholderPage extends StatelessWidget {
   const _ShellPlaceholderPage({
     required this.title,
@@ -86,8 +115,8 @@ class _ShellPlaceholderPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
+    return AmberScreenScaffold(
+      title: title,
       body: Center(
         child: Text(
           body,

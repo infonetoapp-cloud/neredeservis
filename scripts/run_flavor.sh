@@ -7,6 +7,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 flavor="$1"
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 case "$flavor" in
   dev) target="lib/main_dev.dart" ;;
   stg) target="lib/main_stg.dart" ;;
@@ -17,4 +18,26 @@ case "$flavor" in
     ;;
 esac
 
-fvm flutter run --flavor "$flavor" -t "$target"
+define_file=""
+case "$flavor" in
+  dev)
+    [[ -f "$repo_root/.env.dev" ]] && define_file="$repo_root/.env.dev"
+    ;;
+  stg)
+    if [[ -f "$repo_root/.env.staging" ]]; then
+      define_file="$repo_root/.env.staging"
+    elif [[ -f "$repo_root/.env.stg" ]]; then
+      define_file="$repo_root/.env.stg"
+    fi
+    ;;
+  prod)
+    [[ -f "$repo_root/.env.prod" ]] && define_file="$repo_root/.env.prod"
+    ;;
+esac
+
+dart_define_args=(--dart-define="APP_FLAVOR=$flavor")
+if [[ -n "$define_file" ]]; then
+  dart_define_args+=(--dart-define-from-file="$define_file")
+fi
+
+fvm flutter run --flavor "$flavor" -t "$target" "${dart_define_args[@]}"

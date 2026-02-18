@@ -91,7 +91,7 @@
 ### 5.1 Secret Manager zorunlu gizliler
 - `MAPBOX_SECRET_TOKEN`
 - `SENTRY_DSN` (kullaniyorsak)
-- `REVENUECAT_API_KEY` (V1.1 acildiginda)
+- `ADAPTY_API_KEY` (V1.1 acildiginda)
 - webhook secretlari
 
 ### 5.2 Config ayrimi

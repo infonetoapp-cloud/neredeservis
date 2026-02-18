@@ -49,7 +49,7 @@ Tek bir nedenden: **belirsizliği öldürmek.**
 | 8 saniye GPS aralığı | Makul. Pil ve veri dengesi iyi kurulmuş |
 | QR kod ile katılım | Onboarding sürtünmesini sıfıra indirir. Kritik büyüme mekaniği |
 | Mapbox önerisi | Doğru. 50.000 ücretsiz yükleme/ay yeterli |
-| RevenueCat entegrasyonu | Tek SDK ile çift platform ödeme. Akıllı tercih |
+| Adapty entegrasyonu | Tek SDK ile çift platform ödeme. Akıllı tercih |
 | Offline mod önerisi | Sanayi bölgelerinde sinyal sorunu gerçek. Doğru tespit |
 
 ### ❌ Zayıf / Hatalı Taraflar
@@ -198,7 +198,7 @@ Yolcunun sabah servisi Şoför A, akşam dönüşü Şoför B olabilir. Uygulama
 ### V1.1 — Monetization + Polish (30-45. gün)
 | Özellik | Gerekçe |
 |---|---|
-| RevenueCat abonelik entegrasyonu | Gelir kapısı |
+| Adapty abonelik entegrasyonu | Gelir kapısı |
 | 14 gün deneme → ödeme akışı | Dönüşüm mekanizması |
 | Paylaşım linki (nerede.servis/SRV4821) | Viral büyüme hızlandırıcı |
 | Referans ödülü (firmadan firmaya: tanıt → 1 ay ücretsiz) | B2B organik büyüme |
@@ -906,7 +906,7 @@ lib/
 │   ├── firestore_service.dart   # Firestore CRUD (tüm koleksiyonlar)
 │   ├── notification_service.dart   # FCM + local bildirim
 │   ├── auth_service.dart        # Firebase Auth wrapper
-│   └── subscription_service.dart   # RevenueCat wrapper
+│   └── subscription_service.dart   # Adapty wrapper
 ├── features/
 │   ├── auth/
 │   │   ├── screens/             # Giriş, kayıt, rol seçim
@@ -1320,7 +1320,7 @@ PDF 99 TL/ay öneriyor. Bu yanlış. Darıca–Gebze'deki bir servis şoförü i
 ## Para Vermeye Neyi Mecbur Bırakılır?
 
 **V1.0 pilot karari (net):**
-- Gercek RevenueCat uretim odeme akisi kapali.
+- Gercek Adapty uretim odeme akisi kapali.
 - Paywall UI ve soft-lock davranisi simule edilir (mock/read-only subscription state).
 - Gercek tahsilat ve entitlement acilisi V1.1'de aktif edilir.
 
@@ -1483,7 +1483,7 @@ Döngü tekrarlanır
 - **Kategori önerisi:** `Travel & Local` (Play reviewer açısından en temiz konumlandırma).
 - **Kapalı test:** Production öncesi Play closed testing koşulları kanıtlı tamamlanmalı.
 - **Manifest zorunlulugu:** Android 14+ icin servis `foregroundServiceType=\"location\"` ile tanimlanmali; `WAKE_LOCK` ve ilgili FGS izinleri dogru eklenmeli.
-- **Billing uyumu:** Google Play Billing Library `6.x` ile uyumlu surum release gate'te kanitlanmali.
+- **Billing uyumu:** Adapty SDK + native store billing bagimlilik surumu release gate'te kanitlanmali.
 - **Odeme akisi:** Dijital ozellik satisi icin Google Play Billing zorunlu. Abonelik iptal/yonetim linki acik olmalı.
 - **Not:** Uygun storefront/policy programi disinda alternatif billing acilmaz.
 
@@ -1496,7 +1496,7 @@ Döngü tekrarlanır
 | Mapbox API değişiklikleri | Harita servisini soyutla (MapProvider interface). Geçiş kolaylaşır |
 | Flutter paket sürüm uyumsuzlukları | `pubspec.yaml` sürüm pinleme. Her güncelleme öncesi test |
 | Çoklu güzergah karmaşıklığı | Route şablon + Trip ayrımını temiz tut. God class yaratma |
-| RevenueCat entegrasyonu karmaşıklığı | V1.1'de basit boolean "isPremium" yeterli |
+| Adapty entegrasyonu karmaşıklığı | V1.1'de basit boolean "isPremium" yeterli |
 | Support yükünün patlaması | `Sorun Bildir` + `Shake to Report` ile tanılama paketini otomatik topla, PII redaction zorunlu |
 
 ## Tek Geliştirici İçin En Tehlikeli Noktalar
@@ -1621,12 +1621,12 @@ Google Sign-In + e-posta/şifre auth modeli ile SMS maliyeti sıfırlandı. Tüm
 - Saha geri bildirimleri toplanmış
 
 ## V1.1 — Monetization + Polish (30-45. Gün)
-- [ ] RevenueCat entegrasyonu (49 TL/ay, 399 TL/yıl)
+- [ ] Adapty entegrasyonu (49 TL/ay, 399 TL/yıl)
 - [ ] 14 gün deneme → ödeme geçiş akışı
 - [ ] Paywall entry-point kuralı (Ayarlar + trial banner + premium aksiyon tetigi)
 - [ ] Store uyumu: IAP/Billing + Restore Purchases + Manage Subscription
 - [ ] App Store billing grace period aktif + başarısız yenileme senaryosu testi
-- [ ] Google Play Billing Library 6.x uyumlu plugin sürümü release gate'te kilitli
+- [ ] Adapty SDK ve native billing bagimlilik surumu release gate'te kilitli
 - [ ] iOS App Clip POC (QR -> mini native takip karti -> tam app'e gecis CTA)
 - [ ] Android Instant App feasibility + uygun cihazlarda mini takip akisi
 - [ ] QR scan -> mini deneyim -> full install donusum metrigi
@@ -1652,7 +1652,7 @@ Google Sign-In + e-posta/şifre auth modeli ile SMS maliyeti sıfırlandı. Tüm
 | Kullanıcı sayısı | 15-30 şoför, 200-400 yolcu |
 | Günlük aktif kullanıcı (DAU) | En az 100 |
 | App Store durumu | iOS + Android'de yayında |
-| Abonelik | RevenueCat entegre, ilk ödemeli kullanıcılar |
+| Abonelik | Adapty entegre, ilk ödemeli kullanıcılar |
 | Şirket paneli | En az 1 firma aktif kullanıyor |
 | Bölge | Darıca tamamen, Gebze başlangıç |
 | Stabilite | Crash rate < %1, uptime > %99.5 |

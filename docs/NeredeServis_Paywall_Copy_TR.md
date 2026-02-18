@@ -212,5 +212,5 @@ Alternatif guvenli ifadeler:
 - `Manage Subscription` her iki platformda gorunur.
 - Harici odeme yonlendiren metin yok.
 - Hesap silme akisinda aktif abonelik varsa interceptor metni + `Manage Subscription` linki zorunlu gorunur.
-- Android billing akisi (Billing Library 6.x uyumlu plugin) testte sorunsuz.
+- Android billing akisi (Adapty SDK + store billing) testte sorunsuz.
 - UTF-8/TR karakterler (`ı, ş, ğ, ü, ö, ç`) paywall ve store metinlerinde bozulmuyor.

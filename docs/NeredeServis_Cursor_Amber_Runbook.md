@@ -1,4 +1,4 @@
-﻿# NeredeServis - Cursor Uygulama Runbook (Amber UIX, Cok Detayli)
+# NeredeServis - Cursor Uygulama Runbook (Amber UIX, Cok Detayli)
 
 **Versiyon:** v1.2  
 **Tarih:** 2026-02-16  
@@ -44,7 +44,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 15. KVKK hukuki onay tarihi ve onaylayan kisi
 16. App Store "Always Location" aciklama metni
 17. Google Play background location declaration metni
-18. RevenueCat product id seti (`monthly`, `yearly`, `trial`) + store tarafi urun ekran goruntuleri
+18. Adapty product id seti (`monthly`, `yearly`, `trial`) + store tarafi urun ekran goruntuleri
 19. App Store/Play fiyat yerellesme listesi ve deneme suresi parametresi
 20. Hedef storefront ulkeleri + alternatif billing programina girilecek mi karari
 21. (V1.1) iOS App Clip icin associated domain ve App Clip target bundle id
@@ -176,6 +176,32 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - Asama-2 (core stabil olduktan sonra): gercek video asseti ve oynatma akisi entegre edilir.
 - Asama-3 (release yakini): codec/sikistirma/performance ve dusuk cihaz testleriyle final polish yapilir.
 - Kritik kural: video failure durumunda auth/onboarding akisi bloklanmaz; statik poster fallback ile devam edilir.
+
+### 3.14 Amber UIX Mimari Kalite Bar'i (Non-Negotiable)
+- "Default Flutter gorunumu" kabul edilmez; production seviye premium UIX hedeflenir.
+- UI once component-system olarak kurulmadan ekran bazli hizli patch yazilmaz.
+- Tum atomik parcalar token tabanli olur: button, input, chip, card, banner, sheet, scaffold.
+- Tum etkilebilir UI elemanlarinda state kontrati zorunlu: `default`, `pressed`, `focus`, `disabled`, `error` (uygunsa).
+- Her yeni ekran su sirayla gelistirilir:
+  - 1) layout shell
+  - 2) component baglantisi
+  - 3) interaction state
+  - 4) accessibility ve perf dogrulamasi
+- "Spagetti widget tree" kabul edilmez; tek seferlik ozel UI bloklari reusable katmana tasinmadan merge edilmez.
+
+### 3.15 Auth Giris Hero Ekrani Kontrati
+- Giris/uye olma akisi "full-screen hero image + foreground action layer" mimarisi ile kurulur.
+- V1.0 icin auth acilis varligi sabit: `assets/images/start.jpeg`.
+- V1.0 icin video baslatma yok; auth ekrani statik hero gorsel ile acilir.
+- Tam ekran gorsel sadece arka plan degildir; gradient + scrim ile metin/CTA okunabilirligi garantilenir.
+- Foreground katmanda minimum set:
+  - Google ile giris CTA
+  - Uye ol CTA
+  - Giris yap CTA
+- Misafir CTA auth hero ekraninda gosterilmez.
+- Gorsel icerige degil kaliteye referans alinir; metin/ozellik birebir kopyalanmaz.
+- Gorsel degistiginde ekran kirilmamasi icin safe-area + aspect-ratio + crop-strategy zorunludur.
+- Auth ekrani, onboarding/video hatalarindan bagimsiz acilabilmelidir (bloklanamaz).
 
 ---
 
@@ -325,7 +351,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 099B MapLibre alternatif PoC notunu `docs/map_provider_decision.md` dosyasina yaz.
 - [x] 099C KULLANICIDAN ONAY ISTE: "Ilk 2 ay Directions API varsayilan kapali kalsin mi? (onerilen: evet)".
 - [ ] 099D Token guvenlik ayarlarini yap: minimum scope + mobil app kisiti; URL restriction'a guvenme.
-- [x] 099E In-app purchase stack'ini pinle: Google Play Billing Library `6.x` uyumunu dogrula (plugin surum notunu `docs/billing_lock.md` dosyasina yaz).
+- [x] 099E Adapty billing stack'ini pinle: SDK surumunu ve native bagimlilik notlarini `docs/billing_lock.md` dosyasina yaz.
 - [x] 099F KULLANICIDAN ONAY ISTE: "Flutter lock 3.24.5 kabul mu?".
 - [x] 100 Sentry paketi ekle (opsiyonel).
 - [x] 101 `flutter pub get` calistir.
@@ -347,54 +373,58 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 117 DTO-model mapperlari olustur.
 - [x] 118 Exception ve failure hiyerarsisini olustur.
 - [x] 119 Logger servis katmanini olustur.
-- [ ] 120 DOGRULAMA: Uygulama dev flavor ile aciliyor mu?
-- [ ] 121 CI icin `flutter analyze` job'u ekle.
-- [ ] 122 CI icin `flutter test` job'u ekle.
-- [ ] 123 CI icin emulator integration job'u ekle.
-- [ ] 123A Git hook ekle: pre-commit'te `flutter analyze` + `flutter test` zorunlu.
-- [ ] 124 Build script'i (`build_dev`, `build_stg`, `build_prod`) yaz.
-- [ ] 125 Local run script'i (`run_dev`) ve kod uretim script'i (`watch_codegen`) yaz.
-- [ ] 126 `README_SETUP.md` olustur.
-- [ ] 127 KULLANICIDAN ONAY ISTE: "Sentry DSN kullanilsin mi?".
-- [ ] 128 DSN varsa `.env`'ye ekle.
-- [ ] 129 DOGRULAMA: tum flavorlar derleniyor mu?
-- [ ] 130 Faz C kapanis raporu yaz.
+- [x] 120 DOGRULAMA: Uygulama dev flavor ile aciliyor mu?
+- [x] 121 CI icin `flutter analyze` job'u ekle.
+- [x] 122 CI icin `flutter test` job'u ekle.
+- [x] 123 CI icin emulator integration job'u ekle.
+- [x] 123A Git hook ekle: pre-commit'te `flutter analyze` + `flutter test` zorunlu.
+- [x] 124 Build script'i (`build_dev`, `build_stg`, `build_prod`) yaz.
+- [x] 125 Local run script'i (`run_dev`) ve kod uretim script'i (`watch_codegen`) yaz.
+- [x] 126 `README_SETUP.md` olustur.
+- [x] 127 KULLANICIDAN ONAY ISTE: "Sentry DSN kullanilsin mi?".
+- [x] 128 DSN varsa `.env`'ye ekle.
+- [x] 129 DOGRULAMA: tum flavorlar derleniyor mu?
+- [x] 130 Faz C kapanis raporu yaz.
 
 ## FAZ D - Amber UIX Sisteminin Kodlanmasi (131-180)
 
-- [ ] 131 `theme_amber.dart` dosyasini olustur.
-- [ ] 131A `theme_builder.dart` dosyasini olustur (token -> ThemeData donusumu tek yerden yonetilsin).
-- [ ] 132 Amber color tokens'i `lib/ui/tokens/color_tokens.dart` dosyasinda tanimla.
-- [ ] 133 Typography tokens (Space Grotesk + Manrope) tanimla ve lisans notunu ekle.
-- [ ] 133A KULLANICIDAN ONAY ISTE: "Font yukleme yontemi local asset mi (onerilen) yoksa runtime Google Fonts mu?".
-- [ ] 133B Secime gore uygulama yap: local asset ise `pubspec` font assets; runtime ise offline fallback + preload.
-- [ ] 134 Spacing tokens tanimla.
-- [ ] 135 Radius tokens tanimla.
-- [ ] 136 Elevation/shadow tokens tanimla.
-- [ ] 137 Button variants (primary/secondary/danger) olustur.
-- [ ] 138 Input styles (default/focus/error) olustur.
-- [ ] 139 Badge ve pill componentlerini olustur.
-- [ ] 140 Bottom sheet template componentini olustur.
-- [ ] 141 Screen scaffold componentini olustur.
-- [ ] 142 Status chip componentini olustur.
-- [ ] 143 Route card componentini olustur.
-- [ ] 144 Announcement card componentini olustur.
-- [ ] 145 Stale status banner componentini olustur.
-- [ ] 146 Empty state componentini olustur.
-- [ ] 147 Driver action panel componentini olustur.
-- [ ] 148 CTA hierarchy kurali dokumante et.
-- [ ] 149 Motion kurali tanimla (sade fade/slide).
-- [ ] 150 Font fallback stratejisi tanimla (sistem fallback sirasi + missing glyph davranisi).
-- [ ] 151 DOGRULAMA: Golden test altyapisini kur.
-- [ ] 152 Splash + Hook ekranini amber stile gore kodla.
-- [ ] 152A Onboarding giris ekrani icin `video-ready shell` kur (poster + CTA + skip + gradient overlay; video yoksa da tam calissin).
-- [ ] 152B Fail-safe fallback uygula: video decode/network/asset hatasinda statik poster moduna otomatik gec; blank ekran olmasin.
-- [ ] 152C Oynatim politikasini uygula: varsayilan sessiz autoplay, ilk acilista max 1 dongu; sonraki acilislarda hizli gecis.
+- [x] 131 `theme_amber.dart` dosyasini olustur.
+- [x] 131A `theme_builder.dart` dosyasini olustur (token -> ThemeData donusumu tek yerden yonetilsin).
+- [x] 132 Amber color tokens'i `lib/ui/tokens/color_tokens.dart` dosyasinda tanimla.
+- [x] 133 Typography tokens (Space Grotesk + Manrope) tanimla ve lisans notunu ekle.
+- [x] 133A KULLANICIDAN ONAY ISTE: "Font yukleme yontemi local asset mi (onerilen) yoksa runtime Google Fonts mu?".
+- [x] 133B Secime gore uygulama yap: local asset ise `pubspec` font assets; runtime ise offline fallback + preload.
+- [x] 134 Spacing tokens tanimla.
+- [x] 135 Radius tokens tanimla.
+- [x] 136 Elevation/shadow tokens tanimla.
+- [x] 137 Button variants (primary/secondary/danger) olustur.
+- [x] 138 Input styles (default/focus/error) olustur.
+- [x] 139 Badge ve pill componentlerini olustur.
+- [x] 140 Bottom sheet template componentini olustur.
+- [x] 141 Screen scaffold componentini olustur.
+- [x] 142 Status chip componentini olustur.
+- [x] 143 Route card componentini olustur.
+- [x] 144 Announcement card componentini olustur.
+- [x] 145 Stale status banner componentini olustur.
+- [x] 146 Empty state componentini olustur.
+- [x] 147 Driver action panel componentini olustur.
+- [x] 148 CTA hierarchy kurali dokumante et.
+- [x] 149 Motion kurali tanimla (sade fade/slide).
+- [x] 150 Font fallback stratejisi tanimla (sistem fallback sirasi + missing glyph davranisi).
+- [x] 151 DOGRULAMA: Golden test altyapisini kur.
+- [x] 152 Splash + Hook ekranini amber stile gore kodla.
+- [x] 152A Onboarding giris ekrani icin `video-ready shell` kur (poster + CTA + skip + gradient overlay; video yoksa da tam calissin).
+- [x] 152B Fail-safe fallback uygula: video decode/network/asset hatasinda statik poster moduna otomatik gec; blank ekran olmasin.
+- [x] 152C Oynatim politikasini uygula: varsayilan sessiz autoplay, ilk acilista max 1 dongu; sonraki acilislarda hizli gecis.
 - [ ] 152D DOGRULAMA: video-shell acikken cold-start regresyonu ve jank kontrolu (dusuk cihazlarda kabul edilebilir mi?).
-- [ ] 153 Role select ekranini amber stile gore kodla.
-- [ ] 154 Driver home ekranini amber stile gore kodla.
-- [ ] 155 Active trip ekranini amber stile gore kodla.
-- [ ] 156 Passenger map bottom-sheet ekranini amber stile gore kodla.
+- [x] 153 Role select ekranini amber stile gore kodla.
+- [x] 154 Driver home ekranini amber stile gore kodla.
+- [x] 154B Auth giris ekrani icin full-screen hero image shell'i uygula (arkaplan gorsel + gradient/scrim + foreground CTA katmani).
+- [x] 154C Auth hero ekraninda CTA state ve hiyerarsi kontratini dogrula (`primary/secondary/text`, disabled/loading/focus).
+- [x] 154D DOGRULAMA: farkli ekran oranlarinda (`16:9`, `19.5:9`, `20:9`) hero gorsel crop/okunabilirlik testi yap.
+- [ ] 154E DOGRULAMA: auth hero ekrani dusuk cihazlarda acilis jank ve input gecikmesi olmadan calisiyor mu?
+- [x] 155 Active trip ekranini amber stile gore kodla.
+- [x] 156 Passenger map bottom-sheet ekranini amber stile gore kodla.
 - [ ] 157 Join + settings ekranini amber stile gore kodla.
 - [ ] 157A Sofor abonelik/paywall ekranini amber stile gore kodla (monthly/yearly, trial, restore/manage).
 - [ ] 157B Odeme metin kaynagini bagla: `NeredeServis_Paywall_Copy_TR.md`.
@@ -731,12 +761,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 351A UTF-8 validation testi ekle (TR karakterleri: `ı, ş, ğ, ü, ö, ç` bozulmadan render/l10n dosyalarinda duruyor mu).
 - [ ] 352 Kullanici dostu hata metinlerini yaz.
 - [ ] 352A Sofor icin odeme/abonelik entry pointlerini bagla: `Ayarlar > Abonelik`, `Deneme bitince banner`, `premium aksiyon aninda paywall`.
-- [ ] 352AA V1.0 monetization kilidi: gercek RevenueCat SDK purchase akisini acma; `getSubscriptionState` mock/read-only cevaplariyla UI ve soft-lock davranisini test et.
+- [ ] 352AA V1.0 monetization kilidi: gercek Adapty SDK purchase akisini acma; `getSubscriptionState` mock/read-only cevaplariyla UI ve soft-lock davranisini test et.
 - [ ] 352B Paywall buton etiketlerini platforma gore ayir: iOS=`Restore Purchases`, Android=`Satin Alimlari Geri Yukle`; her iki platformda `Manage Subscription`.
 - [ ] 352C Paywall'da varsayilan store billing akisini kullan; bolgesel istisna varsa feature flag + hukuk onayi ile ac.
 - [ ] 352D `NeredeServis_Paywall_Copy_TR.md` metinlerini l10n anahtarlarina tasi ve QA kontrol et.
 - [ ] 352E `Hesabimi Sil` erisimini Ayarlar icinde derine gommeden konumlandir (max 2 seviye).
-- [ ] 352F V1.0 monetization kararini kilitle: RevenueCat production entegrasyonu kapali; V1.0'da mock/read-only subscription state kullan.
+- [ ] 352F V1.0 monetization kararini kilitle: Adapty production entegrasyonu kapali; V1.0'da mock/read-only subscription state kullan.
 - [ ] 352G Onboarding gercek video varligini bagla (yerel bundle once; remote kaynak opsiyonel ve kapali baslangic).
 - [ ] 352H Video teknik kilidini uygula: mobil uyumlu codec/profil + boyut limiti + fallback poster zorunlu.
 - [ ] 352I DOGRULAMA: iPhone 11 + Samsung A24'te onboarding video decode/pil/jank testi green mi?
@@ -800,9 +830,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 387AD Data Safety purpose alaninda `App functionality` disinda gereksiz secim isaretleme (analytics/ads yok).
 - [ ] 387B App Store IAP urunlarini olustur (`monthly`, `yearly`, trial policy) ve screenshot/dil metinlerini tamamla.
 - [ ] 387C Google Play subscription urunlarini olustur (base plan + trial + ulke bazli fiyat).
-- [ ] 387D RevenueCat entitlement haritasini dogrula (store product <-> entitlement birebir).
+- [ ] 387D Adapty entitlement haritasini dogrula (store product <-> entitlement birebir).
 - [ ] 387E Play kategori secimini `Travel & Local` olarak kilitle (gerekce notu ile).
-- [ ] 387F Google Play Billing Library `6.x` uyumunu release checklist'inde kanitla (kullanilan plugin/surum + test kaniti).
+- [ ] 387F Store billing uyumunu release checklist'inde kanitla (Adapty SDK surumu + test kaniti).
 - [ ] 387G App Store Connect'te subscription grace period'u ac ve trial/yenileme senaryosunu test et.
 - [ ] 388 KVKK/policy URL'lerini metadata'ya gir.
 - [ ] 388A Privacy Policy'de su ifadeyi zorunlu yap: `Konum verisi sadece aktif seferde soforden alinir; yolcu/guest konumu toplanmaz; veriler ucuncu taraf reklam aglariyla paylasilmaz`.
@@ -873,7 +903,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 434A V1.1 viral buyume paketi: iOS App Clip POC (QR -> mini native takip karti) planini cikar.
 - [ ] 434B V1.1 viral buyume paketi: Android Instant App feasibility + teknik kisit notlarini cikar.
 - [ ] 434C App Clip/Instant icin olcum plani yaz (`QR scan -> mini experience -> full install conversion`).
-- [ ] 435 RevenueCat trial bitis davranisini V1.1 release adiminda uygula (`read-only mode`, soft-block, veri kaybi yok).
+- [ ] 435 Adapty trial bitis davranisini V1.1 release adiminda uygula (`read-only mode`, soft-block, veri kaybi yok).
 - [ ] 435A V1.0 icin payment mock/simulate akisiyla trial day 15 senaryosunu test et.
 - [ ] 436 Sirket paneli V1.2 altyapi notlarini not et.
 - [ ] 437 Teknik borc listesi guncelle.
@@ -935,7 +965,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - O-28 Play background location justification metni onayi
 - O-29 Data Safety formu yanit seti onayi
 - O-30 Play kategori secimi onayi (`Travel & Local`)
-- O-31 Google Play Billing `6.x` uyum onayi
+- O-31 Adapty store billing uyum onayi
 - O-32 Android FGS manifest/izin seti onayi (`foregroundServiceType=location`, `WAKE_LOCK`)
 - O-33 UTF-8/TR karakter kalite gate onayi
 - O-34 Hesap silme erisilebilirlik onayi (Ayarlar icinde kolay erisim)
@@ -952,7 +982,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - O-45 Flutter lock onayi (`3.24.5`)
 - O-46 Multi-device policy onayi (`single-active-device` + finishTrip cihaz kurali)
 - O-47 Timezone policy onayi (`scheduledTime=Europe/Istanbul`, timestamp=UTC)
-- O-48 RevenueCat V1.0 karari onayi (mock/read-only, production entegrasyon V1.1)
+- O-48 Adapty V1.0 karari onayi (mock/read-only, production entegrasyon V1.1)
 - O-49 Feature flag schema onayi (6 zorunlu key + varsayilanlar)
 
 ---
@@ -978,7 +1008,7 @@ Kopyala-yapistir cevap seti:
 - `Apple Always Location metni: <BURAYA_METIN>`
 - `Google background location declaration: <BURAYA_METIN>`
 - `Play background location gerekcesi (onerilen): Sofor aktif sefer baslattiginda yolcularin guvenli ve dogru takip edebilmesi icin uygulama arka planda konum paylasir. Sefer bitince takip durur.`
-- `RevenueCat products: monthly=<id>, yearly=<id>, trial=<gun>`
+- `Adapty products: monthly=<id>, yearly=<id>, trial=<gun>`
 - `Store pricing: TR monthly=<fiyat>, yearly=<fiyat>`
 - `Storefront policy: <ulkeler> / alternatif billing: <acik-kapali>`
 - `Ghost Drive varsayilan mi: <evet/hayir>`
@@ -998,7 +1028,7 @@ Kopyala-yapistir cevap seti:
 - `Data Safety cevap seti: <Location/PersonalInfo/Auth/Sharing/Delete>`
 - `Play kategori: <Travel & Local>`
 - `Data Safety (onerilen): Location=driver_only, Passenger/Guest location=no, Personal Info=yes, Auth Info=yes, Sharing=no, Delete request=yes, Purpose=App functionality`
-- `Billing uyumu: <Play Billing 6.x kanitlandi / plugin surumu>`
+- `Billing uyumu: <Adapty SDK + native dependency kaniti>`
 - `Android FGS policy metni: <onayli bildirim metni>`
 - `UTF-8 kalite gate: <passed/failed>`
 - `Hesap silme erisimi: <Ayarlar > ... > Hesabimi Sil>`
@@ -1019,7 +1049,7 @@ Kopyala-yapistir cevap seti:
 - `Apple review terminoloji: <Route Coordination/Trip Sharing metni>`
 - `Timezone policy: scheduledTime=Europe/Istanbul, server timestamp=UTC`
 - `Multi-device policy: single-active-device, finishTrip sadece startedByDeviceId (acil override audit loglu)`
-- `RevenueCat V1.0 policy: mock/read-only state, production billing V1.1`
+- `Adapty V1.0 policy: mock/read-only state, production billing V1.1`
 - `Feature flags: tracking_enabled=true, announcement_enabled=true, guest_tracking_enabled=true, force_update_min_version=<semver>, directions_enabled=false, map_matching_enabled=true`
 
 ---

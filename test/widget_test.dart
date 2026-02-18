@@ -22,6 +22,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('NeredeServis Dev'), findsOneWidget);
-    expect(find.text('Splash / Router Skeleton (dev)'), findsOneWidget);
+    expect(find.text('Giris Yap'), findsOneWidget);
+    expect(find.text('Google ile Giris'), findsOneWidget);
   });
 }

@@ -37,7 +37,7 @@ Bu dokuman V1.0 teknik kaynak dokumanidir. Urun stratejisiyle hizali, belirsizli
 
 ### V1.0 kapsaminda olmayanlar
 - Sirket web paneli UI (V1.2)
-- RevenueCat production monetization acilisi (V1.1)
+- Adapty production monetization acilisi (V1.1)
 - Trafik tahmini tabanli ileri ETA modeli (V1.2)
 - iOS App Clip + Android Instant App dagitimi (V1.1 kesif + POC)
 
@@ -67,7 +67,7 @@ Bu dokuman V1.0 teknik kaynak dokumanidir. Urun stratejisiyle hizali, belirsizli
 - Drift (offline queue)
 - Mapbox (harita + ETA API)
 - Arka plan gorevleri: Android WorkManager + iOS BGTask/BackgroundFetch
-- In-app billing: App Store IAP + Google Play Billing Library `6.x` uyumlu plugin seti
+- In-app billing: App Store IAP + Adapty SDK tabanli store billing plugin seti
 
 ### 1.2 Veri dagilimi
 - Firestore: yapisal veri, state, yetki baglantilari
@@ -667,7 +667,7 @@ Not:
   - Douglas-Peucker sadelestirme zorunlu.
   - Epsilon + max nokta limiti tanimlanir (render performansi + belge boyutu kontrolu).
   - DP sonrasi Map Matching post-process uygulanir; timeout/hata halinde DP sonucu fallback olarak kullanilir.
-- `syncSubscriptionStatusFromRevenueCat` (webhook): `subscriptionStatus`, `trialEndsAt` alanlarini server-authoritative gunceller.
+- `syncSubscriptionStatusFromAdapty` (webhook): `subscriptionStatus`, `trialEndsAt` alanlarini server-authoritative gunceller.
 - `getSubscriptionState`: tek kaynak server state'tir; client local cache/override premium acamaz.
 - Premium enforcement kontrati (V1.0):
   - `startTrip`/`finishTrip` abonelik nedeniyle bloklanmaz (core lifecycle acik).
@@ -919,7 +919,7 @@ Input validasyon kurallari:
 ### 6.9 Monetization surface (Sofor)
 - Paywall sadece sofor rolune gosterilir; yolcuya asla gosterilmez.
 - V1.0 kilidi: production billing kapali, subscription state mock/read-only modda calisir.
-- V1.1'de RevenueCat production entegrasyonu acilir.
+- V1.1'de Adapty production entegrasyonu acilir.
 - Paywall copy single source of truth: `docs/NeredeServis_Paywall_Copy_TR.md`
   - Teknik plan metin kaynagi degildir; paywall metin degisikligi once bu dosyada yapilir.
   - Teknik plan bu dosyanin entegrasyon kurallarini ve policy guard'larini tanimlar.
@@ -933,7 +933,7 @@ Input validasyon kurallari:
   - iOS ekraninda buton etiketi: `Restore Purchases`.
   - Android ekraninda buton etiketi: `Satin Alimlari Geri Yukle`.
   - Her iki platformda `Manage Subscription` linki zorunlu.
-  - Google Play Billing Library `6.x` uyum kaniti release gate'te zorunlu.
+  - Adapty SDK + native store billing uyum kaniti release gate'te zorunlu.
   - Varsayilan global akista uygulama ici harici odeme linki/yonlendirmesi yok.
   - Bolgesel policy istisnasi kullanilacaksa storefront bazli feature flag + hukuk onayi + policy checklist zorunlu.
 - Soft-lock gorunurlugu:
@@ -1169,11 +1169,11 @@ Input validasyon kurallari:
     - `Yolcu/guest konumu alinmaz`
     - `Veri ucuncu taraflarla paylasilmaz`
   - Closed testing kosulu ve kanitlari tamam (hesap tipine gore min testci/sure)
-  - Billing Library `6.x` uyumu dokumante + release build kaniti mevcut
+  - Adapty SDK + native store billing uyumu dokumante + release build kaniti mevcut
 - Storefront policy:
   - Hangi ulkede hangi billing akisinin acik oldugu dokumante
   - Istisna programlari yalniz ilgili ulke ve policy onayi ile acik
-- RevenueCat:
+- Adapty:
   - Product -> entitlement mapping staging/prod ayrik
   - Webhook olaylari (`INITIAL_PURCHASE`, `RENEWAL`, `CANCELLATION`) dogrulandi
   - V1.0 modunda production purchase kapaliysa `subscriptionStatus=trial/mock` davranisi ile uyumlu fallback acik

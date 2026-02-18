@@ -1,4 +1,4 @@
-﻿# NeredeServis Security Gate (V1.0)
+# NeredeServis Security Gate (V1.0)
 
 ## 1) Purpose
 - This document defines release-blocking security and policy gates for V1.0.
@@ -57,7 +57,7 @@
 
 ### 3.8 Store and Billing Compliance
 - V1.0: production billing closed, mock/read-only subscription state.
-- V1.1: production RevenueCat billing opens.
+- V1.1: production Adapty billing opens.
 - Platform labels are mandatory:
   - iOS: `Restore Purchases`
   - Android: `Satin Alimlari Geri Yukle`

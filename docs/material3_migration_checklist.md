@@ -10,8 +10,8 @@ Durum: Baseline kilidi tamamlandi
 
 ## 2) Zorunlu Kontrol Listesi
 - [x] `MaterialApp.theme` M3 theme ile set edildi.
-- [ ] Typography tokenlari (Space Grotesk + Manrope) M3 scale ile eslestirildi.
-- [ ] Component theme override'lari (AppBar, FilledButton, Card, SnackBar) M3 uyumlu hale getirildi.
+- [x] Typography tokenlari (Space Grotesk + Manrope) M3 scale ile eslestirildi.
+- [x] Component theme override'lari (AppBar, FilledButton, Card, SnackBar) M3 uyumlu hale getirildi.
 - [ ] Dark theme varyanti M3 standartlarina gore eklendi.
 - [ ] Semantics ve contrast audit raporu cikartildi.
 

@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $fvm = "$env:LOCALAPPDATA\Pub\Cache\bin\fvm.bat"
 $java17 = "C:\Program Files\Microsoft\jdk-17.0.18.8-hotspot"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 if (-not (Test-Path $fvm)) {
   throw "fvm.bat bulunamadi: $fvm"
@@ -30,8 +31,28 @@ switch ($Flavor) {
   default { throw "Desteklenmeyen flavor: $Flavor" }
 }
 
+$envFileCandidates = switch ($Flavor) {
+  'dev' { @('.env.dev') }
+  'stg' { @('.env.staging', '.env.stg') }
+  'prod' { @('.env.prod') }
+}
+
+$defineFile = $null
+foreach ($candidate in $envFileCandidates) {
+  $candidatePath = Join-Path $repoRoot $candidate
+  if (Test-Path $candidatePath) {
+    $defineFile = $candidatePath
+    break
+  }
+}
+
+$dartDefineArgs = @("--dart-define=APP_FLAVOR=$Flavor")
+if ($defineFile) {
+  $dartDefineArgs += "--dart-define-from-file=$defineFile"
+}
+
 if ($Mode -eq 'apk-release') {
-  & $fvm flutter build apk --release --flavor $Flavor -t $target
+  & $fvm flutter build apk --release --flavor $Flavor -t $target @dartDefineArgs
 } else {
-  & $fvm flutter build apk --debug --flavor $Flavor -t $target
+  & $fvm flutter build apk --debug --flavor $Flavor -t $target @dartDefineArgs
 }

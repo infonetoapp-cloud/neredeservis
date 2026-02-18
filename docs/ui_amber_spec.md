@@ -40,18 +40,46 @@
 - No destructive single-tap action on active trip.
 - `Seferi Bitir` requires `slide-to-finish` or `long-press`.
 
+### 4.1 CTA Hierarchy
+- Per screen, only one visual-primary CTA is allowed.
+- Priority order:
+  - level-1: `primary` (amber filled)
+  - level-2: `secondary` (outline/dark)
+  - level-3: `text action` (low-emphasis)
+- `danger` CTA must never be visually dominant when a safe alternative exists.
+- Driver active-trip screen:
+  - safe operational action stays level-1
+  - destructive action (`Seferi Bitir`) stays guarded and non-dominant
+- Max visible CTAs in one viewport:
+  - 1 primary
+  - up to 1 secondary
+  - optional tertiary text action
+
+### 4.2 Component Architecture Contract
+- UI implementation must be component-first, not screen-first.
+- Core reusable primitives are mandatory:
+  - buttons
+  - inputs
+  - chips/pills
+  - cards/banners
+  - sheets/scaffold shells
+- Required state model for interactive components:
+  - `default`
+  - `pressed`
+  - `focus`
+  - `disabled`
+  - `error` (where applicable)
+- One-off visual blocks are not accepted if they can be generalized into reusable Amber components.
+
 ## 5) Screen Contracts
 
 ### 5.1 Splash and Hook
 - Minimal text.
 - Clear start CTA.
 - No redundant copy blocks.
-- Video onboarding uses phased rollout:
-  - phase 1: video-ready shell (poster + skip + CTA)
-  - phase 2: real video asset integration
-  - phase 3: release performance polish
-- Video failure must fallback to static poster without blocking onboarding/auth.
-- Default playback is muted and max one loop on first open.
+- V1.0 auth acilisi statik hero varlikla calisir (`assets/images/start.jpeg`).
+- V1.0 scope'ta video baslatilmaz.
+- Hero varlik acilamazsa fallback arkaplan ile auth akisi bloklanmadan devam eder.
 
 ### 5.2 Role Select
 - Exactly two clear paths: Driver / Passenger.
@@ -83,6 +111,23 @@
 - Join by SRV/QR with low friction.
 - Settings include subscription, consent, support, account delete.
 
+### 5.7 Auth Hero Entry (Login/Register)
+- Screen structure:
+  - full-screen hero image
+  - readability layer (`gradient` + optional dark scrim)
+  - foreground action layer (CTA stack)
+- Foreground action layer includes:
+  - `Google ile giris`
+  - `Uye ol`
+  - `Giris yap`
+- `Misafir` CTA auth hero ekraninda gosterilmez.
+- Layout rules:
+  - safe-area aware top/bottom spacing
+  - text and CTA contrast must stay AA-compliant over image
+  - no hardcoded crop that breaks on `16:9`, `19.5:9`, `20:9`
+- Failure rule:
+  - if hero asset fails, fallback to solid/surface gradient background and keep auth flow fully usable.
+
 ## 6) Permission UX
 - No bulk prompt on onboarding.
 - Prompt only on value moment.
@@ -106,16 +151,37 @@
 - Text contrast must pass WCAG AA for core UI.
 - Primary flows must work on low-end Android and iPhone 11 class devices.
 - Turkish text must render correctly (`UTF-8` validation).
+- Visual quality bar is production-grade premium UIX; default Flutter look-and-feel is not an acceptable baseline.
 
 ## 9) Motion and Feedback
 - Meaningful animations only:
   - heartbeat pulse
   - stale-state transitions
   - safe action confirmations
-- Onboarding video is non-critical motion; respect reduced-motion and fallback to static poster.
+- Auth giris ekraninda video motion yok; statik hero + hafif fade gecisleri kullanilir.
 - Avoid decorative animation noise in operational screens.
+- Motion baseline:
+  - fade: `120-180ms`, `easeOut`
+  - slide: `180-240ms`, `easeOutCubic`
+  - interactive confirmation: max `300ms`
+- Never animate layout-critical content in a way that delays user input.
 
-## 10) Acceptance Rule
+## 10) Font Fallback Strategy
+- Primary families:
+  - heading: `Space Grotesk`
+  - body: `Manrope`
+- Runtime source:
+  - local asset first (required for V1.0)
+- Fallback chain:
+  - heading: `Space Grotesk -> Manrope -> system sans`
+  - body: `Manrope -> Space Grotesk -> system sans`
+- Missing-glyph behavior:
+  - do not crash or block render
+  - render with fallback family and keep layout stable
+- Turkish glyph gate:
+  - must render `C/c`, `G/g`, `I/ı`, `O/o`, `S/s`, `U/u` variants correctly
+
+## 11) Acceptance Rule
 - UI merge requires:
   - golden tests updated
   - core widget tests green

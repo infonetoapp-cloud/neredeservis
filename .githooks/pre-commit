@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if [[ -x "./.fvm/flutter_sdk/bin/flutter" ]]; then
+  flutter_cmd=(./.fvm/flutter_sdk/bin/flutter)
+elif command -v fvm >/dev/null 2>&1; then
+  flutter_cmd=(fvm flutter)
+elif command -v flutter >/dev/null 2>&1; then
+  flutter_cmd=(flutter)
+else
+  echo "Flutter command not found (.fvm/flutter_sdk/bin/flutter, fvm, flutter)." >&2
+  exit 1
+fi
+
+"${flutter_cmd[@]}" analyze
+"${flutter_cmd[@]}" test

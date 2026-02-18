@@ -6,31 +6,46 @@ class AppEnvironment {
     required this.sentryEnabled,
     required this.sentryDsn,
     required this.appCheckDebugProviderEnabled,
+    required this.adaptyEnabled,
+    required this.adaptyApiKey,
   });
 
   final AppFlavor flavor;
   final bool sentryEnabled;
   final String? sentryDsn;
   final bool appCheckDebugProviderEnabled;
+  final bool adaptyEnabled;
+  final String? adaptyApiKey;
 
   String get name => flavor.name;
   bool get isProduction => flavor == AppFlavor.prod;
 }
 
 AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
-  const compileTimeFlavor = String.fromEnvironment('APP_FLAVOR', defaultValue: '');
+  const compileTimeFlavor =
+      String.fromEnvironment('APP_FLAVOR', defaultValue: '');
   final resolvedFlavor = compileTimeFlavor.isEmpty
       ? entrypointFlavor
       : _parseFlavorOrFallback(compileTimeFlavor, entrypointFlavor);
 
   const sentryDsnRaw = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-  const sentryEnabledRaw = String.fromEnvironment('SENTRY_ENABLED', defaultValue: '');
+  const sentryEnabledRaw =
+      String.fromEnvironment('SENTRY_ENABLED', defaultValue: '');
+  const adaptyApiKeyRaw =
+      String.fromEnvironment('ADAPTY_API_KEY', defaultValue: '');
+  const adaptyEnabledRaw =
+      String.fromEnvironment('ADAPTY_ENABLED', defaultValue: '');
 
   final sentryDsn = sentryDsnRaw.trim().isEmpty ? null : sentryDsnRaw.trim();
   final sentryEnabledOverride = _parseBoolOrNull(sentryEnabledRaw);
   final sentryEnabled = (sentryEnabledOverride ?? true) &&
       resolvedFlavor != AppFlavor.dev &&
       sentryDsn != null;
+
+  final adaptyApiKey =
+      adaptyApiKeyRaw.trim().isEmpty ? null : adaptyApiKeyRaw.trim();
+  final adaptyEnabledOverride = _parseBoolOrNull(adaptyEnabledRaw);
+  final adaptyEnabled = (adaptyEnabledOverride ?? true) && adaptyApiKey != null;
 
   final appCheckDebugProviderEnabled = resolvedFlavor != AppFlavor.prod;
 
@@ -39,6 +54,8 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
     sentryEnabled: sentryEnabled,
     sentryDsn: sentryDsn,
     appCheckDebugProviderEnabled: appCheckDebugProviderEnabled,
+    adaptyEnabled: adaptyEnabled,
+    adaptyApiKey: adaptyApiKey,
   );
 }
 

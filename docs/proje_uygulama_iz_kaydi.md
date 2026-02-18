@@ -4362,3 +4362,193 @@ Durum: Blokeli (Ortam kaynakli)
 
 ### Sonuc
 - 120 `[ ]` acik kaldi (dogrulama blocker).
+
+### Sonraki Adim
+- 155: Active trip ekranini amber stile gore kodla.
+
+
+## STEP-OPUS-4.6-001 - Proje Durum Tespiti ve Devam Noktasi Analizi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: opus 4.6
+
+### Amac
+- Nerede Servis projesinin mevcut durumunu tam olarak haritalamak.
+- Runbook, teknik plan, RUNBOOK_LOCKED, diff raporu ve iz kaydini uclararasi inceleme yapmak.
+- Son tamamlanan adimi ve devam noktasini kesin olarak belirlemek.
+
+### Bulgular - Faz Bazli Durum Haritasi
+
+FAZ A (001-030): TAMAMLANDI
+FAZ B (031-090): BUYUK OLCUDE TAMAMLANDI (083-085, 087-090 dis blokajda)
+FAZ C (091-130): TAMAMEN TAMAMLANDI
+FAZ D (131-180): DEVAM EDIYOR (131-154F tamamlandi, 155+ bekliyor)
+FAZ E (181-220): BASLANMADI
+FAZ F (221-300): BASLANMADI
+FAZ G (301-380): BASLANMADI
+FAZ H (381-460): BASLANMADI
+
+### Son Tamamlanan Adim
+- STEP-154F - Auth Hero Overflow Fix + Dark Surface Secondary CTA (2026-02-18)
+
+### Devam Noktasi
+- Adim 155 - Active trip ekranini amber stile gore kodla
+
+### Hata Kaydi (Silinmez)
+- Bu adimda teknik hata yok; sadece okuma/analiz yapildi.
+- NOT: STEP-131 ile STEP-154F arasindaki loglar `git restore` sirasinda kayboldu (commit edilmemisti). Bu analiz blogu, o araligin ozetini icerir.
+
+### Sonraki Adim
+- 155: Active trip ekranini amber stile gore kodla.
+
+
+## STEP-155 - Active Trip Ekrani (Amber UIX)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: opus 4.6
+
+### Amac
+- Runbook 155: Sofor aktif sefer ekranini amber stile gore kodlamak.
+- Heartbeat indicator, slide-to-finish guard, guidance bar ve ana ekran olusturmak.
+
+### Olusturulan Dosyalar
+1. `lib/ui/components/indicators/amber_heartbeat_indicator.dart` (242 satir)
+   - Pulse ring animasyonu + OLED burn-in micro-shift (60s donus, 2.5px)
+   - 3 durum: green (canli), yellow (dalgali), red (yayin durdu)
+   - Haptic gecisler (lightImpact/mediumImpact/heavyImpact)
+2. `lib/ui/components/buttons/amber_slide_to_finish.dart` (249 satir)
+   - %80 esik threshold ile tetikleme
+   - Spring-back animasyonu (tamamlanmayan slide)
+   - HeavyImpact haptic + 200ms scale bounce
+   - A11y: semantics label + double-tap fallback
+3. `lib/ui/components/panels/amber_driver_guidance_bar.dart` (210 satir)
+   - Siradaki durak adi + kus ucusu mesafe badge
+   - Yolcu sayisi gosterimi
+   - Tamamlandi durumu mesaji
+4. `lib/ui/screens/active_trip_screen.dart` (516 satir)
+   - Map shell placeholder (gradient + grid + arac/durak markerlari)
+   - Ust rota bar (rota adi + baglanti chip)
+   - Alt kontrol paneli (heartbeat + guidance + slide-to-finish)
+   - Kirmizi alarm border flash (baglanti kopma)
+
+### Dogrulama
+- `flutter analyze --no-pub` -> No issues found
+- 21 lint issue kapatildi (2 unused import + 19 prefer_const_constructors)
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Sonraki Adim
+- 156: Passenger map bottom-sheet ekranini amber stile gore kodla.
+
+## STEP-156 - Passenger Map Bottom-Sheet (Amber UIX)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: opus 4.6
+
+### Amac
+- Runbook 156: Yolcu harita bottom-sheet ekranini amber stile gore kodlamak.
+- Runbook kural 3.4 satir 93: `ETA + stale + sofor notu tek sheet'te`.
+- Runbook kural satir 94: `now > scheduledTime + 10 dk` -> `Olasi Gecikme` etiketi.
+
+### Olusturulan Dosyalar
+1. `lib/ui/components/sheets/passenger_map_sheet.dart` (~400 satir)
+   - ETA hero section (buyuk dakika gosterimi + kaynak etiketi)
+   - 4 seviye stale banner (live/mild/stale/lost) -> AmberStaleStatusBanner reuse
+   - Sofor notu karti (campaign ikonu + amber100 arka plan)
+   - Durak listesi timeline (gecilen isaretli, siradaki amber ring, kalan duz)
+   - Late departure guard: `Sofor henuz baslatmadi (Olasi Gecikme)` banner
+   - PassengerStopInfo ve LocationFreshness veri siniflari
+2. `lib/ui/screens/passenger_tracking_screen.dart` (~300 satir)
+   - Full-screen map shell (gradient + grid + arac marker + dashed rota hint)
+   - Seffaf top bar (rota adi + freshness status chip)
+   - DraggableScrollableSheet (snap: 0.15/0.35/0.6/0.85)
+   - RouteHintPainter (quadratic bezier + dash cizgi)
+3. `test/ui/passenger_tracking_screen_test.dart` (157 satir)
+   - 9 test case: ETA render, null ETA, late banner, note var/yok, stop list, stale banner, live durumu
+
+### Mimari Kararlar
+- DraggableScrollableSheet secildi (AmberBottomSheetTemplate degil) -> yolcu sheet'i harita uzerinde suruklenebilir
+- AmberStaleStatusBanner mevcut widget reuse edildi (DRY prensibi)
+- LocationFreshness enum'u runbook 328 ile uyumlu (4 seviye)
+
+### Dogrulama
+- `flutter analyze --no-pub` -> No issues found
+
+### Hata Kaydi (Silinmez)
+- Test yazildi ama SDK uyumsuzlugu yuzunden calistirilamadi -> STEP-SDK-FIX'te cozuldu.
+
+### Sonraki Adim
+- SDK uyumsuzlugunu coz, testleri yesile al.
+
+## STEP-SDK-FIX - Flutter SDK Uyumsuzluk Cozumu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: opus 4.6
+
+### Amac
+- `path: 1.9.1` paket pininin `integration_test` SDK (1.9.0 pin) ile cakismasini cozmek.
+- Stale build cache kaynakli `SemanticsRole`/`SemanticsAction.collapse` hatalarini gidermek.
+- `CardThemeData` -> `CardTheme` API uyumsuzlugunu duzetmek.
+- Tum testleri yesile almak.
+
+### Kapsam ve Degisiklikler
+1. `pubspec.yaml` -> `path: 1.9.1` -> `path: 1.9.0` (SDK pin uyumu)
+2. `flutter clean` (stale build cache temizligi)
+3. `flutter pub get` -> 15 bagimliligin surumleri yeniden cozuldu
+4. `lib/ui/theme/theme_builder.dart` -> `CardThemeData` -> `CardTheme` (Flutter 3.24.5 API'si)
+
+### Kok Neden Analizi
+- `path` paketi 1.9.1'e yukseltilmisti; Flutter 3.24.5 SDK'sindaki `integration_test` paketi `path: 1.9.0`'i zorunlu kiliyor.
+- Bu cakisma `pub get`'in basarisiz olmasina ve stale cache birikimine neden oldu.
+- Stale cache'deki paketler daha yeni Dart engine API'lerini referans aliyordu.
+- `CardThemeData` sinifi Flutter 3.27'de tanitildi. Flutter 3.24.5'te dogru isim `CardTheme`.
+
+### Dogrulama
+- `flutter analyze --no-pub` -> **No issues found**
+- `flutter test --no-pub` -> **00:21 +44: All tests passed!**
+
+### Hata Kaydi (Silinmez)
+- `CardThemeData` hatasi onceden mevcut `theme_builder.dart` dosyasinda vardi, paket realignment ile gorulur hale geldi.
+- `path: 1.9.1` ne zaman pinlendigine dair kesin kaynak tespit edilemedi; muhtemelen `flutter pub upgrade` sonrasi otomatik yukseltme.
+
+### Sonraki Adim
+- 157: Join + settings ekranini amber stile gore kodla.
+## STEP-CODEX-OPUS-4.6-AUDIT-001 - Opus 4.6 Dogrulama ve Temizleme
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex audit
+
+### Amac
+- Opus 4.6 tarafindan birakilan lokal degisikliklerin commit oncesi teknik denetimini yapmak.
+- Kayip log notunu ve adim tutarliligini kontrol etmek.
+
+### Dogrulama
+- `.\.fvm\flutter_sdk\bin\flutter.bat --version` -> Flutter 3.24.5 (lock ile uyumlu)
+- `.\.fvm\flutter_sdk\bin\flutter.bat analyze` -> No issues found
+- `.\.fvm\flutter_sdk\bin\flutter.bat test` -> 00:07 +44: All tests passed!
+- `path` paketi: `1.9.0` (`pubspec.yaml` + `pubspec.lock`)
+- `CardThemeData` kod referansi kalmadi; `CardTheme` kullanimi dogrulandi.
+
+### Bulgular ve Duzeltmeler
+1. Runbook tutarsizligi giderildi:
+   - `docs/NeredeServis_Cursor_Amber_Runbook.md` adim 155/156 `[x]` yapildi.
+   - `docs/RUNBOOK_LOCKED.md` adim 155/156 `[x]` yapildi.
+2. `ActiveTripScreen` bug fix:
+   - Ilk acilista heartbeat `red` ise alarm animasyonu baslamiyordu.
+   - `initState` icinde `red` durumunda alarm `repeat(reverse: true)` baslatildi.
+3. `PassengerTrackingScreen` snap kontrati hizalandi:
+   - `DraggableScrollableSheet.snapSizes` -> `0.15/0.35/0.6/0.85`.
+4. Dokuman hijyen:
+   - `docs/billing_lock.md` trailing whitespace temizlendi.
+5. Route entegrasyon boslugu kapatildi:
+   - `ActiveTripScreen` ve `PassengerTrackingScreen` router'a baglandi.
+   - `DriverHomeScreen.onStartTripTap` artik `AppRoutePath.activeTrip` rotasina gidiyor.
+   - `AppRoutePath.activeTrip` ve `AppRoutePath.passengerTracking` path sabitleri eklendi.
+
+### Kayip Log Notu
+- STEP-131 ile STEP-154F arasindaki log kaybi notu korunuyor.
+- `STEP-OPUS-4.6-001` blogundaki gecis kaydi ve ozet analizi dogrulandi.
+
+### Sonraki Adim
+- 157: Join + settings ekranini amber stile gore kodla.
