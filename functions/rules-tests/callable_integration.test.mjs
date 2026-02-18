@@ -29,6 +29,7 @@ process.env.ROUTE_PREVIEW_SIGNING_SECRET ??= "test-route-preview-signing-secret"
 const {
   createRouteFromGhostDrive,
   createGuestSession,
+  deleteUserData,
   generateRouteShareLink,
   getDynamicRoutePreview,
   joinRouteBySrvCode,
@@ -1375,3 +1376,81 @@ test("STEP-289 joinRouteBySrvCode: abuse prevention rate limit", async () => {
     }
   }
 });
+
+test("STEP-292 deleteUserData dry-run: veri mutasyonu yapmaz", async () => {
+  const driverUid = "driver-delete-dryrun-1";
+  await seedDriverIdentity({ driverUid, subscriptionStatus: "expired" });
+
+  const dryRunResult = await deleteUserData.run(
+    callableRequest(
+      {
+        dryRun: true,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  assert.equal(dryRunResult.data.status, "scheduled");
+  assert.equal(dryRunResult.data.blockedBySubscription, false);
+  assert.equal(dryRunResult.data.dryRun, true);
+  assert.equal(typeof dryRunResult.data.hardDeleteAfter, "string");
+
+  const deleteRequestSnap = await firestore.collection("_delete_requests").doc(driverUid).get();
+  assert.equal(deleteRequestSnap.exists, false);
+
+  const userSnap = await firestore.collection("users").doc(driverUid).get();
+  const userData = userSnap.data() ?? {};
+  assert.equal(userData.deletedAt ?? null, null);
+});
+
+test(
+  "STEP-292A deleteUserData interceptor: aktif abonelik blok, aktif olmayan abonelikte delete request",
+  async () => {
+    const blockedUid = "driver-delete-active-1";
+    await seedDriverIdentity({ driverUid: blockedUid, subscriptionStatus: "active" });
+
+    const blockedResult = await deleteUserData.run(callableRequest({}, authContext(blockedUid)));
+    assert.equal(blockedResult.data.status, "blocked_subscription");
+    assert.equal(blockedResult.data.blockedBySubscription, true);
+    assert.equal(
+      blockedResult.data.interceptorMessage,
+      "Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et.",
+    );
+    assert.equal(blockedResult.data.manageSubscriptionLabel, "Manage Subscription");
+    assert.equal(
+      blockedResult.data.manageSubscriptionUrls.android,
+      "https://play.google.com/store/account/subscriptions",
+    );
+    assert.equal(
+      blockedResult.data.manageSubscriptionUrls.ios,
+      "https://apps.apple.com/account/subscriptions",
+    );
+
+    const blockedDeleteRequestSnap = await firestore
+      .collection("_delete_requests")
+      .doc(blockedUid)
+      .get();
+    assert.equal(blockedDeleteRequestSnap.exists, false);
+
+    const allowedUid = "driver-delete-expired-1";
+    await seedDriverIdentity({ driverUid: allowedUid, subscriptionStatus: "expired" });
+    const allowedResult = await deleteUserData.run(callableRequest({}, authContext(allowedUid)));
+
+    assert.equal(allowedResult.data.status, "scheduled");
+    assert.equal(allowedResult.data.blockedBySubscription, false);
+    assert.equal(allowedResult.data.dryRun, false);
+    assert.equal(typeof allowedResult.data.hardDeleteAfter, "string");
+
+    const allowedDeleteRequestSnap = await firestore
+      .collection("_delete_requests")
+      .doc(allowedUid)
+      .get();
+    assert.equal(allowedDeleteRequestSnap.exists, true);
+    const allowedDeleteRequestData = allowedDeleteRequestSnap.data() ?? {};
+    assert.equal(allowedDeleteRequestData.status, "pending");
+
+    const allowedUserSnap = await firestore.collection("users").doc(allowedUid).get();
+    const allowedUserData = allowedUserSnap.data() ?? {};
+    assert.equal(typeof allowedUserData.deletedAt, "string");
+  },
+);

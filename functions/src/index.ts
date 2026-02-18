@@ -77,6 +77,12 @@ const ROUTE_PREVIEW_RATE_WINDOW_MS = 60_000;
 const ROUTE_PREVIEW_RATE_MAX_CALLS = 60;
 const ROUTE_PREVIEW_TOKEN_DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60;
 const ROUTE_AUDIT_COLLECTION = '_audit_route_events';
+const ACCOUNT_DELETE_GRACE_DAYS = 7;
+const DELETE_INTERCEPTOR_MESSAGE =
+  'Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et.';
+const MANAGE_SUBSCRIPTION_LABEL = 'Manage Subscription';
+const IOS_MANAGE_SUBSCRIPTION_URL = 'https://apps.apple.com/account/subscriptions';
+const ANDROID_MANAGE_SUBSCRIPTION_URL = 'https://play.google.com/store/account/subscriptions';
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -279,6 +285,21 @@ interface GetSubscriptionStateOutput {
   products: SubscriptionProductOutput[];
 }
 
+interface DeleteUserDataOutput {
+  uid: string;
+  status: 'blocked_subscription' | 'scheduled';
+  blockedBySubscription: boolean;
+  dryRun: boolean;
+  interceptorMessage: string | null;
+  manageSubscriptionLabel: string | null;
+  manageSubscriptionUrls: {
+    ios: string;
+    android: string;
+  } | null;
+  requestedAt: string | null;
+  hardDeleteAfter: string | null;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -402,6 +423,10 @@ const mapboxMapMatchingProxyInputSchema = z.object({
 const generateRouteShareLinkInputSchema = z.object({
   routeId: z.string().trim().min(1).max(128),
   customText: z.string().trim().max(240).optional(),
+});
+
+const deleteUserDataInputSchema = z.object({
+  dryRun: z.boolean().optional().default(false),
 });
 
 const dynamicRoutePreviewInputSchema = z.object({
@@ -2878,6 +2903,127 @@ export const getSubscriptionState = onCall(async (request) => {
 
   const output = await resolveDriverSubscriptionState(auth.uid);
   return apiOk<GetSubscriptionStateOutput>(output);
+});
+
+export const deleteUserData = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  const input = validateInput(deleteUserDataInputSchema, request.data);
+  const dryRun = input.dryRun === true;
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const hardDeleteAfterIso = new Date(
+    now.getTime() + ACCOUNT_DELETE_GRACE_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const userRef = db.collection('users').doc(auth.uid);
+  const userSnap = await userRef.get();
+  const userData = asRecord(userSnap.data()) ?? {};
+  const role = readRole(userData.role) ?? 'guest';
+  let subscriptionStatus: SubscriptionStatus | null = null;
+
+  if (role === 'driver') {
+    const subscriptionState = await resolveDriverSubscriptionState(auth.uid);
+    subscriptionStatus = subscriptionState.subscriptionStatus;
+    if (subscriptionStatus === 'active' || subscriptionStatus === 'trial') {
+      await db.collection('_audit_privacy_events').add({
+        eventType: 'user_delete_blocked_subscription',
+        uid: auth.uid,
+        role,
+        subscriptionStatus,
+        createdAt: nowIso,
+      });
+
+      return apiOk<DeleteUserDataOutput>({
+        uid: auth.uid,
+        status: 'blocked_subscription',
+        blockedBySubscription: true,
+        dryRun,
+        interceptorMessage: DELETE_INTERCEPTOR_MESSAGE,
+        manageSubscriptionLabel: MANAGE_SUBSCRIPTION_LABEL,
+        manageSubscriptionUrls: {
+          ios: IOS_MANAGE_SUBSCRIPTION_URL,
+          android: ANDROID_MANAGE_SUBSCRIPTION_URL,
+        },
+        requestedAt: null,
+        hardDeleteAfter: null,
+      });
+    }
+  }
+
+  if (!dryRun) {
+    const deleteRequestRef = db.collection('_delete_requests').doc(auth.uid);
+    const consentRef = db.collection('consents').doc(auth.uid);
+    const driverRef = db.collection('drivers').doc(auth.uid);
+    const deleteBatch = db.batch();
+    deleteBatch.set(
+      deleteRequestRef,
+      {
+        uid: auth.uid,
+        role,
+        requestedAt: nowIso,
+        hardDeleteAfter: hardDeleteAfterIso,
+        status: 'pending',
+        dryRun: false,
+        subscriptionStatusAtRequest: subscriptionStatus ?? 'none',
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+    deleteBatch.set(
+      userRef,
+      {
+        deletedAt: nowIso,
+        updatedAt: nowIso,
+        displayName: 'Silinen Kullanici',
+        phone: null,
+      },
+      { merge: true },
+    );
+    deleteBatch.set(
+      consentRef,
+      {
+        deleteRequestedAt: nowIso,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+    if (role === 'driver') {
+      deleteBatch.set(
+        driverRef,
+        {
+          deletedAt: nowIso,
+          updatedAt: nowIso,
+          activeDeviceId: null,
+          activeDeviceToken: null,
+          phone: null,
+        },
+        { merge: true },
+      );
+    }
+    await deleteBatch.commit();
+  }
+
+  await db.collection('_audit_privacy_events').add({
+    eventType: dryRun ? 'user_delete_dry_run' : 'user_delete_requested',
+    uid: auth.uid,
+    role,
+    subscriptionStatus: subscriptionStatus ?? 'none',
+    createdAt: nowIso,
+  });
+
+  return apiOk<DeleteUserDataOutput>({
+    uid: auth.uid,
+    status: 'scheduled',
+    blockedBySubscription: false,
+    dryRun,
+    interceptorMessage: null,
+    manageSubscriptionLabel: null,
+    manageSubscriptionUrls: null,
+    requestedAt: nowIso,
+    hardDeleteAfter: hardDeleteAfterIso,
+  });
 });
 
 export const sendDriverAnnouncement = onCall(async (request) => {

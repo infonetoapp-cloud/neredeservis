@@ -609,11 +609,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).
 - [x] 289 Abuse prevention icin join deneme limiti koy.
 - [x] 290 Audit log eventlerini yaz.
-- [ ] 291 KVKK delete flow function yaz (`deleteUserData`).
-- [ ] 291A `deleteUserData` icin off-boarding interceptor ekle: aktif abonelik varsa silme oncesi `Manage Subscription` zorunlu yonlendirme.
-- [ ] 291B Interceptor metnini policy uyumlu yaz: `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et`.
-- [ ] 292 Delete flow dry-run test yap.
-- [ ] 292A DOGRULAMA: aktif abonelikte interceptor calisiyor, abonelik yoksa delete akisi normal devam ediyor mu?
+- [x] 291 KVKK delete flow function yaz (`deleteUserData`).
+- [x] 291A `deleteUserData` icin off-boarding interceptor ekle: aktif abonelik varsa silme oncesi `Manage Subscription` zorunlu yonlendirme.
+- [x] 291B Interceptor metnini policy uyumlu yaz: `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et`.
+- [x] 292 Delete flow dry-run test yap.
+- [x] 292A DOGRULAMA: aktif abonelikte interceptor calisiyor, abonelik yoksa delete akisi normal devam ediyor mu?
 - [ ] 293 Retention cleanup fonksiyonunu verify et.
 - [ ] 294 DOGRULAMA: KVKK test seti green mi?
 - [ ] 295 Error catalog dosyasini guncelle.

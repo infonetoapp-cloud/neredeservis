@@ -471,6 +471,22 @@ export interface GetSubscriptionStateOutput {
   products: Array<{ id: string; price: string }>;
 }
 
+export interface DeleteUserDataInput {
+  dryRun?: boolean; // default false
+}
+
+export interface DeleteUserDataOutput {
+  uid: string;
+  status: "blocked_subscription" | "scheduled";
+  blockedBySubscription: boolean;
+  dryRun: boolean;
+  interceptorMessage: string | null;
+  manageSubscriptionLabel: string | null;
+  manageSubscriptionUrls: { ios: string; android: string } | null;
+  requestedAt: string | null; // ISO-8601 UTC
+  hardDeleteAfter: string | null; // ISO-8601 UTC
+}
+
 export interface SendDriverAnnouncementInput {
   routeId: string;
   templateKey: string;
@@ -553,6 +569,20 @@ Dynamic route preview endpoint guardrails (`getDynamicRoutePreview`):
 - `token` zorunlu ve imzali (HMAC); `srvCode` scope + expiry dogrulanir.
 - Rate limit zorunlu: `srvCode + ip` bazinda window/limit uygulanir.
 - Cikti yalniz mini preview metadata icerir; telefon/PII alanlari expose edilmez.
+
+Account delete guardrails (`deleteUserData`) (STEP-291/291A/291B):
+
+- Caller auth + non-anonymous zorunlu.
+- Off-boarding interceptor zorunlu:
+  - `subscriptionStatus in {active, trial}` ise silme yapilmaz.
+  - Response `status=blocked_subscription` ve:
+    - `interceptorMessage = "Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et."`
+    - `manageSubscriptionLabel = "Manage Subscription"`
+    - `manageSubscriptionUrls.ios/android` zorunlu
+- Aktif abonelik yoksa:
+  - `dryRun=true` ise mutasyon yapmadan plan bilgisi dondurulur.
+  - `dryRun=false` ise `_delete_requests/{uid}` kaydi + `users/{uid}.deletedAt` soft-delete alanlari yazilir.
+- Privacy audit zorunlu: `_audit_privacy_events` icine `user_delete_blocked_subscription` veya `user_delete_requested|user_delete_dry_run` eventi yazilir.
 
 Audit event contract (STEP-290):
 

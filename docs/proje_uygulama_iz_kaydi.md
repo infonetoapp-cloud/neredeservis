@@ -8402,3 +8402,82 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 291: `deleteUserData` KVKK delete flow callable implementasyonu.
+
+## STEP-291-292A - KVKK Delete Flow + Subscription Interceptor + Dry-Run Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 291: `deleteUserData` callable ile KVKK hesap silme akisinin server tarafini yazmak.
+- 291A/291B: Aktif/trial abonelikte silmeyi bloklayip policy uyumlu interceptor metni + `Manage Subscription` yonlendirmesi vermek.
+- 292/292A: dry-run ve interceptor davranislarini integration test ile dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts`
+   - yeni callable: `deleteUserData`
+   - input schema: `deleteUserDataInputSchema` (`dryRun`)
+   - blocker: `subscriptionStatus in {active, trial}` -> `blocked_subscription`
+   - policy metni: `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et.`
+   - `Manage Subscription` label + iOS/Android store URL output
+   - aktif olmayan abonelikte:
+     - `_delete_requests/{uid}` `pending` kaydi
+     - `users/{uid}.deletedAt` soft-delete alanlari
+     - `consents/{uid}.deleteRequestedAt`
+     - role `driver` ise `drivers/{uid}` cihaz token temizligi
+   - privacy audit eventleri: `_audit_privacy_events`
+2. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs`
+   - `STEP-292 deleteUserData dry-run` testi
+   - `STEP-292A deleteUserData interceptor` testi (aktif abonelik blok + expired abonelikte request olusumu)
+3. `npx --yes prettier --write functions/src/index.ts`
+4. `apply_patch` -> `docs/api_contracts.md`
+   - `DeleteUserDataInput/Output` ve guardrail bolumu eklendi
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+   - `291`, `291A`, `291B`, `292`, `292A` checkbox -> `[x]`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+   - `291`, `291A`, `291B`, `292`, `292A` checkbox -> `[x]`
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `npm --prefix functions run test:rules:unit`
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `deleteUserData` akisi iki moda ayrildi:
+  - `blocked_subscription`:
+    - driver `active/trial` oldugunda silme mutasyonu yapilmiyor
+    - interceptor metni + `Manage Subscription` bilgileri response'ta donuyor
+  - `scheduled`:
+    - `dryRun=true` ise yazim yok, plan bilgisi donuyor
+    - `dryRun=false` ise soft-delete + `_delete_requests` pending kaydi olusuyor
+- Policy metni runbook adimiyla birebir uyumlu:
+  - `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et.`
+- Privacy audit izi yaziliyor:
+  - `user_delete_blocked_subscription`
+  - `user_delete_dry_run`
+  - `user_delete_requested`
+- Integration test paketi yeni adimlarla birlikte pass:
+  - toplam `33/33`.
+
+### Hata Kaydi (Silinmez)
+- Ilk build/lint denemesinde:
+  - `dryRun` tipi (`boolean | undefined`) uyumsuzlugu goruldu.
+  - transaction callback `require-await` lint hatasi goruldu.
+  - cozum:
+    - `dryRun` normalize edildi (`input.dryRun === true`)
+    - transaction yerine write-batch kullanildi.
+    - `functions/src/index.ts` prettier ile yeniden formatlandi.
+- Rules test kosusunda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: test sonucunu etkilemedi.
+- Rules deny senaryolarinda beklenen `permission_denied` warningleri goruldu.
+  - Not: policy testlerinin beklenen davranisi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass (`33/33`).
+
+### Sonraki Adim
+- Faz F / 293: retention cleanup akisi icinde `_delete_requests` hard-delete isleyicisini uygulayip dogrulamak.
