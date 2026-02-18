@@ -156,6 +156,75 @@ export interface CreateRouteOutput {
   srvCode: string; // server-generated, see srvCode contract
 }
 
+export interface UpdateRouteInput {
+  routeId: string;
+  name?: string;
+  startPoint?: GeoPointDto;
+  startAddress?: string;
+  endPoint?: GeoPointDto;
+  endAddress?: string;
+  scheduledTime?: string; // HH:mm, Europe/Istanbul
+  timeSlot?: "morning" | "evening" | "midday" | "custom";
+  allowGuestTracking?: boolean;
+  authorizedDriverIds?: string[];
+  isArchived?: boolean;
+  vacationUntil?: string | null; // ISO-8601 UTC
+}
+
+export interface UpdateRouteOutput {
+  routeId: string;
+  updatedAt: string; // ISO-8601 UTC
+}
+
+export interface UpsertStopInput {
+  routeId: string;
+  stopId?: string;
+  name: string;
+  location: GeoPointDto;
+  order: number;
+}
+
+export interface UpsertStopOutput {
+  routeId: string;
+  stopId: string;
+  updatedAt: string; // ISO-8601 UTC
+}
+
+export interface DeleteStopInput {
+  routeId: string;
+  stopId: string;
+}
+
+export interface DeleteStopOutput {
+  routeId: string;
+  stopId: string;
+  deleted: boolean;
+}
+
+export interface JoinRouteBySrvCodeInput {
+  srvCode: string; // 6 chars, server alphabet
+  name: string;
+  phone?: string;
+  showPhoneToDriver: boolean;
+  boardingArea: string;
+  notificationTime: string; // HH:mm, Europe/Istanbul
+}
+
+export interface JoinRouteBySrvCodeOutput {
+  routeId: string;
+  routeName: string;
+  role: "passenger";
+}
+
+export interface LeaveRouteInput {
+  routeId: string;
+}
+
+export interface LeaveRouteOutput {
+  routeId: string;
+  left: boolean;
+}
+
 export interface StartTripInput {
   routeId: string;
   deviceId: string;

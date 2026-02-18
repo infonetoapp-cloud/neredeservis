@@ -6484,3 +6484,72 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 237: `upsertStop` callable.
+
+## STEP-237-240 - Stop ve Passenger Membership Callables
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 237: `upsertStop` callable.
+- 238: `deleteStop` callable.
+- 239: `joinRouteBySrvCode` callable.
+- 240: `leaveRoute` callable.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (237..240 callable + input/output schema + helper)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check` (fail)
+5. `npx --prefix functions prettier --write functions/src/index.ts`
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `functions/src/index.ts` (join/leave transaction hardening + passenger count tutarliligi)
+11. `npm --prefix functions run build`
+12. `npm --prefix functions run lint`
+13. `npm --prefix functions run format:check`
+14. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+15. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (237..240 `[x]`)
+16. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (237..240 `[x]`)
+17. `apply_patch` -> `docs/api_contracts.md` (route management callable contract genisletmesi)
+18. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni endpointler eklendi:
+  - `upsertStop`
+  - `deleteStop`
+  - `joinRouteBySrvCode`
+  - `leaveRoute`
+- `upsertStop/deleteStop` akisi:
+  - auth + non-anonymous + role(driver) + driver profile + route ownership guard.
+  - stop `createdAt` korunarak idempotent update davranişi saglandi.
+- `joinRouteBySrvCode` akisi:
+  - role `passenger` ile sinirlandi.
+  - route sahibi kendi route'una katilamiyor.
+  - archived route icin katilim kapali.
+  - transaction icinde passenger dokumani kontrol edilerek `passengerCount` yalnizca ilk katilimda artiyor.
+  - mevcut passenger icin `joinedAt` korunuyor.
+- `leaveRoute` akisi:
+  - role `passenger` ile sinirlandi.
+  - route owner ve `authorizedDriver` uyesi icin explicit deny.
+  - transaction icinde passenger kaydi yoksa no-op + `left=false`; varsa memberIds ve passengerCount tutarli sekilde guncelleniyor.
+- `updateRoute` yetki kontrolu `requireOwnedRoute` helper ile tek noktaya toplandi.
+- `docs/api_contracts.md` Route/Trip bolumu 237..240 callable input/output tipleriyle guncellendi.
+
+### Hata Kaydi (Silinmez)
+- Ilk format check turu `functions/src/index.ts` icin fail verdi.
+  - Cozum: hedef dosya `prettier --write` ile formatlandi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 240A: `registerDevice` callable (`single-active-device` policy temeli).

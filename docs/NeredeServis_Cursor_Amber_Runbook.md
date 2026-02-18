@@ -534,10 +534,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 236C Ghost trace polyline'i Douglas-Peucker ile sadeleştir (epsilon politikasi + max point limiti + Firestore boyut guard).
 - [x] 236D Ghost trace post-process icin Map Matching adimini ekle (DP sonrasi snapped geometri; hata olursa DP fallback).
 - [x] 236E Map Matching maliyet guard'i bagla (remote config ac/kapa + aylik request hard cap + timeout fallback).
-- [ ] 237 `upsertStop` callable yaz.
-- [ ] 238 `deleteStop` callable yaz.
-- [ ] 239 `joinRouteBySrvCode` callable yaz.
-- [ ] 240 `leaveRoute` callable yaz.
+- [x] 237 `upsertStop` callable yaz.
+- [x] 238 `deleteStop` callable yaz.
+- [x] 239 `joinRouteBySrvCode` callable yaz.
+- [x] 240 `leaveRoute` callable yaz.
 - [ ] 240A `registerDevice` callable yaz (`activeDeviceToken`, `deviceId`, `lastSeenAt`).
 - [ ] 240B Multi-device politikasini netlestir: varsayilan `single-active-device`; yeni cihaz login'de eski cihaz revoke + bilgilendirme.
 - [ ] 240C `finishTrip` cihaz kurali ekle: varsayilan sadece `startedByDeviceId`; acil override varsa server audit log ile izin ver.

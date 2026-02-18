@@ -103,6 +103,29 @@ interface CreateRouteFromGhostDriveOutput {
   inferredStops: InferredStopOutput[];
 }
 
+interface UpsertStopOutput {
+  routeId: string;
+  stopId: string;
+  updatedAt: string;
+}
+
+interface DeleteStopOutput {
+  routeId: string;
+  stopId: string;
+  deleted: boolean;
+}
+
+interface JoinRouteBySrvCodeOutput {
+  routeId: string;
+  routeName: string;
+  role: 'passenger';
+}
+
+interface LeaveRouteOutput {
+  routeId: string;
+  left: boolean;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -185,6 +208,39 @@ const createRouteFromGhostDriveInputSchema = z.object({
   timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']),
   allowGuestTracking: z.boolean(),
   authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
+});
+
+const upsertStopInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  stopId: z.string().trim().min(1).max(128).optional(),
+  name: z.string().trim().min(2).max(80),
+  location: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }),
+  order: z.number().int().min(0).max(500),
+});
+
+const deleteStopInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  stopId: z.string().trim().min(1).max(128),
+});
+
+const joinRouteBySrvCodeInputSchema = z.object({
+  srvCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/),
+  name: z.string().trim().min(2).max(80),
+  phone: z.string().trim().min(7).max(24).optional(),
+  showPhoneToDriver: z.boolean(),
+  boardingArea: z.string().trim().min(1).max(120),
+  notificationTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:mm formatinda olmalidir.'),
+});
+
+const leaveRouteInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
 });
 
 const searchDriverDirectoryInputSchema = z.object({
@@ -270,6 +326,24 @@ function inferStopsFromTrace(
 
 function mapGhostTraceValidationError(error: GhostTraceValidationError): HttpsError {
   return new HttpsError('invalid-argument', `${error.code}: ${error.message}`);
+}
+
+async function requireOwnedRoute(
+  routeId: string,
+  ownerUid: string,
+): Promise<Record<string, unknown>> {
+  const routeSnap = await db.collection('routes').doc(routeId).get();
+  if (!routeSnap.exists) {
+    throw new HttpsError('not-found', 'Route bulunamadi.');
+  }
+
+  const routeData = asRecord(routeSnap.data());
+  const routeOwnerUid = pickString(routeData, 'driverId');
+  if (routeOwnerUid !== ownerUid) {
+    throw new HttpsError('permission-denied', 'Bu route icin yetkin yok.');
+  }
+
+  return routeData ?? {};
 }
 
 async function createRouteWithSrvCode({
@@ -641,17 +715,7 @@ export const updateRoute = onCall(async (request) => {
   const input = validateInput(updateRouteInputSchema, request.data);
   const nowIso = new Date().toISOString();
   const routeRef = db.collection('routes').doc(input.routeId);
-  const routeSnap = await routeRef.get();
-
-  if (!routeSnap.exists) {
-    throw new HttpsError('not-found', 'Route bulunamadi.');
-  }
-
-  const routeData = asRecord(routeSnap.data());
-  const routeOwnerUid = pickString(routeData, 'driverId');
-  if (routeOwnerUid !== auth.uid) {
-    throw new HttpsError('permission-denied', 'Bu route icin guncelleme yetkin yok.');
-  }
+  const routeData = await requireOwnedRoute(input.routeId, auth.uid);
 
   const updatePayload: Record<string, unknown> = {
     updatedAt: nowIso,
@@ -711,6 +775,235 @@ export const updateRoute = onCall(async (request) => {
   return apiOk<UpdateRouteOutput>({
     routeId: input.routeId,
     updatedAt: nowIso,
+  });
+});
+
+export const upsertStop = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(upsertStopInputSchema, request.data);
+  await requireOwnedRoute(input.routeId, auth.uid);
+
+  const nowIso = new Date().toISOString();
+  const stopRef = input.stopId
+    ? db.collection('routes').doc(input.routeId).collection('stops').doc(input.stopId)
+    : db.collection('routes').doc(input.routeId).collection('stops').doc();
+  const stopSnap = await stopRef.get();
+  const existing = asRecord(stopSnap.data());
+  const existingCreatedAt = pickString(existing, 'createdAt');
+
+  await stopRef.set(
+    {
+      name: input.name,
+      location: input.location,
+      order: input.order,
+      createdAt: existingCreatedAt ?? nowIso,
+      updatedAt: nowIso,
+    },
+    { merge: true },
+  );
+
+  return apiOk<UpsertStopOutput>({
+    routeId: input.routeId,
+    stopId: stopRef.id,
+    updatedAt: nowIso,
+  });
+});
+
+export const deleteStop = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(deleteStopInputSchema, request.data);
+  await requireOwnedRoute(input.routeId, auth.uid);
+
+  await db.collection('routes').doc(input.routeId).collection('stops').doc(input.stopId).delete();
+
+  return apiOk<DeleteStopOutput>({
+    routeId: input.routeId,
+    stopId: input.stopId,
+    deleted: true,
+  });
+});
+
+export const joinRouteBySrvCode = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['passenger'],
+  });
+
+  const input = validateInput(joinRouteBySrvCodeInputSchema, request.data);
+  const routeQuery = await db
+    .collection('routes')
+    .where('srvCode', '==', input.srvCode)
+    .where('isArchived', '==', false)
+    .limit(1)
+    .get();
+
+  if (routeQuery.empty) {
+    throw new HttpsError('not-found', 'SRV kodu ile route bulunamadi.');
+  }
+
+  const routeDoc = routeQuery.docs[0];
+  if (!routeDoc) {
+    throw new HttpsError('not-found', 'Route bulunamadi.');
+  }
+  const routeData = asRecord(routeDoc.data());
+  const routeDriverUid = pickString(routeData, 'driverId');
+  if (routeDriverUid === auth.uid) {
+    throw new HttpsError('permission-denied', "Route sahibi kendi route'a katilamaz.");
+  }
+  const routeName = pickString(routeData, 'name') ?? '';
+
+  const routeRef = db.collection('routes').doc(routeDoc.id);
+  const passengerRef = routeRef.collection('passengers').doc(auth.uid);
+  const nowIso = new Date().toISOString();
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+
+    const currentRoute = asRecord(routeSnap.data()) ?? {};
+    const currentRouteDriverUid = pickString(currentRoute, 'driverId');
+    if (currentRouteDriverUid === auth.uid) {
+      throw new HttpsError('permission-denied', "Route sahibi kendi route'a katilamaz.");
+    }
+    if (currentRoute.isArchived === true) {
+      throw new HttpsError('failed-precondition', "Arsivlenmis route'a katilim kapali.");
+    }
+
+    const passengerSnap = await tx.get(passengerRef);
+    const existingPassenger = asRecord(passengerSnap.data());
+    const hasPassengerRecord = passengerSnap.exists;
+    const currentMembers = pickStringArray(currentRoute, 'memberIds');
+    const isMember = currentMembers.includes(auth.uid);
+    const nextMembers = isMember
+      ? currentMembers
+      : Array.from(new Set<string>([...currentMembers, auth.uid]));
+
+    const currentPassengerCountRaw = currentRoute.passengerCount;
+    const currentPassengerCount =
+      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
+        ? currentPassengerCountRaw
+        : 0;
+
+    tx.update(routeRef, {
+      memberIds: nextMembers,
+      passengerCount: hasPassengerRecord ? currentPassengerCount : currentPassengerCount + 1,
+      updatedAt: nowIso,
+    });
+
+    tx.set(
+      passengerRef,
+      {
+        name: input.name,
+        phone: input.phone ?? null,
+        showPhoneToDriver: input.showPhoneToDriver,
+        boardingArea: input.boardingArea,
+        virtualStop: null,
+        virtualStopLabel: null,
+        notificationTime: input.notificationTime,
+        joinedAt: pickString(existingPassenger, 'joinedAt') ?? nowIso,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+  });
+
+  return apiOk<JoinRouteBySrvCodeOutput>({
+    routeId: routeDoc.id,
+    routeName,
+    role: 'passenger',
+  });
+});
+
+export const leaveRoute = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['passenger'],
+  });
+
+  const input = validateInput(leaveRouteInputSchema, request.data);
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const passengerRef = routeRef.collection('passengers').doc(auth.uid);
+  const nowIso = new Date().toISOString();
+  let left = false;
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    const routeDriverUid = pickString(routeData, 'driverId');
+    if (routeDriverUid === auth.uid) {
+      throw new HttpsError('permission-denied', 'Route sahibi leaveRoute kullanamaz.');
+    }
+    const authorizedDriverIds = pickStringArray(routeData, 'authorizedDriverIds');
+    if (authorizedDriverIds.includes(auth.uid)) {
+      throw new HttpsError(
+        'permission-denied',
+        'Yetkili sofor leaveRoute kullanamaz; route sahibi cikarmalidir.',
+      );
+    }
+
+    const passengerSnap = await tx.get(passengerRef);
+    const hasPassengerRecord = passengerSnap.exists;
+    const memberIds = pickStringArray(routeData, 'memberIds');
+    const nextMembers = hasPassengerRecord
+      ? memberIds.filter((memberUid) => memberUid !== auth.uid)
+      : memberIds;
+
+    const currentPassengerCountRaw = routeData.passengerCount;
+    const currentPassengerCount =
+      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
+        ? currentPassengerCountRaw
+        : 0;
+    const nextPassengerCount = hasPassengerRecord
+      ? Math.max(0, currentPassengerCount - 1)
+      : currentPassengerCount;
+
+    if (hasPassengerRecord) {
+      tx.update(routeRef, {
+        memberIds: nextMembers,
+        passengerCount: nextPassengerCount,
+        updatedAt: nowIso,
+      });
+    }
+
+    tx.delete(passengerRef);
+    left = hasPassengerRecord;
+  });
+
+  return apiOk<LeaveRouteOutput>({
+    routeId: input.routeId,
+    left,
   });
 });
 
