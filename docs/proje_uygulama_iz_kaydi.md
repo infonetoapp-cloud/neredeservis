@@ -5363,3 +5363,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 194: Queue repository (exponential backoff + dead-letter) implementasyonu.
+
+## STEP-194 - Queue Repository (Backoff + Dead-Letter)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Drift queue tablolari uzerinde repository katmanini yazarak:
+  - exponential backoff
+  - dead-letter davranisi
+  - replay claim akisini standart hale getirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/local_queue_repository.dart`
+2. `apply_patch` -> `test/domain/local_queue_repository_test.dart`
+3. `dart format lib/features/domain/data/local_queue_repository.dart test/domain/local_queue_repository_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (194 `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (194 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `LocalQueueRepository` eklendi.
+- Trip action queue tarafinda:
+  - enqueue + idempotency dedupe (`ownerUid + idempotencyKey`)
+  - replay claim (pending -> in_flight)
+  - retryable fail akisi (exponential backoff)
+  - permanent fail akisi (dead-letter: `failed_permanent`)
+  - success akisi (kuyruktan silme)
+  - dead-letter listeleme
+- Location queue tarafinda:
+  - enqueue
+  - replay uygun kayitlari yukleme
+  - fail sonrasi backoff ile `next_retry_at` ileri alma
+  - basarili gonderimde kaydi silme
+- Retry policy helper repository icinde tanimlandi:
+  - `QueueRetryPolicy`
+  - varsayilan: `base=2000ms`, `max=300000ms`, `jitterRatio=0.2`
+
+### Test Kapsami
+- `local_queue_repository_test.dart`:
+  - trip action dedupe
+  - claim -> in_flight gecisi
+  - retryable fail + backoff
+  - 3 fail sonrasi dead-letter
+  - location queue retry/silme davranisi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 109 test passed.
+
+### Sonraki Adim
+- Faz E / 195: Idempotency key helper.
