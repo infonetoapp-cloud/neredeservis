@@ -6189,3 +6189,74 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 224: Ortak response wrapper (`requestId`, `serverTime`) middleware/helper katmanina ayirma.
+
+## STEP-224-230 - Functions Ortak Wrapper + Middleware Katmani
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 224: Ortak success response wrapper (`requestId`, `serverTime`) ayri katmana almak.
+- 225: Auth middleware.
+- 226: Non-anonymous middleware.
+- 227: Role middleware.
+- 228: Driver profile middleware.
+- 229: Zod tabanli input validation middleware.
+- 230: Generic rate limit middleware.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/common/api_response.ts`
+2. `apply_patch` -> `functions/src/common/type_guards.ts`
+3. `apply_patch` -> `functions/src/middleware/auth_middleware.ts`
+4. `apply_patch` -> `functions/src/middleware/role_middleware.ts`
+5. `apply_patch` -> `functions/src/middleware/driver_profile_middleware.ts`
+6. `apply_patch` -> `functions/src/middleware/input_validation_middleware.ts`
+7. `apply_patch` -> `functions/src/middleware/rate_limit_middleware.ts`
+8. `Set-Content` -> `functions/src/index.ts` (middleware entegrasyonu)
+9. `apply_patch` -> `functions/package.json` (`zod` dependency)
+10. `npm install` (`functions/`)
+11. `npm run build` (ilk kosu fail)
+12. `apply_patch` -> `functions/src/index.ts` (`limit` undefined guard)
+13. `npm run build` (pass)
+14. `npm run lint` (pass)
+15. `npm run format:check` (fail)
+16. `npm run format`
+17. `npm run build`
+18. `npm run lint`
+19. `npm run format:check` (pass)
+20. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm run test:rules:unit`
+21. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (224..230 `[x]`)
+22. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (224..230 `[x]`)
+23. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Ortak response wrapper artik tek noktada:
+  - `functions/src/common/api_response.ts`
+- Middleware katmani eklendi:
+  - `auth_middleware.ts`
+  - `role_middleware.ts`
+  - `driver_profile_middleware.ts`
+  - `input_validation_middleware.ts`
+  - `rate_limit_middleware.ts`
+- `searchDriverDirectory` callable artik middleware zinciriyle calisiyor:
+  - auth + non-anonymous + role(driver) + driver profile + input validation(zod) + rate limit
+- Kod tekrarini azaltmak icin type guard yardimcisi eklendi:
+  - `functions/src/common/type_guards.ts`
+
+### Hata Kaydi (Silinmez)
+- `npm run build` ilk kosuda `input.limit` olasi `undefined` tip hatasi verdi.
+  - Cozum: `const limit = input.limit ?? 5` fallback'i eklendi.
+- `npm run format:check` ilk kosuda 3 dosyada format fail verdi.
+  - Cozum: `npm run format` uygulanip tekrar green alindi.
+- Rules testte Firestore/RTDB `permission_denied` warning loglari goruldu.
+  - Not: Bu warningler testin beklenen deny senaryolari; test sonucu pass.
+- SERH (silinmez): Bu adimda da iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm run build` -> pass.
+- `npm run lint` -> pass.
+- `npm run format:check` -> pass.
+- `npm run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 231: `bootstrapUserProfile` callable.

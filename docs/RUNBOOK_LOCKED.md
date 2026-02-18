@@ -507,13 +507,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 221 Functions monorepo klasorunu olustur.
 - [x] 222 TypeScript strict mode ac.
 - [x] 223 ESLint + Prettier kur.
-- [ ] 224 Ortak response wrapper yaz (`requestId`, `serverTime`).
-- [ ] 225 Auth middleware yaz.
-- [ ] 226 Non-anonymous middleware yaz.
-- [ ] 227 Role middleware yaz.
-- [ ] 228 Driver profile middleware yaz.
-- [ ] 229 Input validation middleware yaz (zod veya benzeri).
-- [ ] 230 Rate limit middleware yaz.
+- [x] 224 Ortak response wrapper yaz (`requestId`, `serverTime`).
+- [x] 225 Auth middleware yaz.
+- [x] 226 Non-anonymous middleware yaz.
+- [x] 227 Role middleware yaz.
+- [x] 228 Driver profile middleware yaz.
+- [x] 229 Input validation middleware yaz (zod veya benzeri).
+- [x] 230 Rate limit middleware yaz.
 - [ ] 231 `bootstrapUserProfile` callable yaz.
 - [ ] 232 `updateUserProfile` callable yaz.
 - [ ] 233 `upsertConsent` callable yaz.
@@ -1047,6 +1047,7 @@ Kopyala-yapistir cevap seti:
 - Her kritik adimda kanit + dogrulama + onay gerekir.
 - Onaysiz production degisikligi yapilmaz.
 - Limit asimi icin coklu hesap acarak ucretsiz model suistimali yapilmaz.
+
 
 
 

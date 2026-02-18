@@ -1,9 +1,16 @@
-import { randomUUID } from 'node:crypto';
-
-import { getApps, initializeApp } from 'firebase-admin/app';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+﻿import { getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
-import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { z } from 'zod';
+
+import { apiOk } from './common/api_response.js';
+import { asRecord } from './common/type_guards.js';
+import { requireAuth, requireNonAnonymous } from './middleware/auth_middleware.js';
+import { requireDriverProfile } from './middleware/driver_profile_middleware.js';
+import { validateInput } from './middleware/input_validation_middleware.js';
+import { enforceRateLimit } from './middleware/rate_limit_middleware.js';
+import { requireRole } from './middleware/role_middleware.js';
 
 setGlobalOptions({
   region: 'europe-west3',
@@ -18,27 +25,13 @@ if (!getApps().length) {
 const db = getFirestore();
 
 const DRIVER_SEARCH_MAX_LIMIT = 10;
-const DRIVER_SEARCH_DEFAULT_LIMIT = 5;
-const DRIVER_SEARCH_MIN_HASH_LENGTH = 8;
-const DRIVER_SEARCH_MAX_HASH_LENGTH = 128;
 const DRIVER_SEARCH_RATE_WINDOW_MS = 60_000;
 const DRIVER_SEARCH_RATE_MAX_CALLS = 30;
-
-interface ApiOk<T> {
-  requestId: string;
-  serverTime: string;
-  data: T;
-}
 
 interface HealthCheckOutput {
   ok: boolean;
   timestamp: number;
   region: string;
-}
-
-interface SearchDriverDirectoryInput {
-  queryHash: unknown;
-  limit?: unknown;
 }
 
 interface DriverDirectoryResult {
@@ -51,111 +44,15 @@ interface SearchDriverDirectoryOutput {
   results: DriverDirectoryResult[];
 }
 
-interface RateLimitDoc {
-  windowStartMs?: unknown;
-  count?: unknown;
-}
-
-function apiOk<T>(data: T): ApiOk<T> {
-  return {
-    requestId: randomUUID(),
-    serverTime: new Date().toISOString(),
-    data,
-  };
-}
-
-function assertSignedIn(request: CallableRequest<unknown>): string {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError('unauthenticated', 'Auth zorunludur.');
-  }
-  return uid;
-}
-
-function assertHashInput(raw: unknown): string {
-  if (typeof raw !== 'string') {
-    throw new HttpsError('invalid-argument', 'queryHash string olmalidir.');
-  }
-  const normalized = raw.trim().toLowerCase();
-  if (normalized.length < DRIVER_SEARCH_MIN_HASH_LENGTH) {
-    throw new HttpsError(
-      'invalid-argument',
-      `queryHash minimum ${DRIVER_SEARCH_MIN_HASH_LENGTH} karakter olmalidir.`,
-    );
-  }
-  if (normalized.length > DRIVER_SEARCH_MAX_HASH_LENGTH) {
-    throw new HttpsError(
-      'invalid-argument',
-      `queryHash maksimum ${DRIVER_SEARCH_MAX_HASH_LENGTH} karakter olmalidir.`,
-    );
-  }
-  return normalized;
-}
-
-function assertLimit(rawLimit: unknown): number {
-  if (rawLimit === undefined || rawLimit === null) {
-    return DRIVER_SEARCH_DEFAULT_LIMIT;
-  }
-  if (typeof rawLimit !== 'number' || !Number.isInteger(rawLimit)) {
-    throw new HttpsError('invalid-argument', 'limit integer olmalidir.');
-  }
-  if (rawLimit < 1 || rawLimit > DRIVER_SEARCH_MAX_LIMIT) {
-    throw new HttpsError(
-      'invalid-argument',
-      `limit 1..${DRIVER_SEARCH_MAX_LIMIT} araliginda olmalidir.`,
-    );
-  }
-  return rawLimit;
-}
-
-async function assertDriverRole(uid: string): Promise<void> {
-  const userSnap = await db.collection('users').doc(uid).get();
-  const userData = userSnap.data() as Record<string, unknown> | undefined;
-  const role = typeof userData?.role === 'string' ? userData.role : null;
-  if (role !== 'driver') {
-    throw new HttpsError('permission-denied', 'Sadece sofor rolu arama yapabilir.');
-  }
-}
-
-async function enforceDriverSearchRateLimit(uid: string): Promise<void> {
-  const nowMs = Date.now();
-  const ref = db.collection('_rate_limits').doc(`driver_directory_${uid}`);
-
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const data = (snap.data() ?? {}) as RateLimitDoc;
-
-    let windowStartMs =
-      typeof data.windowStartMs === 'number' && Number.isFinite(data.windowStartMs)
-        ? data.windowStartMs
-        : nowMs;
-    let count = typeof data.count === 'number' && Number.isFinite(data.count) ? data.count : 0;
-
-    if (nowMs - windowStartMs >= DRIVER_SEARCH_RATE_WINDOW_MS) {
-      windowStartMs = nowMs;
-      count = 1;
-    } else {
-      count += 1;
-    }
-
-    if (count > DRIVER_SEARCH_RATE_MAX_CALLS) {
-      throw new HttpsError(
-        'resource-exhausted',
-        'Arama limiti asildi. Lutfen daha sonra tekrar dene.',
-      );
-    }
-
-    tx.set(
-      ref,
-      {
-        windowStartMs,
-        count,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-  });
-}
+const searchDriverDirectoryInputSchema = z.object({
+  queryHash: z
+    .string()
+    .trim()
+    .min(8, 'minimum 8 karakter olmalidir.')
+    .max(128, 'maksimum 128 karakter olmalidir.')
+    .transform((value) => value.toLowerCase()),
+  limit: z.number().int().min(1).max(DRIVER_SEARCH_MAX_LIMIT).optional().default(5),
+});
 
 export const healthCheck = onCall(() => {
   return apiOk<HealthCheckOutput>({
@@ -165,17 +62,38 @@ export const healthCheck = onCall(() => {
   });
 });
 
-export const searchDriverDirectory = onCall<SearchDriverDirectoryInput>(async (request) => {
-  const uid = assertSignedIn(request);
-  const limit = assertLimit(request.data.limit);
-  const queryHash = assertHashInput(request.data.queryHash);
+export const searchDriverDirectory = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
 
-  await assertDriverRole(uid);
-  await enforceDriverSearchRateLimit(uid);
+  const input = validateInput(searchDriverDirectoryInputSchema, request.data);
+  const limit = input.limit ?? 5;
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+  await enforceRateLimit({
+    db,
+    key: `driver_directory_${auth.uid}`,
+    windowMs: DRIVER_SEARCH_RATE_WINDOW_MS,
+    maxCalls: DRIVER_SEARCH_RATE_MAX_CALLS,
+    exceededMessage: 'Arama limiti asildi. Lutfen daha sonra tekrar dene.',
+  });
 
   const [phoneSnap, plateSnap] = await Promise.all([
-    db.collection('driver_directory').where('searchPhoneHash', '==', queryHash).limit(limit).get(),
-    db.collection('driver_directory').where('searchPlateHash', '==', queryHash).limit(limit).get(),
+    db
+      .collection('driver_directory')
+      .where('searchPhoneHash', '==', input.queryHash)
+      .limit(limit)
+      .get(),
+    db
+      .collection('driver_directory')
+      .where('searchPlateHash', '==', input.queryHash)
+      .limit(limit)
+      .get(),
   ]);
 
   const merged = new Map<string, DriverDirectoryResult>();
@@ -186,8 +104,8 @@ export const searchDriverDirectory = onCall<SearchDriverDirectoryInput>(async (r
       break;
     }
 
-    const data = doc.data() as Record<string, unknown>;
-    if (data.isActive !== true) {
+    const data = asRecord(doc.data());
+    if (!data || data.isActive !== true) {
       continue;
     }
 
