@@ -2,6 +2,7 @@ import '../features/domain/entities/announcement_entity.dart';
 import '../features/domain/entities/consent_entity.dart';
 import '../features/domain/entities/driver_entity.dart';
 import '../features/domain/entities/guest_session_entity.dart';
+import '../features/domain/entities/live_location_entity.dart';
 import '../features/domain/entities/local_ownership_entity.dart';
 import '../features/domain/entities/passenger_profile_entity.dart';
 import '../features/domain/entities/route_entity.dart';
@@ -93,6 +94,13 @@ abstract class LocalOwnershipRepository {
     required String key,
     required LocalOwnershipEntity ownership,
   });
+}
+
+abstract class LiveLocationRepository {
+  Stream<LiveLocationEntity?> watchLiveLocation(String routeId);
+  Future<LiveLocationEntity?> getLiveLocation(String routeId);
+  Future<void> upsertLiveLocation(LiveLocationEntity location);
+  Future<void> clearLiveLocation(String routeId);
 }
 
 class RouteMembership {

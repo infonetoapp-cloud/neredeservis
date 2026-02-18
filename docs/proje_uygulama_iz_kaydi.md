@@ -5166,3 +5166,51 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 192: RTDB datasource implementation.
+
+## STEP-192 - RTDB Datasource Implementation
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adim 192 kapsaminda RTDB canli konum path'i icin domain/data repository implementasyonunu tamamlamak.
+- `/locations/{routeId}` kontratini tip-guvenli model/entity/maper zinciri ile standardize etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/services/repository_interfaces.dart`
+2. `apply_patch` -> `lib/features/domain/entities/live_location_entity.dart`
+3. `apply_patch` -> `lib/features/domain/models/live_location_model.dart`
+4. `apply_patch` -> `lib/features/domain/mappers/live_location_mapper.dart`
+5. `apply_patch` -> `lib/features/domain/data/rtdb_domain_repositories.dart`
+6. `apply_patch` -> `test/domain/live_location_mapper_test.dart`
+7. `dart format lib/services/repository_interfaces.dart lib/features/domain/entities/live_location_entity.dart lib/features/domain/models/live_location_model.dart lib/features/domain/mappers/live_location_mapper.dart lib/features/domain/data/rtdb_domain_repositories.dart test/domain/live_location_mapper_test.dart`
+8. `flutter analyze`
+9. `flutter test`
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (192 `[x]`)
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (192 `[x]`)
+12. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Repository arayuzlerine RTDB canli konum kontrati eklendi:
+  - `LiveLocationRepository` (`watch/get/upsert/clear`)
+- RTDB canli konum domain katmani eklendi:
+  - `LiveLocationEntity`
+  - `LiveLocationModel`
+  - `LiveLocationModelMapper`
+- RTDB datasource implementasyonu eklendi:
+  - `RtdbLiveLocationRepository`
+  - path: `/locations/{routeId}`
+  - map donusumu: RTDB `Map<Object?, Object?>` -> `Map<String, dynamic>`
+- Mapper testi eklendi:
+  - `test/domain/live_location_mapper_test.dart`
+  - fromMap->entity ve entity->model->map round-trip dogrulamasi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 96 test passed.
+
+### Sonraki Adim
+- Faz E / 193: Drift queue tablolarini olustur.
