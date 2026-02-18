@@ -536,9 +536,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 241 `updatePassengerSettings` callable yaz.
 - [x] 242 `submitSkipToday` callable yaz.
 - [x] 243 `createGuestSession` callable yaz.
-- [ ] 244 `startTrip` callable yaz.
-- [ ] 244A `startTrip` icin istemci tarafi 10 sn `undo window` kontratini dokumante et (server cagrisi gecikmeli tetik).
-- [ ] 244B `startTrip` transaction'ina optimistic lock ekle: `expectedTransitionVersion == currentTransitionVersion` saglanmadan state gecisi yapma.
+- [x] 244 `startTrip` callable yaz.
+- [x] 244A `startTrip` icin istemci tarafi 10 sn `undo window` kontratini dokumante et (server cagrisi gecikmeli tetik).
+- [x] 244B `startTrip` transaction'ina optimistic lock ekle: `expectedTransitionVersion == currentTransitionVersion` saglanmadan state gecisi yapma.
 - [ ] 245 `finishTrip` callable yaz.
 - [ ] 245A `finishTrip` transaction'ina optimistic lock ekle: version mismatch'te `FAILED_PRECONDITION` don.
 - [ ] 246 `sendDriverAnnouncement` callable yaz.

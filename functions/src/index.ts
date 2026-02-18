@@ -41,6 +41,7 @@ const DRIVER_SEARCH_MAX_LIMIT = 10;
 const DRIVER_SEARCH_RATE_WINDOW_MS = 60_000;
 const DRIVER_SEARCH_RATE_MAX_CALLS = 30;
 const GUEST_SESSION_TTL_MINUTES_DEFAULT = 30;
+const TRIP_REQUEST_TTL_DAYS = 7;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -151,6 +152,12 @@ interface CreateGuestSessionOutput {
   routeId: string;
   expiresAt: string;
   rtdbReadPath: string;
+}
+
+interface StartTripOutput {
+  tripId: string;
+  status: 'active';
+  transitionVersion: number;
 }
 
 const profileInputSchema = z.object({
@@ -306,6 +313,13 @@ const createGuestSessionInputSchema = z.object({
   ttlMinutes: z.number().int().min(5).max(60).optional(),
 });
 
+const startTripInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  deviceId: z.string().trim().min(3).max(128),
+  idempotencyKey: z.string().trim().min(8).max(128),
+  expectedTransitionVersion: z.number().int().min(0),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -420,6 +434,26 @@ function buildIstanbulDateKey(when: Date): string {
     month: '2-digit',
     day: '2-digit',
   }).format(when);
+}
+
+function readTransitionVersion(record: Record<string, unknown> | null): number {
+  const rawValue = record?.transitionVersion;
+  if (typeof rawValue === 'number' && Number.isFinite(rawValue) && rawValue >= 0) {
+    return rawValue;
+  }
+  return 0;
+}
+
+function parseTripIdFromResultRef(resultRef: string | null): string | null {
+  if (!resultRef) {
+    return null;
+  }
+  const prefix = 'trips/';
+  if (!resultRef.startsWith(prefix)) {
+    return null;
+  }
+  const tripId = resultRef.slice(prefix.length).trim();
+  return tripId.length > 0 ? tripId : null;
 }
 
 async function requireOwnedRoute(
@@ -1432,6 +1466,184 @@ export const createGuestSession = onCall(async (request) => {
     expiresAt: expiresAtIso,
     rtdbReadPath: `/locations/${routeDoc.id}`,
   });
+});
+
+export const startTrip = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(startTripInputSchema, request.data);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const requestExpiresAtIso = new Date(
+    now + TRIP_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const driverRef = db.collection('drivers').doc(auth.uid);
+  const requestRef = db.collection('trip_requests').doc(`${auth.uid}_${input.idempotencyKey}`);
+  const activeTripQuery = db
+    .collection('trips')
+    .where('routeId', '==', input.routeId)
+    .where('status', '==', 'active')
+    .limit(1);
+
+  let output: StartTripOutput | null = null;
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    if (routeData.isArchived === true) {
+      throw new HttpsError('failed-precondition', 'Arsivlenmis route icin trip baslatilamaz.');
+    }
+
+    const routeOwnerUid = pickString(routeData, 'driverId');
+    const authorizedDriverIds = pickStringArray(routeData, 'authorizedDriverIds');
+    const canStartTrip = routeOwnerUid === auth.uid || authorizedDriverIds.includes(auth.uid);
+    if (!canStartTrip) {
+      throw new HttpsError('permission-denied', 'Bu route icin startTrip yetkin yok.');
+    }
+
+    const requestSnap = await tx.get(requestRef);
+    if (requestSnap.exists) {
+      const requestData = asRecord(requestSnap.data());
+      if (pickString(requestData, 'requestType') !== 'start_trip') {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency key farkli islem tipiyle kullanildi.',
+        );
+      }
+
+      const existingTripId = parseTripIdFromResultRef(pickString(requestData, 'resultRef'));
+      if (!existingTripId) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi gecersiz resultRef iceriyor.',
+        );
+      }
+
+      const existingTripRef = db.collection('trips').doc(existingTripId);
+      const existingTripSnap = await tx.get(existingTripRef);
+      if (!existingTripSnap.exists) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi ilgili trip dokumanini bulamadi.',
+        );
+      }
+
+      const existingTripData = asRecord(existingTripSnap.data()) ?? {};
+      const existingStatus = pickString(existingTripData, 'status');
+      if (existingStatus !== 'active') {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi aktif olmayan trip durumuna isaret ediyor.',
+        );
+      }
+
+      output = {
+        tripId: existingTripRef.id,
+        status: 'active',
+        transitionVersion: readTransitionVersion(existingTripData),
+      };
+      return;
+    }
+
+    const activeTripSnap = await tx.get(activeTripQuery);
+    const activeTripDoc = activeTripSnap.docs[0];
+    const activeTripData = asRecord(activeTripDoc?.data());
+    const currentTransitionVersion = readTransitionVersion(activeTripData);
+
+    if (input.expectedTransitionVersion !== currentTransitionVersion) {
+      throw new HttpsError(
+        'failed-precondition',
+        `TRANSITION_VERSION_MISMATCH: expected=${input.expectedTransitionVersion}, actual=${currentTransitionVersion}`,
+      );
+    }
+
+    if (activeTripDoc) {
+      const activeTripDriverUid = pickString(activeTripData, 'driverId');
+      const activeTripDeviceId = pickString(activeTripData, 'startedByDeviceId');
+      if (activeTripDriverUid !== auth.uid || activeTripDeviceId !== input.deviceId) {
+        throw new HttpsError('failed-precondition', 'Route icin zaten aktif bir trip var.');
+      }
+
+      tx.set(requestRef, {
+        requestType: 'start_trip',
+        uid: auth.uid,
+        resultRef: `trips/${activeTripDoc.id}`,
+        createdAt: nowIso,
+        expiresAt: requestExpiresAtIso,
+      });
+
+      output = {
+        tripId: activeTripDoc.id,
+        status: 'active',
+        transitionVersion: currentTransitionVersion,
+      };
+      return;
+    }
+
+    const driverSnap = await tx.get(driverRef);
+    if (!driverSnap.exists) {
+      throw new HttpsError('not-found', 'Driver profile bulunamadi.');
+    }
+    const driverData = asRecord(driverSnap.data()) ?? {};
+    const showPhoneToPassengers = driverData.showPhoneToPassengers === true;
+    const snapshotPhone = showPhoneToPassengers ? pickString(driverData, 'phone') : null;
+
+    const tripRef = db.collection('trips').doc();
+    const transitionVersion = currentTransitionVersion + 1;
+
+    tx.set(tripRef, {
+      routeId: input.routeId,
+      driverId: auth.uid,
+      driverSnapshot: {
+        name: pickString(driverData, 'name') ?? '',
+        plate: pickString(driverData, 'plate') ?? '',
+        phone: snapshotPhone,
+      },
+      status: 'active',
+      startedAt: nowIso,
+      endedAt: null,
+      lastLocationAt: nowIso,
+      endReason: null,
+      startedByDeviceId: input.deviceId,
+      transitionVersion,
+      updatedAt: nowIso,
+    });
+
+    tx.set(requestRef, {
+      requestType: 'start_trip',
+      uid: auth.uid,
+      resultRef: `trips/${tripRef.id}`,
+      createdAt: nowIso,
+      expiresAt: requestExpiresAtIso,
+    });
+
+    output = {
+      tripId: tripRef.id,
+      status: 'active',
+      transitionVersion,
+    };
+  });
+
+  if (!output) {
+    throw new HttpsError('internal', 'startTrip sonucu hesaplanamadi.');
+  }
+
+  await rtdb.ref(`routeWriters/${input.routeId}/${auth.uid}`).set(true);
+
+  return apiOk<StartTripOutput>(output);
 });
 
 export const searchDriverDirectory = onCall(async (request) => {

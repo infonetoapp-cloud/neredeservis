@@ -471,6 +471,13 @@ Directory callable guardrails:
 - `expectedTransitionVersion` is mandatory for trip transitions.
 - `srvCode` generation is server-side and collision-safe.
 
+## startTrip Contract
+- `startTrip` is invoked after client-side `10s` undo window closes.
+- Input must include `idempotencyKey` + `expectedTransitionVersion`.
+- Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
+- Idempotent replay key: `trip_requests/{uid}_{idempotencyKey}`.
+- Success path grants RTDB writer access: `routeWriters/{routeId}/{uid} = true`.
+
 ## Subscription Enforcement Contract (server-side, V1.0)
 - `getSubscriptionState` is the only authority for subscription state.
 - Client-side paywall state never unlocks premium behavior by itself.

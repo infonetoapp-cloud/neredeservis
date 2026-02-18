@@ -6764,3 +6764,64 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 244: `startTrip` callable.
+
+## STEP-244-244B - startTrip Callable + Undo Window Contract + Optimistic Lock
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 244: `startTrip` callable.
+- 244A: istemci tarafi 10 sn undo penceresi kontratini netlestirmek.
+- 244B: transaction icinde `expectedTransitionVersion` optimistic lock zorunlulugu.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`StartTrip` schema/interface/helper + callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check` (fail)
+5. `npx --prefix functions prettier --write functions/src/index.ts`
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (244, 244A, 244B `[x]`)
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (244, 244A, 244B `[x]`)
+12. `apply_patch` -> `docs/api_contracts.md` (`startTrip` contract notlari)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `startTrip` callable eklendi.
+- Endpoint guvenlik zinciri:
+  - auth + non-anonymous + role(driver) + driver profile.
+  - route owner veya authorized driver degilse `permission-denied`.
+  - archived route icin `failed-precondition`.
+- Idempotency:
+  - dedupe dokumani: `trip_requests/{uid}_{idempotencyKey}`.
+  - ayni key tekrarinda mevcut aktif trip sonucu geri donuyor (duplicate trip olusmuyor).
+- Optimistic lock (244B):
+  - transaction icinde `expectedTransitionVersion` ile mevcut aktif trip versiyonu karsilastiriliyor.
+  - mismatch durumunda deterministic `FAILED_PRECONDITION` (`TRANSITION_VERSION_MISMATCH`).
+- Trip olusturma:
+  - `trips/{tripId}` dokumaninda `status=active`, `startedByDeviceId`, `transitionVersion`, `driverSnapshot` alanlari setleniyor.
+  - `driverSnapshot.phone` KVKK kuraliyla `showPhoneToPassengers` true ise yaziliyor.
+- RTDB writer grant:
+  - basarili start sonrasinda `routeWriters/{routeId}/{uid}=true` setleniyor.
+- Undo window kontrati (244A):
+  - `docs/api_contracts.md` altinda startTrip'in istemci tarafinda 10 sn undo penceresi kapanisindan sonra cagrilmasi gerektigi dokumante edildi.
+
+### Hata Kaydi (Silinmez)
+- Ilk format check turu fail verdi.
+  - Cozum: `prettier --write` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 245: `finishTrip` callable.
