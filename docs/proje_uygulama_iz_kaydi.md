@@ -7650,3 +7650,64 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 270A: `trip_started` cooldown testi.
+
+## STEP-270A-270E + 271 - Cooldown/Device/Timezone/Tamper Testleri ve Full Green Dogrulama
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 270A: `trip_started` cooldown davranisini testlemek.
+- 270C: `registerDevice` policy (eski cihaz revoke + finishTrip device kural) testini yazmak.
+- 270D: `morningReminderDispatcher` timezone davranisini testlemek.
+- 270E: subscription tamper'a karsi server-side premium guard testini yazmak.
+- 271: emulator integration test paketinin full green oldugunu dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (270A/270C/270D/270E testleri)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (fail)
+3. `apply_patch` -> `functions/src/index.ts` (`registerDevice` transaction read-before-write sirasi duzeltmesi)
+4. `npm --prefix functions run build`
+5. `npm --prefix functions run lint`
+6. `npm --prefix functions run format:check`
+7. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (pass)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (270A, 270C, 270D, 270E, 271 `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (270A, 270C, 270D, 270E, 271 `[x]`)
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-270A:
+  - `start -> finish -> start` hizli akista route `lastTripStartedNotificationAt` ikinci start'ta degismiyor (15dk cooldown korundu).
+- STEP-270C:
+  - ikinci `registerDevice` cagrisi eski cihazi inactive yapiyor ve `previousDeviceRevoked=true` donuyor.
+  - `finishTrip` farkli `deviceId` ile cagrildiginda `permission-denied` donuyor.
+- STEP-270D:
+  - testte Istanbul'a gore `now+5dk` scheduledTime uretilip `morningReminderDispatcher` calistirildi.
+  - dedupe ve outbox kayitlari beklenen route/dateKey icin olustu.
+- STEP-270E:
+  - `subscriptionStatus=mock` oldugunda `sendDriverAnnouncement` server tarafinda `permission-denied` verdi.
+- STEP-271:
+  - emulator integration full green: tum testler pass (`23/23`).
+
+### Hata Kaydi (Silinmez)
+- Ilk kosuda iki issue yakalandi:
+  - `registerDevice` testinde `activeDeviceToken` min-length validasyonu (test verisi duzeltildi).
+  - `registerDevice` transaction'inda read-after-write hatasi.
+- Kod duzeltmesi:
+  - `registerDevice` icinde tum `tx.get(...)` okumalari write'lardan onceye alindi.
+  - dedupe read + yazim ve device/audit write sirasi transaction kurallarina uygun hale getirildi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `build` -> pass.
+- `lint` -> pass.
+- `format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `23/23` pass.
+
+### Sonraki Adim
+- Faz F / 270B (acik): undo window istemci-zamanlama testi (client tarafi davranis).

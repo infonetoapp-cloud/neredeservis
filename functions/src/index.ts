@@ -956,19 +956,12 @@ export const registerDevice = onCall(async (request) => {
     const driverData = asRecord(driverSnap.data()) ?? {};
     const previousDeviceId = pickString(driverData, 'activeDeviceId');
     previousDeviceRevoked = previousDeviceId != null && previousDeviceId !== input.deviceId;
+    const currentDeviceSnap = await tx.get(currentDeviceRef);
+    const currentDeviceData = asRecord(currentDeviceSnap.data());
+    const firstSeenAt = pickString(currentDeviceData, 'firstSeenAt') ?? nowIso;
 
     if (previousDeviceRevoked && previousDeviceId != null) {
       const previousDeviceRef = driverRef.collection('devices').doc(previousDeviceId);
-      tx.set(
-        previousDeviceRef,
-        {
-          isActive: false,
-          revokedAt: nowIso,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      );
-
       const switchAuditRef = db.collection('_audit_device_switches').doc();
       const dedupeKey = `device_switch_notice_${auth.uid}_${previousDeviceId}_${input.deviceId}`;
       const queued = await enqueueOutboxWithDedupe({
@@ -995,6 +988,16 @@ export const registerDevice = onCall(async (request) => {
         },
       });
 
+      tx.set(
+        previousDeviceRef,
+        {
+          isActive: false,
+          revokedAt: nowIso,
+          updatedAt: nowIso,
+        },
+        { merge: true },
+      );
+
       tx.set(switchAuditRef, {
         uid: auth.uid,
         previousDeviceId,
@@ -1003,10 +1006,6 @@ export const registerDevice = onCall(async (request) => {
         notificationStatus: queued ? 'pending' : 'deduped',
       });
     }
-
-    const currentDeviceSnap = await tx.get(currentDeviceRef);
-    const currentDeviceData = asRecord(currentDeviceSnap.data());
-    const firstSeenAt = pickString(currentDeviceData, 'firstSeenAt') ?? nowIso;
 
     tx.set(
       currentDeviceRef,

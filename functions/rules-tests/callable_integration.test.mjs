@@ -27,9 +27,11 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 
 const {
   createGuestSession,
+  registerDevice,
   sendDriverAnnouncement,
   finishTrip,
   getSubscriptionState,
+  morningReminderDispatcher,
   searchDriverDirectory,
   startTrip,
   abandonedTripGuard,
@@ -68,6 +70,37 @@ function assertFailedPreconditionLike(error) {
   assert.equal(codeMatch || messageMatch, true);
 }
 
+function buildIstanbulSchedulePlusFiveMinutes(baseDate = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(baseDate);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  const hourText = parts.find((part) => part.type === "hour")?.value;
+  const minuteText = parts.find((part) => part.type === "minute")?.value;
+
+  assert.equal(Boolean(year && month && day && hourText && minuteText), true);
+  const hour = Number.parseInt(hourText, 10);
+  const minute = Number.parseInt(minuteText, 10);
+  const minuteOfDay = hour * 60 + minute;
+  const scheduledMinute = (minuteOfDay + 5) % (24 * 60);
+  const scheduledHourText = String(Math.floor(scheduledMinute / 60)).padStart(2, "0");
+  const scheduledMinuteText = String(scheduledMinute % 60).padStart(2, "0");
+
+  return {
+    dateKey: `${year}-${month}-${day}`,
+    scheduledTime: `${scheduledHourText}:${scheduledMinuteText}`,
+  };
+}
+
 async function clearFirestoreEmulator() {
   const response = await fetch(
     `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`,
@@ -89,7 +122,7 @@ async function clearRtdbEmulator() {
   }
 }
 
-async function seedDriverRoute({ driverUid, routeId, srvCode }) {
+async function seedDriverRoute({ driverUid, routeId, srvCode, subscriptionStatus = "active" }) {
   const nowIso = new Date().toISOString();
 
   await firestore.collection("users").doc(driverUid).set({
@@ -105,7 +138,7 @@ async function seedDriverRoute({ driverUid, routeId, srvCode }) {
     phone: "+905551112233",
     plate: "34ABC34",
     showPhoneToPassengers: true,
-    subscriptionStatus: "active",
+    subscriptionStatus,
     createdAt: nowIso,
     updatedAt: nowIso,
   });
@@ -707,4 +740,198 @@ test("STEP-270 sendDriverAnnouncement dedupe", async () => {
     .where("announcementId", "==", first.data.announcementId)
     .get();
   assert.equal(outboxSnap.size, 1);
+});
+
+test("STEP-270A trip_started cooldown: kisa aralikta ikinci start'ta bildirim zamanı degismez", async () => {
+  const driverUid = "driver-cooldown-1";
+  const routeId = "route-cooldown-1";
+  const deviceId = "device-cooldown-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "ZXNM12",
+  });
+
+  const firstStart = await startTrip.run(
+    callableRequest(
+      {
+        routeId,
+        deviceId,
+        idempotencyKey: "cooldown-start-1",
+        expectedTransitionVersion: 0,
+      },
+      authContext(driverUid),
+    ),
+  );
+  const firstRouteSnap = await firestore.collection("routes").doc(routeId).get();
+  const firstTripNotificationAt = firstRouteSnap.get("lastTripStartedNotificationAt");
+  assert.equal(typeof firstTripNotificationAt, "string");
+
+  const firstFinish = await finishTrip.run(
+    callableRequest(
+      {
+        tripId: firstStart.data.tripId,
+        deviceId,
+        idempotencyKey: "cooldown-finish-1",
+        expectedTransitionVersion: firstStart.data.transitionVersion,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  await startTrip.run(
+    callableRequest(
+      {
+        routeId,
+        deviceId,
+        idempotencyKey: "cooldown-start-2",
+        expectedTransitionVersion: 0,
+      },
+      authContext(driverUid),
+    ),
+  );
+  const secondRouteSnap = await firestore.collection("routes").doc(routeId).get();
+  const secondTripNotificationAt = secondRouteSnap.get("lastTripStartedNotificationAt");
+
+  assert.equal(secondTripNotificationAt, firstTripNotificationAt);
+});
+
+test("STEP-270C registerDevice policy: eski cihaz revoke + finishTrip device kurali", async () => {
+  const driverUid = "driver-device-policy-1";
+  const routeId = "route-device-policy-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "BNMV34",
+  });
+
+  const registerA = await registerDevice.run(
+    callableRequest(
+      {
+        deviceId: "device-policy-a",
+        activeDeviceToken: "token-alpha-1",
+      },
+      authContext(driverUid),
+    ),
+  );
+  assert.equal(registerA.data.previousDeviceRevoked, false);
+
+  const registerB = await registerDevice.run(
+    callableRequest(
+      {
+        deviceId: "device-policy-b",
+        activeDeviceToken: "token-bravo-1",
+      },
+      authContext(driverUid),
+    ),
+  );
+  assert.equal(registerB.data.previousDeviceRevoked, true);
+
+  const oldDeviceSnap = await firestore
+    .collection("drivers")
+    .doc(driverUid)
+    .collection("devices")
+    .doc("device-policy-a")
+    .get();
+  const newDeviceSnap = await firestore
+    .collection("drivers")
+    .doc(driverUid)
+    .collection("devices")
+    .doc("device-policy-b")
+    .get();
+  assert.equal(oldDeviceSnap.get("isActive"), false);
+  assert.equal(newDeviceSnap.get("isActive"), true);
+
+  const started = await startTrip.run(
+    callableRequest(
+      {
+        routeId,
+        deviceId: "device-policy-b",
+        idempotencyKey: "device-policy-start-1",
+        expectedTransitionVersion: 0,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  await assert.rejects(
+    async () =>
+      finishTrip.run(
+        callableRequest(
+          {
+            tripId: started.data.tripId,
+            deviceId: "device-policy-a",
+            idempotencyKey: "device-policy-finish-invalid",
+            expectedTransitionVersion: started.data.transitionVersion,
+          },
+          authContext(driverUid),
+        ),
+      ),
+    (error) => {
+      assert.equal(error.code, "permission-denied");
+      return true;
+    },
+  );
+});
+
+test("STEP-270D morningReminderDispatcher timezone testi", async () => {
+  const driverUid = "driver-reminder-1";
+  const routeId = "route-reminder-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "LKJH56",
+  });
+
+  const scheduleInfo = buildIstanbulSchedulePlusFiveMinutes(new Date());
+  await firestore.collection("routes").doc(routeId).set(
+    {
+      scheduledTime: scheduleInfo.scheduledTime,
+    },
+    { merge: true },
+  );
+
+  await morningReminderDispatcher.run({});
+
+  const dedupeKey = `${routeId}_${scheduleInfo.dateKey}_morning_reminder`;
+  const dedupeSnap = await firestore.collection("_notification_dedup").doc(dedupeKey).get();
+  assert.equal(dedupeSnap.exists, true);
+
+  const outboxSnap = await firestore
+    .collection("_notification_outbox")
+    .where("type", "==", "morning_reminder")
+    .where("routeId", "==", routeId)
+    .where("dateKey", "==", scheduleInfo.dateKey)
+    .get();
+  assert.equal(outboxSnap.empty, false);
+});
+
+test("STEP-270E subscription tamper testi: premium guard server-side", async () => {
+  const driverUid = "driver-subscription-mock-1";
+  const routeId = "route-subscription-mock-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "POIU78",
+    subscriptionStatus: "mock",
+  });
+
+  await assert.rejects(
+    async () =>
+      sendDriverAnnouncement.run(
+        callableRequest(
+          {
+            routeId,
+            templateKey: "info_notice",
+            customText: "Kontrol mesaji",
+            idempotencyKey: "subscription-tamper-1",
+          },
+          authContext(driverUid),
+        ),
+      ),
+    (error) => {
+      assert.equal(error.code, "permission-denied");
+      return true;
+    },
+  );
 });

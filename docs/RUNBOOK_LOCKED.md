@@ -582,12 +582,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 268D TransitionVersion race testini yaz (cift `startTrip`/`finishTrip` cagrilarinda tek gecerli state transition).
 - [x] 269 `abandonedTripGuard` kosul testleri yaz.
 - [x] 270 Announcement dedupe testleri yaz.
-- [ ] 270A `trip_started` cooldown testini yaz (yanlislikla start/stop/start durumunda ikinci push ya bastirilir ya "tekrar hareket etti" formatina doner).
+- [x] 270A `trip_started` cooldown testini yaz (yanlislikla start/stop/start durumunda ikinci push ya bastirilir ya "tekrar hareket etti" formatina doner).
 - [ ] 270B `startTrip` undo window testi yaz (ilk 10 sn iptal edilirse server'da `active trip` olusmuyor mu).
-- [ ] 270C `registerDevice` policy testini yaz (eski cihaz revoke + finishTrip device kurali).
-- [ ] 270D `morningReminderDispatcher` timezone testini yaz (Europe/Istanbul ve UTC offset sapmasi yok).
-- [ ] 270E Subscription tamper testi yaz (client local manipule etse de premium guard server-side blokluyor mu).
-- [ ] 271 DOGRULAMA: Emulator integration full green mi?
+- [x] 270C `registerDevice` policy testini yaz (eski cihaz revoke + finishTrip device kurali).
+- [x] 270D `morningReminderDispatcher` timezone testini yaz (Europe/Istanbul ve UTC offset sapmasi yok).
+- [x] 270E Subscription tamper testi yaz (client local manipule etse de premium guard server-side blokluyor mu).
+- [x] 271 DOGRULAMA: Emulator integration full green mi?
 - [ ] 272 KULLANICIDAN ONAY ISTE: "Function davranislarina onay veriyor musun?".
 - [ ] 273 Deploy dry-run komutu calistir.
 - [ ] 274 Staging deploy yap.
