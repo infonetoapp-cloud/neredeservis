@@ -7470,3 +7470,183 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 268: RTDB heartbeat -> Firestore `lastLocationAt` testi.
+
+## STEP-268-268B - Heartbeat Trigger ve Offline Replay Stale Filtre Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 268: RTDB heartbeat tetiginde Firestore `lastLocationAt` guncellemesini dogrulamak.
+- 268B: stale replay (`timestamp` penceresi disi) noktalarda canli marker'in geri gitmedigini dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (`syncTripHeartbeatFromLocation.run` tabanli STEP-268 ve STEP-268B testleri)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+3. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (268, 268B `[x]`)
+4. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (268, 268B `[x]`)
+5. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-268 testi:
+  - `syncTripHeartbeatFromLocation` fresh payload ile calistirildi.
+  - `trips/{tripId}.lastLocationAt` beklenen `timestamp` ISO degerine guncellendi.
+  - `location_history` altinda `source=live` kaydi olustu.
+- STEP-268B testi:
+  - stale payload (`now-120s`) ile trigger calistirildi.
+  - `lastLocationAt` degismedi (canli marker korunumu).
+  - `location_history` altinda `source=offline_replay` kaydi olustu.
+- Tum test paketi pass: `15/15`.
+
+### Hata Kaydi (Silinmez)
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `15/15` pass.
+
+### Sonraki Adim
+- Faz F / 268A: `routeWriters` revoke/race deny testi.
+
+## STEP-268A-268D - routeWriter Revoke Deny + TransitionVersion Race (Start/Finish)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 268A: `finishTrip` sonrasi `routeWriters` revoke etkisinin RTDB write deny ile dogrulanmasi.
+- 268D: eszamanli cift `startTrip` ve cift `finishTrip` cagrilarinda tek gecerli transition garantisini test etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (268A rule-deny testi + 268D transition race testi)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (fail)
+3. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (`initializeTestEnvironment` project/namespace duzeltmesi)
+4. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (fail)
+5. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (RTDB temizleme helperini `clearDatabase()` tabanina cekme)
+6. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (pass)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (268A, 268D `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (268A, 268D `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-268A testi:
+  - `startTrip` sonrasi driver RTDB location write `assertSucceeds`.
+  - `finishTrip` sonrasi ayni driver/location yazimi `assertFails` (`permission_denied`).
+- STEP-268D testi:
+  - cift eszamanli `startTrip`: `1 fulfilled + 1 failed-precondition`.
+  - cift eszamanli `finishTrip`: `1 fulfilled + 1 failed-precondition`.
+  - final trip state: `status=completed`, `transitionVersion=2`.
+- Toplam test paketi: `17/17` pass.
+
+### Hata Kaydi (Silinmez)
+- Ilk 268A denemesinde RTDB project namespace uyumsuzlugu nedeniyle beklenmeyen deny goruldu.
+  - Cozum: rules test env project id'si RTDB namespace ile hizalandi.
+- Sonraki denemede RTDB REST clear endpoint'i `401` dondu.
+  - Cozum: RTDB temizligi `initializeTestEnvironment(...).clearDatabase()` ile yapildi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `17/17` pass.
+
+### Sonraki Adim
+- Faz F / 269: `abandonedTripGuard` kosul testleri.
+
+## STEP-269 - abandonedTripGuard Kosul Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- `abandonedTripGuard` fonksiyonunun stale/fresh ayristirma ve writer revoke kosullarini test etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (STEP-269 testi)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+3. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (269 `[x]`)
+4. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (269 `[x]`)
+5. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-269 testi iki aktif trip seed etti:
+  - stale (`lastLocationAt = now-20dk`)
+  - fresh (`lastLocationAt = now-1dk`)
+- `abandonedTripGuard.run({})` sonrasi:
+  - stale trip -> `status=abandoned`, `endReason=auto_abandoned`, `transitionVersion +1`
+  - fresh trip -> `status=active`, version degismedi
+  - stale writer -> `routeWriters=false`
+  - fresh writer -> `routeWriters=true`
+- Tum test paketi pass: `18/18`.
+
+### Hata Kaydi (Silinmez)
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `18/18` pass.
+
+### Sonraki Adim
+- Faz F / 270: announcement dedupe testleri.
+
+## STEP-270 - Announcement Dedupe Testi + Transaction Read/Write Sira Duzeltmesi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- `sendDriverAnnouncement` dedupe davranisini test etmek ve duplicate outbox/dispatch olusmadigini kanitlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (STEP-270 test senaryosu)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (fail)
+3. `apply_patch` -> `functions/src/index.ts` (`sendDriverAnnouncement` transaction'inda dedupe read -> write sirasi duzeltildi)
+4. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (race assertionlari icin code/message tolerant helper)
+5. `npm --prefix functions run build`
+6. `npm --prefix functions run lint`
+7. `npm --prefix functions run format:check`
+8. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (pass)
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (270 `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (270 `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-270 testi eklendi:
+  - ayni `idempotencyKey` ile iki `sendDriverAnnouncement` cagrisi.
+  - tek `announcement` dokumani olusuyor.
+  - tek `announcement_dispatch` dedupe dokumani olusuyor.
+  - tek `driver_announcement_dispatch` outbox kaydi olusuyor.
+- Test, gercek bir transaction hatasi yakaladi:
+  - `Firestore transactions require all reads to be executed before all writes.`
+- Kod duzeltmesi:
+  - `sendDriverAnnouncement` icinde dedupe read/yazim adimi, `announcement` yazimindan once calistirilacak sekilde siralandi.
+
+### Hata Kaydi (Silinmez)
+- Ilk test kosusunda transaction read-after-write hatasi goruldu.
+  - Cozum: transaction icinde dedupe read adimi write'lardan onceye alindi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `build` -> pass.
+- `lint` -> pass.
+- `format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `19/19` pass.
+
+### Sonraki Adim
+- Faz F / 270A: `trip_started` cooldown testi.

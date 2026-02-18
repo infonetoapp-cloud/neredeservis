@@ -2142,17 +2142,6 @@ export const sendDriverAnnouncement = onCall(async (request) => {
 
     const announcementSnap = await tx.get(announcementRef);
     if (!announcementSnap.exists) {
-      tx.set(announcementRef, {
-        routeId: input.routeId,
-        driverId: auth.uid,
-        templateKey: input.templateKey,
-        customText: input.customText ?? null,
-        channels: ['fcm', 'whatsapp_link'],
-        shareUrl,
-        idempotencyKey: input.idempotencyKey,
-        createdAt: nowIso,
-      });
-
       const dedupeKey = `announcement_dispatch_${announcementRef.id}`;
       await enqueueOutboxWithDedupe({
         tx,
@@ -2175,6 +2164,17 @@ export const sendDriverAnnouncement = onCall(async (request) => {
           status: 'pending',
           createdAt: nowIso,
         },
+      });
+
+      tx.set(announcementRef, {
+        routeId: input.routeId,
+        driverId: auth.uid,
+        templateKey: input.templateKey,
+        customText: input.customText ?? null,
+        channels: ['fcm', 'whatsapp_link'],
+        shareUrl,
+        idempotencyKey: input.idempotencyKey,
+        createdAt: nowIso,
       });
     }
 

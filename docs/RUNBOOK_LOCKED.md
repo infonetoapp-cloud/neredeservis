@@ -575,13 +575,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 265 Invalid payload red testleri yaz.
 - [x] 266 Idempotency tekrar cagrisi testleri yaz.
 - [x] 267 Concurrency race testleri yaz.
-- [ ] 268 RTDB heartbeat -> Firestore `lastLocationAt` testi yaz.
-- [ ] 268A `routeWriters` revoke/race testlerini yaz (trip biter bitmez write deny).
-- [ ] 268B Offline replay stale filtre testini yaz (`>60 sn` replay canli marker'i guncellemiyor mu).
+- [x] 268 RTDB heartbeat -> Firestore `lastLocationAt` testi yaz.
+- [x] 268A `routeWriters` revoke/race testlerini yaz (trip biter bitmez write deny).
+- [x] 268B Offline replay stale filtre testini yaz (`>60 sn` replay canli marker'i guncellemiyor mu).
 - [ ] 268C Ghost Drive map matching kalite testini yaz (urban canyon trace -> snapped rota stabil mi, fallbackte veri kaybi yok mu).
-- [ ] 268D TransitionVersion race testini yaz (cift `startTrip`/`finishTrip` cagrilarinda tek gecerli state transition).
-- [ ] 269 `abandonedTripGuard` kosul testleri yaz.
-- [ ] 270 Announcement dedupe testleri yaz.
+- [x] 268D TransitionVersion race testini yaz (cift `startTrip`/`finishTrip` cagrilarinda tek gecerli state transition).
+- [x] 269 `abandonedTripGuard` kosul testleri yaz.
+- [x] 270 Announcement dedupe testleri yaz.
 - [ ] 270A `trip_started` cooldown testini yaz (yanlislikla start/stop/start durumunda ikinci push ya bastirilir ya "tekrar hareket etti" formatina doner).
 - [ ] 270B `startTrip` undo window testi yaz (ilk 10 sn iptal edilirse server'da `active trip` olusmuyor mu).
 - [ ] 270C `registerDevice` policy testini yaz (eski cihaz revoke + finishTrip device kurali).

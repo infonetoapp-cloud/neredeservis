@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
+import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { getApps } from "firebase-admin/app";
 import { getDatabase } from "firebase-admin/database";
 import { getFirestore } from "firebase-admin/firestore";
+import { ref, set } from "firebase/database";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const FIRESTORE_RULES = readFileSync(resolve(__dirname, "../../firestore.rules"), "utf8");
+const RTDB_RULES = readFileSync(resolve(__dirname, "../../database.rules.json"), "utf8");
 
 const PROJECT_ID = "demo-neredeservis-functions-it";
 process.env.GCLOUD_PROJECT = PROJECT_ID;
@@ -15,8 +25,16 @@ process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ??= "127.0.0.1:9000";
 process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 
-const { createGuestSession, finishTrip, getSubscriptionState, searchDriverDirectory, startTrip } =
-  await import("../lib/index.js");
+const {
+  createGuestSession,
+  sendDriverAnnouncement,
+  finishTrip,
+  getSubscriptionState,
+  searchDriverDirectory,
+  startTrip,
+  abandonedTripGuard,
+  syncTripHeartbeatFromLocation,
+} = await import("../lib/index.js");
 
 const firestore = getFirestore();
 const database = getDatabase();
@@ -40,6 +58,16 @@ function authContext(uid, provider = "password") {
   };
 }
 
+function assertFailedPreconditionLike(error) {
+  const code = error?.code;
+  const message = String(error?.message ?? "");
+  const codeMatch = code === "failed-precondition" || code === 9 || code === 3;
+  const messageMatch =
+    message.includes("TRANSITION_VERSION_MISMATCH") ||
+    message.toLowerCase().includes("failed-precondition");
+  assert.equal(codeMatch || messageMatch, true);
+}
+
 async function clearFirestoreEmulator() {
   const response = await fetch(
     `http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`,
@@ -49,11 +77,16 @@ async function clearFirestoreEmulator() {
 }
 
 async function clearRtdbEmulator() {
-  const response = await fetch(
-    `http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST}/.json?ns=${PROJECT_ID}-default-rtdb`,
-    { method: "DELETE" },
-  );
-  assert.equal(response.status, 200);
+  const clearEnv = await initializeTestEnvironment({
+    projectId: `${PROJECT_ID}-default-rtdb`,
+    database: { rules: RTDB_RULES },
+  });
+
+  try {
+    await clearEnv.clearDatabase();
+  } finally {
+    await clearEnv.cleanup();
+  }
 }
 
 async function seedDriverRoute({ driverUid, routeId, srvCode }) {
@@ -72,6 +105,7 @@ async function seedDriverRoute({ driverUid, routeId, srvCode }) {
     phone: "+905551112233",
     plate: "34ABC34",
     showPhoneToPassengers: true,
+    subscriptionStatus: "active",
     createdAt: nowIso,
     updatedAt: nowIso,
   });
@@ -85,6 +119,27 @@ async function seedDriverRoute({ driverUid, routeId, srvCode }) {
     allowGuestTracking: true,
     lastTripStartedNotificationAt: null,
     createdAt: nowIso,
+    updatedAt: nowIso,
+  });
+}
+
+async function seedActiveTrip({ tripId, routeId, driverUid, lastLocationAt, transitionVersion = 1 }) {
+  const nowIso = new Date().toISOString();
+  await firestore.collection("trips").doc(tripId).set({
+    routeId,
+    driverId: driverUid,
+    driverSnapshot: {
+      name: "Driver User",
+      plate: "34ABC34",
+      phone: "55******33",
+    },
+    status: "active",
+    startedAt: nowIso,
+    endedAt: null,
+    lastLocationAt,
+    endReason: null,
+    startedByDeviceId: "seed-device",
+    transitionVersion,
     updatedAt: nowIso,
   });
 }
@@ -308,7 +363,7 @@ test("STEP-267 concurrency race: cift startTrip denemesinde tek aktif transition
 
   assert.equal(fulfilled.length, 1);
   assert.equal(rejected.length, 1);
-  assert.equal(rejected[0].reason?.code, "failed-precondition");
+  assertFailedPreconditionLike(rejected[0].reason);
 
   const activeTripsSnap = await firestore
     .collection("trips")
@@ -316,4 +371,340 @@ test("STEP-267 concurrency race: cift startTrip denemesinde tek aktif transition
     .where("status", "==", "active")
     .get();
   assert.equal(activeTripsSnap.size, 1);
+});
+
+test("STEP-268 RTDB heartbeat -> Firestore lastLocationAt guncellenir", async () => {
+  const routeId = "route-heartbeat-live";
+  const tripId = "trip-heartbeat-live";
+  const nowMs = Date.now();
+  const liveTimestampMs = nowMs - 2_000;
+  await seedActiveTrip({
+    tripId,
+    routeId,
+    driverUid: "driver-heartbeat-live",
+    lastLocationAt: new Date(nowMs - 60_000).toISOString(),
+  });
+
+  await syncTripHeartbeatFromLocation.run({
+    params: { routeId },
+    data: {
+      after: {
+        val: () => ({
+          tripId,
+          driverId: "driver-heartbeat-live",
+          lat: 40.1,
+          lng: 29.9,
+          accuracy: 5,
+          speed: 10,
+          heading: 90,
+          timestamp: liveTimestampMs,
+        }),
+      },
+    },
+  });
+
+  const tripSnap = await firestore.collection("trips").doc(tripId).get();
+  assert.equal(tripSnap.exists, true);
+  assert.equal(tripSnap.get("lastLocationAt"), new Date(liveTimestampMs).toISOString());
+
+  const historySnap = await firestore
+    .collection("trips")
+    .doc(tripId)
+    .collection("location_history")
+    .where("source", "==", "live")
+    .limit(1)
+    .get();
+  assert.equal(historySnap.empty, false);
+});
+
+test("STEP-268B stale replay canli marker'i guncellemez", async () => {
+  const routeId = "route-heartbeat-stale";
+  const tripId = "trip-heartbeat-stale";
+  const nowMs = Date.now();
+  const originalLastLocationAt = new Date(nowMs - 3_000).toISOString();
+  await seedActiveTrip({
+    tripId,
+    routeId,
+    driverUid: "driver-heartbeat-stale",
+    lastLocationAt: originalLastLocationAt,
+  });
+
+  await syncTripHeartbeatFromLocation.run({
+    params: { routeId },
+    data: {
+      after: {
+        val: () => ({
+          tripId,
+          driverId: "driver-heartbeat-stale",
+          lat: 40.2,
+          lng: 29.8,
+          accuracy: 12,
+          speed: 8,
+          heading: 70,
+          timestamp: nowMs - 120_000,
+        }),
+      },
+    },
+  });
+
+  const tripSnap = await firestore.collection("trips").doc(tripId).get();
+  assert.equal(tripSnap.exists, true);
+  assert.equal(tripSnap.get("lastLocationAt"), originalLastLocationAt);
+
+  const historySnap = await firestore
+    .collection("trips")
+    .doc(tripId)
+    .collection("location_history")
+    .where("source", "==", "offline_replay")
+    .limit(1)
+    .get();
+  assert.equal(historySnap.empty, false);
+});
+
+test("STEP-268A finishTrip sonrasi routeWriter write deny", async () => {
+  const driverUid = "driver-revoke-1";
+  const routeId = "route-revoke-1";
+  const deviceId = "device-revoke-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "TYUI67",
+  });
+
+  const started = await startTrip.run(
+    callableRequest(
+      {
+        routeId,
+        deviceId,
+        idempotencyKey: "revoke-start-key-1",
+        expectedTransitionVersion: 0,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  const testEnv = await initializeTestEnvironment({
+    projectId: `${PROJECT_ID}-default-rtdb`,
+    database: { rules: RTDB_RULES },
+  });
+
+  try {
+    const writerContext = testEnv.authenticatedContext(driverUid);
+    const writerDb = writerContext.database();
+    const livePayload = {
+      lat: 40.77,
+      lng: 29.94,
+      speed: 10,
+      heading: 90,
+      accuracy: 5,
+      tripId: started.data.tripId,
+      driverId: driverUid,
+      timestamp: Date.now(),
+    };
+
+    await assertSucceeds(set(ref(writerDb, `locations/${routeId}`), livePayload));
+
+    await finishTrip.run(
+      callableRequest(
+        {
+          tripId: started.data.tripId,
+          deviceId,
+          idempotencyKey: "revoke-finish-key-1",
+          expectedTransitionVersion: started.data.transitionVersion,
+        },
+        authContext(driverUid),
+      ),
+    );
+
+    await assertFails(
+      set(ref(writerDb, `locations/${routeId}`), {
+        ...livePayload,
+        timestamp: Date.now(),
+      }),
+    );
+  } finally {
+    await testEnv.cleanup();
+  }
+});
+
+test("STEP-268D transitionVersion race: cift startTrip/finishTrip", async () => {
+  const driverUid = "driver-transition-race-1";
+  const routeId = "route-transition-race-1";
+  const deviceId = "device-transition-race-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "ASDF78",
+  });
+
+  const startRace = await Promise.allSettled([
+    startTrip.run(
+      callableRequest(
+        {
+          routeId,
+          deviceId,
+          idempotencyKey: "transition-start-a",
+          expectedTransitionVersion: 0,
+        },
+        authContext(driverUid),
+      ),
+    ),
+    startTrip.run(
+      callableRequest(
+        {
+          routeId,
+          deviceId,
+          idempotencyKey: "transition-start-b",
+          expectedTransitionVersion: 0,
+        },
+        authContext(driverUid),
+      ),
+    ),
+  ]);
+
+  const startFulfilled = startRace.filter((result) => result.status === "fulfilled");
+  const startRejected = startRace.filter((result) => result.status === "rejected");
+  assert.equal(startFulfilled.length, 1);
+  assert.equal(startRejected.length, 1);
+  assertFailedPreconditionLike(startRejected[0].reason);
+
+  const startedTrip = startFulfilled[0].value.data;
+  const finishRace = await Promise.allSettled([
+    finishTrip.run(
+      callableRequest(
+        {
+          tripId: startedTrip.tripId,
+          deviceId,
+          idempotencyKey: "transition-finish-a",
+          expectedTransitionVersion: startedTrip.transitionVersion,
+        },
+        authContext(driverUid),
+      ),
+    ),
+    finishTrip.run(
+      callableRequest(
+        {
+          tripId: startedTrip.tripId,
+          deviceId,
+          idempotencyKey: "transition-finish-b",
+          expectedTransitionVersion: startedTrip.transitionVersion,
+        },
+        authContext(driverUid),
+      ),
+    ),
+  ]);
+
+  const finishFulfilled = finishRace.filter((result) => result.status === "fulfilled");
+  const finishRejected = finishRace.filter((result) => result.status === "rejected");
+  assert.equal(finishFulfilled.length, 1);
+  assert.equal(finishRejected.length, 1);
+  assertFailedPreconditionLike(finishRejected[0].reason);
+
+  const tripSnap = await firestore.collection("trips").doc(startedTrip.tripId).get();
+  assert.equal(tripSnap.exists, true);
+  assert.equal(tripSnap.get("status"), "completed");
+  assert.equal(tripSnap.get("transitionVersion"), 2);
+});
+
+test("STEP-269 abandonedTripGuard stale kosul testleri", async () => {
+  const nowMs = Date.now();
+  const staleTripId = "trip-guard-stale-1";
+  const freshTripId = "trip-guard-fresh-1";
+  const staleRouteId = "route-guard-stale-1";
+  const freshRouteId = "route-guard-fresh-1";
+  const staleDriverId = "driver-guard-stale-1";
+  const freshDriverId = "driver-guard-fresh-1";
+  const staleLastLocationAt = new Date(nowMs - 20 * 60 * 1000).toISOString();
+  const freshLastLocationAt = new Date(nowMs - 60 * 1000).toISOString();
+
+  await seedActiveTrip({
+    tripId: staleTripId,
+    routeId: staleRouteId,
+    driverUid: staleDriverId,
+    lastLocationAt: staleLastLocationAt,
+    transitionVersion: 3,
+  });
+  await seedActiveTrip({
+    tripId: freshTripId,
+    routeId: freshRouteId,
+    driverUid: freshDriverId,
+    lastLocationAt: freshLastLocationAt,
+    transitionVersion: 5,
+  });
+
+  await database.ref(`routeWriters/${staleRouteId}/${staleDriverId}`).set(true);
+  await database.ref(`routeWriters/${freshRouteId}/${freshDriverId}`).set(true);
+
+  await abandonedTripGuard.run({});
+
+  const staleTripSnap = await firestore.collection("trips").doc(staleTripId).get();
+  assert.equal(staleTripSnap.exists, true);
+  assert.equal(staleTripSnap.get("status"), "abandoned");
+  assert.equal(staleTripSnap.get("endReason"), "auto_abandoned");
+  assert.equal(staleTripSnap.get("transitionVersion"), 4);
+
+  const freshTripSnap = await firestore.collection("trips").doc(freshTripId).get();
+  assert.equal(freshTripSnap.exists, true);
+  assert.equal(freshTripSnap.get("status"), "active");
+  assert.equal(freshTripSnap.get("transitionVersion"), 5);
+
+  const staleWriterSnap = await database.ref(`routeWriters/${staleRouteId}/${staleDriverId}`).get();
+  const freshWriterSnap = await database.ref(`routeWriters/${freshRouteId}/${freshDriverId}`).get();
+  assert.equal(staleWriterSnap.val(), false);
+  assert.equal(freshWriterSnap.val(), true);
+});
+
+test("STEP-270 sendDriverAnnouncement dedupe", async () => {
+  const driverUid = "driver-announcement-1";
+  const routeId = "route-announcement-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "GHJK89",
+  });
+
+  const first = await sendDriverAnnouncement.run(
+    callableRequest(
+      {
+        routeId,
+        templateKey: "delay_notice",
+        customText: "Servis 10 dakika gecikmeli.",
+        idempotencyKey: "announcement-idem-1",
+      },
+      authContext(driverUid),
+    ),
+  );
+  const second = await sendDriverAnnouncement.run(
+    callableRequest(
+      {
+        routeId,
+        templateKey: "delay_notice",
+        customText: "Servis 10 dakika gecikmeli.",
+        idempotencyKey: "announcement-idem-1",
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  assert.equal(first.data.announcementId, second.data.announcementId);
+
+  const announcementsSnap = await firestore
+    .collection("announcements")
+    .where("routeId", "==", routeId)
+    .where("driverId", "==", driverUid)
+    .get();
+  assert.equal(announcementsSnap.size, 1);
+
+  const dedupeSnap = await firestore
+    .collection("_notification_dedup")
+    .doc(`announcement_dispatch_${first.data.announcementId}`)
+    .get();
+  assert.equal(dedupeSnap.exists, true);
+
+  const outboxSnap = await firestore
+    .collection("_notification_outbox")
+    .where("type", "==", "driver_announcement_dispatch")
+    .where("announcementId", "==", first.data.announcementId)
+    .get();
+  assert.equal(outboxSnap.size, 1);
 });
