@@ -4884,3 +4884,46 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 181: User entity/model/mapper.
+
+## STEP-181 - User Entity/Model/Mapper
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adim 181 kapsaminda `User` icin domain entity, data model ve mapper katmanini olusturmak.
+- `docs/api_contracts.md` icindeki `UserDoc` sozlesmesine uygun alan setini kodlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/entities/user_entity.dart`
+2. `apply_patch` -> `lib/features/domain/models/user_model.dart`
+3. `apply_patch` -> `lib/features/domain/mappers/user_mapper.dart`
+4. `apply_patch` -> `test/domain/user_mapper_test.dart`
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (181 `[x]`)
+6. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (181 `[x]`)
+7. `dart format lib/features/domain test/domain`
+8. `flutter analyze`
+9. `flutter test test/domain/user_mapper_test.dart`
+10. `flutter test`
+
+### Bulgular
+- Yeni domain entity eklendi:
+  - `UserEntity(uid, role, displayName, phone, email, createdAt, updatedAt, deletedAt)`
+- Yeni data model eklendi:
+  - `UserModel` + `fromMap/toMap`
+- Yeni mapper eklendi:
+  - `UserModel.toEntity()`
+  - `userModelFromEntity(UserEntity)`
+- Rol donusumu `userRoleFromRaw` ile yapildi; desteklenmeyen rolde `unknown` fallback korunuyor.
+- Timestamp alanlari UTC `DateTime` olarak normalize ediliyor.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test test/domain/user_mapper_test.dart` -> 3/3 passed.
+- `flutter test` -> 68 test passed.
+
+### Sonraki Adim
+- Faz E / 182: Driver entity/model/mapper.

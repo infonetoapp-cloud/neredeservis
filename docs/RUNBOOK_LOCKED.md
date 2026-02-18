@@ -446,7 +446,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 
 ## FAZ E - Domain ve Data Katmani (181-220)
 
-- [ ] 181 User entity/model/mapper yaz.
+- [x] 181 User entity/model/mapper yaz.
 - [ ] 182 Driver entity/model/mapper yaz.
 - [ ] 183 Route entity/model/mapper yaz.
 - [ ] 183A Ghost Drive iz kaydi icin `RouteTracePoint` entity/model/mapper yaz.
