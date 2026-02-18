@@ -14,7 +14,9 @@ class SettingsScreen extends StatefulWidget {
     required this.appName,
     this.showSubscriptionSection = true,
     this.subscriptionStatus = SubscriptionUiStatus.trialActive,
+    this.initialConsentEnabled = true,
     this.onSubscriptionTap,
+    this.onProfileTap,
     this.onConsentTap,
     this.onSupportTap,
     this.onReportIssueTap,
@@ -24,7 +26,9 @@ class SettingsScreen extends StatefulWidget {
   final String appName;
   final bool showSubscriptionSection;
   final SubscriptionUiStatus subscriptionStatus;
+  final bool initialConsentEnabled;
   final VoidCallback? onSubscriptionTap;
+  final VoidCallback? onProfileTap;
   final ValueChanged<bool>? onConsentTap;
   final VoidCallback? onSupportTap;
   final VoidCallback? onReportIssueTap;
@@ -35,7 +39,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _consentEnabled = true;
+  late bool _consentEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _consentEnabled = widget.initialConsentEnabled;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +69,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AmberSpacingTokens.space12),
           ],
+          _SectionCard(
+            title: 'Profil',
+            description: 'Ad soyad ve telefon bilgilerini guncelle.',
+            child: AmberSecondaryButton(
+              label: 'Profili Guncelle',
+              onPressed: widget.onProfileTap,
+            ),
+          ),
+          const SizedBox(height: AmberSpacingTokens.space12),
           _SectionCard(
             title: 'Acik Riza ve KVKK',
             description:

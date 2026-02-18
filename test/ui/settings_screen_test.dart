@@ -6,6 +6,7 @@ import 'package:neredeservis/ui/theme/theme_amber.dart';
 void main() {
   Widget buildTestApp({
     VoidCallback? onSubscriptionTap,
+    VoidCallback? onProfileTap,
     ValueChanged<bool>? onConsentTap,
     VoidCallback? onSupportTap,
     VoidCallback? onReportIssueTap,
@@ -16,6 +17,7 @@ void main() {
       home: SettingsScreen(
         appName: 'NeredeServis Dev',
         onSubscriptionTap: onSubscriptionTap,
+        onProfileTap: onProfileTap,
         onConsentTap: onConsentTap,
         onSupportTap: onSupportTap,
         onReportIssueTap: onReportIssueTap,
@@ -31,6 +33,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Abonelik'), findsOneWidget);
+    expect(find.text('Profil'), findsOneWidget);
     expect(find.text('Acik Riza ve KVKK'), findsOneWidget);
     expect(find.text('Destek'), findsOneWidget);
     expect(find.text('Hesap'), findsOneWidget);
@@ -40,6 +43,7 @@ void main() {
   testWidgets('settings actions trigger callbacks',
       (WidgetTester tester) async {
     var subscriptionTapped = false;
+    var profileTapped = false;
     var consentCalls = 0;
     var supportTapped = false;
     var reportTapped = false;
@@ -49,6 +53,9 @@ void main() {
       buildTestApp(
         onSubscriptionTap: () {
           subscriptionTapped = true;
+        },
+        onProfileTap: () {
+          profileTapped = true;
         },
         onConsentTap: (_) {
           consentCalls++;
@@ -66,11 +73,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Aboneligi Yonet'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Aboneligi Yonet'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Profili Guncelle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profili Guncelle'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Destek Merkezi'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Destek Merkezi'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Sorun Bildir'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sorun Bildir'));
     await tester.pumpAndSettle();
@@ -80,6 +97,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(subscriptionTapped, isTrue);
+    expect(profileTapped, isTrue);
     expect(consentCalls, greaterThan(0));
     expect(supportTapped, isTrue);
     expect(reportTapped, isTrue);

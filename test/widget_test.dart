@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:neredeservis/app/nerede_servis_app.dart';
+import 'package:neredeservis/config/app_environment.dart';
 import 'package:neredeservis/config/app_flavor.dart';
 
 void main() {
@@ -14,6 +15,15 @@ void main() {
           flavorConfig: AppFlavorConfig(
             flavor: AppFlavor.dev,
             appName: 'NeredeServis Dev',
+          ),
+          environment: AppEnvironment(
+            flavor: AppFlavor.dev,
+            sentryEnabled: false,
+            sentryDsn: null,
+            appCheckDebugProviderEnabled: true,
+            adaptyEnabled: false,
+            adaptyApiKey: null,
+            mapboxPublicToken: null,
           ),
         ),
       ),

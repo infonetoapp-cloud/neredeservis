@@ -9,4 +9,5 @@ abstract final class AppRoutePath {
   static const String passengerTracking = '/passenger/tracking';
   static const String join = '/join';
   static const String settings = '/settings';
+  static const String profileEdit = '/settings/profile';
 }

@@ -625,11 +625,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 
 ## FAZ G - Mobil Ozellik Entegrasyonu (301-380)
 
-- [ ] 301 Auth akisini bagla (email/google/anonymous).
-- [ ] 302 `bootstrapUserProfile` + `registerDevice` cagrilarini bagla.
-- [ ] 303 `updateUserProfile` ekranini bagla.
-- [ ] 304 `upsertConsent` ekran akisini bagla.
-- [ ] 305 Consent gate middleware yaz.
+- [x] 301 Auth akisini bagla (email/google/anonymous).
+- [x] 302 `bootstrapUserProfile` + `registerDevice` cagrilarini bagla.
+- [x] 303 `updateUserProfile` ekranini bagla.
+- [x] 304 `upsertConsent` ekran akisini bagla.
+- [x] 305 Consent gate middleware yaz.
 - [ ] 306 Driver profil olusturma akisini bagla.
 - [ ] 307 Route create ekranini callable'a bagla.
 - [ ] 307A Route create girisinde iki mod sun: `Hizli (pin)` ve `Ghost Drive (Rotayi Kaydet)`.

@@ -8,6 +8,7 @@ class AppEnvironment {
     required this.appCheckDebugProviderEnabled,
     required this.adaptyEnabled,
     required this.adaptyApiKey,
+    required this.mapboxPublicToken,
   });
 
   final AppFlavor flavor;
@@ -16,6 +17,7 @@ class AppEnvironment {
   final bool appCheckDebugProviderEnabled;
   final bool adaptyEnabled;
   final String? adaptyApiKey;
+  final String? mapboxPublicToken;
 
   String get name => flavor.name;
   bool get isProduction => flavor == AppFlavor.prod;
@@ -35,6 +37,8 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
       String.fromEnvironment('ADAPTY_API_KEY', defaultValue: '');
   const adaptyEnabledRaw =
       String.fromEnvironment('ADAPTY_ENABLED', defaultValue: '');
+  const mapboxPublicTokenRaw =
+      String.fromEnvironment('MAPBOX_PUBLIC_TOKEN', defaultValue: '');
 
   final sentryDsn = sentryDsnRaw.trim().isEmpty ? null : sentryDsnRaw.trim();
   final sentryEnabledOverride = _parseBoolOrNull(sentryEnabledRaw);
@@ -46,6 +50,8 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
       adaptyApiKeyRaw.trim().isEmpty ? null : adaptyApiKeyRaw.trim();
   final adaptyEnabledOverride = _parseBoolOrNull(adaptyEnabledRaw);
   final adaptyEnabled = (adaptyEnabledOverride ?? true) && adaptyApiKey != null;
+  final mapboxPublicToken =
+      mapboxPublicTokenRaw.trim().isEmpty ? null : mapboxPublicTokenRaw.trim();
 
   final appCheckDebugProviderEnabled = resolvedFlavor != AppFlavor.prod;
 
@@ -56,6 +62,7 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
     appCheckDebugProviderEnabled: appCheckDebugProviderEnabled,
     adaptyEnabled: adaptyEnabled,
     adaptyApiKey: adaptyApiKey,
+    mapboxPublicToken: mapboxPublicToken,
   );
 }
 

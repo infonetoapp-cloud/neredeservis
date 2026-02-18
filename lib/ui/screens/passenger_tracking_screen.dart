@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import '../components/indicators/amber_status_chip.dart';
 import '../components/sheets/passenger_map_sheet.dart';
@@ -13,7 +15,7 @@ import '../tokens/typography_tokens.dart';
 /// Runbook 175: Passenger ekranda tek sheet kuralini sabitle.
 ///
 /// Architecture:
-/// - Layer 0: Map shell (gradient placeholder until Mapbox in FAZ G)
+/// - Layer 0: Mapbox (token/platform yoksa placeholder fallback)
 /// - Layer 1: Top route info bar (transparent overlay)
 /// - Layer 2: DraggableScrollableSheet with PassengerMapSheet content
 class PassengerTrackingScreen extends StatelessWidget {
@@ -29,6 +31,7 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.isLate = false,
     this.scheduledTime,
     this.driverName,
+    this.mapboxPublicToken,
   });
 
   /// Route display name.
@@ -61,6 +64,9 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Driver's display name (for the map marker label).
   final String? driverName;
 
+  /// Public Mapbox token supplied via `--dart-define MAPBOX_PUBLIC_TOKEN=pk...`.
+  final String? mapboxPublicToken;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,7 +74,9 @@ class PassengerTrackingScreen extends StatelessWidget {
         children: <Widget>[
           // Layer 0: Map shell
           Positioned.fill(
-            child: _PassengerMapShell(routeName: routeName),
+            child: _PassengerMapShell(
+              mapboxPublicToken: mapboxPublicToken,
+            ),
           ),
 
           // Layer 1: Top status bar
@@ -103,11 +111,46 @@ class PassengerTrackingScreen extends StatelessWidget {
 // --- Internal Widgets ---
 
 /// Map background placeholder for the passenger view.
-/// Replaced by Mapbox in FAZ G (step 329).
+/// Falls back to mock shell if token/platform is not ready.
 class _PassengerMapShell extends StatelessWidget {
-  const _PassengerMapShell({required this.routeName});
+  const _PassengerMapShell({
+    required this.mapboxPublicToken,
+  });
 
-  final String routeName;
+  final String? mapboxPublicToken;
+
+  bool get _isMobilePlatform {
+    return !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+  }
+
+  bool get _hasToken {
+    final token = mapboxPublicToken?.trim();
+    return token != null && token.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isMobilePlatform) {
+      return const _PassengerMapPlaceholder(
+        infoLabel: 'Mapbox yalnizca Android/iOS destekler.',
+      );
+    }
+    if (!_hasToken) {
+      return const _PassengerMapPlaceholder(
+        infoLabel: 'MAPBOX_PUBLIC_TOKEN tanimli degil.',
+      );
+    }
+    return const mapbox.MapWidget(styleUri: mapbox.MapboxStyles.STANDARD);
+  }
+}
+
+/// Mock map shell shown when Mapbox cannot be rendered.
+class _PassengerMapPlaceholder extends StatelessWidget {
+  const _PassengerMapPlaceholder({required this.infoLabel});
+
+  final String infoLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +186,28 @@ class _PassengerMapShell extends StatelessWidget {
             bottom: MediaQuery.of(context).size.height * 0.55,
             child: CustomPaint(
               painter: _RouteHintPainter(),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 220,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AmberColorTokens.ink900.withAlpha(185),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                infoLabel,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AmberTypographyTokens.bodyFamily,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AmberColorTokens.surface0,
+                ),
+              ),
             ),
           ),
         ],

@@ -8638,3 +8638,80 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 301: mobil auth akislarinin uygulama tarafina baglanmasi.
+
+## STEP-301-305 - Mobil Auth + Profile/Consent Entegrasyonu + Consent Gate
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 301: Mobil auth akislarini (email/google/anonymous) app router tarafinda baglamak.
+- 302: `bootstrapUserProfile` ve `registerDevice` cagrilarini auth akislarina baglamak.
+- 303: `updateUserProfile` ekranini settings uzerinden baglamak.
+- 304: `upsertConsent` ayar akislarini ekleyip callable cagrisiyla calistirmak.
+- 305: Consent gate middleware ile role+consent tabanli redirect mekanizmasini aktif etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `git status --short`
+2. `rg -n "STEP-30[0-9]|301|302|303|304|305" docs/RUNBOOK_LOCKED.md docs/NeredeServis_Cursor_Amber_Runbook.md docs/proje_uygulama_iz_kaydi.md`
+3. `git diff -- lib/app/router/app_router.dart`
+4. `git diff -- lib/app/nerede_servis_app.dart lib/ui/screens/settings_screen.dart lib/app/providers/auth_feature_providers.dart lib/app/router/consent_guard.dart lib/ui/screens/profile_edit_screen.dart`
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - duplicate `settings` route kaldirildi
+   - email/google register-signin + anonymous role akislari finalize edildi
+   - `bootstrapUserProfile`, `registerDevice`, `updateUserProfile`, `upsertConsent`, `deleteUserData` cagrilari hata-korumali hale getirildi
+   - `registerDevice` precondition fail'leri icin graceful fallback eklendi
+   - dialog controller lifecycle temizlendi
+6. `apply_patch` -> `lib/app/nerede_servis_app.dart`
+   - `currentUserRoleProvider` + `currentUserConsentGrantedProvider` ile guard wiring tamamlandi
+   - `ConsentGuard` router'a enjekte edildi
+   - Firebase initialize edilmemisse fallback (`unknown`/`true`) korumasi eklendi
+7. `apply_patch` -> `lib/ui/screens/settings_screen.dart`
+   - `initialConsentEnabled` parametresi eklendi
+   - switch state initState ile initial value'dan beslenir hale getirildi
+8. `apply_patch` -> `lib/ui/screens/profile_edit_screen.dart`
+   - `onSave` hata durumunda sayfada kalma davranisi eklendi
+9. `apply_patch` -> `test/ui/settings_screen_test.dart`
+   - yeni profil aksiyonu test kapsamına eklendi
+   - off-screen tap durumlari icin `ensureVisible` ile test stabilitesi saglandi
+10. `dart format ...` (etkilenen dosyalar)
+11. `flutter analyze`
+12. `flutter test`
+13. `flutter test integration_test/smoke_startup_test.dart`
+14. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`301..305` -> `[x]`)
+15. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`301..305` -> `[x]`)
+16. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Faz G 301-305 teknik entegrasyon tamamladi:
+  - Auth ekrani artik email giris/kayit dialoglari + Google girisi + misafir (anonymous) akisini cagiriyor.
+  - Profil bootstrap cagrisi auth sonrasinda tetikleniyor.
+  - Driver rolde `registerDevice` cagrisi baglandi; precondition fail durumlari startupi bloke etmiyor.
+  - Settings icinde profil guncelleme (`updateUserProfile`) ve consent toggle (`upsertConsent`) callable'lari calisiyor.
+  - Consent middleware (`ConsentGuard`) router redirect zincirine dahil edildi.
+    - role `guest/unknown` icin redirect yok
+    - signed user consent false ise protected rotalarda `/settings` redirect aktif
+- Mapbox token wiring onceki adimlarla uyumlu sekilde korunuyor (`environment.mapboxPublicToken`).
+
+### Hata Kaydi (Silinmez)
+- Ilk `dart format` kosusunda `lib/app/router/app_router.dart` icinde parser hatasi yakalandi:
+  - sebep: `_showEmailAuthDialog` icerisinde eksik liste kapanisi
+  - cozum: `children` listesi ve `Column` kapanisi duzeltildi.
+- Ilk `flutter test` kosusunda `settings_screen_test` fail verdi:
+  - sebep: yeni profil karti eklendigi icin destek butonlari viewport disina tasti
+  - cozum: testte `ensureVisible` + yeni profil callback assertion'i eklendi.
+- `flutter test integration_test/smoke_startup_test.dart`:
+  - fail nedeni: desteklenen Android/iOS cihaz bagli degil (`No supported devices connected`)
+  - Not: unit/widget test ve analyze sonuclarini etkilemedi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `175` test).
+- `flutter test integration_test/smoke_startup_test.dart` -> cihaz yok nedeniyle calismadi.
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` 301-305 -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` 301-305 -> `[x]`
+
+### Sonraki Adim
+- Faz G / 306: Driver profil olusturma akisinin (`upsertDriverProfile`) mobil ekran/aksiyon tarafina baglanmasi.

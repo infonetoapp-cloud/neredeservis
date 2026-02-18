@@ -25,17 +25,17 @@ $fvm = "$env:LOCALAPPDATA\Pub\Cache\bin\fvm.bat"
 
 ### Dev
 ```powershell
-& $fvm flutter run --flavor dev -t lib/main_dev.dart
+& $fvm flutter run --flavor dev -t lib/main_dev.dart --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev
 ```
 
 ### Staging
 ```powershell
-& $fvm flutter run --flavor stg -t lib/main_stg.dart
+& $fvm flutter run --flavor stg -t lib/main_stg.dart --dart-define=APP_FLAVOR=stg --dart-define-from-file=.env.staging
 ```
 
 ### Prod
 ```powershell
-& $fvm flutter run --flavor prod -t lib/main_prod.dart
+& $fvm flutter run --flavor prod -t lib/main_prod.dart --dart-define=APP_FLAVOR=prod --dart-define-from-file=.env.prod
 ```
 
 ## APK Build
@@ -64,6 +64,14 @@ macOS/Linux:
   - Android: `android/app/src/<flavor>/google-services.json`
   - iOS: `ios/Runner/GoogleService-Info.plist`
 - `lib/firebase/firebase_options_*.dart` dosyalari repoda tutulmaz.
+
+## Mapbox Harita Notu
+- Mobilde gercek harita icin `MAPBOX_PUBLIC_TOKEN` (`pk...`) zorunludur.
+- Degeri yerel `.env.*` dosyana ekle:
+```dotenv
+MAPBOX_PUBLIC_TOKEN=pk.XXXXXXXX
+```
+- `sk...` secret token istemciye konulmaz; sadece server-side Secret Manager'da kalir.
 
 ## Not
 - iOS icin dev/stg/prod scheme/flavor ayrimi bir sonraki adimda (Mac + Xcode) tamamlanacaktir.

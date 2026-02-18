@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 
 import '../app/nerede_servis_app.dart';
 import '../config/app_environment.dart';
@@ -49,9 +50,17 @@ Future<void> bootstrapNeredeServis({
     debugPrintStack(stackTrace: stackTrace);
   }
 
+  final mapboxPublicToken = environment.mapboxPublicToken;
+  if (mapboxPublicToken != null) {
+    MapboxOptions.setAccessToken(mapboxPublicToken);
+  }
+
   runApp(
     ProviderScope(
-      child: NeredeServisApp(flavorConfig: configForFlavor(flavor)),
+      child: NeredeServisApp(
+        flavorConfig: configForFlavor(flavor),
+        environment: environment,
+      ),
     ),
   );
 }
