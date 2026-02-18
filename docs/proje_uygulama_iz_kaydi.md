@@ -8166,3 +8166,239 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 288: Dynamic route preview endpoint yaz (signed token + rate limit).
+
+## STEP-MAPBOX-UI-001 - Passenger Ekraninda Gercek Mapbox Widget Entegrasyonu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Uygulamada "harita yok" durumunu kaldirmak.
+- Passenger tracking ekraninda gercek `MapWidget` render etmek.
+- Token/platform yoksa kontrollu placeholder fallback korumak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/config/app_environment.dart` (`MAPBOX_PUBLIC_TOKEN` parse + environment alani)
+2. `apply_patch` -> `lib/bootstrap/app_bootstrap.dart` (Mapbox token bootstrap + app environment propagation)
+3. `apply_patch` -> `lib/app/nerede_servis_app.dart` (router'a environment gecisi)
+4. `apply_patch` -> `lib/app/router/app_router.dart` (PassengerTrackingScreen'e token gecisi)
+5. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart` (Mapbox widget + fallback shell)
+6. `apply_patch` -> `README.md` (Mapbox public token kullanim notu)
+7. `apply_patch` -> `test/widget_test.dart` (yeni `environment` zorunlu parametresi)
+8. `apply_patch` -> `integration_test/smoke_startup_test.dart` (yeni `environment` zorunlu parametresi)
+9. `dart format lib/config/app_environment.dart lib/bootstrap/app_bootstrap.dart lib/app/nerede_servis_app.dart lib/app/router/app_router.dart lib/ui/screens/passenger_tracking_screen.dart`
+10. `flutter test`
+11. `flutter analyze`
+12. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Passenger map katmani artik iki modda calisiyor:
+  - `MAPBOX_PUBLIC_TOKEN` varsa: `mapbox.MapWidget(styleUri: STANDARD)` render.
+  - Token yoksa veya platform web/desktop ise: bilgi etiketiyle mock placeholder map shell.
+- Mapbox token uygulama baslangicinda bir kez set ediliyor:
+  - `MapboxOptions.setAccessToken(environment.mapboxPublicToken)`.
+- Router tarafinda passenger route'lari environment tokenini ekrana geciyor.
+- Dokumantasyon guncellendi:
+  - `README.md` icinde `MAPBOX_PUBLIC_TOKEN=pk...` notu eklendi.
+
+### Hata Kaydi (Silinmez)
+- Ilk `flutter test` kosusunda iki hata goruldu:
+  - `Size` tip cakismasi (`mapbox_maps_flutter` importu ile `dart:ui Size`).
+  - `NeredeServisApp` constructor'inda yeni `environment` zorunlu parametresi icin test fixture eksigi.
+  - Cozum:
+    - Mapbox importu alias (`as mapbox`) ile duzeltildi.
+    - `test/widget_test.dart` ve `integration_test/smoke_startup_test.dart` environment fixture ile guncellendi.
+- `flutter run` cikisinda AGP/Gradle/Kotlin icin "yakinda destekten kalkacak" warning'leri goruldu.
+  - Not: Bu warning'ler mevcut deployu engellemedi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test` -> pass (`175` test).
+- `flutter analyze` -> pass (issue yok).
+- `flutter run ... --no-resident` -> pass, APK cihaza kuruldu.
+
+### Sonraki Adim
+- `.env.dev` icine `MAPBOX_PUBLIC_TOKEN=pk...` eklendiginde passenger ekraninda gercek Mapbox haritasi gorunecek.
+
+## STEP-MAPBOX-UI-002 - Dev Public Token Set + Cihaz Deploy
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Kullanici tarafindan paylasilan Mapbox public tokeni (`pk...`) dev ortamda aktif etmek.
+- Passenger ekraninda gercek harita render akisini cihazda dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. PowerShell update -> `.env.dev` icine `MAPBOX_PUBLIC_TOKEN` set edildi (deger redacted).
+2. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+3. `flutter logs -d 99TSTCV4YTOJYXC6` (kisa izleme denemesi; timeout)
+4. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `.env.dev` tarafinda `MAPBOX_PUBLIC_TOKEN` anahtari aktif.
+- Dev flavor APK fiziksel cihaza tekrar kuruldu ve uygulama acildi.
+- Mapbox widget akisi artik tokenli dev calistirmada aktif yol uzerinden ilerliyor.
+
+### Hata Kaydi (Silinmez)
+- `flutter logs` komutu timeout ile sonlandi ve pipe kapanis hatasi verdi (`OS Error 232`).
+  - Not: Deploy sonucunu etkilemedi; uygulama kurulum/acilis adimi basarili.
+- `flutter run` cikisinda AGP/Gradle/Kotlin surumleri icin deprecation warning'leri goruldu.
+  - Not: Bu warning'ler mevcut kurulum adimini bloklamadi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter run ... --no-resident` -> pass (APK build + install tamamlandi).
+- `.env.dev` key listesinde `MAPBOX_PUBLIC_TOKEN` mevcut.
+
+### Sonraki Adim
+- Passenger ekraninda harita gorunumu UI/UX iyilestirme backlog'una gecirilebilir (kamera, marker, rota cizimi).
+
+## STEP-288-289 - Dynamic Route Preview Endpoint + Join Abuse Rate Limit
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 288: Landing akisi icin dinamik route preview endpoint'ini imzali token + rate limit ile yazmak.
+- 289: `joinRouteBySrvCode` icin abuse prevention deneme limitini zorunlu hale getirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts`
+   - `getDynamicRoutePreview` callable
+   - route preview token sign/verify helper'lari
+   - `generateRouteShareLink` outputunu `signedLandingUrl + previewToken + previewTokenExpiresAt` ile genisletme
+   - `joinRouteBySrvCode` rate limit
+2. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs`
+   - STEP-288 basari/rate-limit testleri
+   - STEP-289 join abuse rate-limit testi
+3. `apply_patch` -> `docs/api_contracts.md` (yeni input/output + guardrail guncellemesi)
+4. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`288`, `289` `[x]`)
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`288`, `289` `[x]`)
+6. `npm --prefix functions run format`
+7. `npx prettier --write functions/rules-tests/callable_integration.test.mjs docs/api_contracts.md docs/RUNBOOK_LOCKED.md docs/NeredeServis_Cursor_Amber_Runbook.md`
+8. `npm --prefix functions run build`
+9. `npm --prefix functions run lint`
+10. `npm --prefix functions run format:check`
+11. `npm --prefix functions run test:rules:unit`
+12. `firebase functions:secrets:set ROUTE_PREVIEW_SIGNING_SECRET --project dev --data-file - --force` (stdin, redacted)
+13. `firebase functions:secrets:set ROUTE_PREVIEW_SIGNING_SECRET --project stg --data-file - --force` (stdin, redacted)
+14. `firebase functions:secrets:set ROUTE_PREVIEW_SIGNING_SECRET --project prod --data-file - --force` (stdin, redacted)
+15. `firebase deploy --only functions --project dev`
+16. `firebase deploy --only functions --project stg`
+17. `firebase deploy --only functions --project prod`
+18. `firebase functions:list --project dev --json` (filter: `generateRouteShareLink|getDynamicRoutePreview|joinRouteBySrvCode`)
+19. `firebase functions:list --project stg --json` (ayni filtre)
+20. `firebase functions:list --project prod --json` (ayni filtre)
+21. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-288:
+  - Yeni callable: `getDynamicRoutePreview`.
+  - Input: `srvCode`, `token` (imzali).
+  - Auth: landing/public kullanim icin auth zorunlu degil.
+  - Guvenlik:
+    - token scope (`srvCode`) + expiry + HMAC imza dogrulamasi zorunlu.
+    - token gecersiz/expired/mismatch durumunda fail-fast (`permission-denied`).
+  - Rate limit:
+    - `_rate_limits/route_preview_{srvCode}_{ip}` anahtarinda pencere/limit uygulanir.
+  - `generateRouteShareLink` artik signed paylasim URL uretir:
+    - `landingUrl` (canonical)
+    - `signedLandingUrl`
+    - `previewToken`
+    - `previewTokenExpiresAt`
+- STEP-289:
+  - `joinRouteBySrvCode` icin user bazli rate limit eklendi:
+    - `_rate_limits/join_route_{uid}`
+    - limit asiminda `resource-exhausted`.
+- Testler:
+  - yeni STEP-288 ve STEP-289 testleri eklendi.
+  - tum rules-unit test paketi pass: `31/31`.
+- Deploy:
+  - `generateRouteShareLink`, `getDynamicRoutePreview`, `joinRouteBySrvCode` fonksiyonlari dev/stg/prod ortamlarda `ACTIVE`.
+- Secret Manager:
+  - `ROUTE_PREVIEW_SIGNING_SECRET` versiyonlari olustu:
+    - dev: `.../secrets/ROUTE_PREVIEW_SIGNING_SECRET/versions/2`
+    - stg: `.../secrets/ROUTE_PREVIEW_SIGNING_SECRET/versions/2`
+    - prod: `.../secrets/ROUTE_PREVIEW_SIGNING_SECRET/versions/2`
+
+### Hata Kaydi (Silinmez)
+- Ilk secret olusturma denemesinde PowerShell `RandomNumberGenerator.Fill` method uyumsuzlugu goruldu.
+  - Cozum: `RNGCryptoServiceProvider.GetBytes` ile secret tekrar uretildi ve version `2` olarak rotate edildi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda beklenen `permission_denied` warningleri goruldu.
+  - Not: deny senaryolari ve policy testleri beklenen davranis.
+- Deploy cikisinda Node20 lifecycle + `firebase-functions` upgrade warning'i goruldu.
+  - Not: deploy sonucunu bloklamadi; fonksiyonlar `ACTIVE`.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass (`31/31`).
+- `functions:list` (dev/stg/prod) filtre sonucunda:
+  - `generateRouteShareLink` -> `ACTIVE`
+  - `getDynamicRoutePreview` -> `ACTIVE`
+  - `joinRouteBySrvCode` -> `ACTIVE`
+
+### Sonraki Adim
+- Faz F / 290: Audit log eventlerini yaz.
+
+## STEP-290 - Route Audit Eventleri (Share/Preview/Join)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz F / 290 adimi icin callable akislarinda denetlenebilir audit event kaydi eklemek.
+- 288/289 tamamlanma durumunun runbook checklist'lerinde netlestirilmesini saglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts`
+   - route audit helper (`writeRouteAuditEvent`, `writeRouteAuditEventSafe`)
+   - `_audit_route_events` yazimi
+   - `generateRouteShareLink`, `getDynamicRoutePreview`, `joinRouteBySrvCode` event emit
+2. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs`
+   - STEP-287/288/289 testlerine audit assertionlari eklendi
+3. `apply_patch` -> `docs/api_contracts.md`
+   - STEP-290 audit event contract bolumu eklendi
+4. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+   - `288`, `289`, `290` checkbox -> `[x]`
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+   - `288`, `289`, `290` checkbox -> `[x]`
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni audit koleksiyonu: `_audit_route_events`.
+- Yazilan event tipleri:
+  - `route_share_link_generated`
+  - `route_preview_accessed`
+  - `route_preview_denied`
+  - `route_joined_by_srv`
+- `getDynamicRoutePreview` red/success eventleri de auditleniyor.
+  - Ham IP tutulmuyor; `requestIpHash` fingerprint kaydediliyor.
+  - Denied eventte reason code (`resource-exhausted`, `permission-denied`, vb.) yaziliyor.
+- STEP-288/289 checklist satirlari iki runbook dosyasinda da `[x]` olarak netlestirildi.
+
+### Hata Kaydi (Silinmez)
+- Rules test kosusunda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: test sonucunu etkilemedi.
+- Rules test deny senaryolarinda beklenen `permission_denied` warningleri goruldu.
+  - Not: policy testlerinin dogal sonucu.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass (`31/31`).
+
+### Sonraki Adim
+- Faz F / 291: `deleteUserData` KVKK delete flow callable implementasyonu.

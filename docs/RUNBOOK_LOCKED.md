@@ -606,9 +606,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 286 DOGRULAMA: secret token client buildde yok mu?
 - [x] 287 WhatsApp share URL generator function yaz (WhatsApp yoksa sistem share sheet fallback).
 - [x] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yÃ¼klÃ¼ degilse mini route karti + store CTA; app yÃ¼klÃ¼yse deep link.
-- [ ] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).
-- [ ] 289 Abuse prevention icin join deneme limiti koy.
-- [ ] 290 Audit log eventlerini yaz.
+- [x] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).
+- [x] 289 Abuse prevention icin join deneme limiti koy.
+- [x] 290 Audit log eventlerini yaz.
 - [ ] 291 KVKK delete flow function yaz (`deleteUserData`).
 - [ ] 291A `deleteUserData` icin off-boarding interceptor ekle: aktif abonelik varsa silme oncesi `Manage Subscription` zorunlu yonlendirme.
 - [ ] 291B Interceptor metnini policy uyumlu yaz: `Hesabi silmek odemeyi durdurmaz, once store aboneligini iptal et`.

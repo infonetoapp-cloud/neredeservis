@@ -24,11 +24,14 @@ process.env.FIREBASE_CONFIG = JSON.stringify({
 process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ??= "127.0.0.1:9000";
 process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
+process.env.ROUTE_PREVIEW_SIGNING_SECRET ??= "test-route-preview-signing-secret";
 
 const {
   createRouteFromGhostDrive,
   createGuestSession,
   generateRouteShareLink,
+  getDynamicRoutePreview,
+  joinRouteBySrvCode,
   registerDevice,
   sendDriverAnnouncement,
   finishTrip,
@@ -45,11 +48,11 @@ const {
 const firestore = getFirestore();
 const database = getDatabase();
 
-function callableRequest(data, auth) {
+function callableRequest(data, auth, rawRequest = /** @type {any} */ ({})) {
   return {
     data,
     auth,
-    rawRequest: /** @type {any} */ ({}),
+    rawRequest,
   };
 }
 
@@ -1168,7 +1171,207 @@ test("STEP-287 generateRouteShareLink: whatsapp url + system fallback text", asy
   assert.equal(result.data.routeId, routeId);
   assert.equal(result.data.srvCode, "WAPP87");
   assert.equal(result.data.landingUrl, "https://nerede.servis/r/WAPP87");
+  assert.equal(typeof result.data.previewToken, "string");
+  assert.equal(result.data.previewToken.length > 16, true);
+  assert.equal(result.data.signedLandingUrl.startsWith("https://nerede.servis/r/WAPP87?t="), true);
+  assert.equal(typeof result.data.previewTokenExpiresAt, "string");
   assert.equal(result.data.systemShareText.includes("https://nerede.servis/r/WAPP87"), true);
   assert.equal(result.data.whatsappUrl.startsWith("https://wa.me/?text="), true);
   assert.equal(decodeURIComponent(result.data.whatsappUrl.split("text=")[1]).includes("WAPP87"), true);
+
+  const auditSnap = await firestore
+    .collection("_audit_route_events")
+    .where("eventType", "==", "route_share_link_generated")
+    .limit(1)
+    .get();
+  assert.equal(auditSnap.empty, false);
+  const auditData = auditSnap.docs[0]?.data();
+  assert.equal(auditData?.actorUid, driverUid);
+  assert.equal(auditData?.routeId, routeId);
+  assert.equal(auditData?.srvCode, "WAPP87");
+  assert.equal(auditData?.status, "success");
+});
+
+test("STEP-288 getDynamicRoutePreview: signed token ile route preview doner", async () => {
+  const driverUid = "driver-preview-1";
+  const routeId = "route-preview-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "PRVW88",
+  });
+  await firestore.collection("routes").doc(routeId).set(
+    {
+      name: "Darica Sabah Hatti",
+      scheduledTime: "07:30",
+      timeSlot: "morning",
+      allowGuestTracking: true,
+    },
+    { merge: true },
+  );
+
+  const share = await generateRouteShareLink.run(
+    callableRequest(
+      {
+        routeId,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  const preview = await getDynamicRoutePreview.run(
+    callableRequest(
+      {
+        srvCode: "PRVW88",
+        token: share.data.previewToken,
+      },
+      undefined,
+      { ip: "198.51.100.20" },
+    ),
+  );
+
+  assert.equal(preview.data.routeId, routeId);
+  assert.equal(preview.data.srvCode, "PRVW88");
+  assert.equal(preview.data.routeName, "Darica Sabah Hatti");
+  assert.equal(preview.data.driverDisplayName, "Driver User");
+  assert.equal(preview.data.scheduledTime, "07:30");
+  assert.equal(preview.data.timeSlot, "morning");
+  assert.equal(preview.data.allowGuestTracking, true);
+  assert.equal(preview.data.deepLinkUrl, "neredeservis://route-preview?srvCode=PRVW88");
+
+  const auditSnap = await firestore
+    .collection("_audit_route_events")
+    .where("eventType", "==", "route_preview_accessed")
+    .limit(1)
+    .get();
+  assert.equal(auditSnap.empty, false);
+  const auditData = auditSnap.docs[0]?.data();
+  assert.equal(auditData?.routeId, routeId);
+  assert.equal(auditData?.srvCode, "PRVW88");
+  assert.equal(auditData?.status, "success");
+  assert.equal(typeof auditData?.requestIpHash, "string");
+  assert.equal(auditData?.requestIpHash.length, 24);
+});
+
+test("STEP-288 getDynamicRoutePreview: rate limit asiminda RESOURCE_EXHAUSTED", async () => {
+  const previousMax = process.env.ROUTE_PREVIEW_RATE_MAX_CALLS;
+  process.env.ROUTE_PREVIEW_RATE_MAX_CALLS = "1";
+
+  try {
+    const driverUid = "driver-preview-rate-1";
+    const routeId = "route-preview-rate-1";
+    await seedDriverRoute({
+      driverUid,
+      routeId,
+      srvCode: "PRW9A2",
+    });
+    await firestore.collection("routes").doc(routeId).set(
+      {
+        name: "Gebze Aksam Hatti",
+      },
+      { merge: true },
+    );
+
+    const share = await generateRouteShareLink.run(
+      callableRequest(
+        {
+          routeId,
+        },
+        authContext(driverUid),
+      ),
+    );
+
+    const requestData = {
+      srvCode: "PRW9A2",
+      token: share.data.previewToken,
+    };
+    const requestIp = { ip: "203.0.113.45" };
+
+    await getDynamicRoutePreview.run(callableRequest(requestData, undefined, requestIp));
+    await assert.rejects(
+      async () => getDynamicRoutePreview.run(callableRequest(requestData, undefined, requestIp)),
+      (error) => {
+        assert.equal(error.code, "resource-exhausted");
+        return true;
+      },
+    );
+
+    const deniedAuditSnap = await firestore
+      .collection("_audit_route_events")
+      .where("eventType", "==", "route_preview_denied")
+      .limit(1)
+      .get();
+    assert.equal(deniedAuditSnap.empty, false);
+    const deniedAudit = deniedAuditSnap.docs[0]?.data();
+    assert.equal(deniedAudit?.srvCode, "PRW9A2");
+    assert.equal(deniedAudit?.status, "denied");
+    assert.equal(deniedAudit?.reason, "resource-exhausted");
+  } finally {
+    if (previousMax === undefined) {
+      delete process.env.ROUTE_PREVIEW_RATE_MAX_CALLS;
+    } else {
+      process.env.ROUTE_PREVIEW_RATE_MAX_CALLS = previousMax;
+    }
+  }
+});
+
+test("STEP-289 joinRouteBySrvCode: abuse prevention rate limit", async () => {
+  const previousMax = process.env.JOIN_ROUTE_RATE_MAX_CALLS;
+  process.env.JOIN_ROUTE_RATE_MAX_CALLS = "1";
+
+  try {
+    const driverUid = "driver-join-limit-1";
+    const passengerUid = "passenger-join-limit-1";
+    const routeId = "route-join-limit-1";
+    await seedDriverRoute({
+      driverUid,
+      routeId,
+      srvCode: "JNRA82",
+    });
+
+    const nowIso = new Date().toISOString();
+    await firestore.collection("users").doc(passengerUid).set({
+      role: "passenger",
+      displayName: "Passenger User",
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      deletedAt: null,
+    });
+
+    const joinPayload = {
+      srvCode: "JNRA82",
+      name: "Passenger User",
+      phone: "+905551234567",
+      showPhoneToDriver: false,
+      boardingArea: "Durak A",
+      notificationTime: "07:40",
+    };
+
+    await joinRouteBySrvCode.run(callableRequest(joinPayload, authContext(passengerUid)));
+    await assert.rejects(
+      async () => joinRouteBySrvCode.run(callableRequest(joinPayload, authContext(passengerUid))),
+      (error) => {
+        assert.equal(error.code, "resource-exhausted");
+        return true;
+      },
+    );
+
+    const joinAuditSnap = await firestore
+      .collection("_audit_route_events")
+      .where("eventType", "==", "route_joined_by_srv")
+      .limit(1)
+      .get();
+    assert.equal(joinAuditSnap.empty, false);
+    const joinAudit = joinAuditSnap.docs[0]?.data();
+    assert.equal(joinAudit?.actorUid, passengerUid);
+    assert.equal(joinAudit?.routeId, routeId);
+    assert.equal(joinAudit?.srvCode, "JNRA82");
+    assert.equal(joinAudit?.status, "success");
+  } finally {
+    if (previousMax === undefined) {
+      delete process.env.JOIN_ROUTE_RATE_MAX_CALLS;
+    } else {
+      process.env.JOIN_ROUTE_RATE_MAX_CALLS = previousMax;
+    }
+  }
 });

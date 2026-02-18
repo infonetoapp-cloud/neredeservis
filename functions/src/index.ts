@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
@@ -66,11 +66,17 @@ const SUPPORT_REPORT_RETENTION_DAYS = 30;
 const WRITER_REVOKE_TASK_RETENTION_DAYS = 7;
 const DEVICE_SWITCH_NOTICE_DEDUPE_TTL_DAYS = 3;
 const ANNOUNCEMENT_DISPATCH_DEDUPE_TTL_DAYS = 7;
+const JOIN_ROUTE_RATE_WINDOW_MS = 5 * 60_000;
+const JOIN_ROUTE_RATE_MAX_CALLS = 8;
 const MAPBOX_DIRECTIONS_RATE_WINDOW_MS = 60_000;
 const MAPBOX_DIRECTIONS_RATE_MAX_CALLS = 20;
 const MAPBOX_DIRECTIONS_DEFAULT_MONTHLY_MAX = 20_000;
 const MAPBOX_DIRECTIONS_DEFAULT_TIMEOUT_MS = 3_000;
 const MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS = 10;
+const ROUTE_PREVIEW_RATE_WINDOW_MS = 60_000;
+const ROUTE_PREVIEW_RATE_MAX_CALLS = 60;
+const ROUTE_PREVIEW_TOKEN_DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60;
+const ROUTE_AUDIT_COLLECTION = '_audit_route_events';
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -229,8 +235,35 @@ interface GenerateRouteShareLinkOutput {
   routeId: string;
   srvCode: string;
   landingUrl: string;
+  signedLandingUrl: string;
+  previewToken: string;
+  previewTokenExpiresAt: string;
   whatsappUrl: string;
   systemShareText: string;
+}
+
+interface DynamicRoutePreviewOutput {
+  routeId: string;
+  srvCode: string;
+  routeName: string;
+  driverDisplayName: string;
+  scheduledTime: string | null;
+  timeSlot: 'morning' | 'evening' | 'midday' | 'custom' | null;
+  allowGuestTracking: boolean;
+  deepLinkUrl: string;
+}
+
+type RouteAuditStatus = 'success' | 'denied';
+
+interface WriteRouteAuditEventInput {
+  eventType: string;
+  actorUid: string | null;
+  routeId?: string | null;
+  srvCode?: string | null;
+  status?: RouteAuditStatus;
+  reason?: string | null;
+  requestIp?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'mock';
@@ -369,6 +402,15 @@ const mapboxMapMatchingProxyInputSchema = z.object({
 const generateRouteShareLinkInputSchema = z.object({
   routeId: z.string().trim().min(1).max(128),
   customText: z.string().trim().max(240).optional(),
+});
+
+const dynamicRoutePreviewInputSchema = z.object({
+  srvCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/),
+  token: z.string().trim().min(16).max(512),
 });
 
 const upsertStopInputSchema = z.object({
@@ -685,6 +727,39 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
+function buildAuditFingerprint(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  return createHash('sha256').update(value).digest('hex').slice(0, 24);
+}
+
+async function writeRouteAuditEvent(input: WriteRouteAuditEventInput): Promise<void> {
+  await db.collection(ROUTE_AUDIT_COLLECTION).add({
+    eventType: input.eventType,
+    actorUid: input.actorUid ?? null,
+    actorType: input.actorUid ? 'authenticated' : 'public',
+    routeId: input.routeId ?? null,
+    srvCode: input.srvCode ?? null,
+    status: input.status ?? 'success',
+    reason: input.reason ?? null,
+    requestIpHash: buildAuditFingerprint(input.requestIp ?? null),
+    metadata: input.metadata ?? {},
+    createdAt: new Date().toISOString(),
+  });
+}
+
+async function writeRouteAuditEventSafe(input: WriteRouteAuditEventInput): Promise<void> {
+  try {
+    await writeRouteAuditEvent(input);
+  } catch (error) {
+    console.error('route audit write failed', {
+      eventType: input.eventType,
+      errorMessage: toErrorMessage(error),
+    });
+  }
+}
+
 function buildWriterRevokeTaskId(routeId: string, driverId: string, tripId: string): string {
   return `${tripId}_${routeId}_${driverId}`;
 }
@@ -832,6 +907,14 @@ function parsePositiveIntValue(rawValue: unknown, fallback: number): number {
     return fallback;
   }
   return parsed;
+}
+
+function readJoinRouteRateWindowMs(): number {
+  return parsePositiveIntValue(process.env.JOIN_ROUTE_RATE_WINDOW_MS, JOIN_ROUTE_RATE_WINDOW_MS);
+}
+
+function readJoinRouteRateMaxCalls(): number {
+  return parsePositiveIntValue(process.env.JOIN_ROUTE_RATE_MAX_CALLS, JOIN_ROUTE_RATE_MAX_CALLS);
 }
 
 function readMapboxDirectionsConfigFromEnv(): MapboxDirectionsRuntimeConfig {
@@ -1016,6 +1099,119 @@ function parseMapboxDirectionsResponse(payload: unknown): {
     distanceMeters,
     durationSeconds,
   };
+}
+
+function readRoutePreviewSigningSecret(): string {
+  const secret =
+    process.env.ROUTE_PREVIEW_SIGNING_SECRET?.trim() ??
+    process.env.MAPBOX_PROXY_SIGNING_SECRET?.trim() ??
+    '';
+  if (!secret) {
+    throw new HttpsError('failed-precondition', 'ROUTE_PREVIEW_SIGNING_SECRET_MISSING');
+  }
+  return secret;
+}
+
+function readRoutePreviewRateWindowMs(): number {
+  return parsePositiveIntValue(
+    process.env.ROUTE_PREVIEW_RATE_WINDOW_MS,
+    ROUTE_PREVIEW_RATE_WINDOW_MS,
+  );
+}
+
+function readRoutePreviewRateMaxCalls(): number {
+  return parsePositiveIntValue(
+    process.env.ROUTE_PREVIEW_RATE_MAX_CALLS,
+    ROUTE_PREVIEW_RATE_MAX_CALLS,
+  );
+}
+
+function readRoutePreviewTokenTtlSeconds(): number {
+  return parsePositiveIntValue(
+    process.env.ROUTE_PREVIEW_TOKEN_TTL_SECONDS,
+    ROUTE_PREVIEW_TOKEN_DEFAULT_TTL_SECONDS,
+  );
+}
+
+function buildRoutePreviewToken({ srvCode, nowMs }: { srvCode: string; nowMs: number }): {
+  token: string;
+  expiresAtIso: string;
+} {
+  const ttlSeconds = readRoutePreviewTokenTtlSeconds();
+  const expiresAtMs = nowMs + ttlSeconds * 1000;
+  const expiresAtSeconds = Math.floor(expiresAtMs / 1000);
+  const payload = `${srvCode}.${expiresAtSeconds}`;
+  const signature = createHmac('sha256', readRoutePreviewSigningSecret())
+    .update(payload)
+    .digest('hex');
+  return {
+    token: `${payload}.${signature}`,
+    expiresAtIso: new Date(expiresAtMs).toISOString(),
+  };
+}
+
+function verifyRoutePreviewToken({
+  srvCode,
+  token,
+  nowMs,
+}: {
+  srvCode: string;
+  token: string;
+  nowMs: number;
+}): void {
+  const tokenParts = token.split('.');
+  if (tokenParts.length !== 3) {
+    throw new HttpsError('permission-denied', 'ROUTE_PREVIEW_TOKEN_INVALID');
+  }
+
+  const [tokenSrvCodeRaw, expiresAtSecondsRaw, signature] = tokenParts;
+  const tokenSrvCode = tokenSrvCodeRaw?.trim().toUpperCase();
+  if (!tokenSrvCode || tokenSrvCode !== srvCode) {
+    throw new HttpsError('permission-denied', 'ROUTE_PREVIEW_TOKEN_SCOPE_MISMATCH');
+  }
+
+  const expiresAtSeconds = Number.parseInt(expiresAtSecondsRaw ?? '', 10);
+  if (!Number.isFinite(expiresAtSeconds) || expiresAtSeconds <= 0) {
+    throw new HttpsError('permission-denied', 'ROUTE_PREVIEW_TOKEN_INVALID');
+  }
+
+  if (expiresAtSeconds * 1000 < nowMs) {
+    throw new HttpsError('permission-denied', 'ROUTE_PREVIEW_TOKEN_EXPIRED');
+  }
+
+  const payload = `${tokenSrvCode}.${expiresAtSeconds}`;
+  const expectedSignature = createHmac('sha256', readRoutePreviewSigningSecret())
+    .update(payload)
+    .digest('hex');
+  if (expectedSignature !== signature) {
+    throw new HttpsError('permission-denied', 'ROUTE_PREVIEW_TOKEN_INVALID_SIGNATURE');
+  }
+}
+
+function readRequestIpAddress(rawRequest: unknown): string {
+  const requestRecord = asRecord(rawRequest) ?? {};
+  const directIp = pickString(requestRecord, 'ip');
+  if (directIp) {
+    return directIp;
+  }
+
+  const requestHeaders = asRecord(requestRecord.headers) ?? {};
+  const forwardedFor = pickString(requestHeaders, 'x-forwarded-for');
+  if (forwardedFor) {
+    const first = forwardedFor.split(',')[0]?.trim();
+    if (first) {
+      return first;
+    }
+  }
+
+  return 'unknown';
+}
+
+function readRouteTimeSlot(value: unknown): 'morning' | 'evening' | 'midday' | 'custom' | null {
+  if (value === 'morning' || value === 'evening' || value === 'midday' || value === 'custom') {
+    return value;
+  }
+  return null;
 }
 
 async function createRouteWithSrvCode({
@@ -1612,39 +1808,151 @@ export const mapboxMapMatchingProxy = onCall(
   },
 );
 
-export const generateRouteShareLink = onCall(async (request) => {
-  const auth = requireAuth(request);
-  requireNonAnonymous(auth);
+export const generateRouteShareLink = onCall(
+  { secrets: ['ROUTE_PREVIEW_SIGNING_SECRET'] },
+  async (request) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
 
-  await requireRole({
-    db,
-    uid: auth.uid,
-    allowedRoles: ['driver', 'passenger'],
-  });
+    await requireRole({
+      db,
+      uid: auth.uid,
+      allowedRoles: ['driver', 'passenger'],
+    });
 
-  const input = validateInput(generateRouteShareLinkInputSchema, request.data);
-  const routeData = await requireRouteMember(input.routeId, auth.uid);
-  const srvCode = pickString(routeData, 'srvCode');
-  if (!srvCode) {
-    throw new HttpsError('failed-precondition', 'Route srvCode alani bulunamadi.');
-  }
+    const input = validateInput(generateRouteShareLinkInputSchema, request.data);
+    const routeData = await requireRouteMember(input.routeId, auth.uid);
+    const srvCode = pickString(routeData, 'srvCode');
+    if (!srvCode) {
+      throw new HttpsError('failed-precondition', 'Route srvCode alani bulunamadi.');
+    }
 
-  const landingUrl = `https://nerede.servis/r/${srvCode}`;
-  const systemShareTextRaw = input.customText?.trim();
-  const systemShareText =
-    systemShareTextRaw && systemShareTextRaw.length > 0
-      ? `${systemShareTextRaw} ${landingUrl}`
-      : `Nerede Servis daveti: ${landingUrl}`;
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(systemShareText)}`;
+    const nowMs = Date.now();
+    const previewTokenBundle = buildRoutePreviewToken({
+      srvCode,
+      nowMs,
+    });
 
-  return apiOk<GenerateRouteShareLinkOutput>({
-    routeId: input.routeId,
-    srvCode,
-    landingUrl,
-    whatsappUrl,
-    systemShareText,
-  });
-});
+    const landingUrl = `https://nerede.servis/r/${srvCode}`;
+    const signedLandingUrl = `${landingUrl}?t=${encodeURIComponent(previewTokenBundle.token)}`;
+    const systemShareTextRaw = input.customText?.trim();
+    const systemShareText =
+      systemShareTextRaw && systemShareTextRaw.length > 0
+        ? `${systemShareTextRaw} ${signedLandingUrl}`
+        : `Nerede Servis daveti: ${signedLandingUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(systemShareText)}`;
+    await writeRouteAuditEvent({
+      eventType: 'route_share_link_generated',
+      actorUid: auth.uid,
+      routeId: input.routeId,
+      srvCode,
+      metadata: {
+        customTextProvided: systemShareTextRaw != null && systemShareTextRaw.length > 0,
+      },
+    });
+
+    return apiOk<GenerateRouteShareLinkOutput>({
+      routeId: input.routeId,
+      srvCode,
+      landingUrl,
+      signedLandingUrl,
+      previewToken: previewTokenBundle.token,
+      previewTokenExpiresAt: previewTokenBundle.expiresAtIso,
+      whatsappUrl,
+      systemShareText,
+    });
+  },
+);
+
+export const getDynamicRoutePreview = onCall(
+  { secrets: ['ROUTE_PREVIEW_SIGNING_SECRET'] },
+  async (request) => {
+    const input = validateInput(dynamicRoutePreviewInputSchema, request.data);
+    const normalizedSrvCode = input.srvCode.trim().toUpperCase();
+    const requestIp = readRequestIpAddress(request.rawRequest);
+    const nowMs = Date.now();
+
+    try {
+      await enforceRateLimit({
+        db,
+        key: `route_preview_${normalizedSrvCode}_${requestIp}`,
+        windowMs: readRoutePreviewRateWindowMs(),
+        maxCalls: readRoutePreviewRateMaxCalls(),
+        exceededMessage: 'Route preview limiti asildi. Lutfen daha sonra tekrar dene.',
+      });
+
+      verifyRoutePreviewToken({
+        srvCode: normalizedSrvCode,
+        token: input.token,
+        nowMs,
+      });
+
+      const routeQuerySnap = await db
+        .collection('routes')
+        .where('srvCode', '==', normalizedSrvCode)
+        .where('isArchived', '==', false)
+        .limit(1)
+        .get();
+      if (routeQuerySnap.empty) {
+        throw new HttpsError('not-found', 'Route preview bulunamadi.');
+      }
+
+      const routeDoc = routeQuerySnap.docs[0];
+      if (!routeDoc) {
+        throw new HttpsError('not-found', 'Route preview bulunamadi.');
+      }
+      const routeData = asRecord(routeDoc.data()) ?? {};
+      const routeName = pickString(routeData, 'name');
+      if (!routeName) {
+        throw new HttpsError('failed-precondition', 'Route ad alani eksik.');
+      }
+
+      const driverUid = pickString(routeData, 'driverId');
+      if (!driverUid) {
+        throw new HttpsError('failed-precondition', 'Route owner bilgisi eksik.');
+      }
+
+      const driverDoc = await db.collection('drivers').doc(driverUid).get();
+      const driverData = asRecord(driverDoc.data());
+      const userDoc = await db.collection('users').doc(driverUid).get();
+      const userData = asRecord(userDoc.data());
+      const driverDisplayName =
+        pickString(driverData, 'name') ?? pickString(userData, 'displayName') ?? 'Servis Soforu';
+
+      const output: DynamicRoutePreviewOutput = {
+        routeId: routeDoc.id,
+        srvCode: normalizedSrvCode,
+        routeName,
+        driverDisplayName,
+        scheduledTime: pickString(routeData, 'scheduledTime'),
+        timeSlot: readRouteTimeSlot(routeData.timeSlot),
+        allowGuestTracking: routeData.allowGuestTracking === true,
+        deepLinkUrl: `neredeservis://route-preview?srvCode=${normalizedSrvCode}`,
+      };
+      await writeRouteAuditEventSafe({
+        eventType: 'route_preview_accessed',
+        actorUid: null,
+        routeId: output.routeId,
+        srvCode: output.srvCode,
+        requestIp,
+        metadata: {
+          allowGuestTracking: output.allowGuestTracking,
+        },
+      });
+      return apiOk<DynamicRoutePreviewOutput>(output);
+    } catch (error) {
+      await writeRouteAuditEventSafe({
+        eventType: 'route_preview_denied',
+        actorUid: null,
+        srvCode: normalizedSrvCode,
+        status: 'denied',
+        reason: error instanceof HttpsError ? String(error.code) : 'internal',
+        requestIp,
+      });
+      throw error;
+    }
+  },
+);
 
 export const updateRoute = onCall(async (request) => {
   const auth = requireAuth(request);
@@ -1795,6 +2103,13 @@ export const joinRouteBySrvCode = onCall(async (request) => {
     uid: auth.uid,
     allowedRoles: ['passenger'],
   });
+  await enforceRateLimit({
+    db,
+    key: `join_route_${auth.uid}`,
+    windowMs: readJoinRouteRateWindowMs(),
+    maxCalls: readJoinRouteRateMaxCalls(),
+    exceededMessage: 'SRV katilim deneme limiti asildi. Lutfen daha sonra tekrar dene.',
+  });
 
   const input = validateInput(joinRouteBySrvCodeInputSchema, request.data);
   const routeQuery = await db
@@ -1856,6 +2171,15 @@ export const joinRouteBySrvCode = onCall(async (request) => {
       },
       { merge: true },
     );
+  });
+  await writeRouteAuditEvent({
+    eventType: 'route_joined_by_srv',
+    actorUid: auth.uid,
+    routeId: routeDoc.id,
+    srvCode: input.srvCode,
+    metadata: {
+      showPhoneToDriver: input.showPhoneToDriver,
+    },
   });
 
   return apiOk<JoinRouteBySrvCodeOutput>({

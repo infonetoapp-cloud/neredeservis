@@ -1,12 +1,14 @@
 # NeredeServis API Contracts (V1.0)
 
 ## Global Rules
+
 - All timestamps stored in UTC.
 - `scheduledTime` and `notificationTime` are interpreted in `Europe/Istanbul` timezone.
 - No callable uses `any` for input/output.
 - `requestId` and `serverTime` exist on every success response.
 
 ## Shared Types
+
 ```ts
 export type Role = "driver" | "passenger" | "guest";
 
@@ -23,6 +25,7 @@ export interface GeoPointDto {
 ```
 
 ## Firestore Collection Schemas (STEP-063..065)
+
 ```ts
 export interface UserDoc {
   role: Role; // server authority
@@ -133,6 +136,7 @@ export interface TripRequestDoc {
 ```
 
 Schema guardrails:
+
 - Direct client writes to `users`, `drivers`, `routes` are forbidden.
 - Only callable/server paths may mutate these collections.
 - `memberIds` is server-derived: `driverId U authorizedDriverIds U passengerIds`.
@@ -140,6 +144,7 @@ Schema guardrails:
 - `trip_requests` document id contract: `{uid}_{idempotencyKey}`.
 
 ## Route and Trip
+
 ```ts
 export interface CreateRouteInput {
   name: string;
@@ -256,6 +261,7 @@ export interface FinishTripOutput {
 ```
 
 ## Auth Profile and Consent
+
 ```ts
 export interface BootstrapUserProfileInput {
   displayName: string;
@@ -305,6 +311,7 @@ export interface UpsertDriverProfileOutput {
 ```
 
 ## Passenger and Guest
+
 ```ts
 export interface UpdatePassengerSettingsInput {
   routeId: string;
@@ -347,12 +354,15 @@ export interface CreateGuestSessionOutput {
 ```
 
 Guest session guardrails:
+
 - `createGuestSession` can run with anonymous auth; other callables require non-anonymous auth.
 - If `users/{uid}` is missing, server bootstraps `role="guest"` profile atomically.
 - `allowGuestTracking != true` routes are rejected.
 - Successful create writes RTDB grant under `guestReaders/{routeId}/{guestUid}` with TTL.
+- `joinRouteBySrvCode` abuse prevention zorunlu: user bazli deneme limiti `_rate_limits/join_route_{uid}` uzerinden uygulanir.
 
 ## Ghost Drive and Maps
+
 ```ts
 export interface TracePointDto {
   lat: number;
@@ -407,12 +417,14 @@ export interface MapboxMapMatchingProxyOutput {
 ```
 
 Mapbox proxy guardrails:
+
 - `mapboxDirectionsProxy` default-state kapali calisir (`MAPBOX_DIRECTIONS_DISABLED`) ve runtime flag ile acilir.
 - Directions cagrilarinda route-level rate limit (`_rate_limits`) ve aylik hard cap (`_usage_counters`) zorunludur.
 - Directions istegi server tarafinda imzalanir (`MAPBOX_PROXY_SIGNING_SECRET` varsa `requestSignature` uretir).
 - `mapboxMapMatchingProxy` path'i `applyMapMatchingWithGuard` kullanir: budget dolu/timeout/upstream hata durumunda graceful fallback doner.
 
 ## Device and Support
+
 ```ts
 export interface RegisterDeviceInput {
   deviceId: string;
@@ -449,6 +461,7 @@ export interface CreateSupportReportOutput {
 ```
 
 ## Billing and Directory
+
 ```ts
 export interface GetSubscriptionStateInput {}
 
@@ -480,8 +493,27 @@ export interface GenerateRouteShareLinkOutput {
   routeId: string;
   srvCode: string;
   landingUrl: string; // https://nerede.servis/r/{srvCode}
+  signedLandingUrl: string; // https://nerede.servis/r/{srvCode}?t=<signedToken>
+  previewToken: string; // signed token for dynamic preview endpoint
+  previewTokenExpiresAt: string; // ISO-8601 UTC
   whatsappUrl: string; // https://wa.me/?text=...
   systemShareText: string; // share-sheet fallback text
+}
+
+export interface GetDynamicRoutePreviewInput {
+  srvCode: string; // 6-char srv code
+  token: string; // signed token from generateRouteShareLink
+}
+
+export interface GetDynamicRoutePreviewOutput {
+  routeId: string;
+  srvCode: string;
+  routeName: string;
+  driverDisplayName: string;
+  scheduledTime: string | null; // HH:mm
+  timeSlot: "morning" | "evening" | "midday" | "custom" | null;
+  allowGuestTracking: boolean;
+  deepLinkUrl: string; // neredeservis://route-preview?srvCode=...
 }
 
 export interface SearchDriverDirectoryInput {
@@ -499,20 +531,43 @@ export interface SearchDriverDirectoryOutput {
 ```
 
 Directory callable guardrails:
+
 - Caller must be authenticated with `users/{uid}.role == "driver"`.
 - Rate limit: max `30` request / `60s` per uid.
 - Query strategy: exact hash lookup on `searchPhoneHash` + `searchPlateHash`.
 - Returned fields are strictly masked: `driverId`, `displayName`, `plateMasked`.
 
 Share link callable guardrails:
+
 - Caller must be authenticated and non-anonymous (`driver` or `passenger`).
 - Caller must be route member (owner/authorized/passenger).
 - Output always includes:
   - `landingUrl` (canonical)
+  - `signedLandingUrl` + `previewToken` + `previewTokenExpiresAt`
   - `whatsappUrl` (explicit WhatsApp target)
   - `systemShareText` (WhatsApp yoksa share-sheet fallback metni)
 
+Dynamic route preview endpoint guardrails (`getDynamicRoutePreview`):
+
+- Endpoint auth gerektirmez (landing page/public preview icin).
+- `token` zorunlu ve imzali (HMAC); `srvCode` scope + expiry dogrulanir.
+- Rate limit zorunlu: `srvCode + ip` bazinda window/limit uygulanir.
+- Cikti yalniz mini preview metadata icerir; telefon/PII alanlari expose edilmez.
+
+Audit event contract (STEP-290):
+
+- Collection: `_audit_route_events`.
+- `generateRouteShareLink` basarili oldugunda `eventType=route_share_link_generated` yazilir.
+- `getDynamicRoutePreview` icin:
+  - basarili cagrida `eventType=route_preview_accessed`
+  - red cagrida `eventType=route_preview_denied` (`status=denied`, reason code)
+- `joinRouteBySrvCode` basarili oldugunda `eventType=route_joined_by_srv` yazilir.
+- Audit payload minimum alanlar:
+  - `eventType`, `actorUid|actorType`, `routeId`, `srvCode`, `status`, `createdAt`
+  - `requestIpHash` (ham IP tutulmaz, hashlenmis fingerprint tutulur)
+
 ## Landing Contract (`/r/{srvCode}`) (STEP-287A)
+
 - URL: `https://nerede.servis/r/{srvCode}`
 - Contract:
   - Uygulama yuklu degilse:
@@ -525,17 +580,20 @@ Share link callable guardrails:
   - hassas veriler (telefon, secret token, private diagnostics) expose edilmez.
 
 ## Guardrail Summary
+
 - Premium access is enforced server-side.
 - `expectedTransitionVersion` is mandatory for trip transitions.
 - `srvCode` generation is server-side and collision-safe.
 
 ## Transaction Helper Contract
+
 - Tum Firestore state-transition yazimlari ortak helper katmani ile calisir:
   - `runTransactionVoid(...)`
   - `runTransactionWithResult<T>(...)`
 - Islem kurallari endpointten bagimsiz, helper seviyesinde tek bir transaction semantigiyle korunur.
 
 ## Idempotency Repository Contract
+
 - Trip lifecycle idempotency repository kurali:
   - doc id: `trip_requests/{uid}_{idempotencyKey}`
   - `requestType`: `start_trip | finish_trip`
@@ -547,6 +605,7 @@ Share link callable guardrails:
 - Replay kaydi mevcutsa ayni `requestType` zorunludur; farkli tipte kullanim `FAILED_PRECONDITION` dondurur.
 
 ## startTrip Contract
+
 - `startTrip` is invoked after client-side `10s` undo window closes.
 - Input must include `idempotencyKey` + `expectedTransitionVersion`.
 - Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
@@ -555,6 +614,7 @@ Share link callable guardrails:
 - Trip-start notification cooldown key lives on route doc: `lastTripStartedNotificationAt` (`15dk`).
 
 ## finishTrip Contract
+
 - Input must include `idempotencyKey` + `expectedTransitionVersion`.
 - Device ownership rule: `finishTrip.deviceId` must match trip `startedByDeviceId` (public endpointte override yok).
 - Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
@@ -565,6 +625,7 @@ Share link callable guardrails:
   - callable anlik revoke'u best-effort uygular; basarisiz olursa task `pending` kalir ve scheduler retry eder.
 
 ## Reconciliation Triggers
+
 - `syncPassengerCount`:
   - source: `routes/{routeId}/passengers/*` writes
   - effect: `routes/{routeId}.passengerCount` is recomputed from actual passenger docs.
@@ -579,6 +640,7 @@ Share link callable guardrails:
   - stale payloads always go to `trips/{tripId}/location_history/*` and never move live heartbeat backwards.
 
 ## abandonedTripGuard Contract
+
 - Schedule: every `10 minutes` (fallback guard).
 - Query contract:
   - `trips.where(status == "active").where(lastLocationAt <= cutoffIso).limit(200)`.
@@ -590,6 +652,7 @@ Share link callable guardrails:
   - `node --input-type=module ... where('status','==','active').where('lastLocationAt','<=',cutoff)...` query succeeded.
 
 ## Subscription Enforcement Contract (server-side, V1.0)
+
 - `getSubscriptionState` is the only authority for subscription state.
 - Client-side paywall state never unlocks premium behavior by itself.
 - `startTrip` and `finishTrip` are never blocked only because of subscription.
@@ -600,11 +663,13 @@ Share link callable guardrails:
 - `sendDriverAnnouncement` is premium-gated (allowed: `active` or `trial`; denied: `expired` or `mock`).
 
 ## Device Ownership Contract (finishTrip)
+
 - `finishTrip.deviceId` must match trip `startedByDeviceId`.
 - Mismatch result: `PERMISSION_DENIED`.
 - Emergency override is not part of public callable input; it is server-admin only and must create an audit log.
 
 ## Single Active Device Contract (registerDevice)
+
 - `registerDevice` authority: `drivers/{uid}` doc.
 - On every successful call:
   - `drivers/{uid}.activeDeviceId` and `activeDeviceToken` are replaced with request values.
@@ -616,6 +681,7 @@ Share link callable guardrails:
 - `previousDeviceRevoked` is `true` only when active device id changes.
 
 ## morningReminderDispatcher Contract
+
 - Scheduler runs every minute in UTC runtime.
 - Comparison is made in `Europe/Istanbul` timezone:
   - parse each route `scheduledTime` as Istanbul local `HH:mm`.
@@ -626,6 +692,7 @@ Share link callable guardrails:
 - Dispatch payload is enqueued to `_notification_outbox` with type `morning_reminder`.
 
 ## Duplicate Push Prevention Contract
+
 - Ortak dedupe mekanizmasi: `enqueueOutboxWithDedupe(...)`.
 - Isleyis:
   - `_notification_dedup/{dedupeKey}` varsa yeni outbox olusmaz.
@@ -636,6 +703,7 @@ Share link callable guardrails:
   - `driver_announcement_dispatch`
 
 ## cleanupStaleData Contract
+
 - Schedule: `03:00` (`Europe/Istanbul`).
 - Batch cleanup limit: `200` doc/run/collection.
 - Expired delete scope (`expiresAt <= now`):
@@ -650,6 +718,7 @@ Share link callable guardrails:
   - collection-group `skip_requests` icinde `dateKey < today(Europe/Istanbul)` kayitlari temizlenir.
 
 ## cleanupRouteWriters Contract
+
 - Schedule: every `5 minutes`.
 - Phase-1 retry queue:
   - `_writer_revoke_tasks.where(status == "pending").limit(200)` taranir.
@@ -659,18 +728,21 @@ Share link callable guardrails:
   - Ilgili `trips` kaydinda aktif (`status="active"`) sefer yoksa writer flag `false` yapilir.
 
 ## guestSessionTtlEnforcer Contract
+
 - Schedule: every `5 minutes`.
 - `guest_sessions` icinde `expiresAt <= now` ve `status == "active"` kayitlari:
   - `status = "expired"` olarak isaretlenir.
   - `guestReaders/{routeId}/{guestUid}` RTDB erisimi aktif olarak revoke edilir (`active=false`).
 
 ## skip_requests Single-Day Contract
+
 - Tek-gun tek-kayit anahtari: `routes/{routeId}/skip_requests/{uid}_{dateKey}`.
 - Callable sadece `dateKey == today(Europe/Istanbul)` kabul eder.
 - Ayni gun tekrar cagrilarinda yeni kayit acilmaz; mevcut dokuman yeniden kullanilir.
 - `idempotencyKey` ilk olusan deger olarak sabitlenir (tekrar cagrida degistirilmez).
 
 ## srvCode Generation Contract
+
 - Alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (ambiguous chars yok).
 - Length: `6`.
 - Generation: `nanoid(6, alphabet)`.
