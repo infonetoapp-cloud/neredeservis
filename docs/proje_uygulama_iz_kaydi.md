@@ -5609,3 +5609,45 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 199: PII filter helper.
+
+## STEP-199 - PII Filter Helper
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Log/diagnostic metinlerinde PII sizmasini azaltmak icin genel redaction helper eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/pii_filter_helper.dart`
+2. `apply_patch` -> `test/domain/pii_filter_helper_test.dart`
+3. `dart format lib/features/domain/data/pii_filter_helper.dart test/domain/pii_filter_helper_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (199 `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (199 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `PiiFilterHelper` eklendi:
+  - `redactText(String)` -> email/phone/srv/idempotency key redaction
+  - `redactMap(Map<String,dynamic>)` -> key bazli + recursive redaction
+  - `redactDynamic(dynamic)` -> string/map/list recursive redaction
+- Sensitive key patternleri maskeleniyor:
+  - `phone`, `email`, `token`, `password`, `idempotency`, `uid`
+
+### Test Kapsami
+- `pii_filter_helper_test.dart`:
+  - metin redaction
+  - nested map/list redaction
+  - primitive degerlerin korunmasi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 133 test passed.
+
+### Sonraki Adim
+- Faz E / 200: mapper coverage >= %80 dogrulama.
