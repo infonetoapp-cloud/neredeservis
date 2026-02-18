@@ -513,6 +513,17 @@ Directory callable guardrails:
   - freshness window: `timestamp in [now-30000, now+5000]` ise `live`; aksi halde `offline_replay`.
   - stale payloads always go to `trips/{tripId}/location_history/*` and never move live heartbeat backwards.
 
+## abandonedTripGuard Contract
+- Schedule: every `10 minutes` (fallback guard).
+- Query contract:
+  - `trips.where(status == "active").where(lastLocationAt <= cutoffIso).limit(200)`.
+  - required index: `status ASC, lastLocationAt ASC`.
+- Transition contract:
+  - stale active trip -> `status="abandoned"`, `endReason="auto_abandoned"`, `transitionVersion +1`.
+  - writer revoke: `routeWriters/{routeId}/{driverId}=false`.
+- Emulator query-plan evidence (smoke):
+  - `node --input-type=module ... where('status','==','active').where('lastLocationAt','<=',cutoff)...` query succeeded.
+
 ## Subscription Enforcement Contract (server-side, V1.0)
 - `getSubscriptionState` is the only authority for subscription state.
 - Client-side paywall state never unlocks premium behavior by itself.

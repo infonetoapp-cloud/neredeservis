@@ -5,6 +5,7 @@ import { onValueWritten } from 'firebase-functions/v2/database';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { z } from 'zod';
 
 import { apiOk } from './common/api_response.js';
@@ -47,6 +48,7 @@ const TRIP_REQUEST_TTL_DAYS = 7;
 const TRIP_STARTED_NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000;
 const LIVE_LOCATION_MAX_AGE_MS = 30_000;
 const LIVE_LOCATION_FUTURE_TOLERANCE_MS = 5_000;
+const ABANDONED_TRIP_STALE_WINDOW_MS = 10 * 60 * 1000;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -2237,3 +2239,69 @@ export const syncTripHeartbeatFromLocation = onValueWritten(
     );
   },
 );
+
+export const abandonedTripGuard = onSchedule('every 10 minutes', async () => {
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const staleCutoffIso = new Date(nowMs - ABANDONED_TRIP_STALE_WINDOW_MS).toISOString();
+  const staleTripCandidatesSnap = await db
+    .collection('trips')
+    .where('status', '==', 'active')
+    .where('lastLocationAt', '<=', staleCutoffIso)
+    .limit(200)
+    .get();
+
+  const writerRevokeTargets = new Set<string>();
+
+  for (const tripDoc of staleTripCandidatesSnap.docs) {
+    await db.runTransaction(async (tx) => {
+      const tripRef = db.collection('trips').doc(tripDoc.id);
+      const tripSnap = await tx.get(tripRef);
+      if (!tripSnap.exists) {
+        return;
+      }
+
+      const tripData = asRecord(tripSnap.data()) ?? {};
+      if (pickString(tripData, 'status') !== 'active') {
+        return;
+      }
+
+      const lastLocationAtIso = pickString(tripData, 'lastLocationAt');
+      const lastLocationAtMs = parseIsoToMs(lastLocationAtIso);
+      if (lastLocationAtMs == null || lastLocationAtMs > nowMs - ABANDONED_TRIP_STALE_WINDOW_MS) {
+        return;
+      }
+
+      const routeId = pickString(tripData, 'routeId');
+      const driverId = pickString(tripData, 'driverId');
+      if (!routeId || !driverId) {
+        return;
+      }
+
+      const nextTransitionVersion = readTransitionVersion(tripData) + 1;
+      tx.update(tripRef, {
+        status: 'abandoned',
+        endedAt: nowIso,
+        endReason: 'auto_abandoned',
+        transitionVersion: nextTransitionVersion,
+        updatedAt: nowIso,
+      });
+
+      writerRevokeTargets.add(`${routeId}:${driverId}`);
+    });
+  }
+
+  if (writerRevokeTargets.size === 0) {
+    return;
+  }
+
+  await Promise.all(
+    Array.from(writerRevokeTargets.values()).map(async (target) => {
+      const [routeId, driverId] = target.split(':', 2);
+      if (!routeId || !driverId) {
+        return;
+      }
+      await rtdb.ref(`routeWriters/${routeId}/${driverId}`).set(false);
+    }),
+  );
+});

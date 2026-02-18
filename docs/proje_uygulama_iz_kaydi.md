@@ -7054,3 +7054,55 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 250: `abandonedTripGuard` schedule function.
+
+## STEP-250-250A - abandonedTripGuard Schedule + Query/Index Kontrati
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 250: stale aktif tripleri fallback schedule ile otomatik sonlandiran `abandonedTripGuard`.
+- 250A: sorgu/index kontratini netlestirmek ve emulator query smoke kaniti eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`onSchedule` import + stale window constant)
+2. `apply_patch` -> `functions/src/index.ts` (`abandonedTripGuard` schedule implementasyonu)
+3. `npm --prefix functions run build`
+4. `npm --prefix functions run lint`
+5. `npm --prefix functions run format:check`
+6. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+7. `$env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; node --input-type=module -e \"...where('status','==','active').where('lastLocationAt','<=',cutoff)...\"` (`functions/` query smoke)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (250, 250A `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (250, 250A `[x]`)
+10. `apply_patch` -> `docs/api_contracts.md` (`abandonedTripGuard` contract + index note + smoke evidence)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `abandonedTripGuard` schedule function eklendi (`every 10 minutes`).
+- Query kontrati:
+  - `trips.where(status='active').where(lastLocationAt <= cutoffIso).limit(200)`.
+- Stale trip transition:
+  - `status=abandoned`
+  - `endReason='auto_abandoned'`
+  - `transitionVersion` atomik artiriliyor.
+- Side-effect:
+  - stale trip'in RTDB writer yetkisi `routeWriters/{routeId}/{driverId}=false` ile revoke ediliyor.
+- Query/index smoke kaniti:
+  - emulator uzerinde ayni query shape ile sorgu calistirildi (`docs=0`, hata yok).
+
+### Hata Kaydi (Silinmez)
+- Query smoke komutunda GCE metadata timeout warning'i goruldu.
+  - Not: emulator lokal sorgu sonucunu etkilemedi; query basarili tamamlandi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+- Emulator query smoke (`status + lastLocationAt`) -> pass.
+
+### Sonraki Adim
+- Faz F / 251: `morningReminderDispatcher` schedule function.
