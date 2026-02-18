@@ -477,8 +477,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 195 Idempotency key helper yaz.
 - [x] 196 Date/time validator yaz (`HH:mm`, `YYYY-MM-DD`).
 - [x] 196A Timezone kontratini sabitle: `scheduledTime` her zaman `Europe/Istanbul` timezone'unda yorumlanir; timestamp'ler UTC saklanir.
-- [ ] 197 Srv code validator yaz (`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`).
-- [ ] 197A SRV kod algoritmasini dokumante et: `nanoid(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')`, collision retry max `5`.
+- [x] 197 Srv code validator yaz (`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`).
+- [x] 197A SRV kod algoritmasini dokumante et: `nanoid(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')`, collision retry max `5`.
 - [ ] 198 Phone masking helper yaz.
 - [ ] 199 PII filter helper yaz.
 - [ ] 200 Unit test: mapper coverage >= %80.

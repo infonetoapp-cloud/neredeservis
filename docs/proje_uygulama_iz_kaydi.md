@@ -5515,3 +5515,54 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 197: SRV code validator (`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`).
+
+## STEP-197..197A - SRV Code Validator + Algoritma Dokumani
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- SRV kodu regex kontratini helper seviyesinde standardize etmek.
+- SRV kod uretim algoritmasini (nanoid + collision retry) tek dokumanda sabitlemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/srv_code_validator.dart`
+2. `apply_patch` -> `test/domain/srv_code_validator_test.dart`
+3. `apply_patch` -> `docs/srv_code_algorithm.md`
+4. `dart format lib/features/domain/data/srv_code_validator.dart test/domain/srv_code_validator_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (197, 197A `[x]`)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (197, 197A `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `SrvCodeValidator` eklendi:
+  - `isValid`
+  - `normalize`
+  - `isNormalizedAndValid`
+  - `assertValid`
+- Regex kontrati sabitlendi:
+  - `^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`
+- SRV algoritma dokumani eklendi:
+  - `docs/srv_code_algorithm.md`
+  - `nanoid(6, alphabet)`
+  - collision retry max `5`
+  - deterministic failure: `RESOURCE_EXHAUSTED` + `SRVCODE_COLLISION_LIMIT`
+
+### Test Kapsami
+- `srv_code_validator_test.dart`:
+  - valid/invalid kodlar
+  - ambiguous char rejection (`I,O,1,0`)
+  - normalize davranisi
+  - assertValid exception davranisi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 126 test passed.
+
+### Sonraki Adim
+- Faz E / 198: Phone masking helper.
