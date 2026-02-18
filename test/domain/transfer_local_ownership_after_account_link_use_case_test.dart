@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:neredeservis/features/domain/application/transfer_local_ownership_after_account_link_use_case.dart';
+import 'package:neredeservis/features/domain/application/domain_use_cases.dart';
 import 'package:neredeservis/features/domain/data/local_drift_database.dart';
 import 'package:neredeservis/features/domain/data/local_queue_repository.dart';
 

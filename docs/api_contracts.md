@@ -115,6 +115,10 @@ export interface GuestSessionDoc {
   expiresAt: string; // UTC timestamp
   status: "active" | "expired" | "revoked";
   createdAt: string; // UTC timestamp
+  // optional local ownership linkage snapshot (guest -> account migration)
+  ownerUid?: string;
+  previousOwnerUid?: string | null;
+  migratedAt?: string | null; // UTC timestamp
 }
 
 export interface TripRequestDoc {

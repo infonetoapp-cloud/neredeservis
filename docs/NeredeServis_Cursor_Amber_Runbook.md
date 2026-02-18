@@ -1,4 +1,4 @@
-# NeredeServis - Cursor Uygulama Runbook (Amber UIX, Cok Detayli)
+﻿# NeredeServis - Cursor Uygulama Runbook (Amber UIX, Cok Detayli)
 
 **Versiyon:** v1.2  
 **Tarih:** 2026-02-16  
@@ -16,7 +16,7 @@
 - Belirsizlik olursa Cursor tahmin etmez; once sorar.
 - Ucretsiz limitleri asmak icin coklu hesap kullanimi yapilmaz (ToS ihlali riski).
 - Cursor'a ayni anda tum fazlar verilmez; her calismada sadece aktif faz + onceki fazin cikti dosyalari context'e verilir.
-- API key hardening onboarding kuralı zorunlu:
+- API key hardening onboarding kuralÄ± zorunlu:
   - Yeni muhendis/ajan ilk gun `scripts/harden_firebase_api_keys.ps1` scriptini en az `backup` ve `verify` modlarinda calistirir.
   - Firebase key/restriction degisikligi yapildiginda `apply` + `verify` birlikte calistirilir.
   - Cikti kaniti `docs/proje_uygulama_iz_kaydi.md` dosyasina ayni gun eklenir.
@@ -84,7 +84,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - Standart bosluklar: `8, 12, 16, 20, 24, 32`
 - Radius: `14, 20, 28`
 
-### 3.4 UI Davraniş Kurali
+### 3.4 UI DavraniÅŸ Kurali
 - Tek ekranda tek ana karar
 - Birincil CTA amber, ikincil CTA koyu/outline
 - Driver aktif sefer ekraninda sade harita + guidance bilgisi + heartbeat disinda oge yok
@@ -117,7 +117,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 ### 3.7 QR Giris ve Viral Donusum Kurali
 - V1.0: QR -> landing page -> store akisi kabul.
 - V1.1: iOS App Clip + Android Instant App kesif ve entegrasyon plani zorunlu.
-- Amaç: "Sadece bak-cik" kullanicisini uygulama indirmeden native mini deneyime almak.
+- AmaÃ§: "Sadece bak-cik" kullanicisini uygulama indirmeden native mini deneyime almak.
 - App Clip/Instant App ekraninda tek CTA: `Bildirim almak icin tam uygulamayi indir`.
 
 ### 3.8 Izin Isteme Zamani ve Red/Fallback Kurali
@@ -498,17 +498,17 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 208 Cache invalidation kurali yaz.
 - [x] 209 Logger ile PII redaction dogrula.
 - [x] 210 DOGRULAMA: debug loglarda PII sizmiyor mu?
-- [ ] 211 `api_contracts.md` ile data katmani uyum kontrolu yap.
-- [ ] 212 Tip guvenligi analizini calistir.
-- [ ] 213 Dead code taramasi yap.
-- [ ] 214 Use-case klasorlerini sadeleştir.
-- [ ] 215 Performance baseline olcumu al.
-- [ ] 216 Memory leak taramasi yap.
-- [ ] 217 DOGRULAMA: test + analyze + build temiz mi?
-- [ ] 217A KULLANICIDAN ONAY ISTE: "Misafir -> Kayitli gecisinde lokal veriler eksiksiz tasindi mi?".
-- [ ] 218 KULLANICIDAN ONAY ISTE: "Domain/Data katmani onayi".
-- [ ] 219 Onay yoksa bug listesi ac.
-- [ ] 220 Faz E kapanis raporu yaz.
+- [x] 211 `api_contracts.md` ile data katmani uyum kontrolu yap.
+- [x] 212 Tip guvenligi analizini calistir.
+- [x] 213 Dead code taramasi yap.
+- [x] 214 Use-case klasorlerini sadeleştir.
+- [x] 215 Performance baseline olcumu al.
+- [x] 216 Memory leak taramasi yap.
+- [x] 217 DOGRULAMA: test + analyze + build temiz mi?
+- [x] 217A KULLANICIDAN ONAY ISTE: "Misafir -> Kayitli gecisinde lokal veriler eksiksiz tasindi mi?".
+- [x] 218 KULLANICIDAN ONAY ISTE: "Domain/Data katmani onayi".
+- [x] 219 Onay yoksa bug listesi ac (N/A: onay verildi).
+- [x] 220 Faz E kapanis raporu yaz.
 
 ## FAZ F - Cloud Functions ve Yetki Mantigi (221-300)
 
@@ -531,7 +531,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 236 `updateRoute` callable yaz.
 - [ ] 236A `createRouteFromGhostDrive` callable yaz (trace -> route + stop candidate donusumu).
 - [ ] 236B Ghost trace sanitize kurali yaz (min point, max point, duplicate point drop, distance threshold).
-- [ ] 236C Ghost trace polyline'i Douglas-Peucker ile sadeleştir (epsilon politikasi + max point limiti + Firestore boyut guard).
+- [ ] 236C Ghost trace polyline'i Douglas-Peucker ile sadeleÅŸtir (epsilon politikasi + max point limiti + Firestore boyut guard).
 - [ ] 236D Ghost trace post-process icin Map Matching adimini ekle (DP sonrasi snapped geometri; hata olursa DP fallback).
 - [ ] 236E Map Matching maliyet guard'i bagla (remote config ac/kapa + aylik request hard cap + timeout fallback).
 - [ ] 237 `upsertStop` callable yaz.
@@ -613,7 +613,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 285 Token rotation + audit cron notu ekle.
 - [ ] 286 DOGRULAMA: secret token client buildde yok mu?
 - [ ] 287 WhatsApp share URL generator function yaz (WhatsApp yoksa sistem share sheet fallback).
-- [ ] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yüklü degilse mini route karti + store CTA; app yüklüyse deep link.
+- [ ] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yÃ¼klÃ¼ degilse mini route karti + store CTA; app yÃ¼klÃ¼yse deep link.
 - [ ] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).
 - [ ] 289 Abuse prevention icin join deneme limiti koy.
 - [ ] 290 Audit log eventlerini yaz.
@@ -662,10 +662,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 317 Driver finish trip aksiyonunu bagla.
 - [ ] 317A `Seferi Bitir` aksiyonunu guvenli hale getir (`slide-to-finish` veya `uzun bas`, tek tap yok).
 - [ ] 317B `Seferi Bitir` guvenli aksiyonu icin haptic+gorsel geri bildirim ekle; 3 sn icinde geri alma yoksa finalize et.
-- [ ] 317C KULLANICIDAN ONAY ISTE: "`Seferi Bitir` icin secilen guvenli etkileşim (slide/uzun bas) kabul mu?".
+- [ ] 317C KULLANICIDAN ONAY ISTE: "`Seferi Bitir` icin secilen guvenli etkileÅŸim (slide/uzun bas) kabul mu?".
 - [ ] 318 Announcement gonderme akisini bagla.
 - [ ] 319 WhatsApp share intent bagla (WhatsApp/WhatsApp Business dene; app yoksa sistem share sheet fallback + hata mesaji).
-- [ ] 319A Paylasim linki tiklaninca davranisi netlestir: app yüklü degilse landing page mini takip karti + store; yüklüyse deep link ile route preview.
+- [ ] 319A Paylasim linki tiklaninca davranisi netlestir: app yÃ¼klÃ¼ degilse landing page mini takip karti + store; yÃ¼klÃ¼yse deep link ile route preview.
 - [ ] 320 RTDB location stream dinlemeyi bagla.
 - [ ] 321 Location publish service yaz.
 - [ ] 321A Replay edilen konum kaydi `now - sampledAt > 60 sn` ise canli RTDB path'ine yazma; sadece history path'ine yaz.
@@ -674,7 +674,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 322A AndroidManifest'te servis tipini zorunlu tanimla: `foregroundServiceType=\"location\"`.
 - [ ] 322B Android izin setini dogrula: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK` (gereksiz izin yok).
 - [ ] 322C FGS bildirim metnini policy uyumlu sabitle: `NeredeServis konumunuzu paylasiyor (aktif sefer)`.
-- [ ] 322D Role-based permission gate uygula: konum izni sadece sofor akışında istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
+- [ ] 322D Role-based permission gate uygula: konum izni sadece sofor akÄ±ÅŸÄ±nda istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
 - [ ] 322E Bildirim izni orkestrasyonunu uygula: onboarding'de toplu isteme yok, deger aninda isteme (yolcu katilim/sofor duyuru tetigi).
 - [ ] 322F Bildirim izni red fallback'ini uygula: push kapaliyken in-app banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
 - [ ] 323 iOS background location ayarlarini bagla.
@@ -758,7 +758,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 349 Empty state UI metinlerini finalize et.
 - [ ] 350 Form validation mesajlarini finalize et.
 - [ ] 351 Localization anahtarlarini olustur (TR odakli).
-- [ ] 351A UTF-8 validation testi ekle (TR karakterleri: `ı, ş, ğ, ü, ö, ç` bozulmadan render/l10n dosyalarinda duruyor mu).
+- [ ] 351A UTF-8 validation testi ekle (TR karakterleri: `Ä±, ÅŸ, ÄŸ, Ã¼, Ã¶, Ã§` bozulmadan render/l10n dosyalarinda duruyor mu).
 - [ ] 352 Kullanici dostu hata metinlerini yaz.
 - [ ] 352A Sofor icin odeme/abonelik entry pointlerini bagla: `Ayarlar > Abonelik`, `Deneme bitince banner`, `premium aksiyon aninda paywall`.
 - [ ] 352AA V1.0 monetization kilidi: gercek Adapty SDK purchase akisini acma; `getSubscriptionState` mock/read-only cevaplariyla UI ve soft-lock davranisini test et.
@@ -919,7 +919,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 447 Sonraki sprint icin risk toplantisi yap.
 - [ ] 448 Kullanici geri bildirimlerini urun ekibine aktar.
 - [ ] 449 NPS/retention olcum planini yaz.
-- [ ] 450 İlk 30 gun operasyon takvimini olustur.
+- [ ] 450 Ä°lk 30 gun operasyon takvimini olustur.
 - [ ] 451 Week-1 incident review.
 - [ ] 452 Week-2 performance review.
 - [ ] 453 Week-3 cost review.
@@ -954,7 +954,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - O-17 Storefront bazli billing policy onayi (TR/US vb.)
 - O-18 Ghost Drive varsayilan akisi + stop adayi onayi
 - O-19 Delay inference esigi onayi (`scheduled + 10 dk`)
-- O-20 `Seferi Bitir` guvenli etkileşim onayi (`slide` veya `uzun bas`)
+- O-20 `Seferi Bitir` guvenli etkileÅŸim onayi (`slide` veya `uzun bas`)
 - O-21 Heartbeat red alarm pattern onayi (flash + haptic)
 - O-22 `Bugun Binmiyorum` liste siralama/strikethrough onayi
 - O-23 Hesap silme oncesi aktif abonelik interceptor metni/onayi
@@ -1061,4 +1061,5 @@ Kopyala-yapistir cevap seti:
 - Her kritik adimda kanit + dogrulama + onay gerekir.
 - Onaysiz production degisikligi yapilmaz.
 - Limit asimi icin coklu hesap acarak ucretsiz model suistimali yapilmaz.
+
 

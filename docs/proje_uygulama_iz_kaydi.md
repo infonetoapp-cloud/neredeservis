@@ -6045,3 +6045,81 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 211: `api_contracts.md` ile data katmani uyum kontrolu.
+
+## STEP-211-220 - Domain/Data Uyum + Kalite Gate + Faz E Kapanis
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 211: `api_contracts.md` ile domain data model uyumunu kanitli hale getirmek.
+- 212: Tip guvenligi analizini strict gate ile calistirmak.
+- 213: Dead code taramasini analyzer gate ile tamamlamak.
+- 214: Use-case klasor importlarini sadeleştirmek.
+- 215: Performans baseline olcumu almak.
+- 216: Memory leak pattern taramasi yapmak.
+- 217: test + analyze + build zincirini dogrulamak.
+- 217A/218: Mimari sahip onayi ile domain/data devam onayini kayda almak.
+- 219: Onay yoksa bug listesi adimini N/A olarak kapatmak.
+- 220: Faz E kapanis raporunu olusturmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `test/domain/api_contract_data_alignment_test.dart`
+2. `apply_patch` -> `docs/api_contracts.md` (GuestSession ownership optional alanlari)
+3. `apply_patch` -> `lib/features/domain/application/domain_use_cases.dart`
+4. `apply_patch` -> `lib/app/providers/domain_data_providers.dart`
+5. `apply_patch` -> `test/domain/transfer_local_ownership_after_account_link_use_case_test.dart`
+6. `apply_patch` -> `scripts/check_memory_leak_patterns.ps1`
+7. `dart format lib/app/providers/domain_data_providers.dart lib/features/domain/application/domain_use_cases.dart test/domain/transfer_local_ownership_after_account_link_use_case_test.dart test/domain/api_contract_data_alignment_test.dart`
+8. `flutter test test/domain/api_contract_data_alignment_test.dart test/domain/transfer_local_ownership_after_account_link_use_case_test.dart`
+9. `dart analyze --fatal-infos lib test`
+10. `dart analyze --fatal-warnings lib test`
+11. `powershell -ExecutionPolicy Bypass -File scripts/check_memory_leak_patterns.ps1`
+12. `flutter analyze`
+13. `flutter test`
+14. `flutter build apk --debug --flavor dev -t lib/main_dev.dart`
+15. `apply_patch` -> `android/app/build.gradle` (`minSdkVersion = Math.max(flutter.minSdkVersion, 23)`)
+16. `apply_patch` -> `docs/domain_data_quality_baseline_phase_e.md`
+17. `apply_patch` -> `docs/faz_e_kapanis_raporu.md`
+18. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (211..220 `[x]`)
+19. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (211..220 `[x]`)
+20. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- API kontrat uyumu artik test gate ile korunuyor (`api_contract_data_alignment_test`).
+- `GuestSessionDoc` dokumani, kodda zaten kullanilan ownership migration snapshot alanlariyla hizalandi.
+- Use-case importlari tek noktadan yonetiliyor (`domain_use_cases.dart`).
+- Memory leak taramasi scriptlestirildi ve temiz sonuc verdi.
+- Performance baseline olcumleri dokumante edildi:
+  - analyze: `11021 ms`
+  - test: `19541 ms`
+  - build(dev debug): `33641 ms`
+  - APK: `256642928 bytes`
+- `flutter build` sirasinda otomatik `minSdk` modernizasyonu oluyordu. Kalici/gelecek uyumlu cozum olarak:
+  - `minSdkVersion = Math.max(flutter.minSdkVersion, 23)`
+  secildi. Bu yaklasim hem Flutter template uyumunu hem de min `23` politikasini korur.
+
+### Hata Kaydi (Silinmez)
+- Build sirasinda Flutter tool tarafindan `android/app/build.gradle` otomatik degisti.
+  - Cozum: satir kalici olarak `Math.max(flutter.minSdkVersion, 23)` formatina alindi; tekrarli kirli diff riski kapatildi.
+- Gradle/AGP/Kotlin icin "yakinda destek dusurulecek" uyari mesajlari goruldu.
+  - Not: Bu turda bloklayici degil; release oncesi planli surum yukseltmesi gerektirir.
+- SERH (silinmez): Iz kaydi bu adimda da append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/domain/api_contract_data_alignment_test.dart test/domain/transfer_local_ownership_after_account_link_use_case_test.dart` -> 9/9 passed.
+- `dart analyze --fatal-infos lib test` -> No issues found.
+- `dart analyze --fatal-warnings lib test` -> No issues found.
+- `powershell -ExecutionPolicy Bypass -File scripts/check_memory_leak_patterns.ps1` -> OK.
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 175 test passed.
+- `flutter build apk --debug --flavor dev -t lib/main_dev.dart` -> success.
+
+### Kapanis (217A/218/219/220)
+- Kullanici yonlendirmesi: "tabi ki en sağlıklı şeyi düşün..." ifadesiyle mimari onay devri verildi.
+- 217A ve 218 bu turda onayli kabul edilerek kapatildi.
+- 219 N/A: onay mevcut oldugu icin bug listesi adimi tetiklenmedi.
+- Faz E kapanis raporu olusturuldu: `docs/faz_e_kapanis_raporu.md`.
+
+### Sonraki Adim
+- Faz F / 221: Functions monorepo klasoru olusturma.
