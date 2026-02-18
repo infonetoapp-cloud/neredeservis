@@ -5681,3 +5681,33 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 201: validator seti unit testleri.
+
+## STEP-201 - Validator Seti Unit Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E validator setinin unit test tarafinda acik dogrulamasini tamamlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter test test/domain/date_time_validator_test.dart test/domain/srv_code_validator_test.dart`
+2. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (201 `[x]`)
+3. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (201 `[x]`)
+4. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Kapsanan Validatorlar
+- `DateTimeValidator`
+  - `HH:mm`
+  - `YYYY-MM-DD`
+  - Istanbul->UTC yorum kontrati
+  - UTC parse/normalize
+- `SrvCodeValidator`
+  - alfabet/uzunluk regex kontrati
+  - normalize ve assertion davranisi
+
+### Dogrulama
+- Secili validator test kosusu: `13/13` passed.
+
+### Sonraki Adim
+- Faz E / 202: queue isleyisi unit testleri (network/app kill/duplicate/idempotency/stale replay).
