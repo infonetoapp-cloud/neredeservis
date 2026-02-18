@@ -538,8 +538,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 238 `deleteStop` callable yaz.
 - [x] 239 `joinRouteBySrvCode` callable yaz.
 - [x] 240 `leaveRoute` callable yaz.
-- [ ] 240A `registerDevice` callable yaz (`activeDeviceToken`, `deviceId`, `lastSeenAt`).
-- [ ] 240B Multi-device politikasini netlestir: varsayilan `single-active-device`; yeni cihaz login'de eski cihaz revoke + bilgilendirme.
+- [x] 240A `registerDevice` callable yaz (`activeDeviceToken`, `deviceId`, `lastSeenAt`).
+- [x] 240B Multi-device politikasini netlestir: varsayilan `single-active-device`; yeni cihaz login'de eski cihaz revoke + bilgilendirme.
 - [ ] 240C `finishTrip` cihaz kurali ekle: varsayilan sadece `startedByDeviceId`; acil override varsa server audit log ile izin ver.
 - [ ] 241 `updatePassengerSettings` callable yaz.
 - [ ] 242 `submitSkipToday` callable yaz.

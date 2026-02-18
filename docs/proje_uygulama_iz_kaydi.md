@@ -6553,3 +6553,57 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 240A: `registerDevice` callable (`single-active-device` policy temeli).
+
+## STEP-240A-240B - registerDevice Callable ve Single-Active-Device Politikasi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 240A: `registerDevice` callable.
+- 240B: varsayilan `single-active-device` politikasi (yeni cihaz login -> eski cihaz revoke + bilgilendirme kuyruğu).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`registerDevice` schema/interface/callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check`
+5. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+6. `apply_patch` -> `functions/src/index.ts` (device switch notification outbox yazimi)
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (240A, 240B `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (240A, 240B `[x]`)
+13. `apply_patch` -> `docs/api_contracts.md` (DriverDoc + RegisterDevice + single-active-device contract)
+14. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `registerDevice` callable eklendi:
+  - auth + non-anonymous + role(driver) + driver profile kontrolu.
+  - input: `deviceId`, `activeDeviceToken`, `lastSeenAt?`.
+  - output: `activeDeviceId`, `previousDeviceRevoked`, `updatedAt`.
+- Single-active-device policy transaction ile uygulandi:
+  - `drivers/{uid}.activeDeviceId/activeDeviceToken/lastSeenAt` atomik guncelleniyor.
+  - onceki aktif cihaz farkliysa `drivers/{uid}/devices/{previousDeviceId}` kaydi `isActive=false` olarak revoke ediliyor.
+  - yeni cihaz `drivers/{uid}/devices/{deviceId}` altinda `isActive=true` olarak tutuluyor (`firstSeenAt` korunuyor).
+- Bilgilendirme izi eklendi:
+  - `_audit_device_switches` -> denetlenebilir cihaz degisim kaydi.
+  - `_notification_outbox` -> `device_switch_notice` tipi push gorevi (pending).
+- `docs/api_contracts.md` cihaz kontrati guncellendi (`activeDeviceId`, `lastSeenAt`, `registerDevice` output `updatedAt`).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 240C: `finishTrip` cihaz kurali (callable 245 icinde `startedByDeviceId` zorunlu karsilastirma).

@@ -44,7 +44,9 @@ export interface DriverDoc {
   trialStartDate: string | null; // UTC timestamp
   trialEndsAt: string | null; // UTC timestamp
   lastPaywallShownAt: string | null; // UTC timestamp
+  activeDeviceId: string | null;
   activeDeviceToken: string | null;
+  lastSeenAt: string | null; // UTC timestamp
   createdAt: string; // UTC timestamp
   updatedAt: string; // UTC timestamp
 }
@@ -385,12 +387,13 @@ export interface MapboxMapMatchingProxyOutput {
 export interface RegisterDeviceInput {
   deviceId: string;
   activeDeviceToken: string;
-  lastSeenAtMs: number;
+  lastSeenAt?: string; // optional client timestamp, server still writes canonical now
 }
 
 export interface RegisterDeviceOutput {
   activeDeviceId: string;
   previousDeviceRevoked: boolean;
+  updatedAt: string; // ISO-8601 UTC
 }
 
 export interface CreateSupportReportInput {
@@ -463,6 +466,17 @@ Directory callable guardrails:
 - `finishTrip.deviceId` must match trip `startedByDeviceId`.
 - Mismatch result: `PERMISSION_DENIED`.
 - Emergency override is not part of public callable input; it is server-admin only and must create an audit log.
+
+## Single Active Device Contract (registerDevice)
+- `registerDevice` authority: `drivers/{uid}` doc.
+- On every successful call:
+  - `drivers/{uid}.activeDeviceId` and `activeDeviceToken` are replaced with request values.
+  - canonical `lastSeenAt` is server timestamp (UTC).
+- If `deviceId` changes:
+  - previous device is marked inactive under `drivers/{uid}/devices/{previousDeviceId}`.
+  - audit event is written to `_audit_device_switches`.
+  - notification task is enqueued in `_notification_outbox`.
+- `previousDeviceRevoked` is `true` only when active device id changes.
 
 ## morningReminderDispatcher Contract
 - Scheduler runs every minute in UTC runtime.

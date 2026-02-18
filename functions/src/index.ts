@@ -126,6 +126,12 @@ interface LeaveRouteOutput {
   left: boolean;
 }
 
+interface RegisterDeviceOutput {
+  activeDeviceId: string;
+  previousDeviceRevoked: boolean;
+  updatedAt: string;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -241,6 +247,12 @@ const joinRouteBySrvCodeInputSchema = z.object({
 
 const leaveRouteInputSchema = z.object({
   routeId: z.string().trim().min(1).max(128),
+});
+
+const registerDeviceInputSchema = z.object({
+  deviceId: z.string().trim().min(3).max(128),
+  activeDeviceToken: z.string().trim().min(8).max(1024),
+  lastSeenAt: z.string().datetime().optional(),
 });
 
 const searchDriverDirectoryInputSchema = z.object({
@@ -555,6 +567,104 @@ export const upsertDriverProfile = onCall(async (request) => {
 
   return apiOk<UpsertDriverProfileOutput>({
     driverId: auth.uid,
+    updatedAt: nowIso,
+  });
+});
+
+export const registerDevice = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(registerDeviceInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+  const driverRef = db.collection('drivers').doc(auth.uid);
+  const currentDeviceRef = driverRef.collection('devices').doc(input.deviceId);
+  let previousDeviceRevoked = false;
+
+  await db.runTransaction(async (tx) => {
+    const driverSnap = await tx.get(driverRef);
+    if (!driverSnap.exists) {
+      throw new HttpsError('not-found', 'Driver profile bulunamadi.');
+    }
+
+    const driverData = asRecord(driverSnap.data()) ?? {};
+    const previousDeviceId = pickString(driverData, 'activeDeviceId');
+    previousDeviceRevoked = previousDeviceId != null && previousDeviceId !== input.deviceId;
+
+    if (previousDeviceRevoked && previousDeviceId != null) {
+      const previousDeviceRef = driverRef.collection('devices').doc(previousDeviceId);
+      tx.set(
+        previousDeviceRef,
+        {
+          isActive: false,
+          revokedAt: nowIso,
+          updatedAt: nowIso,
+        },
+        { merge: true },
+      );
+
+      const switchAuditRef = db.collection('_audit_device_switches').doc();
+      tx.set(switchAuditRef, {
+        uid: auth.uid,
+        previousDeviceId,
+        nextDeviceId: input.deviceId,
+        createdAt: nowIso,
+        notificationStatus: 'pending',
+      });
+
+      const notificationOutboxRef = db.collection('_notification_outbox').doc();
+      tx.set(notificationOutboxRef, {
+        type: 'device_switch_notice',
+        uid: auth.uid,
+        previousDeviceId,
+        nextDeviceId: input.deviceId,
+        targetToken: pickString(driverData, 'activeDeviceToken'),
+        status: 'pending',
+        createdAt: nowIso,
+      });
+    }
+
+    const currentDeviceSnap = await tx.get(currentDeviceRef);
+    const currentDeviceData = asRecord(currentDeviceSnap.data());
+    const firstSeenAt = pickString(currentDeviceData, 'firstSeenAt') ?? nowIso;
+
+    tx.set(
+      currentDeviceRef,
+      {
+        deviceId: input.deviceId,
+        token: input.activeDeviceToken,
+        isActive: true,
+        firstSeenAt,
+        lastSeenAt: nowIso,
+        clientLastSeenAt: input.lastSeenAt ?? null,
+        revokedAt: null,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+
+    tx.set(
+      driverRef,
+      {
+        activeDeviceId: input.deviceId,
+        activeDeviceToken: input.activeDeviceToken,
+        lastSeenAt: nowIso,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+  });
+
+  return apiOk<RegisterDeviceOutput>({
+    activeDeviceId: input.deviceId,
+    previousDeviceRevoked,
     updatedAt: nowIso,
   });
 });
