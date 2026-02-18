@@ -5467,3 +5467,51 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 196: Date/time validator (`HH:mm`, `YYYY-MM-DD`).
+
+## STEP-196..196A - Date/Time Validator + Timezone Kontrati
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- `HH:mm` ve `YYYY-MM-DD` formatlari icin dogrulama helper'i eklemek.
+- `scheduledTime` yorumunu `Europe/Istanbul` (UTC+3) kontratina sabitlemek.
+- Timestamplerin UTC normalize/parse kurallarini tek yardimcida toplamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/date_time_validator.dart`
+2. `apply_patch` -> `test/domain/date_time_validator_test.dart`
+3. `dart format lib/features/domain/data/date_time_validator.dart test/domain/date_time_validator_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (196, 196A `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (196, 196A `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `DateTimeValidator` eklendi:
+  - `isValidTime(String)` -> `HH:mm`
+  - `isValidDate(String)` -> `YYYY-MM-DD`
+  - `parseIstanbulDateTimeToUtc(date, time)` -> Istanbul local saatten UTC'ye cevirim
+  - `normalizeToUtc(DateTime)` -> UTC normalize
+  - `parseUtcTimestamp(String)` -> ISO parse + UTC normalize
+- Timezone kontrati kodda acik sabitlendi:
+  - `istanbulUtcOffset = Duration(hours: 3)`
+  - product notu: scheduledTime her zaman Istanbul yorumlanir.
+
+### Test Kapsami
+- `date_time_validator_test.dart`:
+  - valid/invalid time
+  - valid/invalid date (leap year dahil)
+  - Istanbul->UTC cevirim dogrulamasi
+  - UTC normalize ve parse davranisi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 121 test passed.
+
+### Sonraki Adim
+- Faz E / 197: SRV code validator (`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`).
