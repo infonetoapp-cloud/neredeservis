@@ -6825,3 +6825,68 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 245: `finishTrip` callable.
+
+## STEP-240C-245-245A - finishTrip Callable + Device Ownership + Optimistic Lock
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 240C: `finishTrip` cihaz sahipligi kurali (`startedByDeviceId` eslesmesi).
+- 245: `finishTrip` callable.
+- 245A: `finishTrip` transaction optimistic lock (`expectedTransitionVersion`).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`FinishTrip` schema/interface/callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint` (fail)
+4. `npm --prefix functions run format:check` (fail)
+5. `apply_patch` -> `functions/src/index.ts` (routeId template expression lint fix)
+6. `npx --prefix functions prettier --write functions/src/index.ts`
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (240C, 245, 245A `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (240C, 245, 245A `[x]`)
+13. `apply_patch` -> `docs/api_contracts.md` (`finishTrip` contract notlari)
+14. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `finishTrip` callable eklendi.
+- Endpoint guvenlik zinciri:
+  - auth + non-anonymous + role(driver) + driver profile.
+  - trip driver'i degilse `permission-denied`.
+- Device ownership (240C):
+  - `finishTrip.deviceId` ile trip `startedByDeviceId` eslesmiyorsa `permission-denied`.
+  - public endpointte acil override yok (sadece server-admin yolu notu korunuyor).
+- Idempotency:
+  - dedupe dokumani `trip_requests/{uid}_{idempotencyKey}`.
+  - ayni key replay'inde terminal state sonucu tekrar donduruluyor.
+- Optimistic lock (245A):
+  - transaction icinde `expectedTransitionVersion` karsilastiriliyor.
+  - mismatch durumunda deterministic `FAILED_PRECONDITION` (`TRANSITION_VERSION_MISMATCH`).
+- Trip transition:
+  - `active -> completed`
+  - `endReason='driver_finished'`
+  - `transitionVersion + 1`.
+- RTDB writer revoke:
+  - basarili finish sonrasinda `routeWriters/{routeId}/{uid}=false`.
+
+### Hata Kaydi (Silinmez)
+- Ilk lint turunda template-expression tip hatasi alindi.
+  - Cozum: `routeId` degeri string normalize edilerek template literal tipi sabitlendi.
+- Ilk format check turu fail verdi.
+  - Cozum: `prettier --write` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 246: `sendDriverAnnouncement` callable.

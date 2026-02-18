@@ -540,15 +540,15 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 240 `leaveRoute` callable yaz.
 - [x] 240A `registerDevice` callable yaz (`activeDeviceToken`, `deviceId`, `lastSeenAt`).
 - [x] 240B Multi-device politikasini netlestir: varsayilan `single-active-device`; yeni cihaz login'de eski cihaz revoke + bilgilendirme.
-- [ ] 240C `finishTrip` cihaz kurali ekle: varsayilan sadece `startedByDeviceId`; acil override varsa server audit log ile izin ver.
+- [x] 240C `finishTrip` cihaz kurali ekle: varsayilan sadece `startedByDeviceId`; acil override varsa server audit log ile izin ver.
 - [x] 241 `updatePassengerSettings` callable yaz.
 - [x] 242 `submitSkipToday` callable yaz.
 - [x] 243 `createGuestSession` callable yaz.
 - [x] 244 `startTrip` callable yaz.
 - [x] 244A `startTrip` icin istemci tarafi 10 sn `undo window` kontratini dokumante et (server cagrisi gecikmeli tetik).
 - [x] 244B `startTrip` transaction'ina optimistic lock ekle: `expectedTransitionVersion == currentTransitionVersion` saglanmadan state gecisi yapma.
-- [ ] 245 `finishTrip` callable yaz.
-- [ ] 245A `finishTrip` transaction'ina optimistic lock ekle: version mismatch'te `FAILED_PRECONDITION` don.
+- [x] 245 `finishTrip` callable yaz.
+- [x] 245A `finishTrip` transaction'ina optimistic lock ekle: version mismatch'te `FAILED_PRECONDITION` don.
 - [ ] 246 `sendDriverAnnouncement` callable yaz.
 - [ ] 246A `startTrip` bildirim akisina 15 dk cooldown ekle (`trip_started` firtinasini engelle).
 - [ ] 246B `getSubscriptionState` callable yaz; subscription kaynagi server-authoritative (client local override yok).

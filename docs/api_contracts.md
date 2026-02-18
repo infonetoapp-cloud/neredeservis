@@ -478,6 +478,14 @@ Directory callable guardrails:
 - Idempotent replay key: `trip_requests/{uid}_{idempotencyKey}`.
 - Success path grants RTDB writer access: `routeWriters/{routeId}/{uid} = true`.
 
+## finishTrip Contract
+- Input must include `idempotencyKey` + `expectedTransitionVersion`.
+- Device ownership rule: `finishTrip.deviceId` must match trip `startedByDeviceId` (public endpointte override yok).
+- Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
+- Idempotent replay key: `trip_requests/{uid}_{idempotencyKey}`.
+- Success path writes terminal state (`completed` or no-op terminal replay) and revokes writer access:
+  - `routeWriters/{routeId}/{uid} = false`.
+
 ## Subscription Enforcement Contract (server-side, V1.0)
 - `getSubscriptionState` is the only authority for subscription state.
 - Client-side paywall state never unlocks premium behavior by itself.

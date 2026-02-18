@@ -160,6 +160,13 @@ interface StartTripOutput {
   transitionVersion: number;
 }
 
+interface FinishTripOutput {
+  tripId: string;
+  status: 'completed' | 'abandoned';
+  endedAt: string;
+  transitionVersion: number;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -315,6 +322,13 @@ const createGuestSessionInputSchema = z.object({
 
 const startTripInputSchema = z.object({
   routeId: z.string().trim().min(1).max(128),
+  deviceId: z.string().trim().min(3).max(128),
+  idempotencyKey: z.string().trim().min(8).max(128),
+  expectedTransitionVersion: z.number().int().min(0),
+});
+
+const finishTripInputSchema = z.object({
+  tripId: z.string().trim().min(1).max(128),
   deviceId: z.string().trim().min(3).max(128),
   idempotencyKey: z.string().trim().min(8).max(128),
   expectedTransitionVersion: z.number().int().min(0),
@@ -1644,6 +1658,176 @@ export const startTrip = onCall(async (request) => {
   await rtdb.ref(`routeWriters/${input.routeId}/${auth.uid}`).set(true);
 
   return apiOk<StartTripOutput>(output);
+});
+
+export const finishTrip = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(finishTripInputSchema, request.data);
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const requestExpiresAtIso = new Date(
+    now + TRIP_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const tripRef = db.collection('trips').doc(input.tripId);
+  const requestRef = db.collection('trip_requests').doc(`${auth.uid}_${input.idempotencyKey}`);
+
+  let output: FinishTripOutput | null = null;
+  let routeIdForWriterRevoke: string | null = null;
+
+  await db.runTransaction(async (tx) => {
+    const tripSnap = await tx.get(tripRef);
+    if (!tripSnap.exists) {
+      throw new HttpsError('not-found', 'Trip bulunamadi.');
+    }
+
+    const tripData = asRecord(tripSnap.data()) ?? {};
+    const tripDriverUid = pickString(tripData, 'driverId');
+    if (tripDriverUid !== auth.uid) {
+      throw new HttpsError('permission-denied', 'Bu trip icin finishTrip yetkin yok.');
+    }
+
+    const routeId = pickString(tripData, 'routeId');
+    if (!routeId) {
+      throw new HttpsError('failed-precondition', 'Trip routeId alani gecersiz.');
+    }
+    routeIdForWriterRevoke = routeId;
+
+    const requestSnap = await tx.get(requestRef);
+    if (requestSnap.exists) {
+      const requestData = asRecord(requestSnap.data());
+      if (pickString(requestData, 'requestType') !== 'finish_trip') {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency key farkli islem tipiyle kullanildi.',
+        );
+      }
+
+      const existingTripId = parseTripIdFromResultRef(pickString(requestData, 'resultRef'));
+      if (!existingTripId) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi gecersiz resultRef iceriyor.',
+        );
+      }
+
+      const existingTripRef = db.collection('trips').doc(existingTripId);
+      const existingTripSnap = await tx.get(existingTripRef);
+      if (!existingTripSnap.exists) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi ilgili trip dokumanini bulamadi.',
+        );
+      }
+
+      const existingTripData = asRecord(existingTripSnap.data()) ?? {};
+      const existingStatus = pickString(existingTripData, 'status');
+      const existingEndedAt = pickString(existingTripData, 'endedAt');
+      if (
+        (existingStatus !== 'completed' && existingStatus !== 'abandoned') ||
+        existingEndedAt == null
+      ) {
+        throw new HttpsError(
+          'failed-precondition',
+          'Idempotency kaydi terminal olmayan trip durumuna isaret ediyor.',
+        );
+      }
+
+      output = {
+        tripId: existingTripRef.id,
+        status: existingStatus,
+        endedAt: existingEndedAt,
+        transitionVersion: readTransitionVersion(existingTripData),
+      };
+      return;
+    }
+
+    const currentStatus = pickString(tripData, 'status');
+    const currentTransitionVersion = readTransitionVersion(tripData);
+
+    if (input.expectedTransitionVersion !== currentTransitionVersion) {
+      throw new HttpsError(
+        'failed-precondition',
+        `TRANSITION_VERSION_MISMATCH: expected=${input.expectedTransitionVersion}, actual=${currentTransitionVersion}`,
+      );
+    }
+
+    if (currentStatus === 'completed' || currentStatus === 'abandoned') {
+      const endedAt = pickString(tripData, 'endedAt') ?? nowIso;
+      tx.set(requestRef, {
+        requestType: 'finish_trip',
+        uid: auth.uid,
+        resultRef: `trips/${tripRef.id}`,
+        createdAt: nowIso,
+        expiresAt: requestExpiresAtIso,
+      });
+
+      output = {
+        tripId: tripRef.id,
+        status: currentStatus,
+        endedAt,
+        transitionVersion: currentTransitionVersion,
+      };
+      return;
+    }
+
+    if (currentStatus !== 'active') {
+      throw new HttpsError('failed-precondition', 'Trip aktif degil; finishTrip uygulanamaz.');
+    }
+
+    const startedByDeviceId = pickString(tripData, 'startedByDeviceId');
+    if (startedByDeviceId !== input.deviceId) {
+      throw new HttpsError(
+        'permission-denied',
+        'finishTrip sadece startedByDeviceId ile yapilabilir.',
+      );
+    }
+
+    const nextTransitionVersion = currentTransitionVersion + 1;
+    tx.update(tripRef, {
+      status: 'completed',
+      endedAt: nowIso,
+      endReason: 'driver_finished',
+      transitionVersion: nextTransitionVersion,
+      updatedAt: nowIso,
+    });
+
+    tx.set(requestRef, {
+      requestType: 'finish_trip',
+      uid: auth.uid,
+      resultRef: `trips/${tripRef.id}`,
+      createdAt: nowIso,
+      expiresAt: requestExpiresAtIso,
+    });
+
+    output = {
+      tripId: tripRef.id,
+      status: 'completed',
+      endedAt: nowIso,
+      transitionVersion: nextTransitionVersion,
+    };
+  });
+
+  if (!output) {
+    throw new HttpsError('internal', 'finishTrip sonucu hesaplanamadi.');
+  }
+  const routeIdForWriterRevokeValue = String(routeIdForWriterRevoke ?? '');
+  if (!routeIdForWriterRevokeValue) {
+    throw new HttpsError('internal', 'finishTrip route baglantisi bulunamadi.');
+  }
+
+  await rtdb.ref(`routeWriters/${routeIdForWriterRevokeValue}/${auth.uid}`).set(false);
+
+  return apiOk<FinishTripOutput>(output);
 });
 
 export const searchDriverDirectory = onCall(async (request) => {
