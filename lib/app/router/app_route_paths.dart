@@ -3,6 +3,7 @@ abstract final class AppRoutePath {
   static const String auth = '/auth';
   static const String roleSelect = '/role/select';
   static const String driverHome = '/driver/home';
+  static const String driverProfileSetup = '/driver/profile/setup';
   static const String paywall = '/driver/paywall';
   static const String activeTrip = '/driver/active-trip';
   static const String passengerHome = '/passenger/home';

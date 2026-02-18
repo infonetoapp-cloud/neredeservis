@@ -17,6 +17,7 @@ class ConsentGuard {
     AppRoutePath.join,
     AppRoutePath.settings,
     AppRoutePath.profileEdit,
+    AppRoutePath.driverProfileSetup,
   };
 
   String? redirect(String location) {

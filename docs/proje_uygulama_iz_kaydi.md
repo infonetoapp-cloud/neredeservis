@@ -8715,3 +8715,58 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 306: Driver profil olusturma akisinin (`upsertDriverProfile`) mobil ekran/aksiyon tarafina baglanmasi.
+
+## STEP-306 - Driver Profil Olusturma Akisi Mobil Entegrasyonu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Driver kullanicilar icin `upsertDriverProfile` callable'ini mobilde form + yonlendirme akisina baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "upsertDriverProfile|driver profile|plate|showPhoneToPassengers" lib test docs`
+2. `apply_patch` -> `lib/ui/screens/driver_profile_setup_screen.dart` (yeni ekran)
+3. `apply_patch` -> `lib/app/router/app_route_paths.dart`
+   - `driverProfileSetup` route path eklendi
+4. `apply_patch` -> `lib/app/router/consent_guard.dart`
+   - onboarding blokajini onlemek icin `driverProfileSetup` consent-exempt listesine eklendi
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `DriverProfileSetupScreen` route baglandi
+   - driver role seciminde `drivers/{uid}` dokuman kontrolune gore hedef rota (`driverHome` / `driverProfileSetup`) secilir hale getirildi
+   - `upsertDriverProfile` callable save handler eklendi
+   - profil save sonrasinda `registerDevice` best-effort cagrisi eklendi
+6. `apply_patch` -> `test/ui/driver_profile_setup_screen_test.dart` (yeni test)
+7. `dart format lib/app/router/app_router.dart lib/app/router/app_route_paths.dart lib/app/router/consent_guard.dart lib/ui/screens/driver_profile_setup_screen.dart test/ui/driver_profile_setup_screen_test.dart`
+8. `flutter analyze`
+9. `flutter test`
+10. `flutter analyze` (import order duzeltmesi sonrasi tekrar)
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`306` -> `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`306` -> `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Driver role secimi artik iki asamali calisiyor:
+  - Firestore `drivers/{uid}` profil bilgisi tamam ise direkt `driverHome`.
+  - Eksikse `driver/profile/setup` ekranina yonlendirme.
+- Yeni `DriverProfileSetupScreen` ile su alanlar zorunlu toplaniyor:
+  - ad soyad, telefon, plaka, `showPhoneToPassengers`.
+- Save aksiyonu `upsertDriverProfile` callable'ini cagiriyor; basari durumunda `driverHome`'a geciliyor.
+- Save sonrasi `registerDevice` cagrisi best-effort olarak tetikleniyor; profile save'i bloke etmiyor.
+- Consent gate ile onboarding cakismini onlemek icin `driverProfileSetup` rotasi exempt listesine eklendi.
+
+### Hata Kaydi (Silinmez)
+- Ilk `flutter analyze` kosusunda tek lint hatasi goruldu:
+  - `directives_ordering` (`lib/app/router/app_router.dart`)
+  - cozum: package import siralamasi alfabetik duzenlendi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `177` test).
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `306` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `306` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 307: Route create ekranini callable'a baglama.

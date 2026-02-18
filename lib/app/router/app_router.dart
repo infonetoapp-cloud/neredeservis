@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -14,6 +15,7 @@ import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
+import '../../ui/screens/driver_profile_setup_screen.dart';
 import '../../ui/screens/join_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
 import '../../ui/screens/paywall_screen.dart';
@@ -61,6 +63,24 @@ GoRouter buildAppRouter({
           onPassengerTap: () => _handleContinueAsPassenger(context),
           onGuestTap: () => _handleContinueAsGuest(context),
         ),
+      ),
+      GoRoute(
+        path: AppRoutePath.driverProfileSetup,
+        builder: (context, state) {
+          final user = FirebaseAuth.instance.currentUser;
+          return DriverProfileSetupScreen(
+            initialName: _resolveDisplayName(user),
+            initialPhone: user?.phoneNumber,
+            onSave: (name, phone, plate, showPhoneToPassengers) =>
+                _handleDriverProfileSetupSave(
+              context,
+              name: name,
+              phone: phone,
+              plate: plate,
+              showPhoneToPassengers: showPhoneToPassengers,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.driverHome,
@@ -435,7 +455,11 @@ Future<void> _handleContinueAsDriver(BuildContext context) async {
   if (!context.mounted) {
     return;
   }
-  context.go(AppRoutePath.driverHome);
+  final destination = await _resolveDriverEntryDestination(user);
+  if (!context.mounted) {
+    return;
+  }
+  context.go(destination);
 }
 
 Future<void> _handleContinueAsGuest(BuildContext context) async {
@@ -489,6 +513,48 @@ Future<void> _handleProfileUpdate(
       return;
     }
     _showInfo(context, 'Profil guncellenemedi (${error.code}).');
+    rethrow;
+  }
+}
+
+Future<void> _handleDriverProfileSetupSave(
+  BuildContext context, {
+  required String name,
+  required String phone,
+  required String plate,
+  required bool showPhoneToPassengers,
+}) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('upsertDriverProfile');
+    await callable.call(<String, dynamic>{
+      'name': name,
+      'phone': phone,
+      'plate': plate.toUpperCase(),
+      'showPhoneToPassengers': showPhoneToPassengers,
+      'companyId': null,
+    });
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await _registerDevice(user);
+      } catch (_) {
+        // Driver profile kaydedildi; device register kritik olmayan fallback.
+      }
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Sofor profili kaydedildi.');
+    context.go(AppRoutePath.driverHome);
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Sofor profili kaydedilemedi (${error.code}).');
     rethrow;
   }
 }
@@ -592,6 +658,32 @@ Future<void> _registerDevice(User user) async {
     'activeDeviceToken': token,
     'lastSeenAt': DateTime.now().toUtc().toIso8601String(),
   });
+}
+
+Future<String> _resolveDriverEntryDestination(User user) async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('drivers')
+        .doc(user.uid)
+        .get();
+    final data = snapshot.data();
+    if (_hasReadyDriverProfile(data)) {
+      return AppRoutePath.driverHome;
+    }
+    return AppRoutePath.driverProfileSetup;
+  } catch (_) {
+    return AppRoutePath.driverProfileSetup;
+  }
+}
+
+bool _hasReadyDriverProfile(Map<String, dynamic>? data) {
+  if (data == null) {
+    return false;
+  }
+  final name = (data['name'] as String? ?? '').trim();
+  final phone = (data['phone'] as String? ?? '').trim();
+  final plate = (data['plate'] as String? ?? '').trim();
+  return name.length >= 2 && phone.length >= 7 && plate.length >= 3;
 }
 
 String _resolveDisplayName(User? user) {
