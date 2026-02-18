@@ -7161,3 +7161,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 252: `cleanupStaleData` schedule function.
+
+## STEP-252-252C - Stale Data Cleanup + RouteWriter Revoke Guaranteesi + support_reports Retention
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 252: `cleanupStaleData` schedule function ile stale/expired belgeleri periyodik temizlemek.
+- 252A: `cleanupRouteWriters` schedule function ile stale writer izinlerini geri toplamak.
+- 252B: `finishTrip` transaction'i icinde writer revoke zorunlulugunu queue dokumaniyla garantiye almak.
+- 252C: `support_reports` retention kuralini (`30 gun`) server tarafinda uygulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (cleanup/revoke constants)
+2. `apply_patch` -> `functions/src/index.ts` (error helper + routeWriter tree helper + revoke task id helper)
+3. `apply_patch` -> `functions/src/index.ts` (`finishTrip` icinde `_writer_revoke_tasks` transaction queue + best-effort immediate revoke)
+4. `apply_patch` -> `functions/src/index.ts` (`cleanupStaleData` ve `cleanupRouteWriters` scheduler implementasyonu)
+5. `npm --prefix functions run build` (fail)
+6. `npm --prefix functions run lint` (fail)
+7. `apply_patch` -> `functions/src/index.ts` (`finishTrip` narrowing/fallback duzeltmesi)
+8. `npm --prefix functions run build`
+9. `npm --prefix functions run lint`
+10. `npm --prefix functions run format:check`
+11. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (252, 252A, 252B, 252C `[x]`)
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (252, 252A, 252B, 252C `[x]`)
+14. `apply_patch` -> `docs/api_contracts.md` (cleanup/revoke/retention kontrat notlari)
+15. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `finishTrip` artik transaction icinde `_writer_revoke_tasks/{tripId_routeId_uid}` kaydini zorunlu olusturuyor.
+- `finishTrip` commit sonrasi RTDB revoke'u (`routeWriters/{routeId}/{uid}=false`) best-effort deniyor:
+  - basariliysa task `applied`.
+  - hata olursa task `pending` ve `lastError` ile tekrar deneme icin birakiliyor.
+- `cleanupRouteWriters` scheduler eklendi (`every 5 minutes`):
+  - faz-1: pending revoke tasklarini isliyor.
+  - faz-2: RTDB'de `true` kalan writer kayitlarini aktif trip yoksa geri topluyor.
+- `cleanupStaleData` scheduler eklendi (`03:00`, `Europe/Istanbul`):
+  - `trip_requests`, `_notification_dedup`, `_writer_revoke_tasks` icin `expiresAt <= now` silme.
+  - `guest_sessions` icin `expiresAt <= now` ve `status=active` ise `status=expired`.
+  - `support_reports` icin `createdAt <= now-30 gun` silme (252C retention).
+
+### Hata Kaydi (Silinmez)
+- Ilk build/lint turunda TypeScript narrowing hatasi alindi (`output.tripId` -> `never`).
+  - Cozum: fallback `tripId` kaynagi `input.tripId` kullanilarak daraltma sorunu kaldirildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 253: transaction helper katmani.

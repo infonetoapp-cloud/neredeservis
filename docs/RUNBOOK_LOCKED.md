@@ -555,10 +555,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 251 `morningReminderDispatcher` schedule function yaz.
 - [x] 251A Timezone kararini enforce et: `scheduledTime` karsilastirmasi `Europe/Istanbul`; UTC sapmasi icin test yaz.
 - [x] 251B Reminder algoritmasini sabitle: `target = scheduledTime - 5 dk`, gonderim penceresi `[target,target+1dk)`, dedupe key=`routeId+dateKey+reminderType`.
-- [ ] 252 `cleanupStaleData` schedule function yaz.
-- [ ] 252A `cleanupRouteWriters` schedule function yaz (trip bitiminden sonra stale writer temizligi).
-- [ ] 252B `finishTrip` transaction'inda writer revoke zorunlulugunu uygula.
-- [ ] 252C `support_reports` retention cleanup kuralini ekle (30 gunu asan raporlar silinsin/anonimlestirilsin).
+- [x] 252 `cleanupStaleData` schedule function yaz.
+- [x] 252A `cleanupRouteWriters` schedule function yaz (trip bitiminden sonra stale writer temizligi).
+- [x] 252B `finishTrip` transaction'inda writer revoke zorunlulugunu uygula.
+- [x] 252C `support_reports` retention cleanup kuralini ekle (30 gunu asan raporlar silinsin/anonimlestirilsin).
 - [ ] 253 Transaction helper katmani yaz.
 - [ ] 254 Idempotency repository yaz.
 - [ ] 255 Duplicate push engelleme mekanizmasi yaz.

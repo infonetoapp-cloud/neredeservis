@@ -50,6 +50,11 @@ const LIVE_LOCATION_MAX_AGE_MS = 30_000;
 const LIVE_LOCATION_FUTURE_TOLERANCE_MS = 5_000;
 const ABANDONED_TRIP_STALE_WINDOW_MS = 10 * 60 * 1000;
 const MORNING_REMINDER_LEAD_MINUTES = 5;
+const CLEANUP_STALE_DATA_BATCH_LIMIT = 200;
+const CLEANUP_ROUTE_WRITERS_SCAN_LIMIT = 200;
+const CLEANUP_ROUTE_WRITER_TASK_BATCH_LIMIT = 200;
+const SUPPORT_REPORT_RETENTION_DAYS = 30;
+const WRITER_REVOKE_TASK_RETENTION_DAYS = 7;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -576,6 +581,53 @@ function getIstanbulClockInfo(when: Date): { dateKey: string; minuteOfDay: numbe
     dateKey: `${year}-${month}-${day}`,
     minuteOfDay: hour * 60 + minute,
   };
+}
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return String(error);
+}
+
+function buildWriterRevokeTaskId(routeId: string, driverId: string, tripId: string): string {
+  return `${tripId}_${routeId}_${driverId}`;
+}
+
+function collectEnabledRouteWriters(
+  value: unknown,
+  maxEntries: number,
+): Array<{ routeId: string; driverId: string }> {
+  if (maxEntries <= 0) {
+    return [];
+  }
+  const routeWriterTree = asRecord(value);
+  if (!routeWriterTree) {
+    return [];
+  }
+
+  const entries: Array<{ routeId: string; driverId: string }> = [];
+  for (const [routeId, routeNode] of Object.entries(routeWriterTree)) {
+    const routeWriters = asRecord(routeNode);
+    if (!routeWriters) {
+      continue;
+    }
+
+    for (const [driverId, enabled] of Object.entries(routeWriters)) {
+      if (enabled !== true) {
+        continue;
+      }
+      entries.push({ routeId, driverId });
+      if (entries.length >= maxEntries) {
+        return entries;
+      }
+    }
+  }
+
+  return entries;
 }
 
 function readSubscriptionStatus(value: unknown): SubscriptionStatus {
@@ -1850,12 +1902,16 @@ export const finishTrip = onCall(async (request) => {
   const requestExpiresAtIso = new Date(
     now + TRIP_REQUEST_TTL_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
+  const writerRevokeTaskExpiresAtIso = new Date(
+    now + WRITER_REVOKE_TASK_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
   const tripRef = db.collection('trips').doc(input.tripId);
   const requestRef = db.collection('trip_requests').doc(`${auth.uid}_${input.idempotencyKey}`);
 
   let output: FinishTripOutput | null = null;
   let routeIdForWriterRevoke: string | null = null;
+  let writerRevokeTaskId: string | null = null;
 
   await db.runTransaction(async (tx) => {
     const tripSnap = await tx.get(tripRef);
@@ -1874,6 +1930,27 @@ export const finishTrip = onCall(async (request) => {
       throw new HttpsError('failed-precondition', 'Trip routeId alani gecersiz.');
     }
     routeIdForWriterRevoke = routeId;
+    const queueWriterRevokeTask = (taskRouteId: string, taskTripId: string) => {
+      const writerRevokeTaskRef = db
+        .collection('_writer_revoke_tasks')
+        .doc(buildWriterRevokeTaskId(taskRouteId, auth.uid, taskTripId));
+      writerRevokeTaskId = writerRevokeTaskRef.id;
+      tx.set(
+        writerRevokeTaskRef,
+        {
+          tripId: taskTripId,
+          routeId: taskRouteId,
+          driverId: auth.uid,
+          source: 'finish_trip',
+          status: 'pending',
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          expiresAt: writerRevokeTaskExpiresAtIso,
+          lastError: null,
+        },
+        { merge: true },
+      );
+    };
 
     const requestSnap = await tx.get(requestRef);
     if (requestSnap.exists) {
@@ -1915,6 +1992,12 @@ export const finishTrip = onCall(async (request) => {
         );
       }
 
+      const existingRouteId = pickString(existingTripData, 'routeId');
+      if (!existingRouteId) {
+        throw new HttpsError('failed-precondition', 'Idempotency kaydi routeId iceremiyor.');
+      }
+      routeIdForWriterRevoke = existingRouteId;
+      queueWriterRevokeTask(existingRouteId, existingTripRef.id);
       output = {
         tripId: existingTripRef.id,
         status: existingStatus,
@@ -1943,6 +2026,7 @@ export const finishTrip = onCall(async (request) => {
         createdAt: nowIso,
         expiresAt: requestExpiresAtIso,
       });
+      queueWriterRevokeTask(routeId, tripRef.id);
 
       output = {
         tripId: tripRef.id,
@@ -1981,6 +2065,7 @@ export const finishTrip = onCall(async (request) => {
       createdAt: nowIso,
       expiresAt: requestExpiresAtIso,
     });
+    queueWriterRevokeTask(routeId, tripRef.id);
 
     output = {
       tripId: tripRef.id,
@@ -1998,7 +2083,44 @@ export const finishTrip = onCall(async (request) => {
     throw new HttpsError('internal', 'finishTrip route baglantisi bulunamadi.');
   }
 
-  await rtdb.ref(`routeWriters/${routeIdForWriterRevokeValue}/${auth.uid}`).set(false);
+  const writerRevokeTaskRef = db
+    .collection('_writer_revoke_tasks')
+    .doc(
+      writerRevokeTaskId ??
+        buildWriterRevokeTaskId(routeIdForWriterRevokeValue, auth.uid, input.tripId),
+    );
+  const writerRevokeAttemptAtIso = new Date().toISOString();
+
+  try {
+    await rtdb.ref(`routeWriters/${routeIdForWriterRevokeValue}/${auth.uid}`).set(false);
+    await writerRevokeTaskRef.set(
+      {
+        status: 'applied',
+        appliedAt: writerRevokeAttemptAtIso,
+        lastAttemptAt: writerRevokeAttemptAtIso,
+        updatedAt: writerRevokeAttemptAtIso,
+        lastError: null,
+      },
+      { merge: true },
+    );
+  } catch (error) {
+    const errorMessage = toErrorMessage(error);
+    console.error('finishTrip writer revoke failed', {
+      routeId: routeIdForWriterRevokeValue,
+      driverId: auth.uid,
+      tripId: input.tripId,
+      errorMessage,
+    });
+    await writerRevokeTaskRef.set(
+      {
+        status: 'pending',
+        lastAttemptAt: writerRevokeAttemptAtIso,
+        updatedAt: writerRevokeAttemptAtIso,
+        lastError: errorMessage,
+      },
+      { merge: true },
+    );
+  }
 
   return apiOk<FinishTripOutput>(output);
 });
@@ -2407,5 +2529,151 @@ export const morningReminderDispatcher = onSchedule('every 1 minutes', async () 
         createdAt: nowIso,
       });
     });
+  }
+});
+
+export const cleanupStaleData = onSchedule(
+  { schedule: '0 3 * * *', timeZone: 'Europe/Istanbul' },
+  async () => {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const supportReportRetentionCutoffIso = new Date(
+      now.getTime() - SUPPORT_REPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    const deleteByExpiresAt = async (collectionPath: string): Promise<void> => {
+      const expiredDocsSnap = await db
+        .collection(collectionPath)
+        .where('expiresAt', '<=', nowIso)
+        .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+        .get();
+      if (expiredDocsSnap.empty) {
+        return;
+      }
+
+      const batch = db.batch();
+      for (const doc of expiredDocsSnap.docs) {
+        batch.delete(doc.ref);
+      }
+      await batch.commit();
+    };
+
+    await deleteByExpiresAt('trip_requests');
+    await deleteByExpiresAt('_notification_dedup');
+    await deleteByExpiresAt('_writer_revoke_tasks');
+
+    const expiredGuestSessionSnap = await db
+      .collection('guest_sessions')
+      .where('expiresAt', '<=', nowIso)
+      .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+      .get();
+    if (!expiredGuestSessionSnap.empty) {
+      const batch = db.batch();
+      let updateCount = 0;
+      for (const sessionDoc of expiredGuestSessionSnap.docs) {
+        const sessionData = asRecord(sessionDoc.data()) ?? {};
+        if (pickString(sessionData, 'status') !== 'active') {
+          continue;
+        }
+        batch.set(
+          sessionDoc.ref,
+          {
+            status: 'expired',
+            updatedAt: nowIso,
+          },
+          { merge: true },
+        );
+        updateCount += 1;
+      }
+      if (updateCount > 0) {
+        await batch.commit();
+      }
+    }
+
+    const staleSupportReportSnap = await db
+      .collection('support_reports')
+      .where('createdAt', '<=', supportReportRetentionCutoffIso)
+      .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+      .get();
+    if (staleSupportReportSnap.empty) {
+      return;
+    }
+
+    const supportReportDeleteBatch = db.batch();
+    for (const supportReportDoc of staleSupportReportSnap.docs) {
+      supportReportDeleteBatch.delete(supportReportDoc.ref);
+    }
+    await supportReportDeleteBatch.commit();
+  },
+);
+
+export const cleanupRouteWriters = onSchedule('every 5 minutes', async () => {
+  const nowIso = new Date().toISOString();
+  const pendingWriterRevokeTaskSnap = await db
+    .collection('_writer_revoke_tasks')
+    .where('status', '==', 'pending')
+    .limit(CLEANUP_ROUTE_WRITER_TASK_BATCH_LIMIT)
+    .get();
+
+  for (const taskDoc of pendingWriterRevokeTaskSnap.docs) {
+    const taskData = asRecord(taskDoc.data()) ?? {};
+    const routeId = pickString(taskData, 'routeId');
+    const driverId = pickString(taskData, 'driverId');
+
+    if (!routeId || !driverId) {
+      await taskDoc.ref.set(
+        {
+          status: 'invalid',
+          updatedAt: nowIso,
+          lastError: 'routeId/driverId eksik.',
+        },
+        { merge: true },
+      );
+      continue;
+    }
+
+    try {
+      await rtdb.ref(`routeWriters/${routeId}/${driverId}`).set(false);
+      await taskDoc.ref.set(
+        {
+          status: 'applied',
+          appliedAt: nowIso,
+          lastAttemptAt: nowIso,
+          updatedAt: nowIso,
+          lastError: null,
+        },
+        { merge: true },
+      );
+    } catch (error) {
+      await taskDoc.ref.set(
+        {
+          status: 'pending',
+          lastAttemptAt: nowIso,
+          updatedAt: nowIso,
+          lastError: toErrorMessage(error),
+        },
+        { merge: true },
+      );
+    }
+  }
+
+  const routeWritersSnap = await rtdb.ref('routeWriters').get();
+  const enabledRouteWriters = collectEnabledRouteWriters(
+    routeWritersSnap.val(),
+    CLEANUP_ROUTE_WRITERS_SCAN_LIMIT,
+  );
+  for (const routeWriter of enabledRouteWriters) {
+    const activeTripForWriterSnap = await db
+      .collection('trips')
+      .where('routeId', '==', routeWriter.routeId)
+      .where('driverId', '==', routeWriter.driverId)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    if (!activeTripForWriterSnap.empty) {
+      continue;
+    }
+
+    await rtdb.ref(`routeWriters/${routeWriter.routeId}/${routeWriter.driverId}`).set(false);
   }
 });

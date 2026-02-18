@@ -498,7 +498,9 @@ Directory callable guardrails:
 - Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
 - Idempotent replay key: `trip_requests/{uid}_{idempotencyKey}`.
 - Success path writes terminal state (`completed` or no-op terminal replay) and revokes writer access:
+  - transaction icinde `_writer_revoke_tasks/{tripId_routeId_uid}` kaydi zorunlu olarak `pending` durumunda olusturulur.
   - `routeWriters/{routeId}/{uid} = false`.
+  - callable anlik revoke'u best-effort uygular; basarisiz olursa task `pending` kalir ve scheduler retry eder.
 
 ## Reconciliation Triggers
 - `syncPassengerCount`:
@@ -559,6 +561,27 @@ Directory callable guardrails:
 - Dedup key is mandatory: `routeId + dateKey(YYYY-MM-DD, Europe/Istanbul) + reminder_type`.
 - Dedup state is persisted at `_notification_dedup/{dedupeKey}`.
 - Dispatch payload is enqueued to `_notification_outbox` with type `morning_reminder`.
+
+## cleanupStaleData Contract
+- Schedule: `03:00` (`Europe/Istanbul`).
+- Batch cleanup limit: `200` doc/run/collection.
+- Expired delete scope (`expiresAt <= now`):
+  - `trip_requests`
+  - `_notification_dedup`
+  - `_writer_revoke_tasks`
+- Expired `guest_sessions` scope:
+  - `expiresAt <= now` ve `status == "active"` kayitlari `status="expired"` olarak isaretlenir.
+- `support_reports` retention policy (252C):
+  - `createdAt <= now-30d` kayitlari silinir.
+
+## cleanupRouteWriters Contract
+- Schedule: every `5 minutes`.
+- Phase-1 retry queue:
+  - `_writer_revoke_tasks.where(status == "pending").limit(200)` taranir.
+  - revoke basariliysa task `applied`, hata varsa `pending` + `lastError`.
+- Phase-2 stale writer sweep:
+  - RTDB `routeWriters/*/* == true` kayitlari (limit `200`) kontrol edilir.
+  - Ilgili `trips` kaydinda aktif (`status="active"`) sefer yoksa writer flag `false` yapilir.
 
 ## srvCode Generation Contract
 - Alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (ambiguous chars yok).
