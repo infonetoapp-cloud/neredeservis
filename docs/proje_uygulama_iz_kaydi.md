@@ -5420,3 +5420,50 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 195: Idempotency key helper.
+
+## STEP-195 - Idempotency Key Helper
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Domain/data katmaninda ortak kullanilacak idempotency key uretim yardimcisini eklemek.
+- `trip_requests/{uid}_{idempotencyKey}` dokuman kontratini helper seviyesinde standartlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/idempotency_key_helper.dart`
+2. `apply_patch` -> `test/domain/idempotency_key_helper_test.dart`
+3. `dart format lib/features/domain/data/idempotency_key_helper.dart test/domain/idempotency_key_helper_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (195 `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (195 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `IdempotencyKeyHelper` eklendi:
+  - `generate(action, subject, nowUtc?)`
+  - `isValid(key)`
+  - `buildTripRequestDocId(uid, idempotencyKey)`
+- Key formati standartlandi:
+  - `{actionPart}-{subjectPart}-{timestampBase36}-{randomToken}`
+  - random token alfabesi: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`
+- `buildTripRequestDocId` ile Firestore contract netlesti:
+  - `{uid}_{idempotencyKey}` (uid sanitize edilerek)
+
+### Test Kapsami
+- `idempotency_key_helper_test.dart`:
+  - key format dogrulamasi
+  - tekrarli cagri unique key kontrolu
+  - doc-id kontrati dogrulamasi
+  - malformed key rejection
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 113 test passed.
+
+### Sonraki Adim
+- Faz E / 196: Date/time validator (`HH:mm`, `YYYY-MM-DD`).

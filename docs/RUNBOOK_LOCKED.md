@@ -466,7 +466,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 193B Drift migration testlerini ekle (v1->v2 dry-run; ownerUid ve queue verisi korunuyor mu).
 - [x] 193C `trip_action_queue` state machine'i uygula (`pending -> in_flight -> failed_permanent`) ve 3 deneme sonrasi auto-replay'i kes.
 - [x] 194 Queue repository yaz (exponential backoff + dead-letter davranisi).
-- [ ] 195 Idempotency key helper yaz.
+- [x] 195 Idempotency key helper yaz.
 - [ ] 196 Date/time validator yaz (`HH:mm`, `YYYY-MM-DD`).
 - [ ] 196A Timezone kontratini sabitle: `scheduledTime` her zaman `Europe/Istanbul` timezone'unda yorumlanir; timestamp'ler UTC saklanir.
 - [ ] 197 Srv code validator yaz (`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$`).
