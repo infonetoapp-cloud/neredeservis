@@ -28,6 +28,7 @@ process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 const {
   createRouteFromGhostDrive,
   createGuestSession,
+  generateRouteShareLink,
   registerDevice,
   sendDriverAnnouncement,
   finishTrip,
@@ -1143,4 +1144,31 @@ test("STEP-281A mapboxMapMatchingProxy: graceful fallback sonucu doner", async (
   assert.equal(result.data.fallbackUsed, true);
   assert.equal(result.data.source, "fallback");
   assert.equal(result.data.confidence, 0);
+});
+
+test("STEP-287 generateRouteShareLink: whatsapp url + system fallback text", async () => {
+  const driverUid = "driver-share-link-1";
+  const routeId = "route-share-link-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "WAPP87",
+  });
+
+  const result = await generateRouteShareLink.run(
+    callableRequest(
+      {
+        routeId,
+        customText: "Servis baglantisini buradan takip edebilirsin:",
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  assert.equal(result.data.routeId, routeId);
+  assert.equal(result.data.srvCode, "WAPP87");
+  assert.equal(result.data.landingUrl, "https://nerede.servis/r/WAPP87");
+  assert.equal(result.data.systemShareText.includes("https://nerede.servis/r/WAPP87"), true);
+  assert.equal(result.data.whatsappUrl.startsWith("https://wa.me/?text="), true);
+  assert.equal(decodeURIComponent(result.data.whatsappUrl.split("text=")[1]).includes("WAPP87"), true);
 });

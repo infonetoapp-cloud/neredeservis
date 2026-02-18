@@ -604,8 +604,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 284 Token geldiginde sadece server tarafina yaz.
 - [x] 285 Token rotation + audit cron notu ekle.
 - [x] 286 DOGRULAMA: secret token client buildde yok mu?
-- [ ] 287 WhatsApp share URL generator function yaz (WhatsApp yoksa sistem share sheet fallback).
-- [ ] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yÃ¼klÃ¼ degilse mini route karti + store CTA; app yÃ¼klÃ¼yse deep link.
+- [x] 287 WhatsApp share URL generator function yaz (WhatsApp yoksa sistem share sheet fallback).
+- [x] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yÃ¼klÃ¼ degilse mini route karti + store CTA; app yÃ¼klÃ¼yse deep link.
 - [ ] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).
 - [ ] 289 Abuse prevention icin join deneme limiti koy.
 - [ ] 290 Audit log eventlerini yaz.

@@ -471,6 +471,19 @@ export interface SendDriverAnnouncementOutput {
   shareUrl: string;
 }
 
+export interface GenerateRouteShareLinkInput {
+  routeId: string;
+  customText?: string; // max 240
+}
+
+export interface GenerateRouteShareLinkOutput {
+  routeId: string;
+  srvCode: string;
+  landingUrl: string; // https://nerede.servis/r/{srvCode}
+  whatsappUrl: string; // https://wa.me/?text=...
+  systemShareText: string; // share-sheet fallback text
+}
+
 export interface SearchDriverDirectoryInput {
   queryHash: string; // normalized hash string (min 8 chars)
   limit?: number; // 1..10
@@ -490,6 +503,26 @@ Directory callable guardrails:
 - Rate limit: max `30` request / `60s` per uid.
 - Query strategy: exact hash lookup on `searchPhoneHash` + `searchPlateHash`.
 - Returned fields are strictly masked: `driverId`, `displayName`, `plateMasked`.
+
+Share link callable guardrails:
+- Caller must be authenticated and non-anonymous (`driver` or `passenger`).
+- Caller must be route member (owner/authorized/passenger).
+- Output always includes:
+  - `landingUrl` (canonical)
+  - `whatsappUrl` (explicit WhatsApp target)
+  - `systemShareText` (WhatsApp yoksa share-sheet fallback metni)
+
+## Landing Contract (`/r/{srvCode}`) (STEP-287A)
+- URL: `https://nerede.servis/r/{srvCode}`
+- Contract:
+  - Uygulama yuklu degilse:
+    - mini route karti (route owner/display + tracking CTA)
+    - store CTA (`App Store` / `Google Play`)
+  - Uygulama yukluyse:
+    - deep link ile route preview ekranina yonlendirme
+- Guvenlik:
+  - landing sayfasi sadece paylasim/preview metadata gosterir.
+  - hassas veriler (telefon, secret token, private diagnostics) expose edilmez.
 
 ## Guardrail Summary
 - Premium access is enforced server-side.

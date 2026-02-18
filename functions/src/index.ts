@@ -225,6 +225,14 @@ interface SendDriverAnnouncementOutput {
   shareUrl: string;
 }
 
+interface GenerateRouteShareLinkOutput {
+  routeId: string;
+  srvCode: string;
+  landingUrl: string;
+  whatsappUrl: string;
+  systemShareText: string;
+}
+
 type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'mock';
 
 interface SubscriptionProductOutput {
@@ -356,6 +364,11 @@ const mapboxMapMatchingProxyInputSchema = z.object({
       }),
     )
     .min(2),
+});
+
+const generateRouteShareLinkInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  customText: z.string().trim().max(240).optional(),
 });
 
 const upsertStopInputSchema = z.object({
@@ -1598,6 +1611,40 @@ export const mapboxMapMatchingProxy = onCall(
     });
   },
 );
+
+export const generateRouteShareLink = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver', 'passenger'],
+  });
+
+  const input = validateInput(generateRouteShareLinkInputSchema, request.data);
+  const routeData = await requireRouteMember(input.routeId, auth.uid);
+  const srvCode = pickString(routeData, 'srvCode');
+  if (!srvCode) {
+    throw new HttpsError('failed-precondition', 'Route srvCode alani bulunamadi.');
+  }
+
+  const landingUrl = `https://nerede.servis/r/${srvCode}`;
+  const systemShareTextRaw = input.customText?.trim();
+  const systemShareText =
+    systemShareTextRaw && systemShareTextRaw.length > 0
+      ? `${systemShareTextRaw} ${landingUrl}`
+      : `Nerede Servis daveti: ${landingUrl}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(systemShareText)}`;
+
+  return apiOk<GenerateRouteShareLinkOutput>({
+    routeId: input.routeId,
+    srvCode,
+    landingUrl,
+    whatsappUrl,
+    systemShareText,
+  });
+});
 
 export const updateRoute = onCall(async (request) => {
   const auth = requireAuth(request);

@@ -8112,3 +8112,57 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 287: WhatsApp share URL generator function yaz.
+
+## STEP-287-287A - WhatsApp Share URL Generator + Landing Contract
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 287: WhatsApp share URL generator callable eklemek (WhatsApp yoksa share-sheet fallback metniyle).
+- 287A: `https://nerede.servis/r/{srvCode}` landing kontratini dokumante etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`generateRouteShareLink` callable + schema/output)
+2. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (STEP-287 testi)
+3. `apply_patch` -> `docs/api_contracts.md` (share link contract + landing page contract)
+4. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`287`, `287A` `[x]`)
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`287`, `287A` `[x]`)
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni callable: `generateRouteShareLink`
+  - input: `routeId`, opsiyonel `customText`.
+  - auth: non-anonymous `driver|passenger`.
+  - yetki: route member zorunlu.
+  - output:
+    - `landingUrl`: `https://nerede.servis/r/{srvCode}`
+    - `whatsappUrl`: `https://wa.me/?text=...`
+    - `systemShareText`: share sheet fallback metni
+- API kontrati guncellendi:
+  - `GenerateRouteShareLinkInput/Output`
+  - landing contract (`/r/{srvCode}`) dokumani eklendi.
+- Yeni test:
+  - STEP-287: whatsapp URL ve fallback metni dogrulandi.
+- Tum test paketi pass: `28/28`.
+
+### Hata Kaydi (Silinmez)
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `28/28` pass.
+
+### Sonraki Adim
+- Faz F / 288: Dynamic route preview endpoint yaz (signed token + rate limit).
