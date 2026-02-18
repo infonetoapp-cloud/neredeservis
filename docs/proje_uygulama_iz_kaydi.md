@@ -5275,3 +5275,39 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 193B: Drift migration testleri (v1->v2 dry-run; ownerUid + queue veri korunum kontrolu).
+
+## STEP-193B - Drift Migration Testleri (v1->v2 dry-run)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Drift migration dry-run senaryosunda (v1->v2) queue verisinin ve `ownerUid` alanlarinin kayipsiz korundugunu test etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `test/domain/local_drift_migration_test.dart`
+2. `dart format test/domain/local_drift_migration_test.dart`
+3. `flutter analyze`
+4. `flutter test`
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (193B `[x]`)
+6. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (193B `[x]`)
+7. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `test/domain/local_drift_migration_test.dart` eklendi.
+- Testte iki asamali migration senaryosu kuruldu:
+  - V1 DB (`LocalDriftDatabase`) ile `location_queue` ve `trip_action_queue` kayitlari yazildi.
+  - Dosya ayni kalacak sekilde V2 test DB (`schemaVersion=2`, dry-run `onUpgrade`) ile acildi.
+- Dogrulanan korunum:
+  - `location_queue.owner_uid`, `route_id`, `trip_id`
+  - `trip_action_queue.owner_uid`, `idempotency_key`, `payload_json`, `status`, `local_meta`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 100 test passed.
+
+### Sonraki Adim
+- Faz E / 193C: `trip_action_queue` state machine (`pending -> in_flight -> failed_permanent`).
