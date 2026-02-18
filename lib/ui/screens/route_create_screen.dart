@@ -38,6 +38,8 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
   bool _isGhostRecording = false;
   bool _ghostPreviewVisible = false;
   final List<RouteTracePointInput> _ghostTracePoints = <RouteTracePointInput>[];
+  List<RouteStopSuggestion> _ghostStopSuggestions = <RouteStopSuggestion>[];
+  bool _ghostSuggestionsApproved = false;
 
   @override
   void dispose() {
@@ -165,6 +167,11 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       _setValidation('Ghost Drive icin en az 2 nokta kaydedilmeli.');
       return null;
     }
+    if (!_ghostSuggestionsApproved) {
+      _setValidation(
+          'Kayit oncesi baslangic/bitis ve durak onerilerini onayla.');
+      return null;
+    }
 
     return RouteCreateGhostFormInput(
       name: name,
@@ -193,6 +200,8 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
           ),
         );
       _ghostPreviewVisible = false;
+      _ghostStopSuggestions = <RouteStopSuggestion>[];
+      _ghostSuggestionsApproved = false;
       _validationError = null;
       _isGhostRecording = true;
     });
@@ -213,6 +222,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
           sampledAtMs: DateTime.now().millisecondsSinceEpoch,
         ),
       );
+      _ghostStopSuggestions = _deriveGhostStopSuggestions(_ghostTracePoints);
       _isGhostRecording = false;
       _validationError = null;
     });
@@ -227,6 +237,36 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
 
   double _parseOrDefault(String raw, double fallback) {
     return double.tryParse(raw.trim()) ?? fallback;
+  }
+
+  List<RouteStopSuggestion> _deriveGhostStopSuggestions(
+    List<RouteTracePointInput> points,
+  ) {
+    if (points.length < 2) {
+      return const <RouteStopSuggestion>[];
+    }
+    final suggestions = <RouteStopSuggestion>[];
+    if (points.length >= 3) {
+      final middlePoint = points[(points.length / 2).floor()];
+      suggestions.add(
+        RouteStopSuggestion(
+          label: 'Durak Adayi 1',
+          lat: middlePoint.lat,
+          lng: middlePoint.lng,
+        ),
+      );
+    } else {
+      final start = points.first;
+      final end = points.last;
+      suggestions.add(
+        RouteStopSuggestion(
+          label: 'Durak Adayi 1',
+          lat: (start.lat + end.lat) / 2,
+          lng: (start.lng + end.lng) / 2,
+        ),
+      );
+    }
+    return suggestions;
   }
 
   bool _isValidTime(String value) {
@@ -501,16 +541,39 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       ),
       if (_ghostPreviewVisible) ...<Widget>[
         const SizedBox(height: AmberSpacingTokens.space8),
-        _GhostDrivePreview(points: _ghostTracePoints),
+        _GhostDrivePreview(
+          points: _ghostTracePoints,
+          suggestions: _ghostStopSuggestions,
+        ),
+        const SizedBox(height: AmberSpacingTokens.space8),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          value: _ghostSuggestionsApproved,
+          onChanged: _submitting
+              ? null
+              : (value) {
+                  setState(() {
+                    _ghostSuggestionsApproved = value;
+                    _validationError = null;
+                  });
+                },
+          title: const Text(
+              'Otomatik baslangic/bitis ve durak onerilerini onayliyorum'),
+          subtitle: const Text('Onay olmadan Ghost Drive kaydi tamamlanmaz.'),
+        ),
       ],
     ];
   }
 }
 
 class _GhostDrivePreview extends StatelessWidget {
-  const _GhostDrivePreview({required this.points});
+  const _GhostDrivePreview({
+    required this.points,
+    required this.suggestions,
+  });
 
   final List<RouteTracePointInput> points;
+  final List<RouteStopSuggestion> suggestions;
 
   @override
   Widget build(BuildContext context) {
@@ -529,10 +592,24 @@ class _GhostDrivePreview extends StatelessWidget {
             Text('Kayitli nokta: ${points.length}'),
             if (first != null)
               Text(
-                  'Baslangic: ${first.lat.toStringAsFixed(5)}, ${first.lng.toStringAsFixed(5)}'),
+                'Baslangic: ${first.lat.toStringAsFixed(5)}, '
+                '${first.lng.toStringAsFixed(5)}',
+              ),
             if (last != null)
               Text(
-                  'Bitis: ${last.lat.toStringAsFixed(5)}, ${last.lng.toStringAsFixed(5)}'),
+                'Bitis: ${last.lat.toStringAsFixed(5)}, '
+                '${last.lng.toStringAsFixed(5)}',
+              ),
+            if (suggestions.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              const Text('Durak adaylari:'),
+              for (final suggestion in suggestions)
+                Text(
+                  '- ${suggestion.label}: '
+                  '${suggestion.lat.toStringAsFixed(5)}, '
+                  '${suggestion.lng.toStringAsFixed(5)}',
+                ),
+            ],
           ],
         ),
       ),
@@ -594,6 +671,18 @@ class RouteTracePointInput {
   final double lng;
   final double accuracy;
   final int sampledAtMs;
+}
+
+class RouteStopSuggestion {
+  const RouteStopSuggestion({
+    required this.label,
+    required this.lat,
+    required this.lng,
+  });
+
+  final String label;
+  final double lat;
+  final double lng;
 }
 
 enum RouteCreateMode {

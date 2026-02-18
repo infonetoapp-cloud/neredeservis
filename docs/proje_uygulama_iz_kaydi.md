@@ -8939,3 +8939,56 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 307C: Ghost Drive kayit sonunda otomatik baslangic/bitis + durak adayi onerilerini tek onay ekranina baglama.
+
+## STEP-307C - Ghost Drive Sonu Otomatik Oneriler + Tek Ekran Onayi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Ghost Drive kaydi bitince:
+  - otomatik baslangic/bitis ozetini,
+  - durak adayi onerilerini
+  tek ekranda gosterip kullanicidan acik onay almak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/route_create_screen.dart`
+   - ghost suggestion state'i eklendi (`_ghostStopSuggestions`, `_ghostSuggestionsApproved`)
+   - kayit bitisinde otomatik durak adayi turetme helper'i eklendi
+   - preview kartina baslangic/bitis + durak adaylari yazdirildi
+   - onay switch'i eklendi: `Otomatik baslangic/bitis ve durak onerilerini onayliyorum`
+   - onay olmadan ghost save bloklandi
+2. `apply_patch` -> `test/ui/route_create_screen_test.dart`
+   - ghost flow testine onay switch adimi eklendi
+3. `dart format lib/ui/screens/route_create_screen.dart test/ui/route_create_screen_test.dart`
+4. `flutter test test/ui/route_create_screen_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`307C` -> `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`307C` -> `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Ghost Drive akisi artik tek onay adimi iceriyor:
+  - kayit bitti -> preview acildi -> otomatik baslangic/bitis + durak adayi listesi gosterildi
+  - kullanici onay switch'ini acmadan `Ghost Drive Ile Kaydet` tamamlanmiyor
+- Durak adayi uretimi:
+  - >=3 sample varsa orta noktadan aday
+  - 2 sample varsa start/end midpoint adayi
+- UI davranisi runbook 307C beklentisiyle uyumlu hale getirildi.
+
+### Hata Kaydi (Silinmez)
+- Test tarafinda onay switch etkileşimi ilk denemede hit-test warning urettti.
+  - cozum: testte onay metni uzerinden toggle yapildi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `181` test).
+- `flutter test test/ui/route_create_screen_test.dart` -> pass (`4/4`).
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `307C` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `307C` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 307D: KULLANICIDAN ONAY ISTE - "Ghost Drive varsayilan rota olusturma akisi olarak uygun mu?"

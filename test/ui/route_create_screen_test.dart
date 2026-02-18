@@ -101,6 +101,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Onizleme'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.text('Otomatik baslangic/bitis ve durak onerilerini onayliyorum'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.text('Otomatik baslangic/bitis ve durak onerilerini onayliyorum'),
+    );
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Ghost Drive Ile Kaydet'));
     await tester.pumpAndSettle();
