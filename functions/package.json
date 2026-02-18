@@ -17,7 +17,7 @@
     "lint:fix": "eslint --fix \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
-    "test:rules:unit": "node --test rules-tests/*.test.mjs"
+    "test:rules:unit": "npm run build && node --test rules-tests/*.test.mjs"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

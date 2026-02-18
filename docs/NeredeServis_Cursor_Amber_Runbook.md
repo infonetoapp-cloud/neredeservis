@@ -576,12 +576,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 259 `skip_requests` tek-gun tek-kayit kurali uygula.
 - [x] 259A `skip_requests` gun degisimi kuralini netlestir: reset yazimi yok; sadece `dateKey == today` filtrelenir, eski kayitlar retention ile temizlenir.
 - [x] 260 DOGRULAMA: Function unit testleri green mi?
-- [ ] 261 Emulator callable integration testleri yaz.
-- [ ] 262 Auth yokken endpoint red testleri yaz.
-- [ ] 263 Anonymous endpoint red testleri yaz (except guest session).
-- [ ] 264 Role mismatch red testleri yaz.
-- [ ] 265 Invalid payload red testleri yaz.
-- [ ] 266 Idempotency tekrar cagrisi testleri yaz.
+- [x] 261 Emulator callable integration testleri yaz.
+- [x] 262 Auth yokken endpoint red testleri yaz.
+- [x] 263 Anonymous endpoint red testleri yaz (except guest session).
+- [x] 264 Role mismatch red testleri yaz.
+- [x] 265 Invalid payload red testleri yaz.
+- [x] 266 Idempotency tekrar cagrisi testleri yaz.
 - [ ] 267 Concurrency race testleri yaz.
 - [ ] 268 RTDB heartbeat -> Firestore `lastLocationAt` testi yaz.
 - [ ] 268A `routeWriters` revoke/race testlerini yaz (trip biter bitmez write deny).

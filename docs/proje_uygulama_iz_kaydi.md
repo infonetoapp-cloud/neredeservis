@@ -7382,3 +7382,55 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 261: emulator callable integration test katmani.
+
+## STEP-261-266 - Emulator Callable Integration + Red/Validation + Idempotency Replay Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 261: Emulator ortaminda callable integration test katmanini aktif etmek.
+- 262: Auth yokken endpoint red davranisini test etmek.
+- 263: Anonymous endpoint red davranisini (createGuestSession haric) test etmek.
+- 264: Role mismatch red davranisini test etmek.
+- 265: Invalid payload red davranisini test etmek.
+- 266: Idempotency replay testlerini (`startTrip`/`finishTrip`) yazmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (261-265 testleri)
+2. `apply_patch` -> `functions/package.json` (`test:rules:unit` script'ine build adimi eklendi)
+3. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (fail)
+4. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (`FIREBASE_CONFIG.databaseURL` eklendi)
+5. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (pass)
+6. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (266 idempotency replay testi)
+7. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit` (pass)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (261..266 `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (261..266 `[x]`)
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni integration test dosyasi eklendi: `functions/rules-tests/callable_integration.test.mjs`.
+- Kapsanan testler:
+  - STEP-261: `createGuestSession` success (emulator integration)
+  - STEP-262: auth yok -> `unauthenticated`
+  - STEP-263: anonymous red (createGuestSession disi) -> `failed-precondition`
+  - STEP-264: role mismatch -> `permission-denied`
+  - STEP-265: invalid payload -> `invalid-argument`
+  - STEP-266: `startTrip` + `finishTrip` idempotency replay (same key -> same sonucu donme)
+- `test:rules:unit` scripti build adimini zorunlu hale getirildi; callable integration testleri her kosumda guncel `lib/` uzerinden calisiyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk integration kosusunda `FirebaseError: Can't determine Firebase Database URL.` hatasi alindi.
+  - Cozum: test setup'ta `process.env.FIREBASE_CONFIG.databaseURL` eklendi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `12/12` pass.
+
+### Sonraki Adim
+- Faz F / 267: concurrency race testleri (cift gecis denemesinde tek gecerli state).
