@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/errors/error_codes.dart';
+import '../../../core/exceptions/app_exception.dart';
 import '../../../services/repository_interfaces.dart';
 import '../entities/announcement_entity.dart';
 import '../entities/consent_entity.dart';
@@ -182,7 +184,10 @@ class FirestoreRouteRepository implements RouteRepository {
         .limit(1)
         .get();
     if (query.docs.isEmpty) {
-      throw StateError('Route not found for given SRV code.');
+      throw const AppException(
+        code: ErrorCodes.invalidArgument,
+        message: 'Route not found for given SRV code.',
+      );
     }
     final doc = query.docs.first;
     final data = doc.data();
@@ -389,15 +394,19 @@ class FirestoreTripRepository implements TripRepository {
 
   @override
   Future<void> startTrip(StartTripCommand command) {
-    throw UnsupportedError(
-      'startTrip requires callable workflow with idempotency contract.',
+    throw const AppException(
+      code: ErrorCodes.failedPrecondition,
+      message:
+          'startTrip requires callable workflow with idempotency contract.',
     );
   }
 
   @override
   Future<void> finishTrip(FinishTripCommand command) {
-    throw UnsupportedError(
-      'finishTrip requires callable workflow with idempotency contract.',
+    throw const AppException(
+      code: ErrorCodes.failedPrecondition,
+      message:
+          'finishTrip requires callable workflow with idempotency contract.',
     );
   }
 }

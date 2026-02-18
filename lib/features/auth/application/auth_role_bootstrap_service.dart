@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import '../../../core/errors/error_codes.dart';
+import '../../../core/errors/error_propagation.dart';
+import '../../../core/exceptions/app_exception.dart';
 import '../data/auth_gateway.dart';
 import '../data/bootstrap_user_profile_client.dart';
+import '../data/profile_error_propagation.dart';
 import '../data/update_user_profile_client.dart';
 import '../data/user_role_repository.dart';
 import '../domain/auth_session.dart';
@@ -43,10 +47,28 @@ class AuthRoleBootstrapService {
 
           roleSubscription = _userRoleRepository.watchRole(session.uid).listen(
             (role) => controller.add(role ?? UserRole.unknown),
-            onError: controller.addError,
+            onError: (Object error, StackTrace stackTrace) {
+              controller.addError(
+                propagateAppException(
+                  error: error,
+                  fallbackCode: ErrorCodes.unknown,
+                  fallbackMessage: 'Role stream failed.',
+                ),
+                stackTrace,
+              );
+            },
           );
         },
-        onError: controller.addError,
+        onError: (Object error, StackTrace stackTrace) {
+          controller.addError(
+            propagateAppException(
+              error: error,
+              fallbackCode: ErrorCodes.unknown,
+              fallbackMessage: 'Auth stream failed.',
+            ),
+            stackTrace,
+          );
+        },
         onDone: () async {
           await roleSubscription?.cancel();
           controller.close();
@@ -65,7 +87,15 @@ class AuthRoleBootstrapService {
     if (existingSession != null) {
       return existingSession;
     }
-    return _authGateway.signInAnonymously();
+    try {
+      return await _authGateway.signInAnonymously();
+    } catch (error) {
+      throw propagateAppException(
+        error: error,
+        fallbackCode: ErrorCodes.unavailable,
+        fallbackMessage: 'Anonymous sign-in failed.',
+      );
+    }
   }
 
   Future<BootstrapUserProfileResult> bootstrapCurrentUserProfile({
@@ -74,15 +104,24 @@ class AuthRoleBootstrapService {
   }) async {
     final session = _authGateway.currentSession;
     if (session == null) {
-      throw StateError('User must be signed in before bootstrap.');
+      throw const AppException(
+        code: ErrorCodes.failedPrecondition,
+        message: 'User must be signed in before bootstrap.',
+      );
     }
-
-    return _bootstrapClient.bootstrap(
-      BootstrapUserProfileInput(
-        displayName: displayName,
-        phone: phone,
-      ),
-    );
+    try {
+      return await _bootstrapClient.bootstrap(
+        BootstrapUserProfileInput(
+          displayName: displayName,
+          phone: phone,
+        ),
+      );
+    } catch (error) {
+      throw propagateProfileCallableException(
+        callableName: 'bootstrapUserProfile',
+        error: error,
+      );
+    }
   }
 
   Future<UpdateUserProfileResult> updateCurrentUserProfile({
@@ -91,14 +130,23 @@ class AuthRoleBootstrapService {
   }) async {
     final session = _authGateway.currentSession;
     if (session == null) {
-      throw StateError('User must be signed in before profile update.');
+      throw const AppException(
+        code: ErrorCodes.failedPrecondition,
+        message: 'User must be signed in before profile update.',
+      );
     }
-
-    return _updateUserProfileClient.update(
-      UpdateUserProfileInput(
-        displayName: displayName,
-        phone: phone,
-      ),
-    );
+    try {
+      return await _updateUserProfileClient.update(
+        UpdateUserProfileInput(
+          displayName: displayName,
+          phone: phone,
+        ),
+      );
+    } catch (error) {
+      throw propagateProfileCallableException(
+        callableName: 'updateUserProfile',
+        error: error,
+      );
+    }
   }
 }

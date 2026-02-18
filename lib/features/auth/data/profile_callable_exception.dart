@@ -1,6 +1,9 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import '../../../core/errors/error_propagation.dart';
+import '../../../core/exceptions/app_exception.dart';
+
 enum ProfileCallableErrorCode {
   invalidArgument,
   permissionDenied,
@@ -53,6 +56,33 @@ ProfileCallableException mapProfileCallableException({
     );
   }
 
+  if (error is AppException) {
+    return ProfileCallableException(
+      callableName: callableName,
+      code: _mapCode(error.code),
+      message: error.message,
+      details: null,
+    );
+  }
+
+  if (error is StateError) {
+    return ProfileCallableException(
+      callableName: callableName,
+      code: ProfileCallableErrorCode.failedPrecondition,
+      message: error.toString(),
+      details: null,
+    );
+  }
+
+  if (error is FormatException) {
+    return ProfileCallableException(
+      callableName: callableName,
+      code: ProfileCallableErrorCode.invalidArgument,
+      message: error.message,
+      details: null,
+    );
+  }
+
   return ProfileCallableException(
     callableName: callableName,
     code: ProfileCallableErrorCode.unknown,
@@ -62,22 +92,18 @@ ProfileCallableException mapProfileCallableException({
 }
 
 ProfileCallableErrorCode _mapCode(String? rawCode) {
-  switch ((rawCode ?? '').toLowerCase()) {
-    case 'invalid-argument':
-    case 'invalid_argument':
+  switch (normalizeErrorCode(rawCode)) {
+    case 'INVALID_ARGUMENT':
       return ProfileCallableErrorCode.invalidArgument;
-    case 'permission-denied':
-    case 'permission_denied':
+    case 'PERMISSION_DENIED':
       return ProfileCallableErrorCode.permissionDenied;
-    case 'failed-precondition':
-    case 'failed_precondition':
+    case 'FAILED_PRECONDITION':
       return ProfileCallableErrorCode.failedPrecondition;
-    case 'resource-exhausted':
-    case 'resource_exhausted':
+    case 'RESOURCE_EXHAUSTED':
       return ProfileCallableErrorCode.resourceExhausted;
-    case 'unauthenticated':
+    case 'UNAUTHENTICATED':
       return ProfileCallableErrorCode.unauthenticated;
-    case 'unavailable':
+    case 'UNAVAILABLE':
       return ProfileCallableErrorCode.unavailable;
     default:
       return ProfileCallableErrorCode.unknown;

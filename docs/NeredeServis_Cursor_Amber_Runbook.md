@@ -488,7 +488,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 203 DOGRULAMA: tum unit testler green mi?
 - [x] 204 Riverpod providerlarini domain use-case'lere bagla.
 - [x] 204A `transferLocalOwnershipAfterAccountLink` use-case'ini yaz (guest -> passenger gechisinde ownerId devri).
-- [ ] 205 Error propagation kurali uygula.
+- [x] 205 Error propagation kurali uygula.
 - [ ] 206 Retry policy helper yaz (max 3 deneme + jitter backoff).
 - [ ] 207 Offline-first read stratejisi uygula.
 - [ ] 207A Queue boyut limiti uygula (`MAX_QUEUE_SIZE`) ve limit asiminda kullaniciya net mesaj goster.

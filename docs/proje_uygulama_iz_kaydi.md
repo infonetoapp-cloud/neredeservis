@@ -5752,6 +5752,65 @@ Etiket: codex
 ### Sonraki Adim
 - Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
 
+## STEP-205 - Error Propagation Kurali
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Katmanlar arasi hata aktariminda kod kaybini engellemek ve hata kodlarini teknik plan kontratina hizalamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/core/errors/error_codes.dart`
+2. `apply_patch` -> `lib/core/errors/error_propagation.dart`
+3. `apply_patch` -> `lib/features/auth/data/profile_error_propagation.dart`
+4. `apply_patch` -> `lib/features/auth/data/profile_callable_exception.dart`
+5. `apply_patch` -> `lib/features/auth/application/auth_role_bootstrap_service.dart`
+6. `apply_patch` -> `lib/features/auth/data/firebase_auth_gateway.dart`
+7. `apply_patch` -> `lib/features/domain/data/firestore_domain_repositories.dart`
+8. `apply_patch` -> `test/core/error_propagation_test.dart`
+9. `apply_patch` -> `test/auth/profile_callable_exception_test.dart`
+10. `apply_patch` -> `test/auth/auth_role_bootstrap_service_error_propagation_test.dart`
+11. `dart format ...`
+12. `flutter test test/core/error_propagation_test.dart test/auth/profile_callable_exception_test.dart test/auth/auth_role_bootstrap_service_error_propagation_test.dart`
+13. `flutter analyze`
+14. `flutter test`
+15. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (205 `[x]`)
+16. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (205 `[x]`)
+17. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Ortak kod seti eklendi:
+  - `INVALID_ARGUMENT`
+  - `PERMISSION_DENIED`
+  - `FAILED_PRECONDITION`
+  - `RESOURCE_EXHAUSTED`
+  - `UNAUTHENTICATED`
+  - `UNAVAILABLE`
+  - `UNKNOWN`
+- Ortak propagation helper eklendi:
+  - `normalizeErrorCode(...)`
+  - `propagateAppException(...)`
+- Auth callable hata zinciri standart hale getirildi:
+  - `ProfileCallableException -> AppException` donusumu
+  - `AuthRoleBootstrapService` icinde servis cikisinda kodlu exception propagation
+- Repository tarafinda ham `StateError/UnsupportedError` yerine kodlu `AppException` kullanildi.
+
+### Hata Kaydi (Silinmez)
+- Ilk iterasyonda `AuthRoleBootstrapService` icindeki `try/catch`, `await` eksigi nedeniyle async hatayi yakalayamadi.
+  - Etki: testte `ProfileCallableException` ve `TimeoutException` ham olarak yukari sizdi.
+  - Cozum: `return await ...` ile async exception propagation duzeltildi.
+- `profile_callable_exception.dart` ilk patchte artakalan switch blok parcasiyla dosya bozuldu.
+  - Cozum: duplicate blok temizlendi ve map fonksiyonu normalize kod tabanina sabitlendi.
+
+### Dogrulama
+- `flutter test test/core/error_propagation_test.dart test/auth/profile_callable_exception_test.dart test/auth/auth_role_bootstrap_service_error_propagation_test.dart` -> 14/14 passed.
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 152 test passed.
+
+### Sonraki Adim
+- Faz E / 206: Retry policy helper (max 3 deneme + jitter backoff).
+
 ## STEP-204-204A - Riverpod Provider Baglama + Ownership Transfer Use-Case
 Tarih: 2026-02-18
 Durum: Tamamlandi

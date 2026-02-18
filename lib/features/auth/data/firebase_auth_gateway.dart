@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../core/errors/error_codes.dart';
+import '../../../core/errors/error_propagation.dart';
+import '../../../core/exceptions/app_exception.dart';
 import '../domain/auth_session.dart';
 import 'auth_gateway.dart';
 
@@ -39,16 +42,27 @@ class FirebaseAuthGateway implements AuthGateway {
 
   @override
   Future<AuthSession> signInAnonymously() async {
-    final credential = await _auth.signInAnonymously();
-    final user = credential.user;
-    if (user == null) {
-      throw StateError('Anonymous sign-in returned null user.');
+    try {
+      final credential = await _auth.signInAnonymously();
+      final user = credential.user;
+      if (user == null) {
+        throw const AppException(
+          code: ErrorCodes.failedPrecondition,
+          message: 'Anonymous sign-in returned null user.',
+        );
+      }
+      return AuthSession(
+        uid: user.uid,
+        isAnonymous: user.isAnonymous,
+        emailVerified: user.emailVerified,
+      );
+    } catch (error) {
+      throw propagateAppException(
+        error: error,
+        fallbackCode: ErrorCodes.unavailable,
+        fallbackMessage: 'Anonymous sign-in failed.',
+      );
     }
-    return AuthSession(
-      uid: user.uid,
-      isAnonymous: user.isAnonymous,
-      emailVerified: user.emailVerified,
-    );
   }
 
   @override

@@ -1,6 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:neredeservis/core/errors/error_codes.dart';
+import 'package:neredeservis/core/exceptions/app_exception.dart';
 import 'package:neredeservis/features/auth/data/profile_callable_exception.dart';
 
 void main() {
@@ -39,14 +41,36 @@ void main() {
       expect(mapped.message, 'not authorized');
     });
 
-    test('maps unknown errors to unknown code', () {
+    test('maps StateError to failedPrecondition', () {
       final mapped = mapProfileCallableException(
         callableName: 'bootstrapUserProfile',
         error: StateError('boom'),
       );
 
-      expect(mapped.code, ProfileCallableErrorCode.unknown);
+      expect(mapped.code, ProfileCallableErrorCode.failedPrecondition);
       expect(mapped.message, contains('boom'));
+    });
+
+    test('maps AppException code to profile code', () {
+      final mapped = mapProfileCallableException(
+        callableName: 'updateUserProfile',
+        error: const AppException(
+          code: ErrorCodes.permissionDenied,
+          message: 'denied',
+        ),
+      );
+
+      expect(mapped.code, ProfileCallableErrorCode.permissionDenied);
+      expect(mapped.message, 'denied');
+    });
+
+    test('maps truly unknown errors to unknown code', () {
+      final mapped = mapProfileCallableException(
+        callableName: 'bootstrapUserProfile',
+        error: Object(),
+      );
+
+      expect(mapped.code, ProfileCallableErrorCode.unknown);
     });
   });
 }
