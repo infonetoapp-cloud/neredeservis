@@ -10,6 +10,12 @@ import {
   SRV_CODE_COLLISION_MAX_RETRY,
   generateSrvCodeCandidate,
 } from './common/srv_code.js';
+import { applyMapMatchingWithGuard } from './ghost_drive/map_matching_guard.js';
+import {
+  GhostTraceValidationError,
+  encodeTracePolyline,
+  processGhostTrace,
+} from './ghost_drive/trace_processing.js';
 import { asRecord } from './common/type_guards.js';
 import { requireAuth, requireNonAnonymous } from './middleware/auth_middleware.js';
 import { requireDriverProfile } from './middleware/driver_profile_middleware.js';
@@ -82,6 +88,21 @@ interface UpdateRouteOutput {
   updatedAt: string;
 }
 
+interface InferredStopOutput {
+  name: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  order: number;
+}
+
+interface CreateRouteFromGhostDriveOutput {
+  routeId: string;
+  srvCode: string;
+  inferredStops: InferredStopOutput[];
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -148,6 +169,24 @@ const updateRouteInputSchema = z.object({
   vacationUntil: z.string().datetime().nullable().optional(),
 });
 
+const createRouteFromGhostDriveInputSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  tracePoints: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        accuracy: z.number().min(0).max(500),
+        sampledAtMs: z.number().int().min(0),
+      }),
+    )
+    .min(2),
+  scheduledTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:mm formatinda olmalidir.'),
+  timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']),
+  allowGuestTracking: z.boolean(),
+  authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -199,6 +238,99 @@ function normalizeAuthorizedDriverIds(rawIds: readonly string[], ownerUid: strin
     unique.add(normalized);
   }
   return Array.from(unique.values());
+}
+
+function inferStopsFromTrace(
+  tracePoints: readonly { lat: number; lng: number }[],
+): InferredStopOutput[] {
+  if (tracePoints.length === 0) {
+    return [];
+  }
+
+  const first = tracePoints[0];
+  const last = tracePoints[tracePoints.length - 1];
+  if (!first || !last) {
+    return [];
+  }
+
+  if (tracePoints.length < 5) {
+    return [
+      { name: 'Baslangic', location: { lat: first.lat, lng: first.lng }, order: 1 },
+      { name: 'Bitis', location: { lat: last.lat, lng: last.lng }, order: 2 },
+    ];
+  }
+
+  const middle = tracePoints[Math.floor(tracePoints.length / 2)] ?? first;
+  return [
+    { name: 'Baslangic', location: { lat: first.lat, lng: first.lng }, order: 1 },
+    { name: 'Ara Durak', location: { lat: middle.lat, lng: middle.lng }, order: 2 },
+    { name: 'Bitis', location: { lat: last.lat, lng: last.lng }, order: 3 },
+  ];
+}
+
+function mapGhostTraceValidationError(error: GhostTraceValidationError): HttpsError {
+  return new HttpsError('invalid-argument', `${error.code}: ${error.message}`);
+}
+
+async function createRouteWithSrvCode({
+  routeData,
+  ownerUid,
+  createdAtIso,
+}: {
+  routeData: Record<string, unknown>;
+  ownerUid: string;
+  createdAtIso: string;
+}): Promise<CreateRouteOutput> {
+  for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
+    const srvCode = generateSrvCodeCandidate();
+    const routeRef = db.collection('routes').doc();
+    const srvCodeRef = db.collection('_srv_codes').doc(srvCode);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const srvCodeSnap = await tx.get(srvCodeRef);
+        if (srvCodeSnap.exists) {
+          throw new Error(SRV_CODE_COLLISION_LIMIT_ERROR);
+        }
+
+        tx.set(routeRef, {
+          ...routeData,
+          srvCode,
+        });
+
+        tx.set(srvCodeRef, {
+          routeId: routeRef.id,
+          createdBy: ownerUid,
+          createdAt: createdAtIso,
+        });
+      });
+
+      return {
+        routeId: routeRef.id,
+        srvCode,
+      };
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === SRV_CODE_COLLISION_LIMIT_ERROR &&
+        attempt < SRV_CODE_COLLISION_MAX_RETRY
+      ) {
+        continue;
+      }
+      if (error instanceof Error && error.message === SRV_CODE_COLLISION_LIMIT_ERROR) {
+        throw new HttpsError(
+          'resource-exhausted',
+          `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  throw new HttpsError(
+    'resource-exhausted',
+    `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
+  );
 }
 
 export const healthCheck = onCall(() => {
@@ -372,76 +504,127 @@ export const createRoute = onCall(async (request) => {
   );
   const memberIds = Array.from(new Set<string>([auth.uid, ...authorizedDriverIds]));
 
-  for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
-    const srvCode = generateSrvCodeCandidate();
-    const routeRef = db.collection('routes').doc();
-    const srvCodeRef = db.collection('_srv_codes').doc(srvCode);
+  const created = await createRouteWithSrvCode({
+    ownerUid: auth.uid,
+    createdAtIso: nowIso,
+    routeData: {
+      name: input.name,
+      driverId: auth.uid,
+      authorizedDriverIds,
+      memberIds,
+      companyId: null,
+      visibility: 'private',
+      allowGuestTracking: input.allowGuestTracking,
+      creationMode: 'manual_pin',
+      routePolyline: null,
+      startPoint: input.startPoint,
+      startAddress: input.startAddress,
+      endPoint: input.endPoint,
+      endAddress: input.endAddress,
+      scheduledTime: input.scheduledTime,
+      timeSlot: input.timeSlot,
+      isArchived: false,
+      vacationUntil: null,
+      passengerCount: 0,
+      lastTripStartedNotificationAt: null,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    },
+  });
 
-    try {
-      await db.runTransaction(async (tx) => {
-        const srvCodeSnap = await tx.get(srvCodeRef);
-        if (srvCodeSnap.exists) {
-          throw new Error(SRV_CODE_COLLISION_LIMIT_ERROR);
-        }
+  return apiOk<CreateRouteOutput>(created);
+});
 
-        tx.set(routeRef, {
-          name: input.name,
-          driverId: auth.uid,
-          authorizedDriverIds,
-          memberIds,
-          companyId: null,
-          srvCode,
-          visibility: 'private',
-          allowGuestTracking: input.allowGuestTracking,
-          creationMode: 'manual_pin',
-          routePolyline: null,
-          startPoint: input.startPoint,
-          startAddress: input.startAddress,
-          endPoint: input.endPoint,
-          endAddress: input.endAddress,
-          scheduledTime: input.scheduledTime,
-          timeSlot: input.timeSlot,
-          isArchived: false,
-          vacationUntil: null,
-          passengerCount: 0,
-          lastTripStartedNotificationAt: null,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        });
+export const createRouteFromGhostDrive = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
 
-        tx.set(srvCodeRef, {
-          routeId: routeRef.id,
-          createdBy: auth.uid,
-          createdAt: nowIso,
-        });
-      });
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
 
-      return apiOk<CreateRouteOutput>({
-        routeId: routeRef.id,
-        srvCode,
-      });
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === SRV_CODE_COLLISION_LIMIT_ERROR &&
-        attempt < SRV_CODE_COLLISION_MAX_RETRY
-      ) {
-        continue;
-      }
-      if (error instanceof Error && error.message === SRV_CODE_COLLISION_LIMIT_ERROR) {
-        throw new HttpsError(
-          'resource-exhausted',
-          `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
-        );
-      }
-      throw error;
+  const input = validateInput(createRouteFromGhostDriveInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+  const authorizedDriverIds = normalizeAuthorizedDriverIds(
+    input.authorizedDriverIds ?? [],
+    auth.uid,
+  );
+  const memberIds = Array.from(new Set<string>([auth.uid, ...authorizedDriverIds]));
+
+  let processedTrace;
+  try {
+    processedTrace = processGhostTrace(input.tracePoints);
+  } catch (error) {
+    if (error instanceof GhostTraceValidationError) {
+      throw mapGhostTraceValidationError(error);
     }
+    throw error;
   }
 
-  throw new HttpsError(
-    'resource-exhausted',
-    `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
-  );
+  const mapMatched = await applyMapMatchingWithGuard({
+    db,
+    tracePoints: processedTrace.simplifiedTrace,
+  });
+  const finalTrace = mapMatched.tracePoints;
+  const finalPolyline = encodeTracePolyline(finalTrace);
+  const inferredStops = inferStopsFromTrace(finalTrace);
+
+  const firstPoint = finalTrace[0];
+  const lastPoint = finalTrace[finalTrace.length - 1];
+  if (!firstPoint || !lastPoint) {
+    throw new HttpsError('failed-precondition', 'Ghost trace route uretimi icin yetersiz.');
+  }
+
+  const created = await createRouteWithSrvCode({
+    ownerUid: auth.uid,
+    createdAtIso: nowIso,
+    routeData: {
+      name: input.name,
+      driverId: auth.uid,
+      authorizedDriverIds,
+      memberIds,
+      companyId: null,
+      visibility: 'private',
+      allowGuestTracking: input.allowGuestTracking,
+      creationMode: 'ghost_drive',
+      routePolyline: finalPolyline,
+      startPoint: {
+        lat: firstPoint.lat,
+        lng: firstPoint.lng,
+      },
+      startAddress: 'Ghost Baslangic',
+      endPoint: {
+        lat: lastPoint.lat,
+        lng: lastPoint.lng,
+      },
+      endAddress: 'Ghost Bitis',
+      scheduledTime: input.scheduledTime,
+      timeSlot: input.timeSlot,
+      isArchived: false,
+      vacationUntil: null,
+      passengerCount: 0,
+      lastTripStartedNotificationAt: null,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      ghostTraceMeta: {
+        sanitizedCount: processedTrace.sanitizedTrace.length,
+        simplifiedCount: processedTrace.simplifiedTrace.length,
+        finalCount: finalTrace.length,
+        mapMatchingFallbackUsed: mapMatched.fallbackUsed,
+        mapMatchingSource: mapMatched.source,
+        mapMatchingConfidence: mapMatched.confidence,
+      },
+    },
+  });
+
+  return apiOk<CreateRouteFromGhostDriveOutput>({
+    routeId: created.routeId,
+    srvCode: created.srvCode,
+    inferredStops,
+  });
 });
 
 export const updateRoute = onCall(async (request) => {

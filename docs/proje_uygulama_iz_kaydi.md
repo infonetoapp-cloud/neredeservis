@@ -6421,3 +6421,66 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 236A: `createRouteFromGhostDrive` callable.
+
+## STEP-236A-236E - Ghost Drive Callable + Trace Pipeline + Map Matching Guard
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 236A: `createRouteFromGhostDrive` callable.
+- 236B: Ghost trace sanitize (min/max point, duplicate drop, distance threshold).
+- 236C: Douglas-Peucker simplification + max point + polyline size guard.
+- 236D: Map matching post-process adimi (fallback dahil).
+- 236E: Map matching maliyet guard'i (ac/kapa + aylik cap + timeout fallback).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/ghost_drive/trace_processing.ts`
+2. `apply_patch` -> `functions/src/ghost_drive/map_matching_guard.ts`
+3. `apply_patch` -> `functions/src/index.ts` (ghost callable + helper entegrasyon)
+4. `npm --prefix functions run build` (lint fail)
+5. `apply_patch` -> `functions/src/ghost_drive/map_matching_guard.ts` (`require-await` fix)
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check` (fail)
+9. `npm --prefix functions run format`
+10. `npm --prefix functions run build`
+11. `npm --prefix functions run lint`
+12. `npm --prefix functions run format:check` (pass)
+13. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+14. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (236A..236E `[x]`)
+15. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (236A..236E `[x]`)
+16. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni ghost pipeline modulu eklendi:
+  - `functions/src/ghost_drive/trace_processing.ts`
+  - sanitize + outlier filtresi + DP simplification + downsample + polyline encode
+- Yeni map matching guard modulu eklendi:
+  - `functions/src/ghost_drive/map_matching_guard.ts`
+  - env + runtime flag (`_runtime_flags/map_matching`) ile ac/kapa
+  - aylik butce counter (`_usage_counters/map_matching_YYYY-MM`)
+  - timeout/failure durumunda fallback
+- `createRouteFromGhostDrive` callable eklendi:
+  - middleware zinciri + trace pipeline + route olusturma
+  - `creationMode='ghost_drive'`
+  - `inferredStops` outputu (baslangic/ara/bitis)
+- `createRoute` tarafinda SRV uretim transaction logic'i reusable helper'a tasindi (`createRouteWithSrvCode`).
+
+### Hata Kaydi (Silinmez)
+- Ilk lint turunda `require-await` kurali ihlali alindi.
+  - Cozum: provider fonksiyonu promise tabanli sync wrapper'a cevrildi.
+- Format check ilk kosuda 2 dosyada fail verdi.
+  - Cozum: `npm run format` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu beklenen test davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 237: `upsertStop` callable.
