@@ -77,6 +77,16 @@ class LocalQueueRepository {
   final QueueRetryPolicy _retryPolicy;
   final math.Random _random;
 
+  static const int staleReplayThresholdMs = 60000;
+
+  static bool shouldSkipLiveReplay({
+    required int sampledAtMs,
+    required int nowMs,
+    int thresholdMs = staleReplayThresholdMs,
+  }) {
+    return nowMs - sampledAtMs > thresholdMs;
+  }
+
   Future<int> enqueueTripAction({
     required String ownerUid,
     required TripQueuedActionType actionType,

@@ -5711,3 +5711,43 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 202: queue isleyisi unit testleri (network/app kill/duplicate/idempotency/stale replay).
+
+## STEP-202 - Queue Isleyisi Unit Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Queue davranis testlerinde su riskleri acikca dogrulamak:
+  - network kopmasi
+  - app kill sonrasi devam
+  - duplicate replay / idempotency korunumu
+  - stale replay live-skip
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/local_queue_repository.dart` (`shouldSkipLiveReplay` helper)
+2. `apply_patch` -> `test/domain/queue_resilience_test.dart`
+3. `dart format lib/features/domain/data/local_queue_repository.dart test/domain/queue_resilience_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (202 `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (202 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Test Kapsami
+- `queue_resilience_test.dart`:
+  - network fail -> retryable pending + backoff
+  - app kill simulasyonu -> file-backed DB reopen ile queue devam ediyor
+  - duplicate enqueue -> tek idempotency kaydi
+  - stale replay kontrolu -> `>60sn` skip
+
+### Hata Kaydi (Silinmez)
+- Ilk iterasyonda Windows file lock nedeniyle test cleanup fail verdi (`PathAccessException`).
+  - Cozum: reopen edilen ikinci DB instance test icinde explicit kapatildi (`await db2.close()`), sonra temp dosya silindi.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 137 test passed.
+
+### Sonraki Adim
+- Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
