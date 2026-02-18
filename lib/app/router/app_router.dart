@@ -21,6 +21,7 @@ import '../../ui/screens/passenger_tracking_screen.dart';
 import '../../ui/screens/paywall_screen.dart';
 import '../../ui/screens/profile_edit_screen.dart';
 import '../../ui/screens/role_select_screen.dart';
+import '../../ui/screens/route_create_screen.dart';
 import '../../ui/screens/settings_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
@@ -87,9 +88,15 @@ GoRouter buildAppRouter({
         builder: (context, state) => DriverHomeScreen(
           appName: flavorConfig.appName,
           onStartTripTap: () => context.go(AppRoutePath.activeTrip),
-          onManageRouteTap: () => context.go(AppRoutePath.settings),
+          onManageRouteTap: () => context.go(AppRoutePath.driverRouteCreate),
           onAnnouncementTap: () => context.go(AppRoutePath.settings),
           onSettingsTap: () => context.go(AppRoutePath.settings),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutePath.driverRouteCreate,
+        builder: (context, state) => RouteCreateScreen(
+          onCreate: (input) => _handleCreateRoute(context, input),
         ),
       ),
       GoRoute(
@@ -514,6 +521,46 @@ Future<void> _handleProfileUpdate(
     }
     _showInfo(context, 'Profil guncellenemedi (${error.code}).');
     rethrow;
+  }
+}
+
+Future<void> _handleCreateRoute(
+  BuildContext context,
+  RouteCreateFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('createRoute');
+    final response = await callable.call(<String, dynamic>{
+      'name': input.name,
+      'startPoint': <String, double>{
+        'lat': input.startLat,
+        'lng': input.startLng,
+      },
+      'startAddress': input.startAddress,
+      'endPoint': <String, double>{
+        'lat': input.endLat,
+        'lng': input.endLng,
+      },
+      'endAddress': input.endAddress,
+      'scheduledTime': input.scheduledTime,
+      'timeSlot': input.timeSlot,
+      'allowGuestTracking': input.allowGuestTracking,
+      'authorizedDriverIds': const <String>[],
+    });
+    final payload = _extractCallableData(response.data);
+    final srvCode = payload['srvCode'] as String? ?? '-';
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Rota olusturuldu. SRV: $srvCode');
+    context.go(AppRoutePath.driverHome);
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Rota olusturulamadi (${error.code}).');
   }
 }
 

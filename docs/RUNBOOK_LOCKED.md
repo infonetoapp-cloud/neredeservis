@@ -631,7 +631,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 304 `upsertConsent` ekran akisini bagla.
 - [x] 305 Consent gate middleware yaz.
 - [x] 306 Driver profil olusturma akisini bagla.
-- [ ] 307 Route create ekranini callable'a bagla.
+- [x] 307 Route create ekranini callable'a bagla.
 - [ ] 307A Route create girisinde iki mod sun: `Hizli (pin)` ve `Ghost Drive (Rotayi Kaydet)`.
 - [ ] 307B Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).
 - [ ] 307C Ghost Drive kayit sonunda otomatik baslangic/bitis + durak adayi onerilerini goster; kullanicidan tek ekranda onay al.

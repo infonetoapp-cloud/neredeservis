@@ -8770,3 +8770,59 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 307: Route create ekranini callable'a baglama.
+
+## STEP-307 - Route Create Ekranini Callable'a Bagla
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Sofor akisinda rota olusturma ekranini mobilde acip `createRoute` callable'ina baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "createRoute|updateRoute|createRouteInputSchema|Route create" functions/src/index.ts docs/api_contracts.md lib test`
+2. `apply_patch` -> `lib/app/router/app_route_paths.dart`
+   - `driverRouteCreate` path eklendi
+3. `apply_patch` -> `lib/ui/screens/route_create_screen.dart` (yeni ekran)
+   - rota adi, adresler, koordinatlar, saat, timeSlot, guest toggle formu
+4. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `DriverHomeScreen.onManageRouteTap` -> `driverRouteCreate`
+   - `RouteCreateScreen` route baglandi
+   - `_handleCreateRoute` ile `createRoute` callable entegrasyonu eklendi
+5. `apply_patch` -> `test/ui/route_create_screen_test.dart` (yeni test)
+6. `dart format lib/app/router/app_route_paths.dart lib/app/router/app_router.dart lib/ui/screens/route_create_screen.dart test/ui/route_create_screen_test.dart`
+7. `flutter analyze`
+8. `flutter test`
+9. `flutter analyze` + `flutter test` (lint/test duzeltmeleri sonrasi rerun)
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`307` -> `[x]`)
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`307` -> `[x]`)
+12. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Sofor home ekranindaki `Rotalari Yonet` aksiyonu artik route create ekranina gidiyor.
+- Route create formu `createRoute` input kontratina uygun payload uretiyor:
+  - `name`, `startPoint`, `startAddress`, `endPoint`, `endAddress`,
+  - `scheduledTime`, `timeSlot`, `allowGuestTracking`, `authorizedDriverIds`.
+- Callable basarisinda kullaniciya `srvCode` bilgisi snackbar ile gosteriliyor ve driver home'a donuluyor.
+- `RouteCreateScreen` UI testi eklendi; form render + submit callback dogrulamasi yapildi.
+
+### Hata Kaydi (Silinmez)
+- Ilk `flutter analyze` kosusunda iki issue:
+  - `directives_ordering` (`lib/app/router/app_router.dart`)
+  - `DropdownButtonFormField.value` deprecation (`route_create_screen.dart`)
+  - cozum:
+    - import sirasi duzeltildi
+    - `value` yerine `initialValue` kullanildi.
+- Ilk `flutter test` kosusunda yeni ekran testinde buton viewport disinda kaldi:
+  - cozum: `ensureVisible('Rotayi Olustur')` eklendi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `179` test).
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `307` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `307` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 307A: Route create girisinde iki mod (`Hizli (pin)` + `Ghost Drive`) sunmak.
