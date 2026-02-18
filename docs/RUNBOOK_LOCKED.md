@@ -504,9 +504,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 
 ## FAZ F - Cloud Functions ve Yetki Mantigi (221-300)
 
-- [ ] 221 Functions monorepo klasorunu olustur.
-- [ ] 222 TypeScript strict mode ac.
-- [ ] 223 ESLint + Prettier kur.
+- [x] 221 Functions monorepo klasorunu olustur.
+- [x] 222 TypeScript strict mode ac.
+- [x] 223 ESLint + Prettier kur.
 - [ ] 224 Ortak response wrapper yaz (`requestId`, `serverTime`).
 - [ ] 225 Auth middleware yaz.
 - [ ] 226 Non-anonymous middleware yaz.
@@ -1047,5 +1047,6 @@ Kopyala-yapistir cevap seti:
 - Her kritik adimda kanit + dogrulama + onay gerekir.
 - Onaysiz production degisikligi yapilmaz.
 - Limit asimi icin coklu hesap acarak ucretsiz model suistimali yapilmaz.
+
 
 

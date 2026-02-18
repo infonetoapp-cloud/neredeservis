@@ -6123,3 +6123,69 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 221: Functions monorepo klasoru olusturma.
+
+## STEP-221-223 - Functions TypeScript Monorepo Iskeleti + Strict + Lint/Format
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 221: Functions klasorunu monorepo iskeletinde kaynak/build ayrimli hale getirmek.
+- 222: TypeScript strict mode ile derleme guvencesi saglamak.
+- 223: ESLint + Prettier kalite gate'lerini kurup calistirmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/package.json` (TS build/lint/format scriptleri + devDependencies)
+2. `apply_patch` -> `functions/tsconfig.json`
+3. `apply_patch` -> `functions/.eslintrc.cjs`
+4. `apply_patch` -> `functions/.prettierrc.json`
+5. `apply_patch` -> `functions/.prettierignore`
+6. `apply_patch` -> `functions/src/index.ts` (typed migration)
+7. `apply_patch` -> `functions/index.js` (silindi)
+8. `apply_patch` -> `firebase.json` (functions predeploy build hook)
+9. `npm install` (`functions/`)
+10. `npm run build` (ilk kosu fail -> type guard fix)
+11. `apply_patch` -> `functions/src/index.ts` (`assertLimit` tipi duzeltildi)
+12. `npm run build`
+13. `npm run lint`
+14. `npm run format:check` (ilk kosu fail)
+15. `npm run format`
+16. `npm run format:check`
+17. `npm run test:rules:unit` (ilk kosu fail: emulator host/port eksik)
+18. `firebase emulators:exec --only firestore,database,auth "npm --prefix functions run test:rules:unit"` (no emulators to start)
+19. `firebase emulators:start --only firestore --config firebase.json` (port conflict tespiti)
+20. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm run test:rules:unit`
+21. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (221..223 `[x]`)
+22. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (221..223 `[x]`)
+23. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Functions runtime artik TS kaynak/build ayrimli:
+  - kaynak: `functions/src/index.ts`
+  - derleme cikisi: `functions/lib/` (gitignore)
+- `functions/package.json` main girisi `lib/index.js` oldu.
+- Strict TS config etkin (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`).
+- Lint/format gate'leri eklendi ve green:
+  - `npm run lint`
+  - `npm run format:check`
+- Firebase predeploy build hook eklendi:
+  - `firebase.json` -> `npm --prefix "$RESOURCE_DIR" run build`
+
+### Hata Kaydi (Silinmez)
+- `npm run build` ilk kosuda `assertLimit` icinde `unknown` tipten sayisal karsilastirma hatasi verdi.
+  - Cozum: `typeof rawLimit !== 'number'` guard'i eklendi.
+- `npm run format:check` ilk kosuda `functions/src/index.ts` format fail verdi.
+  - Cozum: `npm run format` ile Prettier yazdirildi.
+- `npm run test:rules:unit` ilk kosuda emulator host/port tanimli olmadigi icin fail verdi.
+  - Cozum: mevcut calisan emulator host env degiskenleri verilerek test green alindi.
+- `firebase emulators:start` denemesinde port 4000/8080 cakisimi goruldu.
+  - Not: Lokal ortamda baska emulator instance acik oldugu icin yeni instance acilmadi.
+
+### Dogrulama
+- `npm run build` -> pass.
+- `npm run lint` -> pass.
+- `npm run format:check` -> pass.
+- `npm run test:rules:unit` (env host ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 224: Ortak response wrapper (`requestId`, `serverTime`) middleware/helper katmanina ayirma.
