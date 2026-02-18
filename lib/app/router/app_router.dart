@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../config/app_flavor.dart';
 import '../../ui/screens/active_trip_screen.dart';
@@ -120,11 +122,46 @@ GoRouter buildAppRouter({
 
 Future<void> _handleGoogleSignIn(BuildContext context) async {
   try {
-    await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
+    final googleSignIn = GoogleSignIn();
+    final googleUser = await googleSignIn.signIn();
+    if (googleUser == null) {
+      return;
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'missing-id-token',
+        message: 'Google idToken alinamadi.',
+      );
+    }
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: idToken,
+      accessToken: googleAuth.accessToken,
+    );
+
+    await FirebaseAuth.instance.signInWithCredential(credential);
     if (!context.mounted) {
       return;
     }
     context.go(AppRoutePath.roleSelect);
+  } on PlatformException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+
+    final message = switch (error.code) {
+      'sign_in_canceled' => 'Google girisi iptal edildi.',
+      'sign_in_failed' =>
+        'Google girisi basarisiz oldu. Google Play Services durumunu kontrol et.',
+      _ => 'Google girisi baslatilamadi (${error.code}).',
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   } on FirebaseAuthException catch (error) {
     if (!context.mounted) {
       return;

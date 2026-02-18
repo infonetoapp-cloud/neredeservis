@@ -4681,3 +4681,40 @@ Etiket: codex audit
 
 ### Sonraki Adim
 - 157: Join + settings ekranini amber stile gore kodla.
+
+## STEP-CODEX-GOOGLE-NATIVE-HOTFIX-002 - Google Giris Akisini Native Hesap Seciciye Alma
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex hotfix
+
+### Amac
+- Google giris butonunda browser tab acan akisi kaldirmak.
+- Android'de native Google hesap secici (account picker) acilacak sekilde auth akisina gecmek.
+- `Requests from this Android client application <empty> are blocked` 403 hatasini kapatmak.
+
+### Kok Neden
+- `FirebaseAuth.signInWithProvider(GoogleAuthProvider())` Android'de custom tab/web OAuth akisi actigi icin kimlik toolkit cagrisi browser tarafinda `<empty>` Android client ile gidiyordu.
+- API key restriction modeli bu cagrilari blokluyordu.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter pub add google_sign_in`
+2. `apply_patch` -> `lib/app/router/app_router.dart` (native Google sign-in + credential flow)
+3. `flutter analyze`
+4. `flutter test`
+5. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+
+### Bulgular
+- `Google ile Giris` artik `google_sign_in` plugini ile native hesap seciciyi aciyor.
+- Secilen hesaptan alinan `idToken/accessToken`, `FirebaseAuth.signInWithCredential` ile Firebase session'a cevriliyor.
+- Browser tab acma davranisi kaldirildi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed.
+- Fiziksel cihaz deploy -> basarili (dev flavor).
+
+### Sonraki Adim
+- 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
