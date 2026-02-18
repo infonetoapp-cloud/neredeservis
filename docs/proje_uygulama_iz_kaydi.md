@@ -5,6 +5,7 @@ Kural: hicbir kayit silinmez. Hata varsa yeni kayitla "duzeltildi" olarak ekleni
 
 ## Zorunlu Kayit Protokolu (Tum Muhendisler ve Tum Ajanlar Icin)
 - Bu dosya append-only'dir; onceki kayitlar duzenlenmez/silinmez.
+- SERH (KRITIK): Bu dosyadaki hicbir kayit kesinlikle silinmemelidir.
 - Her yeni calisma `STEP-XXX` basligi ile eklenir.
 - Her STEP kaydinda zorunlu alanlar: `Amac`, `Calistirilan Komutlar`, `Bulgular`, `Hata Kaydi`, `Sonraki Adim Icin Beklenen Onay`.
 - Hatalar gizlenmez; "yanlis yapildi", "duzeltildi" seklinde yeni satirla kaydedilir.
@@ -4514,6 +4515,44 @@ Etiket: opus 4.6
 
 ### Sonraki Adim
 - 157: Join + settings ekranini amber stile gore kodla.
+
+## STEP-157 - Join + Settings Ekranlari (Amber UIX)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Runbook 157 kapsaminda Join ve Settings ekranlarini placeholder'dan cikarip amber stile gore kodlamak.
+- Iz kaydi protokolune "kesinlikle silinmemeli" serhini kalici olarak eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "157|Join and Settings|Join \\+ settings" docs/NeredeServis_Cursor_Amber_Runbook.md docs/RUNBOOK_LOCKED.md docs/ui_amber_spec.md`
+2. `apply_patch` -> `lib/ui/screens/join_screen.dart` (yeni ekran)
+3. `apply_patch` -> `lib/ui/screens/settings_screen.dart` (yeni ekran)
+4. `apply_patch` -> `lib/app/router/app_router.dart` (join/settings route baglantisi)
+5. `apply_patch` -> `test/ui/join_screen_test.dart` (yeni test)
+6. `apply_patch` -> `test/ui/settings_screen_test.dart` (yeni test)
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (157 `[x]`)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (157 `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (serh + step kaydi)
+10. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+11. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- Join ekrani artik SRV kodu + QR akisini dusuk surtunmeli sekilde sunuyor.
+- Settings ekrani abonelik, acik riza/KVKK, destek ve hesap sil aksiyonlarini tek ekranda topluyor.
+- Router'da Join/Settings placeholder'lari kaldirildi ve gercek ekranlara gecildi.
+- Iz kaydi protokolune "kesinlikle silinmemeli" serhi eklendi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed.
+
+### Sonraki Adim
+- 157A: Sofor abonelik/paywall ekranini amber stile gore kodla.
 ## STEP-CODEX-OPUS-4.6-AUDIT-001 - Opus 4.6 Dogrulama ve Temizleme
 Tarih: 2026-02-18
 Durum: Tamamlandi

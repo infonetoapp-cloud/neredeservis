@@ -425,7 +425,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 154E DOGRULAMA: auth hero ekrani dusuk cihazlarda acilis jank ve input gecikmesi olmadan calisiyor mu?
 - [x] 155 Active trip ekranini amber stile gore kodla.
 - [x] 156 Passenger map bottom-sheet ekranini amber stile gore kodla.
-- [ ] 157 Join + settings ekranini amber stile gore kodla.
+- [x] 157 Join + settings ekranini amber stile gore kodla.
 - [ ] 157A Sofor abonelik/paywall ekranini amber stile gore kodla (monthly/yearly, trial, restore/manage).
 - [ ] 157B Odeme metin kaynagini bagla: `NeredeServis_Paywall_Copy_TR.md`.
 - [ ] 158 `prototype/screens` ile visual parity kontrolu yap.

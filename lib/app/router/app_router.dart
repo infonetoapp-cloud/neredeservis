@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_flavor.dart';
-import '../../ui/components/layout/amber_screen_scaffold.dart';
 import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
+import '../../ui/screens/join_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
+import '../../ui/screens/settings_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
 import 'role_guard.dart';
@@ -60,18 +60,17 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.join,
-        builder: (context, state) => _ShellPlaceholderPage(
-          title: 'Join',
-          body: _joinPlaceholderBody(
-            state.uri.queryParameters['role'],
-          ),
+        builder: (context, state) => JoinScreen(
+          selectedRole: joinRoleFromQuery(state.uri.queryParameters['role']),
+          onJoinByCode: (_) => context.go(AppRoutePath.passengerTracking),
+          onScanQrTap: () => context.go(AppRoutePath.passengerTracking),
+          onContinueDriverTap: () => context.go(AppRoutePath.driverHome),
         ),
       ),
       GoRoute(
         path: AppRoutePath.settings,
-        builder: (context, state) => const _ShellPlaceholderPage(
-          title: 'Settings',
-          body: 'Settings placeholder',
+        builder: (context, state) => SettingsScreen(
+          appName: flavorConfig.appName,
         ),
       ),
     ],
@@ -91,38 +90,4 @@ GoRouter buildAppRouter({
       return null;
     },
   );
-}
-
-String _joinPlaceholderBody(String? selectedRole) {
-  switch (selectedRole) {
-    case 'driver':
-      return 'Driver join flow placeholder';
-    case 'passenger':
-      return 'Passenger join flow placeholder';
-    default:
-      return 'Join by srv code placeholder';
-  }
-}
-
-class _ShellPlaceholderPage extends StatelessWidget {
-  const _ShellPlaceholderPage({
-    required this.title,
-    required this.body,
-  });
-
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return AmberScreenScaffold(
-      title: title,
-      body: Center(
-        child: Text(
-          body,
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
 }
