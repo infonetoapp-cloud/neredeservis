@@ -45,8 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (widget.showSubscriptionSection) ...<Widget>[
             _SectionCard(
               title: 'Abonelik',
-              description:
-                  'Paket detaylari, trial durumu ve yonetim aksiyonlari.',
+              description: 'Deneme suren devam ediyor.',
               child: AmberPrimaryButton(
                 label: 'Aboneligi Yonet',
                 onPressed: widget.onSubscriptionTap,

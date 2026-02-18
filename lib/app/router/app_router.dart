@@ -6,6 +6,7 @@ import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
 import '../../ui/screens/join_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
+import '../../ui/screens/paywall_screen.dart';
 import '../../ui/screens/settings_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
@@ -47,6 +48,17 @@ GoRouter buildAppRouter({
         ),
       ),
       GoRoute(
+        path: AppRoutePath.paywall,
+        builder: (context, state) => PaywallScreen(
+          appName: flavorConfig.appName,
+          subscriptionStatus: PaywallSubscriptionStatus.mock,
+          onPurchaseTap: (_) {},
+          onRestoreTap: () {},
+          onManageTap: () {},
+          onLaterTap: () => context.go(AppRoutePath.driverHome),
+        ),
+      ),
+      GoRoute(
         path: AppRoutePath.activeTrip,
         builder: (context, state) => const ActiveTripScreen(),
       ),
@@ -71,6 +83,7 @@ GoRouter buildAppRouter({
         path: AppRoutePath.settings,
         builder: (context, state) => SettingsScreen(
           appName: flavorConfig.appName,
+          onSubscriptionTap: () => context.go(AppRoutePath.paywall),
         ),
       ),
     ],

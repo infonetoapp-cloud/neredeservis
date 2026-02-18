@@ -4516,6 +4516,47 @@ Etiket: opus 4.6
 ### Sonraki Adim
 - 157: Join + settings ekranini amber stile gore kodla.
 
+## STEP-157A - Sofor Abonelik/Paywall Ekrani (Amber UIX, Manual Flow)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Runbook 157A kapsaminda sofor icin paywall ekranini amber stile gore kodlamak.
+- Monthly/yearly plan kartlari, trial durumu, restore ve manage aksiyonlarini manual UI akisina baglamak.
+- V1.0 kilidi ile uyumlu kalmak: gercek tahsilat acilmadan mock/read-only davranis.
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "157A|paywall|subscription|restore|manage" docs/NeredeServis_Cursor_Amber_Runbook.md docs/RUNBOOK_LOCKED.md docs/NeredeServis_Paywall_Copy_TR.md`
+2. `apply_patch` -> `lib/ui/screens/paywall_screen.dart` (yeni ekran)
+3. `apply_patch` -> `lib/app/router/app_route_paths.dart` (paywall path)
+4. `apply_patch` -> `lib/app/router/app_router.dart` (paywall route + settings abonelik baglantisi)
+5. `apply_patch` -> `lib/ui/screens/settings_screen.dart` (abonelik kart alt metni)
+6. `apply_patch` -> `test/ui/paywall_screen_test.dart` (yeni test)
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (157A `[x]`)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (157A `[x]`)
+9. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+10. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+
+### Bulgular
+- `PaywallScreen` manuel akisla eklendi; secilebilir aylik/yillik plan kartlari ve trial durum banner'i mevcut.
+- Restore etiketi platforma gore seciliyor:
+  - iOS -> `Restore Purchases`
+  - Android/other -> `Satin Alimlari Geri Yukle`
+- `Manage Subscription` ve `Simdilik Sonra` aksiyonlari ekranda yer aliyor.
+- Router'da yeni `AppRoutePath.paywall` (`/driver/paywall`) eklendi.
+- `SettingsScreen` icindeki `Aboneligi Yonet` artik paywall rotasina gidiyor.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> Tum testler gecti.
+
+### Sonraki Adim
+- 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla (l10n anahtar eslesmesi + copy governance).
+
 ## STEP-157 - Join + Settings Ekranlari (Amber UIX)
 Tarih: 2026-02-18
 Durum: Tamamlandi
