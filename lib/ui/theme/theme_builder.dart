@@ -71,7 +71,7 @@ class AmberThemeBuilder {
           foregroundColor: AmberColorTokens.ink900,
         ),
       ),
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         color: AmberColorTokens.surface0,
         surfaceTintColor: Colors.transparent,
         elevation: AmberElevationTokens.level1,

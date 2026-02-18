@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/components/buttons/amber_buttons.dart';
@@ -277,15 +275,5 @@ double _contrastRatio(Color a, Color b) {
 }
 
 double _relativeLuminance(Color color) {
-  final r = _toLinear(color.red / 255);
-  final g = _toLinear(color.green / 255);
-  final b = _toLinear(color.blue / 255);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-double _toLinear(double channel) {
-  if (channel <= 0.03928) {
-    return channel / 12.92;
-  }
-  return math.pow((channel + 0.055) / 1.055, 2.4).toDouble();
+  return color.computeLuminance();
 }

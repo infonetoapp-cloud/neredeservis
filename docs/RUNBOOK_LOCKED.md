@@ -458,8 +458,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 188 Consent entity/model/mapper yaz.
 - [x] 189 Guest session entity/model/mapper yaz.
 - [x] 189A Anonymous->registered gecisi icin local ownership modelini ekle (`ownerUid`, `previousOwnerUid`, `migratedAt`).
-- [ ] 190 Repository arayuzlerini tamamla.
-- [ ] 191 Firestore datasource implementation yaz.
+- [x] 190 Repository arayuzlerini tamamla.
+- [x] 191 Firestore datasource implementation yaz.
 - [ ] 192 RTDB datasource implementation yaz.
 - [ ] 193 Drift queue tablolarini olustur (`location_queue`, `trip_action_queue`, `status`, `failed_retry_count`, `next_retry_at`, `max_retry_reached_at`, `local_meta`).
 - [ ] 193A Drift `schemaVersion=1` ve `MigrationStrategy` iskeletini yaz (`onCreate`, `onUpgrade`, `beforeOpen`).

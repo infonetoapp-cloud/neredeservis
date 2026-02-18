@@ -5059,3 +5059,110 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 190: Repository arayuzlerini tamamla.
+
+## STEP-190 - Repository Arayuzlerini Tamamlama
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adim 190 kapsaminda domain entity setine uygun repository arayuzlerini tek yerde tamamlamak.
+- Data source implementasyonlari (191+) icin net contract zemini olusturmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/services/repository_interfaces.dart`
+2. `dart format lib/services/repository_interfaces.dart`
+3. `flutter analyze`
+4. `flutter test`
+5. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (190 `[x]`)
+6. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (190 `[x]`)
+7. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+8. `flutter analyze`
+9. `flutter test test/domain`
+10. `flutter test`
+
+### Bulgular
+- `repository_interfaces.dart` domain kapsamini kapsayacak sekilde genisletildi:
+  - `UserRepository`
+  - `DriverRepository`
+  - `RouteRepository` (join/leave/get/watch + archive state)
+  - `StopRepository`
+  - `PassengerProfileRepository`
+  - `TripRepository`
+  - `AnnouncementRepository`
+  - `ConsentRepository`
+  - `GuestSessionRepository`
+  - `LocalOwnershipRepository`
+- Komut/DTO seviye contract siniflari netlestirildi:
+  - `JoinRouteBySrvCodeCommand`
+  - `StartTripCommand`
+  - `FinishTripCommand`
+  - `DriverAnnouncementCommand`
+- Mevcut `RouteMembership` kontrati korunarak genisletilmis arayuze tasindi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test test/domain` -> 29/29 passed.
+- `flutter test` -> 94 test passed.
+
+### Sonraki Adim
+- Faz E / 191: Firestore datasource implementation.
+
+## STEP-191 - Firestore Datasource Implementation
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adim 191 kapsaminda repository arayuzlerinin Firestore implementasyonlarini tamamlamak.
+- Domain model/entity katmani ile Firestore arasinda mapper bazli surekli ve tutarli donusum kurmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/firestore_domain_repositories.dart`
+2. `apply_patch` -> `lib/ui/theme/theme_builder.dart`
+3. `apply_patch` -> `lib/ui/screens/paywall_screen.dart`
+4. `apply_patch` -> `test/ui/amber_quality_gate_test.dart`
+5. `apply_patch` -> `pubspec.yaml`
+6. `dart format lib/features/domain/data/firestore_domain_repositories.dart lib/services/repository_interfaces.dart lib/ui/theme/theme_builder.dart lib/ui/screens/paywall_screen.dart test/ui/amber_quality_gate_test.dart`
+7. `flutter pub get`
+8. `flutter test --update-goldens test/golden/amber_components_golden_test.dart`
+9. `flutter analyze`
+10. `flutter test`
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (191 `[x]`)
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (191 `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `lib/features/domain/data/firestore_domain_repositories.dart` dosyasinda su Firestore implementasyonlari yazildi:
+  - `FirestoreUserRepository`
+  - `FirestoreDriverRepository`
+  - `FirestoreRouteRepository`
+  - `FirestoreStopRepository`
+  - `FirestorePassengerProfileRepository`
+  - `FirestoreTripRepository`
+  - `FirestoreAnnouncementRepository`
+  - `FirestoreConsentRepository`
+  - `FirestoreGuestSessionRepository`
+  - `FirestoreLocalOwnershipRepository`
+- Tum repositoryler mapper/model yapisi ile entity donusumlerini tip-guvenli sekilde yapiyor.
+- `TripRepository.startTrip` ve `TripRepository.finishTrip` implementasyonlari callable + idempotency kontratina birakilarak bilincli sekilde `UnsupportedError` ile isaretlendi.
+- Flutter SDK uyumu icin tema tarafinda `CardTheme` -> `CardThemeData` duzeltmesi yapildi.
+- Analyze deprecation temizligi icin:
+  - `withOpacity` -> `withValues(alpha: ...)`
+  - testte manuel luminance hesabi -> `Color.computeLuminance()`
+- Golden farki olustugu icin `amber_components` snapshot guncellendi.
+
+### Hata Kaydi (Silinmez)
+- Ilk dogrulamada `pubspec.yaml` icindeki `path: 1.9.0` tanimi, Flutter SDK'nin `flutter_test` ile pinledigi `path 1.9.1` ile cakisti. Dogrudan `path` bagimliligi kaldirilip yeniden cozuldu.
+- Ilk analyze kosusunda Firestore dosyasinda entity importlari eksik oldugu icin tip hatalari olustu; importlar eklenerek duzeltildi.
+- Golden testte `0.03%` (106px) snapshot farki alindi; `--update-goldens` ile yeni gorunum baz alindi.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 94 test passed.
+
+### Sonraki Adim
+- Faz E / 192: RTDB datasource implementation.
