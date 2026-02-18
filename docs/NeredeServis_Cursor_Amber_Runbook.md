@@ -556,8 +556,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 247 `syncPassengerCount` trigger yaz.
 - [x] 248 `syncRouteMembership` trigger yaz.
 - [x] 249 `syncTripHeartbeatFromLocation` RTDB trigger yaz.
-- [ ] 249A Location ingestion ayrimini yaz: stale replay konumlarini `location_history`'ye kaydet, canli RTDB marker'ini bozma.
-- [ ] 249B RTDB live write tazelik kuralini uygula: `timestamp >= now-30000` disindaki nokta live path'e kabul edilmez.
+- [x] 249A Location ingestion ayrimini yaz: stale replay konumlarini `location_history`'ye kaydet, canli RTDB marker'ini bozma.
+- [x] 249B RTDB live write tazelik kuralini uygula: `timestamp >= now-30000` disindaki nokta live path'e kabul edilmez.
 - [ ] 250 `abandonedTripGuard` schedule function yaz (event-driven stale sinyal varsa once onu kullan, schedule fallback).
 - [ ] 250A `abandonedTripGuard` sorgu/index kontratini yaz ve emulator query-plan kanitini ekle.
 - [ ] 251 `morningReminderDispatcher` schedule function yaz.

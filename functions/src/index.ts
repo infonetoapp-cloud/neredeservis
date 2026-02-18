@@ -45,6 +45,8 @@ const DRIVER_SEARCH_RATE_MAX_CALLS = 30;
 const GUEST_SESSION_TTL_MINUTES_DEFAULT = 30;
 const TRIP_REQUEST_TTL_DAYS = 7;
 const TRIP_STARTED_NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000;
+const LIVE_LOCATION_MAX_AGE_MS = 30_000;
+const LIVE_LOCATION_FUTURE_TOLERANCE_MS = 5_000;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -402,6 +404,17 @@ function pickStringArray(record: Record<string, unknown> | null, key: string): s
     return [];
   }
   return value.filter((item): item is string => typeof item === 'string');
+}
+
+function pickFiniteNumber(record: Record<string, unknown> | null, key: string): number | null {
+  if (!record) {
+    return null;
+  }
+  const value = record[key];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  return value;
 }
 
 function pickGeoPoint(
@@ -2183,15 +2196,42 @@ export const syncTripHeartbeatFromLocation = onValueWritten(
       return;
     }
 
-    const timestampRaw = payload['timestamp'];
-    const timestampMs =
-      typeof timestampRaw === 'number' && Number.isFinite(timestampRaw) ? timestampRaw : Date.now();
-    const lastLocationAtIso = new Date(timestampMs).toISOString();
+    const lat = pickFiniteNumber(payload, 'lat');
+    const lng = pickFiniteNumber(payload, 'lng');
+    if (lat == null || lng == null) {
+      return;
+    }
+
+    const nowMs = Date.now();
+    const timestampMs = pickFiniteNumber(payload, 'timestamp') ?? nowMs;
+    const isFreshLive =
+      timestampMs >= nowMs - LIVE_LOCATION_MAX_AGE_MS &&
+      timestampMs <= nowMs + LIVE_LOCATION_FUTURE_TOLERANCE_MS;
+    const source = isFreshLive ? 'live' : 'offline_replay';
+    const ingestedAtIso = new Date(nowMs).toISOString();
+
+    const locationHistoryRef = tripRef.collection('location_history').doc();
+    await locationHistoryRef.set({
+      routeId,
+      driverId: pickString(tripData, 'driverId') ?? '',
+      lat,
+      lng,
+      accuracy: pickFiniteNumber(payload, 'accuracy') ?? 0,
+      speed: pickFiniteNumber(payload, 'speed'),
+      heading: pickFiniteNumber(payload, 'heading'),
+      sampledAtMs: timestampMs,
+      ingestedAt: ingestedAtIso,
+      source,
+    });
+
+    if (!isFreshLive) {
+      return;
+    }
 
     await tripRef.set(
       {
-        lastLocationAt: lastLocationAtIso,
-        updatedAt: new Date().toISOString(),
+        lastLocationAt: new Date(timestampMs).toISOString(),
+        updatedAt: ingestedAtIso,
       },
       { merge: true },
     );

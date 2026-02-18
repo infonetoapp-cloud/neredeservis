@@ -510,6 +510,8 @@ Directory callable guardrails:
 - `syncTripHeartbeatFromLocation`:
   - source: RTDB `/locations/{routeId}` writes
   - effect: active trip `lastLocationAt` is refreshed from live location payload.
+  - freshness window: `timestamp in [now-30000, now+5000]` ise `live`; aksi halde `offline_replay`.
+  - stale payloads always go to `trips/{tripId}/location_history/*` and never move live heartbeat backwards.
 
 ## Subscription Enforcement Contract (server-side, V1.0)
 - `getSubscriptionState` is the only authority for subscription state.
