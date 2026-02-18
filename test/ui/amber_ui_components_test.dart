@@ -176,7 +176,7 @@ void main() {
     expect(find.text('Darica -> GOSB'), findsOneWidget);
     expect(find.text('Duyuru'), findsOneWidget);
     expect(find.text('Son konum 2 dk once guncellendi.'), findsOneWidget);
-    expect(find.text('Seferi bitir'), findsOneWidget);
+    expect(find.text('Seferi Bitir'), findsOneWidget);
     expect(find.text('Kayit yok'), findsOneWidget);
   });
 }

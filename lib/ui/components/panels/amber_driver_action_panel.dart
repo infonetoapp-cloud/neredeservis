@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/cta_tokens.dart';
 import '../../tokens/elevation_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../buttons/amber_buttons.dart';
@@ -47,17 +49,18 @@ class AmberDriverActionPanel extends StatelessWidget {
             isTripActive
                 ? 'Canli yayin acik. Guvenli bitis icin kontrollu aksiyon kullan.'
                 : 'Hazir oldugunda seferi baslat ve yolcu yayinini ac.',
-            style: textTheme.bodyMedium?.copyWith(color: AmberColorTokens.ink700),
+            style:
+                textTheme.bodyMedium?.copyWith(color: AmberColorTokens.ink700),
           ),
           const SizedBox(height: AmberSpacingTokens.space16),
           if (isTripActive)
             AmberDangerButton(
-              label: primaryLabel ?? 'Seferi bitir',
+              label: primaryLabel ?? AmberCtaTokens.finishTrip,
               onPressed: onPrimaryAction,
             )
           else
             AmberPrimaryButton(
-              label: primaryLabel ?? 'Seferi baslat',
+              label: primaryLabel ?? AmberCtaTokens.startTrip,
               onPressed: onPrimaryAction,
             ),
           if (secondaryLabel != null && onSecondaryAction != null) ...<Widget>[
@@ -71,7 +74,7 @@ class AmberDriverActionPanel extends StatelessWidget {
             const SizedBox(height: AmberSpacingTokens.space8),
             TextButton.icon(
               onPressed: onAnnouncementTap,
-              icon: const Icon(Icons.campaign_outlined),
+              icon: const Icon(AmberIconTokens.megaphone),
               label: const Text('Duyuru gonder'),
             ),
           ],

@@ -4,6 +4,7 @@ import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../components/buttons/amber_buttons.dart';
 import '../components/layout/amber_screen_scaffold.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/cta_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -52,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 widget.subscriptionStatus,
               ),
               child: AmberPrimaryButton(
-                label: 'Aboneligi Yonet',
+                label: AmberCtaTokens.manageSubscription,
                 onPressed: widget.onSubscriptionTap,
               ),
             ),

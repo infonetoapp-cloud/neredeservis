@@ -71,14 +71,14 @@ class AmberStatusChip extends StatelessWidget {
       case AmberStatusChipTone.yellow:
         return const _StatusPalette(
           background: AmberColorTokens.amber100,
-          foreground: AmberColorTokens.amber500,
-          border: Color(0x66E8760A),
+          foreground: AmberColorTokens.warning,
+          border: Color(0x668A5F00),
         );
       case AmberStatusChipTone.red:
         return const _StatusPalette(
-          background: Color(0x1FD64E45),
-          foreground: AmberColorTokens.danger,
-          border: Color(0x66D64E45),
+          background: Color(0x1FC13E36),
+          foreground: AmberColorTokens.dangerStrong,
+          border: Color(0x66C13E36),
         );
       case AmberStatusChipTone.neutral:
         return const _StatusPalette(

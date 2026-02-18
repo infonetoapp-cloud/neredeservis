@@ -4825,3 +4825,62 @@ Etiket: codex
 
 ### Sonraki Adim
 - 158: `prototype/screens` ile visual parity kontrolu yap.
+
+## STEP-158-180 - Faz D UI Kalite Kapisi ve Freeze
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Runbook 158-180 araligini kapatmak.
+- Amber UI parity, accessibility, test kapsami ve freeze kurallarini netlestirmek.
+- Faz E'ye gecis oncesi UI katmanini test+analyze ile temizlemek.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter pub add phosphor_flutter`
+2. `dart format lib/ui test/ui`
+3. `flutter analyze`
+4. `flutter test test/ui/amber_quality_gate_test.dart`
+5. `flutter test test/ui/amber_governance_test.dart`
+6. `flutter test --update-goldens test/golden/amber_components_golden_test.dart`
+7. `flutter test`
+8. `flutter analyze`
+
+### Bulgular
+- Phosphor icon set freeze uygulandi:
+  - `lib/ui/tokens/icon_tokens.dart`
+  - `lib/ui` altinda Material `Icons.*` kullanimi kaldirildi.
+- CTA metin standardi tokenlastirildi:
+  - `lib/ui/tokens/cta_tokens.dart`
+- Warning/error semasi sabitlendi:
+  - `warning=#8A5F00`, `warningStrong=#7A5200`
+  - `dangerStrong=#C13E36` ile destructive CTA kontrasti AA seviyesine cekildi.
+- Toast/snackbar semasi sabitlendi:
+  - `lib/ui/components/feedback/amber_snackbars.dart`
+  - tone: `info|success|warning|error`
+- Yeni kalite testleri eklendi:
+  - `test/ui/amber_quality_gate_test.dart`
+  - `test/ui/amber_governance_test.dart`
+- Golden snapshot icon freeze sonrasi guncellendi.
+- Parity/gap dokumani yazildi:
+  - `docs/ui_gap_list.md`
+- UI spec final freeze bolumu guncellendi:
+  - `docs/ui_amber_spec.md`
+- Faz D kapanis raporu olusturuldu:
+  - `docs/faz_d_kapanis_raporu.md`
+
+### Hata Kaydi (Silinmez)
+- Kalici hata yok.
+- Ilk test kosusunda 3 nokta fail oldu (warning kontrast esigi, active-trip animasyonlu testte `pumpAndSettle`, golden farki).
+- Hepsi ayni turde duzeltildi ve ikinci kosuda tum testler gecti.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> `65` test gecti.
+- Golden test -> guncel snapshot ile green.
+
+### Not
+- 152D ve 154E cihaz-perf odakli manuel dogrulama maddeleri ayri olarak sahada check edilmelidir.
+
+### Sonraki Adim
+- Faz E / 181: User entity/model/mapper.

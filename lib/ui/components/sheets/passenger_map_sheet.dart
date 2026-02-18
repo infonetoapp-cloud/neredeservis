@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
 import '../../tokens/elevation_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../../tokens/typography_tokens.dart';
@@ -373,7 +374,7 @@ class _DriverNoteCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Icon(
-            Icons.campaign_rounded,
+            AmberIconTokens.megaphone,
             color: AmberColorTokens.amber500,
             size: 18,
           ),
@@ -514,7 +515,7 @@ class _StopRow extends StatelessWidget {
                   ),
                   child: stop.isPassed
                       ? const Icon(
-                          Icons.check,
+                          AmberIconTokens.check,
                           size: 8,
                           color: AmberColorTokens.surface0,
                         )

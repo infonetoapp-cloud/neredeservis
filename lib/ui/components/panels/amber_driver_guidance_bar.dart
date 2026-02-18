@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
 import '../../tokens/elevation_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../../tokens/typography_tokens.dart';
@@ -66,7 +67,7 @@ class AmberDriverGuidanceBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(
-            Icons.near_me_rounded,
+            AmberIconTokens.navigation,
             color: AmberColorTokens.amber500,
             size: 20,
           ),
@@ -136,7 +137,7 @@ class AmberDriverGuidanceBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(
-            Icons.check_circle_outline_rounded,
+            AmberIconTokens.checkCircle,
             color: AmberColorTokens.success,
             size: 20,
           ),
@@ -188,7 +189,7 @@ class _DistanceBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           const Icon(
-            Icons.straighten_rounded,
+            AmberIconTokens.ruler,
             size: 14,
             color: AmberColorTokens.amber500,
           ),

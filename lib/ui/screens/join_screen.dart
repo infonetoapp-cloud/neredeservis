@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../components/buttons/amber_buttons.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/cta_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -135,7 +137,7 @@ class _JoinScreenState extends State<JoinScreen> {
                             decoration: InputDecoration(
                               hintText: 'Orn: SRV-8K2Q',
                               errorText: _srvCodeError,
-                              prefixIcon: const Icon(Icons.qr_code_2_rounded),
+                              prefixIcon: const Icon(AmberIconTokens.qrCode),
                             ),
                             onChanged: (_) {
                               if (_srvCodeError != null) {
@@ -148,7 +150,7 @@ class _JoinScreenState extends State<JoinScreen> {
                           ),
                           const SizedBox(height: AmberSpacingTokens.space12),
                           AmberPrimaryButton(
-                            label: 'Koda Katil',
+                            label: AmberCtaTokens.joinByCode,
                             onPressed: _submitJoinCode,
                           ),
                           const SizedBox(height: AmberSpacingTokens.space8),

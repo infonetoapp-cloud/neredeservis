@@ -6,6 +6,7 @@ import '../components/indicators/amber_status_chip.dart';
 import '../components/panels/amber_driver_guidance_bar.dart';
 import '../tokens/color_tokens.dart';
 import '../tokens/elevation_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 import '../tokens/typography_tokens.dart';
 
@@ -229,7 +230,7 @@ class _MapShell extends StatelessWidget {
                     ],
                   ),
                   child: const Icon(
-                    Icons.directions_bus_rounded,
+                    AmberIconTokens.bus,
                     color: AmberColorTokens.surface0,
                     size: 24,
                   ),
@@ -277,7 +278,7 @@ class _MapShell extends StatelessWidget {
                       ),
                     ),
                     child: const Icon(
-                      Icons.flag_rounded,
+                      AmberIconTokens.flag,
                       color: AmberColorTokens.surface0,
                       size: 16,
                     ),

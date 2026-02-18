@@ -22,6 +22,9 @@
 - `line-200`: `#D8DFD4`
 - `success`: `#3DA66A`
 - `danger`: `#D64E45`
+- `warning`: `#8A5F00`
+- `warning-strong`: `#7A5200`
+- `danger-strong`: `#C13E36`
 
 ### 3.2 Typography
 - Heading family: `Space Grotesk`
@@ -186,3 +189,49 @@
   - golden tests updated
   - core widget tests green
   - screenshot review against this spec
+
+## 12) Final Freeze Notes (Step 170-178)
+- Freeze label: `AMBER_UI_FREEZE_2026_02_18`.
+- Amber UI son gorunum onayi: kullanici onayi alindi, duzeltme turu kapatildi.
+
+### 12.1 Icon Set Freeze (Step 172)
+- Amber UI icon kaynagi sadece `Phosphor (Regular)` olarak sabitlendi.
+- Teknik kaynak: `lib/ui/tokens/icon_tokens.dart`.
+- `lib/ui` altinda `Icons.*` kullanimi yasak (governance testi ile korunur).
+
+### 12.2 Emoji Governance (Step 173)
+- Emoji kullanimi UI metinlerinde yasak.
+- Emoji yalniz duyuru/sablon katmaninda kontrollu olarak kullanilabilir.
+- `lib/ui` ve paywall copy kaynaklari test ile denetlenir.
+
+### 12.3 Driver Active Trip Rule (Step 174)
+- Ekranda su uc oge birlikte zorunlu:
+  - mini harita shell
+  - heartbeat gostergesi
+  - `Siradaki Durak + kus ucusu mesafe`
+- Bu kontrat widget testi ile sabitlenmistir.
+
+### 12.4 Passenger Single-Sheet Rule (Step 175)
+- Passenger takip ekraninda yalniz bir adet `DraggableScrollableSheet` bulunur.
+- Coklu sheet veya paralel alt panel davranisi kabul edilmez.
+
+### 12.5 Primary CTA Text Standard (Step 176)
+- Standart CTA metin tokenlari:
+  - `Devam Et`
+  - `Koda Katil`
+  - `Seferi Baslat`
+  - `Seferi Bitir`
+  - `Aboneligi Yonet`
+- Teknik kaynak: `lib/ui/tokens/cta_tokens.dart`.
+
+### 12.6 Warning/Error Color Schema (Step 177)
+- `warning`: `#8A5F00`
+- `warning-strong`: `#7A5200`
+- `danger`: `#D64E45`
+- `danger-strong`: `#C13E36`
+- Warning/error chip ve banner semasi bu tokenlar ile sabitlenmistir.
+
+### 12.7 Toast/Snackbar Schema (Step 178)
+- Tone seti: `info | success | warning | error`
+- Teknik kaynak: `lib/ui/components/feedback/amber_snackbars.dart`
+- Varsayilan ikon ve arkaplan semasi tone'a gore sabitlenmistir.

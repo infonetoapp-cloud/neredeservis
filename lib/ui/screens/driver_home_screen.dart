@@ -6,6 +6,8 @@ import '../components/cards/amber_route_card.dart';
 import '../components/indicators/amber_status_chip.dart';
 import '../components/layout/amber_screen_scaffold.dart';
 import '../components/panels/amber_driver_action_panel.dart';
+import '../tokens/cta_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
 class DriverHomeScreen extends StatelessWidget {
@@ -31,7 +33,7 @@ class DriverHomeScreen extends StatelessWidget {
       subtitle: appName,
       actions: <Widget>[
         IconButton(
-          icon: const Icon(Icons.settings_outlined),
+          icon: const Icon(AmberIconTokens.settings),
           tooltip: 'Ayarlar',
           onPressed: onSettingsTap ?? onManageRouteTap,
         ),
@@ -58,7 +60,7 @@ class DriverHomeScreen extends StatelessWidget {
               tone: AmberStatusChipTone.green,
               compact: true,
             ),
-            primaryActionLabel: 'Seferi Baslat',
+            primaryActionLabel: AmberCtaTokens.startTrip,
             onPrimaryAction: onStartTripTap,
           ),
           const SizedBox(height: AmberSpacingTokens.space12),

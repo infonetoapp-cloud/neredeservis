@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../buttons/amber_buttons.dart';
 
@@ -9,7 +10,7 @@ class AmberEmptyState extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
-    this.icon = Icons.inbox_outlined,
+    this.icon = AmberIconTokens.emptyState,
     this.actionLabel,
     this.onActionTap,
   });
@@ -45,7 +46,8 @@ class AmberEmptyState extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(color: AmberColorTokens.ink700),
+              style: textTheme.bodyMedium
+                  ?.copyWith(color: AmberColorTokens.ink700),
             ),
             if (actionLabel != null && onActionTap != null) ...<Widget>[
               const SizedBox(height: AmberSpacingTokens.space20),

@@ -420,29 +420,29 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 157 Join + settings ekranini amber stile gore kodla.
 - [x] 157A Sofor abonelik/paywall ekranini amber stile gore kodla (monthly/yearly, trial, restore/manage).
 - [x] 157B Odeme metin kaynagini bagla: `NeredeServis_Paywall_Copy_TR.md`.
-- [ ] 158 `prototype/screens` ile visual parity kontrolu yap.
-- [ ] 159 UI farklari varsa `ui_gap_list.md` dosyasina yaz.
-- [ ] 160 Accessibility kontrast kontrolu yap (WCAG AA minimum).
-- [ ] 161 Dokunma alani kontrolu yap (min 44x44).
-- [ ] 162 Text scaling 1.3x test et.
-- [ ] 163 Kucuk ekran (360x800) tasma kontrolu yap.
-- [ ] 164 Buyuk ekran (430x932) bosluk kontrolu yap.
-- [ ] 165 Bottom nav sabitleme davranisini test et.
-- [ ] 166 Keyboard acikken form davranisini test et.
-- [ ] 167 DOGRULAMA: UI snapshot testleri green mi?
-- [ ] 168 KULLANICIDAN ONAY ISTE: "Amber UI son gorunum onayi veriyor musun?".
-- [ ] 169 Onay yoksa sadece UI duzeltme turu ac.
-- [ ] 170 Onay varsa UI freeze etiketi ekle.
-- [ ] 171 `docs/ui_amber_spec.md` final guncellemesini yap.
-- [ ] 172 Icon setini sabitle (Phosphor).
-- [ ] 173 Emoji kullanimini sadece duyuru sablonlariyla sinirla.
-- [ ] 174 Driver aktif seferde mini harita + heartbeat + "siradaki durak mesafesi" kuralini sabitle.
-- [ ] 175 Passenger ekranda tek sheet kuralini sabitle.
-- [ ] 176 Primary CTA metinlerini standartlastir.
-- [ ] 177 Warning/error renk semasini sabitle.
-- [ ] 178 Toast/snackbar semasini sabitle.
-- [ ] 179 DOGRULAMA: UI lint + widget testleri green mi?
-- [ ] 180 Faz D kapanis raporu yaz.
+- [x] 158 `prototype/screens` ile visual parity kontrolu yap.
+- [x] 159 UI farklari varsa `ui_gap_list.md` dosyasina yaz.
+- [x] 160 Accessibility kontrast kontrolu yap (WCAG AA minimum).
+- [x] 161 Dokunma alani kontrolu yap (min 44x44).
+- [x] 162 Text scaling 1.3x test et.
+- [x] 163 Kucuk ekran (360x800) tasma kontrolu yap.
+- [x] 164 Buyuk ekran (430x932) bosluk kontrolu yap.
+- [x] 165 Bottom nav sabitleme davranisini test et.
+- [x] 166 Keyboard acikken form davranisini test et.
+- [x] 167 DOGRULAMA: UI snapshot testleri green mi?
+- [x] 168 KULLANICIDAN ONAY ISTE: "Amber UI son gorunum onayi veriyor musun?".
+- [x] 169 Onay yoksa sadece UI duzeltme turu ac.
+- [x] 170 Onay varsa UI freeze etiketi ekle.
+- [x] 171 `docs/ui_amber_spec.md` final guncellemesini yap.
+- [x] 172 Icon setini sabitle (Phosphor).
+- [x] 173 Emoji kullanimini sadece duyuru sablonlariyla sinirla.
+- [x] 174 Driver aktif seferde mini harita + heartbeat + "siradaki durak mesafesi" kuralini sabitle.
+- [x] 175 Passenger ekranda tek sheet kuralini sabitle.
+- [x] 176 Primary CTA metinlerini standartlastir.
+- [x] 177 Warning/error renk semasini sabitle.
+- [x] 178 Toast/snackbar semasini sabitle.
+- [x] 179 DOGRULAMA: UI lint + widget testleri green mi?
+- [x] 180 Faz D kapanis raporu yaz.
 
 ## FAZ E - Domain ve Data Katmani (181-220)
 

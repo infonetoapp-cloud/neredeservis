@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../components/indicators/amber_status_chip.dart';
 import '../components/sheets/passenger_map_sheet.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 import '../tokens/typography_tokens.dart';
 
@@ -198,7 +199,7 @@ class _VehicleMarker extends StatelessWidget {
             ],
           ),
           child: const Icon(
-            Icons.directions_bus_rounded,
+            AmberIconTokens.bus,
             color: AmberColorTokens.surface0,
             size: 22,
           ),

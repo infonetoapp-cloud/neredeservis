@@ -25,7 +25,7 @@ class AmberPrimaryButton extends StatelessWidget {
         horizontal: AmberSpacingTokens.space16,
         vertical: AmberSpacingTokens.space12,
       ),
-      minimumSize: const Size(0, 48),
+      minimumSize: const Size(44, 48),
       shape: const RoundedRectangleBorder(
         borderRadius: AmberRadiusTokens.radius14,
       ),
@@ -77,7 +77,7 @@ class AmberSecondaryButton extends StatelessWidget {
         horizontal: AmberSpacingTokens.space16,
         vertical: AmberSpacingTokens.space12,
       ),
-      minimumSize: const Size(0, 48),
+      minimumSize: const Size(44, 48),
       shape: const RoundedRectangleBorder(
         borderRadius: AmberRadiusTokens.radius14,
       ),
@@ -90,12 +90,10 @@ class AmberSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foregroundColor = isOnDarkSurface
-        ? AmberColorTokens.surface0
-        : AmberColorTokens.ink900;
-    final borderColor = isOnDarkSurface
-        ? const Color(0x80FFFFFF)
-        : AmberColorTokens.ink700;
+    final foregroundColor =
+        isOnDarkSurface ? AmberColorTokens.surface0 : AmberColorTokens.ink900;
+    final borderColor =
+        isOnDarkSurface ? const Color(0x80FFFFFF) : AmberColorTokens.ink700;
     final backgroundColor =
         isOnDarkSurface ? const Color(0x1AFFFFFF) : Colors.transparent;
 
@@ -109,7 +107,7 @@ class AmberSecondaryButton extends StatelessWidget {
           horizontal: AmberSpacingTokens.space16,
           vertical: AmberSpacingTokens.space12,
         ),
-        minimumSize: const Size(0, 48),
+        minimumSize: const Size(44, 48),
         shape: const RoundedRectangleBorder(
           borderRadius: AmberRadiusTokens.radius14,
         ),
@@ -146,13 +144,13 @@ class AmberDangerButton extends StatelessWidget {
 
   static ButtonStyle themeStyle() {
     return FilledButton.styleFrom(
-      backgroundColor: AmberColorTokens.danger,
+      backgroundColor: AmberColorTokens.dangerStrong,
       foregroundColor: AmberColorTokens.surface0,
       padding: const EdgeInsets.symmetric(
         horizontal: AmberSpacingTokens.space16,
         vertical: AmberSpacingTokens.space12,
       ),
-      minimumSize: const Size(0, 48),
+      minimumSize: const Size(44, 48),
       shape: const RoundedRectangleBorder(
         borderRadius: AmberRadiusTokens.radius14,
       ),

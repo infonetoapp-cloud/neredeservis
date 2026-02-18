@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/buttons/amber_buttons.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -60,7 +61,7 @@ class RoleSelectScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AmberSpacingTokens.space20),
                   _RoleOptionCard(
-                    icon: Icons.directions_bus_rounded,
+                    icon: AmberIconTokens.bus,
                     title: 'Soforum',
                     description:
                         'Rota ac, duyuru paylas, yolcularin konumu tek ekranda gormesini sagla.',
@@ -71,7 +72,7 @@ class RoleSelectScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AmberSpacingTokens.space12),
                   _RoleOptionCard(
-                    icon: Icons.person_pin_circle_rounded,
+                    icon: AmberIconTokens.userPin,
                     title: 'Yolcuyum',
                     description:
                         'Kod veya QR ile katil, ETA ve canli konumu tek ekranda takip et.',
@@ -82,7 +83,7 @@ class RoleSelectScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AmberSpacingTokens.space12),
                   _RoleOptionCard(
-                    icon: Icons.remove_red_eye_outlined,
+                    icon: AmberIconTokens.eye,
                     title: 'Misafirim',
                     description:
                         'Sadece takip et. Konum izni gerekmeden servis durumunu gor.',

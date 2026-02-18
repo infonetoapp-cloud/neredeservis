@@ -5,6 +5,7 @@ import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../components/buttons/amber_buttons.dart';
 import '../components/layout/amber_screen_scaffold.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -109,7 +110,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     );
 
     final toneColor = switch (widget.subscriptionStatus) {
-      SubscriptionUiStatus.trialExpired => AmberColorTokens.danger,
+      SubscriptionUiStatus.trialExpired => AmberColorTokens.dangerStrong,
       SubscriptionUiStatus.active => AmberColorTokens.success,
       SubscriptionUiStatus.trialActive => AmberColorTokens.amber500,
       SubscriptionUiStatus.mock => AmberColorTokens.ink700,
@@ -125,7 +126,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         padding: AmberSpacingTokens.cardPadding,
         child: Row(
           children: <Widget>[
-            Icon(Icons.info_outline_rounded, color: toneColor),
+            Icon(AmberIconTokens.info, color: toneColor),
             const SizedBox(width: AmberSpacingTokens.space8),
             Expanded(
               child: Text(
@@ -255,7 +256,7 @@ class _FeatureBullet extends StatelessWidget {
     return Row(
       children: <Widget>[
         const Icon(
-          Icons.check_circle_outline_rounded,
+          AmberIconTokens.checkCircle,
           color: AmberColorTokens.success,
           size: 18,
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/cta_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../buttons/amber_buttons.dart';
@@ -13,7 +15,7 @@ class AmberRouteCard extends StatelessWidget {
     required this.metaLine,
     this.scheduleLabel,
     this.statusChip,
-    this.primaryActionLabel = 'Baslat',
+    this.primaryActionLabel = AmberCtaTokens.continueLabel,
     this.onPrimaryAction,
     this.onTap,
   });
@@ -38,7 +40,7 @@ class AmberRouteCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Icon(Icons.directions_bus_outlined, size: 20),
+              const Icon(AmberIconTokens.bus, size: 20),
               const SizedBox(width: AmberSpacingTokens.space8),
               Expanded(
                 child: Text(
@@ -52,13 +54,15 @@ class AmberRouteCard extends StatelessWidget {
           const SizedBox(height: AmberSpacingTokens.space8),
           Text(
             metaLine,
-            style: textTheme.bodyMedium?.copyWith(color: AmberColorTokens.ink700),
+            style:
+                textTheme.bodyMedium?.copyWith(color: AmberColorTokens.ink700),
           ),
           if (scheduleLabel != null) ...<Widget>[
             const SizedBox(height: AmberSpacingTokens.space8),
             Text(
               scheduleLabel!,
-              style: textTheme.labelMedium?.copyWith(color: AmberColorTokens.ink700),
+              style: textTheme.labelMedium
+                  ?.copyWith(color: AmberColorTokens.ink700),
             ),
           ],
           const SizedBox(height: AmberSpacingTokens.space16),

@@ -15,5 +15,9 @@ class AmberColorTokens {
   static const Color line200 = Color(0xFFD8DFD4);
 
   static const Color success = Color(0xFF3DA66A);
+  static const Color successStrong = Color(0xFF2D8B56);
+  static const Color warning = Color(0xFF8A5F00);
+  static const Color warningStrong = Color(0xFF7A5200);
   static const Color danger = Color(0xFFD64E45);
+  static const Color dangerStrong = Color(0xFFC13E36);
 }

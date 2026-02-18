@@ -30,7 +30,7 @@ class AmberThemeBuilder {
       onSurface: AmberColorTokens.ink900,
       surfaceContainerHighest: AmberColorTokens.surface50,
       outline: AmberColorTokens.line200,
-      error: AmberColorTokens.danger,
+      error: AmberColorTokens.dangerStrong,
       onError: AmberColorTokens.surface0,
     );
 
@@ -56,6 +56,20 @@ class AmberThemeBuilder {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: AmberSecondaryButton.themeStyle(),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          foregroundColor: AmberColorTokens.ink900,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          foregroundColor: AmberColorTokens.ink900,
+        ),
       ),
       cardTheme: const CardTheme(
         color: AmberColorTokens.surface0,

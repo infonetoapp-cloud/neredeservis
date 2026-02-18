@@ -85,7 +85,8 @@ class AmberBottomSheetTemplate extends StatelessWidget {
                 const SizedBox(height: AmberSpacingTokens.space16),
               ],
               child,
-              if (primaryActionLabel != null || secondaryActionLabel != null) ...<Widget>[
+              if (primaryActionLabel != null ||
+                  secondaryActionLabel != null) ...<Widget>[
                 const SizedBox(height: AmberSpacingTokens.space20),
                 Row(
                   children: <Widget>[

@@ -37,7 +37,8 @@ void main() {
     expect(find.text('Hesabimi Sil'), findsOneWidget);
   });
 
-  testWidgets('settings actions trigger callbacks', (WidgetTester tester) async {
+  testWidgets('settings actions trigger callbacks',
+      (WidgetTester tester) async {
     var subscriptionTapped = false;
     var consentCalls = 0;
     var supportTapped = false;

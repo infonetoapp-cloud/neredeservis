@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../indicators/amber_badge.dart';
@@ -36,7 +37,7 @@ class AmberAnnouncementCard extends StatelessWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const Icon(Icons.campaign_outlined, size: 20),
+                  const Icon(AmberIconTokens.megaphone, size: 20),
                   const SizedBox(width: AmberSpacingTokens.space8),
                   Expanded(
                     child: Text(

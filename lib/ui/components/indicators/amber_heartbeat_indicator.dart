@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../../tokens/typography_tokens.dart';
 
@@ -190,7 +191,7 @@ class _AmberHeartbeatIndicatorState extends State<AmberHeartbeatIndicator>
                     ],
                   ),
                   child: const Icon(
-                    Icons.sensors,
+                    AmberIconTokens.heartbeat,
                     size: 22,
                     color: AmberColorTokens.surface0,
                   ),

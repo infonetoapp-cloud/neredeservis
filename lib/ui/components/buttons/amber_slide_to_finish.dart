@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../tokens/color_tokens.dart';
+import '../../tokens/icon_tokens.dart';
 import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../../tokens/typography_tokens.dart';
@@ -134,11 +135,11 @@ class _AmberSlideToFinishState extends State<AmberSlideToFinish>
               height: _trackHeight,
               decoration: BoxDecoration(
                 color: _hasTriggered
-                    ? AmberColorTokens.danger
-                    : AmberColorTokens.danger.withAlpha(30),
+                    ? AmberColorTokens.dangerStrong
+                    : AmberColorTokens.dangerStrong.withAlpha(30),
                 borderRadius: AmberRadiusTokens.radius28,
                 border: Border.all(
-                  color: AmberColorTokens.danger.withAlpha(100),
+                  color: AmberColorTokens.dangerStrong.withAlpha(100),
                 ),
               ),
               child: Stack(
@@ -180,17 +181,18 @@ class _AmberSlideToFinishState extends State<AmberSlideToFinish>
                           height: _handleDiameter,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AmberColorTokens.danger,
+                            color: AmberColorTokens.dangerStrong,
                             boxShadow: <BoxShadow>[
                               BoxShadow(
-                                color: AmberColorTokens.danger.withAlpha(90),
+                                color:
+                                    AmberColorTokens.dangerStrong.withAlpha(90),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
                             ],
                           ),
                           child: const Icon(
-                            Icons.chevron_right_rounded,
+                            AmberIconTokens.caretRight,
                             color: AmberColorTokens.surface0,
                             size: 28,
                           ),
@@ -231,15 +233,15 @@ class _AnimatedChevronLabel extends StatelessWidget {
               fontFamily: AmberTypographyTokens.bodyFamily,
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: AmberColorTokens.danger,
+              color: AmberColorTokens.dangerStrong,
               letterSpacing: 0.3,
             ),
           ),
           const SizedBox(width: AmberSpacingTokens.space8),
           Icon(
-            Icons.double_arrow_rounded,
+            AmberIconTokens.caretDoubleRight,
             size: 18,
-            color: AmberColorTokens.danger.withAlpha(140),
+            color: AmberColorTokens.dangerStrong.withAlpha(140),
           ),
         ],
       ),

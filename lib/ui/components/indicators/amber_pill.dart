@@ -70,26 +70,34 @@ class AmberPill extends StatelessWidget {
     switch (tone) {
       case AmberBadgeTone.success:
         return _AmberPillPalette(
-          background: selected ? AmberColorTokens.success : const Color(0x1F3DA66A),
-          foreground: selected ? AmberColorTokens.surface0 : AmberColorTokens.success,
+          background:
+              selected ? AmberColorTokens.success : const Color(0x1F3DA66A),
+          foreground:
+              selected ? AmberColorTokens.surface0 : AmberColorTokens.success,
           border: selected ? AmberColorTokens.success : const Color(0x663DA66A),
         );
       case AmberBadgeTone.warning:
         return _AmberPillPalette(
-          background: selected ? AmberColorTokens.amber500 : AmberColorTokens.amber100,
-          foreground: selected ? AmberColorTokens.ink900 : AmberColorTokens.amber500,
-          border: selected ? AmberColorTokens.amber500 : const Color(0x66E8760A),
+          background:
+              selected ? AmberColorTokens.amber500 : AmberColorTokens.amber100,
+          foreground:
+              selected ? AmberColorTokens.ink900 : AmberColorTokens.amber500,
+          border:
+              selected ? AmberColorTokens.amber500 : const Color(0x66E8760A),
         );
       case AmberBadgeTone.danger:
         return _AmberPillPalette(
-          background: selected ? AmberColorTokens.danger : const Color(0x1FD64E45),
+          background:
+              selected ? AmberColorTokens.danger : const Color(0x1FD64E45),
           foreground: AmberColorTokens.surface0,
           border: selected ? AmberColorTokens.danger : const Color(0x66D64E45),
         );
       case AmberBadgeTone.neutral:
         return _AmberPillPalette(
-          background: selected ? AmberColorTokens.ink900 : AmberColorTokens.surface0,
-          foreground: selected ? AmberColorTokens.surface0 : AmberColorTokens.ink700,
+          background:
+              selected ? AmberColorTokens.ink900 : AmberColorTokens.surface0,
+          foreground:
+              selected ? AmberColorTokens.surface0 : AmberColorTokens.ink700,
           border: selected ? AmberColorTokens.ink900 : AmberColorTokens.line200,
         );
     }

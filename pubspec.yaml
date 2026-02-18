@@ -53,6 +53,7 @@ dependencies:
   go_router: 15.1.2
   adapty_flutter: ^3.15.3
   google_sign_in: ^6.2.2
+  phosphor_flutter: ^2.1.0
 
 dev_dependencies:
   flutter_test:

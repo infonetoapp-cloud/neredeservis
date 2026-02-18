@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../components/buttons/amber_buttons.dart';
 import '../tokens/color_tokens.dart';
+import '../tokens/cta_tokens.dart';
+import '../tokens/icon_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -92,7 +94,7 @@ class SplashHookScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AmberSpacingTokens.space24),
                   AmberPrimaryButton(
-                    label: 'Devam Et',
+                    label: AmberCtaTokens.continueLabel,
                     onPressed: onContinueTap,
                   ),
                   const SizedBox(height: AmberSpacingTokens.space12),
@@ -160,7 +162,7 @@ class _VideoReadyPosterShell extends StatelessWidget {
               child: Row(
                 children: <Widget>[
                   const Icon(
-                    Icons.volume_off_rounded,
+                    AmberIconTokens.mute,
                     size: 16,
                     color: AmberColorTokens.surface0,
                   ),
@@ -195,7 +197,7 @@ class _PosterFallback extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           const Icon(
-            Icons.play_circle_outline_rounded,
+            AmberIconTokens.playCircle,
             size: 48,
             color: AmberColorTokens.amber500,
           ),
