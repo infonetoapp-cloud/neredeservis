@@ -129,17 +129,19 @@ Future<void> _handleGoogleSignIn(BuildContext context) async {
     }
 
     final googleAuth = await googleUser.authentication;
-    final idToken = googleAuth.idToken;
-    if (idToken == null || idToken.isEmpty) {
+    final idToken = _nullableToken(googleAuth.idToken);
+    final accessToken = _nullableToken(googleAuth.accessToken);
+
+    if (idToken == null && accessToken == null) {
       throw FirebaseAuthException(
-        code: 'missing-id-token',
-        message: 'Google idToken alinamadi.',
+        code: 'missing-google-tokens',
+        message: 'Google tokenlari alinamadi.',
       );
     }
 
     final credential = GoogleAuthProvider.credential(
       idToken: idToken,
-      accessToken: googleAuth.accessToken,
+      accessToken: accessToken,
     );
 
     await FirebaseAuth.instance.signInWithCredential(credential);
@@ -173,6 +175,8 @@ Future<void> _handleGoogleSignIn(BuildContext context) async {
       'operation-not-allowed' =>
         'Google provider kapali gorunuyor. Firebase ayarini kontrol et.',
       'invalid-credential' => 'Google giris kimligi dogrulanamadi.',
+      'missing-google-tokens' =>
+        'Google tokeni alinamadi. Hesap secimini tekrar dene.',
       _ => 'Google girisi baslatilamadi (${error.code}).',
     };
 
@@ -187,4 +191,12 @@ Future<void> _handleGoogleSignIn(BuildContext context) async {
       const SnackBar(content: Text('Google girisi su an baslatilamadi.')),
     );
   }
+}
+
+String? _nullableToken(String? value) {
+  final token = value?.trim();
+  if (token == null || token.isEmpty) {
+    return null;
+  }
+  return token;
 }

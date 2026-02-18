@@ -4718,3 +4718,40 @@ Etiket: codex hotfix
 
 ### Sonraki Adim
 - 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
+
+## STEP-CODEX-GOOGLE-NATIVE-HOTFIX-003 - Missing ID Token Fallback Duzeltmesi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex hotfix
+
+### Amac
+- Native Google hesap secici akısinda `missing-id-token` hatasini gidermek.
+- `idToken` gelmedigi durumda `accessToken` ile Firebase credential olusturup girisi tamamlamak.
+
+### Kok Neden
+- Bazi Android cihaz/konfig kombinasyonlarinda native Google sign-in sonrasi `idToken` bos gelebiliyor.
+- Kod tarafi yalniz `idToken`i zorunlu tuttugu icin auth akisi erken fail oluyordu.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/app/router/app_router.dart` (token fallback)
+2. `flutter analyze`
+3. `flutter test`
+4. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+
+### Bulgular
+- Token toplama kurali guncellendi:
+  - `idToken` varsa kullan
+  - `accessToken` varsa kullan
+  - ikisi de yoksa hata ver
+- `missing-id-token` yerine `missing-google-tokens` kodu ile daha dogru hata sinifi kullanildi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed.
+- Fiziksel cihaz deploy -> basarili.
+
+### Sonraki Adim
+- 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
