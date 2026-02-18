@@ -16,7 +16,9 @@ final localDriftDatabaseProvider = Provider<LocalDriftDatabase>((ref) {
 
 final localQueueRepositoryProvider = Provider<LocalQueueRepository>((ref) {
   final database = ref.watch(localDriftDatabaseProvider);
-  return LocalQueueRepository(database: database);
+  final repository = LocalQueueRepository(database: database);
+  unawaited(repository.resumePendingOwnershipMigrationIfNeeded());
+  return repository;
 });
 
 final transferLocalOwnershipAfterAccountLinkUseCaseProvider =

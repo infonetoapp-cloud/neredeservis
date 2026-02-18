@@ -40,11 +40,13 @@ class TripActionQueueStatusCodec {
 }
 
 class TripActionQueueStateMachine {
-  TripActionQueueStateMachine(this._database);
-
-  static const int maxAutoReplayAttempts = 3;
+  TripActionQueueStateMachine(
+    this._database, {
+    this.maxAutoReplayAttempts = 3,
+  });
 
   final LocalDriftDatabase _database;
+  final int maxAutoReplayAttempts;
 
   Future<void> markInFlight(int id) async {
     await _database.customStatement(
@@ -106,7 +108,7 @@ class TripActionQueueStateMachine {
             TripActionQueueStatus.failedPermanent,
           ),
         ),
-        failedRetryCount: const Value(maxAutoReplayAttempts),
+        failedRetryCount: Value(maxAutoReplayAttempts),
         nextRetryAt: const Value(null),
         lastErrorCode: Value(errorCode),
         lastErrorAt: Value(nowMs),
@@ -130,8 +132,7 @@ class TripActionQueueStateMachine {
       ..where(
         (TripActionQueueTable tbl) =>
             tbl.status.equals(TripActionQueueStatusCodec.pending) &
-            tbl.failedRetryCount.isSmallerThanValue(
-                TripActionQueueStateMachine.maxAutoReplayAttempts) &
+            tbl.failedRetryCount.isSmallerThanValue(maxAutoReplayAttempts) &
             (tbl.nextRetryAt.isNull() |
                 tbl.nextRetryAt.isSmallerOrEqualValue(nowMs)),
       )

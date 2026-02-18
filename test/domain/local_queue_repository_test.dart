@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:neredeservis/core/errors/error_codes.dart';
+import 'package:neredeservis/core/exceptions/app_exception.dart';
 import 'package:neredeservis/features/domain/data/local_drift_database.dart';
 import 'package:neredeservis/features/domain/data/local_queue_repository.dart';
 import 'package:neredeservis/features/domain/data/trip_action_queue_state_machine.dart';
@@ -176,6 +178,178 @@ void main() {
     expect(afterDelete, isNull);
   });
 
+  test('location queue replay stops after max retry attempts', () async {
+    final id = await repository.enqueueLocationSample(
+      ownerUid: 'owner-1',
+      routeId: 'route-max',
+      lat: 40.91,
+      lng: 29.31,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+
+    await repository.markLocationSampleFailure(id: id, nowMs: 10000);
+    await repository.markLocationSampleFailure(id: id, nowMs: 12000);
+    await repository.markLocationSampleFailure(id: id, nowMs: 15000);
+
+    final row = await (database.select(database.locationQueueTable)
+          ..where((LocationQueueTable tbl) => tbl.id.equals(id)))
+        .getSingle();
+    expect(row.retryCount, 3);
+
+    final replayable =
+        await repository.loadReplayableLocationSamples(nowMs: 999999);
+    expect(replayable.where((LocationQueueTableData item) => item.id == id),
+        isEmpty);
+  });
+
+  test('queue size limit blocks new trip action and returns clear message',
+      () async {
+    final limitedRepository = LocalQueueRepository(
+      database: database,
+      maxQueueSize: 1,
+      retryPolicy: const QueueRetryPolicy(
+        baseDelayMs: 1000,
+        maxDelayMs: 10000,
+        jitterRatio: 0,
+      ),
+      random: math.Random(7),
+    );
+
+    await limitedRepository.enqueueTripAction(
+      ownerUid: 'owner-1',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"r1"}',
+      idempotencyKey: 'idem-limit-1',
+      createdAtMs: 1000,
+    );
+
+    await expectLater(
+      () => limitedRepository.enqueueTripAction(
+        ownerUid: 'owner-1',
+        actionType: TripQueuedActionType.finishTrip,
+        payloadJson: '{"tripId":"t2"}',
+        idempotencyKey: 'idem-limit-2',
+        createdAtMs: 1001,
+      ),
+      throwsA(
+        isA<AppException>()
+            .having((e) => e.code, 'code', ErrorCodes.resourceExhausted)
+            .having(
+              (e) => e.message,
+              'message',
+              LocalQueueRepository.queueLimitExceededMessage,
+            ),
+      ),
+    );
+  });
+
+  test('queue size limit blocks new location sample', () async {
+    final limitedRepository = LocalQueueRepository(
+      database: database,
+      maxQueueSize: 1,
+      retryPolicy: const QueueRetryPolicy(
+        baseDelayMs: 1000,
+        maxDelayMs: 10000,
+        jitterRatio: 0,
+      ),
+      random: math.Random(7),
+    );
+
+    await limitedRepository.enqueueLocationSample(
+      ownerUid: 'owner-1',
+      routeId: 'route-limit',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+
+    await expectLater(
+      () => limitedRepository.enqueueLocationSample(
+        ownerUid: 'owner-1',
+        routeId: 'route-limit',
+        lat: 40.91,
+        lng: 29.31,
+        accuracy: 5.1,
+        sampledAtMs: 1001,
+        createdAtMs: 1001,
+      ),
+      throwsA(
+        isA<AppException>().having(
+          (e) => e.code,
+          'code',
+          ErrorCodes.resourceExhausted,
+        ),
+      ),
+    );
+  });
+
+  test('offline-first loaders return local queue snapshots for owner',
+      () async {
+    await repository.enqueueTripAction(
+      ownerUid: 'owner-1',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"r1"}',
+      idempotencyKey: 'idem-offline-1',
+      createdAtMs: 1000,
+    );
+    await repository.enqueueTripAction(
+      ownerUid: 'owner-1',
+      actionType: TripQueuedActionType.finishTrip,
+      payloadJson: '{"tripId":"t1"}',
+      idempotencyKey: 'idem-offline-2',
+      createdAtMs: 2000,
+    );
+    await repository.enqueueTripAction(
+      ownerUid: 'owner-2',
+      actionType: TripQueuedActionType.announcement,
+      payloadJson: '{"message":"x"}',
+      idempotencyKey: 'idem-offline-3',
+      createdAtMs: 3000,
+    );
+
+    await repository.enqueueLocationSample(
+      ownerUid: 'owner-1',
+      routeId: 'route-a',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+    await repository.enqueueLocationSample(
+      ownerUid: 'owner-2',
+      routeId: 'route-b',
+      lat: 40.91,
+      lng: 29.31,
+      accuracy: 5.1,
+      sampledAtMs: 2000,
+      createdAtMs: 2000,
+    );
+
+    final owner1Actions =
+        await repository.loadTripActionsOfflineFirst(ownerUid: 'owner-1');
+    final owner1Locations =
+        await repository.loadLocationSamplesOfflineFirst(ownerUid: 'owner-1');
+
+    expect(owner1Actions, hasLength(2));
+    expect(owner1Actions.first.createdAt, 2000);
+    expect(owner1Actions.last.createdAt, 1000);
+
+    expect(owner1Locations, hasLength(1));
+    expect(owner1Locations.first.routeId, 'route-a');
+
+    final hasPending =
+        await repository.hasPendingOfflineData(ownerUid: 'owner-1');
+    final hasPendingOwner3 =
+        await repository.hasPendingOfflineData(ownerUid: 'owner-3');
+    expect(hasPending, isTrue);
+    expect(hasPendingOwner3, isFalse);
+  });
+
   test(
       'anonymous linkWithCredential ownership transfer moves queue rows without data loss',
       () async {
@@ -324,6 +498,8 @@ void main() {
                 'ownership.current_owner_uid',
                 'ownership.previous_owner_uid',
                 'ownership.migrated_at_ms',
+                'ownership.migration_lock',
+                'ownership.migration_version',
               ],
             ),
           ))
@@ -334,6 +510,8 @@ void main() {
     expect(metaMap['ownership.current_owner_uid'], newOwnerUid);
     expect(metaMap['ownership.previous_owner_uid'], previousOwnerUid);
     expect(metaMap['ownership.migrated_at_ms'], '$migratedAtMs');
+    expect(metaMap['ownership.migration_lock'], '0');
+    expect(metaMap['ownership.migration_version'], '1');
   });
 
   test('ownership transfer no-ops when previous and new owner are equal',
@@ -357,6 +535,228 @@ void main() {
     expect(rows.first.ownerUid, 'owner-1');
 
     final metaRows = await database.select(database.localMetaTable).get();
-    expect(metaRows, isEmpty);
+    final ownershipKeys =
+        metaRows.where((row) => row.key.startsWith('ownership.')).toList();
+    expect(ownershipKeys, isEmpty);
+  });
+
+  test('ownership transfer retries on transient error and then succeeds',
+      () async {
+    var attemptCallCount = 0;
+    final retryingRepository = LocalQueueRepository(
+      database: database,
+      retryPolicy: const QueueRetryPolicy(
+        baseDelayMs: 1000,
+        maxDelayMs: 10000,
+        jitterRatio: 0,
+      ),
+      random: math.Random(7),
+      ownershipTransferAttemptHook: (attempt) async {
+        attemptCallCount += 1;
+        if (attempt == 1) {
+          throw StateError('transient lock');
+        }
+      },
+    );
+
+    await retryingRepository.enqueueLocationSample(
+      ownerUid: 'anon-1',
+      routeId: 'route-1',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+    await retryingRepository.enqueueTripAction(
+      ownerUid: 'anon-1',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"route-1"}',
+      idempotencyKey: 'idem-retry',
+      createdAtMs: 1000,
+    );
+
+    await retryingRepository.transferLocalOwnershipAfterAccountLink(
+      previousOwnerUid: 'anon-1',
+      newOwnerUid: 'user-1',
+      migratedAtMs: 3000,
+    );
+
+    expect(attemptCallCount, 2);
+
+    final movedLocation = await (database.select(database.locationQueueTable)
+          ..where((LocationQueueTable tbl) => tbl.ownerUid.equals('user-1')))
+        .get();
+    final movedActions = await (database.select(database.tripActionQueueTable)
+          ..where((TripActionQueueTable tbl) => tbl.ownerUid.equals('user-1')))
+        .get();
+    expect(movedLocation, hasLength(1));
+    expect(movedActions, hasLength(1));
+  });
+
+  test('ownership transfer keeps ownerUid unchanged when retry limit exhausted',
+      () async {
+    final failingRepository = LocalQueueRepository(
+      database: database,
+      retryPolicy: const QueueRetryPolicy(
+        baseDelayMs: 1000,
+        maxDelayMs: 10000,
+        jitterRatio: 0,
+      ),
+      random: math.Random(7),
+      ownershipTransferAttemptHook: (_) async {
+        throw StateError('simulated crash');
+      },
+      maxOwnershipTransferRetryAttempts: 2,
+    );
+
+    await failingRepository.enqueueLocationSample(
+      ownerUid: 'anon-2',
+      routeId: 'route-2',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+    await failingRepository.enqueueTripAction(
+      ownerUid: 'anon-2',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"route-2"}',
+      idempotencyKey: 'idem-rollback',
+      createdAtMs: 1000,
+    );
+
+    await expectLater(
+      () => failingRepository.transferLocalOwnershipAfterAccountLink(
+        previousOwnerUid: 'anon-2',
+        newOwnerUid: 'user-2',
+        migratedAtMs: 4000,
+      ),
+      throwsA(
+        isA<AppException>().having(
+          (e) => e.code,
+          'code',
+          ErrorCodes.failedPrecondition,
+        ),
+      ),
+    );
+
+    final oldOwnerLocations = await (database
+            .select(database.locationQueueTable)
+          ..where((LocationQueueTable tbl) => tbl.ownerUid.equals('anon-2')))
+        .get();
+    final oldOwnerActions = await (database
+            .select(database.tripActionQueueTable)
+          ..where((TripActionQueueTable tbl) => tbl.ownerUid.equals('anon-2')))
+        .get();
+    expect(oldOwnerLocations, hasLength(1));
+    expect(oldOwnerActions, hasLength(1));
+
+    final lockRow = await (database.select(database.localMetaTable)
+          ..where(
+            (LocalMetaTable tbl) => tbl.key.equals('ownership.migration_lock'),
+          ))
+        .getSingleOrNull();
+    expect(lockRow?.value, '1');
+  });
+
+  test('resumePendingOwnershipMigrationIfNeeded completes half migration',
+      () async {
+    await repository.enqueueLocationSample(
+      ownerUid: 'anon-pending',
+      routeId: 'route-p',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+    await repository.enqueueTripAction(
+      ownerUid: 'anon-pending',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"route-p"}',
+      idempotencyKey: 'idem-pending',
+      createdAtMs: 1000,
+    );
+
+    await database.into(database.localMetaTable).insertOnConflictUpdate(
+          LocalMetaTableCompanion.insert(
+            key: 'ownership.migration_lock',
+            value: const Value('1'),
+          ),
+        );
+    await database.into(database.localMetaTable).insertOnConflictUpdate(
+          LocalMetaTableCompanion.insert(
+            key: 'ownership.pending_previous_owner_uid',
+            value: const Value('anon-pending'),
+          ),
+        );
+    await database.into(database.localMetaTable).insertOnConflictUpdate(
+          LocalMetaTableCompanion.insert(
+            key: 'ownership.pending_new_owner_uid',
+            value: const Value('user-pending'),
+          ),
+        );
+    await database.into(database.localMetaTable).insertOnConflictUpdate(
+          LocalMetaTableCompanion.insert(
+            key: 'ownership.pending_migrated_at_ms',
+            value: const Value('5000'),
+          ),
+        );
+
+    final resumed = await repository.resumePendingOwnershipMigrationIfNeeded();
+    expect(resumed, isTrue);
+
+    final newOwnerActions =
+        await (database.select(database.tripActionQueueTable)
+              ..where(
+                (TripActionQueueTable tbl) =>
+                    tbl.ownerUid.equals('user-pending'),
+              ))
+            .get();
+    final lockRow = await (database.select(database.localMetaTable)
+          ..where(
+            (LocalMetaTable tbl) => tbl.key.equals('ownership.migration_lock'),
+          ))
+        .getSingleOrNull();
+    expect(newOwnerActions, hasLength(1));
+    expect(lockRow?.value, '0');
+  });
+
+  test('cache invalidation rule marks caches stale when invalidated', () async {
+    await repository.enqueueTripAction(
+      ownerUid: 'owner-cache',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"cache"}',
+      idempotencyKey: 'idem-cache-1',
+      createdAtMs: 1000,
+    );
+    await repository.enqueueLocationSample(
+      ownerUid: 'owner-cache',
+      routeId: 'route-cache',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+    );
+
+    expect(await repository.isTripActionCacheFresh(nowMs: 1200), isTrue);
+    expect(await repository.isLocationQueueCacheFresh(nowMs: 1200), isTrue);
+
+    await repository.invalidateQueueCache(
+      reason: 'manual_reset',
+      nowMs: 5000,
+    );
+
+    expect(await repository.isTripActionCacheFresh(nowMs: 5100), isFalse);
+    expect(await repository.isLocationQueueCacheFresh(nowMs: 5100), isFalse);
+
+    final reasonRow = await (database.select(database.localMetaTable)
+          ..where((LocalMetaTable tbl) =>
+              tbl.key.equals('cache.invalidated_reason')))
+        .getSingleOrNull();
+    expect(reasonRow?.value, 'manual_reset');
   });
 }

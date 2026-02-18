@@ -5988,3 +5988,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
+
+## STEP-206-210 - Queue Dayaniklilik + PII Redaction Dogrulamasi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 206: Retry policy helper'i max 3 deneme + jitter/backoff kontratiyla netlestirmek.
+- 207: Offline-first read akisini queue repository'e eklemek.
+- 207A: Queue boyut limiti ve net hata mesaji uygulamak.
+- 207B/207C/207D: Ownership transfer'i transaction bazli atomik + lock/version metadata ile crash-safe hale getirmek.
+- 208: Cache invalidation/freshness kurallarini eklemek.
+- 209/210: Logger + helper katmaninda PII redaction'i dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `dart format lib/app/providers/domain_data_providers.dart lib/app/providers/logger_provider.dart lib/core/logging/app_logger.dart lib/core/security/pii_redactor.dart lib/features/domain/data/cache_invalidation_rule.dart lib/features/domain/data/local_queue_repository.dart lib/features/domain/data/pii_filter_helper.dart lib/features/domain/data/trip_action_queue_state_machine.dart test/core/app_logger_redaction_test.dart test/domain/cache_invalidation_rule_test.dart test/domain/local_queue_repository_test.dart test/domain/queue_retry_policy_test.dart`
+2. `flutter test test/domain/local_queue_repository_test.dart test/domain/queue_retry_policy_test.dart test/domain/cache_invalidation_rule_test.dart test/core/app_logger_redaction_test.dart`
+3. `dart format lib/core/security/pii_redactor.dart test/domain/local_queue_repository_test.dart`
+4. `flutter test test/domain/local_queue_repository_test.dart test/domain/queue_retry_policy_test.dart test/domain/cache_invalidation_rule_test.dart test/core/app_logger_redaction_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (206..210 `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (206..210 `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni dosyalar:
+  - `lib/core/security/pii_redactor.dart`
+  - `lib/features/domain/data/cache_invalidation_rule.dart`
+  - `test/core/app_logger_redaction_test.dart`
+  - `test/domain/cache_invalidation_rule_test.dart`
+  - `test/domain/queue_retry_policy_test.dart`
+- `LocalQueueRepository` gelistirmeleri:
+  - `QueueRetryPolicy.maxRetryAttempts` + `willReachMaxOnFailure`
+  - offline-first read metodlari (`loadTripActionsOfflineFirst`, `loadLocationSamplesOfflineFirst`, `hasPendingOfflineData`)
+  - queue size limiti + `RESOURCE_EXHAUSTED` net mesaj
+  - ownership transfer retry/lock/version/pending metadata + app acilisinda `resumePendingOwnershipMigrationIfNeeded`
+  - owner transfer transaction atomikligi (test hook ile rollback dogrulamasi)
+  - cache invalidation/freshness metodlari
+- Logger/PII:
+  - `DebugAppLogger` icin `LogSink` injection ve message/context/error redaction
+  - `PiiFilterHelper` redaction motoru `PiiRedactor` ile birlestirildi
+
+### Hata Kaydi (Silinmez)
+- Ilk test turunda `test/domain/local_queue_repository_test.dart` icinde `Value` importu/const kullanimi kaynakli compile hatasi alindi.
+  - Cozum: drift `Value` importu eklendi, companion insert kullanimi duzeltildi.
+- Ilk redaction testinde `error` payload icindeki `token/ownerUid` degerleri maskelenmiyordu.
+  - Cozum: `PiiRedactor` assignment regex'i eklendi ve test kontrati saglandi.
+- SERH (silinmez): Iz kaydi dosyasi bu adimda sadece append-only guncellendi; once raporlanan 131-154F kayip bolumune ilave silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/domain/local_queue_repository_test.dart test/domain/queue_retry_policy_test.dart test/domain/cache_invalidation_rule_test.dart test/core/app_logger_redaction_test.dart` -> 23/23 passed.
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 168 test passed.
+
+### Sonraki Adim
+- Faz E / 211: `api_contracts.md` ile data katmani uyum kontrolu.

@@ -481,15 +481,15 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 204 Riverpod providerlarini domain use-case'lere bagla.
 - [x] 204A `transferLocalOwnershipAfterAccountLink` use-case'ini yaz (guest -> passenger gechisinde ownerId devri).
 - [x] 205 Error propagation kurali uygula.
-- [ ] 206 Retry policy helper yaz (max 3 deneme + jitter backoff).
-- [ ] 207 Offline-first read stratejisi uygula.
-- [ ] 207A Queue boyut limiti uygula (`MAX_QUEUE_SIZE`) ve limit asiminda kullaniciya net mesaj goster.
-- [ ] 207B Ownership transfer transaction'ini atomik yap (yarim migration durumunda rollback + retry).
-- [ ] 207C Ownership migration icin `migration_lock` + `migration_version` alanlarini ekle; app acilisinda yarim kalan migration'i otomatik tamamla.
-- [ ] 207D Drift owner transferini tek SQLite transaction blogunda yap (commit yoksa hicbir ownerUid degismesin).
-- [ ] 208 Cache invalidation kurali yaz.
-- [ ] 209 Logger ile PII redaction dogrula.
-- [ ] 210 DOGRULAMA: debug loglarda PII sizmiyor mu?
+- [x] 206 Retry policy helper yaz (max 3 deneme + jitter backoff).
+- [x] 207 Offline-first read stratejisi uygula.
+- [x] 207A Queue boyut limiti uygula (`MAX_QUEUE_SIZE`) ve limit asiminda kullaniciya net mesaj goster.
+- [x] 207B Ownership transfer transaction'ini atomik yap (yarim migration durumunda rollback + retry).
+- [x] 207C Ownership migration icin `migration_lock` + `migration_version` alanlarini ekle; app acilisinda yarim kalan migration'i otomatik tamamla.
+- [x] 207D Drift owner transferini tek SQLite transaction blogunda yap (commit yoksa hicbir ownerUid degismesin).
+- [x] 208 Cache invalidation kurali yaz.
+- [x] 209 Logger ile PII redaction dogrula.
+- [x] 210 DOGRULAMA: debug loglarda PII sizmiyor mu?
 - [ ] 211 `api_contracts.md` ile data katmani uyum kontrolu yap.
 - [ ] 212 Tip guvenligi analizini calistir.
 - [ ] 213 Dead code taramasi yap.
