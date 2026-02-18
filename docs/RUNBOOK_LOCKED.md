@@ -419,7 +419,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 156 Passenger map bottom-sheet ekranini amber stile gore kodla.
 - [x] 157 Join + settings ekranini amber stile gore kodla.
 - [x] 157A Sofor abonelik/paywall ekranini amber stile gore kodla (monthly/yearly, trial, restore/manage).
-- [ ] 157B Odeme metin kaynagini bagla: `NeredeServis_Paywall_Copy_TR.md`.
+- [x] 157B Odeme metin kaynagini bagla: `NeredeServis_Paywall_Copy_TR.md`.
 - [ ] 158 `prototype/screens` ile visual parity kontrolu yap.
 - [ ] 159 UI farklari varsa `ui_gap_list.md` dosyasina yaz.
 - [ ] 160 Accessibility kontrast kontrolu yap (WCAG AA minimum).

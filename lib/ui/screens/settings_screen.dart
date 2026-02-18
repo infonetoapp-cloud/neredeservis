@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../components/buttons/amber_buttons.dart';
 import '../components/layout/amber_screen_scaffold.dart';
 import '../tokens/color_tokens.dart';
@@ -11,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.appName,
     this.showSubscriptionSection = true,
+    this.subscriptionStatus = SubscriptionUiStatus.trialActive,
     this.onSubscriptionTap,
     this.onConsentTap,
     this.onSupportTap,
@@ -20,6 +22,7 @@ class SettingsScreen extends StatefulWidget {
 
   final String appName;
   final bool showSubscriptionSection;
+  final SubscriptionUiStatus subscriptionStatus;
   final VoidCallback? onSubscriptionTap;
   final ValueChanged<bool>? onConsentTap;
   final VoidCallback? onSupportTap;
@@ -44,8 +47,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: <Widget>[
           if (widget.showSubscriptionSection) ...<Widget>[
             _SectionCard(
-              title: 'Abonelik',
-              description: 'Deneme suren devam ediyor.',
+              title: PaywallCopyTr.settingsCardTitle,
+              description: PaywallCopyTr.settingsCardDescriptionForStatus(
+                widget.subscriptionStatus,
+              ),
               child: AmberPrimaryButton(
                 label: 'Aboneligi Yonet',
                 onPressed: widget.onSubscriptionTap,

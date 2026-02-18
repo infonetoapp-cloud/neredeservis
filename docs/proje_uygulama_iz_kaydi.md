@@ -4788,3 +4788,40 @@ Etiket: codex hotfix
 
 ### Sonraki Adim
 - 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
+
+## STEP-157B - Odeme Metin Kaynagi Baglama (Paywall Copy Source)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Runbook 157B kapsaminda odeme/paywall metinlerini tek kaynaga baglamak.
+- `docs/NeredeServis_Paywall_Copy_TR.md` dokumanindaki metinlerin kod tarafinda da tek yerden yonetilmesini saglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `Get-Content docs/NeredeServis_Paywall_Copy_TR.md`
+2. `apply_patch` -> `lib/features/subscription/presentation/paywall_copy_tr.dart` (yeni metin kaynagi)
+3. `apply_patch` -> `lib/ui/screens/paywall_screen.dart` (hardcoded metinler copy kaynagina baglandi)
+4. `apply_patch` -> `lib/ui/screens/settings_screen.dart` (abonelik kart alt metni copy kaynagina baglandi)
+5. `apply_patch` -> `lib/app/router/app_router.dart` (subscription status tipi hizalamasi)
+6. `apply_patch` -> `test/ui/paywall_screen_test.dart` (enum tipi hizalamasi)
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (157B `[x]`)
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (157B `[x]`)
+9. `flutter analyze`
+10. `flutter test`
+
+### Bulgular
+- Yeni tekil metin kaynagi eklendi: `lib/features/subscription/presentation/paywall_copy_tr.dart`.
+- Paywall baslik, alt metin, plan kartlari, CTA'lar, restore/manage, legal satir ve trial banner metinleri artik bu kaynaktan geliyor.
+- Settings ekranindaki abonelik kart aciklamasi, subscription durumuna gore bu kaynaktan hesaplaniyor.
+- Copy degisikliklerinde ekran kodlarini tek tek arayip patchleme ihtiyaci azaldi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed.
+
+### Sonraki Adim
+- 158: `prototype/screens` ile visual parity kontrolu yap.

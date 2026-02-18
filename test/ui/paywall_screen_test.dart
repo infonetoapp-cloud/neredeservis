@@ -2,12 +2,13 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:neredeservis/features/subscription/presentation/paywall_copy_tr.dart';
 import 'package:neredeservis/ui/screens/paywall_screen.dart';
 import 'package:neredeservis/ui/theme/theme_amber.dart';
 
 void main() {
   Widget buildTestApp({
-    PaywallSubscriptionStatus status = PaywallSubscriptionStatus.mock,
+    SubscriptionUiStatus status = SubscriptionUiStatus.mock,
     int trialDaysLeft = 0,
     ValueChanged<PaywallPlan>? onPurchaseTap,
     VoidCallback? onRestoreTap,
@@ -53,7 +54,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       buildTestApp(
-        status: PaywallSubscriptionStatus.trialActive,
+        status: SubscriptionUiStatus.trialActive,
         trialDaysLeft: 3,
       ),
     );

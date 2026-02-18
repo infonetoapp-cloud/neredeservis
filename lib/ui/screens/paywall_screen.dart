@@ -1,19 +1,12 @@
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
+import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../components/buttons/amber_buttons.dart';
 import '../components/layout/amber_screen_scaffold.dart';
 import '../tokens/color_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
-
-enum PaywallSubscriptionStatus {
-  trialActive,
-  trialExpired,
-  active,
-  mock,
-}
 
 enum PaywallPlan {
   monthly,
@@ -24,7 +17,7 @@ class PaywallScreen extends StatefulWidget {
   const PaywallScreen({
     super.key,
     required this.appName,
-    this.subscriptionStatus = PaywallSubscriptionStatus.mock,
+    this.subscriptionStatus = SubscriptionUiStatus.mock,
     this.trialDaysLeft = 0,
     this.monthlyPriceLabel = '149,99 TL/ay',
     this.yearlyPriceLabel = '1.299,99 TL/yil',
@@ -35,7 +28,7 @@ class PaywallScreen extends StatefulWidget {
   });
 
   final String appName;
-  final PaywallSubscriptionStatus subscriptionStatus;
+  final SubscriptionUiStatus subscriptionStatus;
   final int trialDaysLeft;
   final String monthlyPriceLabel;
   final String yearlyPriceLabel;
@@ -52,16 +45,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
   PaywallPlan _selectedPlan = PaywallPlan.yearly;
 
   String get _restoreLabel {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return 'Restore Purchases';
-    }
-    return 'Satin Alimlari Geri Yukle';
+    return PaywallCopyTr.restoreLabelForPlatform(defaultTargetPlatform);
   }
 
   @override
   Widget build(BuildContext context) {
     return AmberScreenScaffold(
-      title: 'Abonelik',
+      title: PaywallCopyTr.settingsCardTitle,
       subtitle: widget.appName,
       scrollable: true,
       body: Column(
@@ -74,12 +64,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
           _buildPlanCards(),
           const SizedBox(height: AmberSpacingTokens.space12),
           AmberPrimaryButton(
-            label: "Premium'u Ac",
+            label: PaywallCopyTr.primaryCta,
             onPressed: () => widget.onPurchaseTap?.call(_selectedPlan),
           ),
           const SizedBox(height: AmberSpacingTokens.space8),
           AmberSecondaryButton(
-            label: 'Simdilik Sonra',
+            label: PaywallCopyTr.secondaryCta,
             onPressed: widget.onLaterTap,
           ),
           const SizedBox(height: AmberSpacingTokens.space12),
@@ -94,14 +84,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
               ),
               TextButton(
                 onPressed: widget.onManageTap,
-                child: const Text('Manage Subscription'),
+                child: const Text(PaywallCopyTr.manageSubscription),
               ),
             ],
           ),
           const SizedBox(height: AmberSpacingTokens.space8),
           Text(
-            'Abonelik otomatik yenilenir. Istedigin zaman store ayarlarindan '
-            'iptal edebilirsin.',
+            PaywallCopyTr.legalLine,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AmberColorTokens.ink700,
@@ -114,21 +103,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   Widget _buildStatusBanner(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final message = switch (widget.subscriptionStatus) {
-      PaywallSubscriptionStatus.trialActive =>
-        'Deneme suresi: ${widget.trialDaysLeft} gun kaldi',
-      PaywallSubscriptionStatus.trialExpired =>
-        'Denemen bitti. Canli modu acmak icin abonelik sec.',
-      PaywallSubscriptionStatus.active => 'Premium aktif',
-      PaywallSubscriptionStatus.mock =>
-        'V1.0 mock/read-only mod: gercek tahsilat kapali.',
-    };
+    final message = PaywallCopyTr.trialBannerForStatus(
+      widget.subscriptionStatus,
+      trialDaysLeft: widget.trialDaysLeft,
+    );
 
     final toneColor = switch (widget.subscriptionStatus) {
-      PaywallSubscriptionStatus.trialExpired => AmberColorTokens.danger,
-      PaywallSubscriptionStatus.active => AmberColorTokens.success,
-      PaywallSubscriptionStatus.trialActive => AmberColorTokens.amber500,
-      PaywallSubscriptionStatus.mock => AmberColorTokens.ink700,
+      SubscriptionUiStatus.trialExpired => AmberColorTokens.danger,
+      SubscriptionUiStatus.active => AmberColorTokens.success,
+      SubscriptionUiStatus.trialActive => AmberColorTokens.amber500,
+      SubscriptionUiStatus.mock => AmberColorTokens.ink700,
     };
 
     return DecoratedBox(
@@ -159,9 +143,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final monthlyCard = _PlanCard(
-          title: 'Aylik Plan',
+          title: PaywallCopyTr.monthlyPlanTitle,
           priceLabel: widget.monthlyPriceLabel,
-          description: 'Esnek odeme',
+          description: PaywallCopyTr.monthlyPlanDescription,
           selected: _selectedPlan == PaywallPlan.monthly,
           onTap: () {
             setState(() {
@@ -171,10 +155,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
         );
 
         final yearlyCard = _PlanCard(
-          title: 'Yillik Plan',
+          title: PaywallCopyTr.yearlyPlanTitle,
           priceLabel: widget.yearlyPriceLabel,
-          description: 'Uzun donem daha dusuk maliyet',
-          badgeLabel: 'En avantajli',
+          description: PaywallCopyTr.yearlyPlanDescription,
+          badgeLabel: PaywallCopyTr.yearlyPlanBadge,
           selected: _selectedPlan == PaywallPlan.yearly,
           onTap: () {
             setState(() {
@@ -208,15 +192,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
 class _HeroCard extends StatelessWidget {
   const _HeroCard({required this.subscriptionStatus});
 
-  final PaywallSubscriptionStatus subscriptionStatus;
+  final SubscriptionUiStatus subscriptionStatus;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final subtitle = subscriptionStatus ==
-            PaywallSubscriptionStatus.trialExpired
-        ? 'Deneme bitti. Veri kaybetmeden Premiuma gecebilirsin.'
-        : 'Premium ile konum ve bildirimler daha hizli, daha tutarli calisir.';
+    final subtitle = subscriptionStatus == SubscriptionUiStatus.trialExpired
+        ? PaywallCopyTr.paywallSubtitleTrialExpired
+        : PaywallCopyTr.paywallSubtitle;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -237,7 +220,7 @@ class _HeroCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Servisi gecikmeden goster',
+              PaywallCopyTr.paywallTitle,
               style: textTheme.headlineSmall,
             ),
             const SizedBox(height: AmberSpacingTokens.space8),
@@ -248,12 +231,12 @@ class _HeroCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AmberSpacingTokens.space12),
-            const _FeatureBullet(label: 'Daha sik guncelleme ile canli takip'),
+            const _FeatureBullet(label: PaywallCopyTr.paywallFeatureLive),
             const SizedBox(height: AmberSpacingTokens.space8),
-            const _FeatureBullet(label: 'Duyuru ve bildirim akisinda oncelik'),
+            const _FeatureBullet(label: PaywallCopyTr.paywallFeaturePriority),
             const SizedBox(height: AmberSpacingTokens.space8),
             const _FeatureBullet(
-              label: 'Kesintide daha guclu senkron geri donusu',
+              label: PaywallCopyTr.paywallFeatureResync,
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../config/app_flavor.dart';
+import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
@@ -67,7 +68,7 @@ GoRouter buildAppRouter({
         path: AppRoutePath.paywall,
         builder: (context, state) => PaywallScreen(
           appName: flavorConfig.appName,
-          subscriptionStatus: PaywallSubscriptionStatus.mock,
+          subscriptionStatus: SubscriptionUiStatus.mock,
           onPurchaseTap: (_) {},
           onRestoreTap: () {},
           onManageTap: () {},
@@ -99,6 +100,7 @@ GoRouter buildAppRouter({
         path: AppRoutePath.settings,
         builder: (context, state) => SettingsScreen(
           appName: flavorConfig.appName,
+          subscriptionStatus: SubscriptionUiStatus.trialActive,
           onSubscriptionTap: () => context.go(AppRoutePath.paywall),
         ),
       ),
