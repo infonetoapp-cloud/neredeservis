@@ -6656,3 +6656,52 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 242: `submitSkipToday` callable.
+
+## STEP-242 - submitSkipToday Callable
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Passenger'in "Bugun Binmiyorum" istegini server-side dogrulama ve tek-gun/tek-kayit kurali ile kaydeden `submitSkipToday` callable endpointini eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`SubmitSkipToday` schema/interface/helper + callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check`
+5. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+6. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (242 `[x]`)
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (242 `[x]`)
+8. `apply_patch` -> `docs/api_contracts.md` (`SubmitSkipTodayInput/Output` interface)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `submitSkipToday` callable eklendi.
+- Endpoint guvenlik zinciri:
+  - auth + non-anonymous + role(passenger).
+  - route varlik/archived kontrolu.
+  - ilgili route altinda passenger kaydi yoksa `permission-denied`.
+- Tarih kontrati server tarafinda enforce edildi:
+  - `dateKey` girisi yalnizca bugunun `Europe/Istanbul` degerine esitse kabul ediliyor.
+  - farkli tarih icin `failed-precondition` donuyor.
+- Tek-gun/tek-kayit kurali doc id ile saglandi:
+  - `routes/{routeId}/skip_requests/{uid}_{dateKey}`
+  - tekrar cagrida ayni dokuman merge edilerek idempotent davraniş korunuyor.
+- Skip request payload alanlari:
+  - `passengerId`, `dateKey`, `status='skip_today'`, `idempotencyKey`, `createdAt`, `updatedAt`.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 243: `createGuestSession` callable.

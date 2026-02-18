@@ -321,6 +321,18 @@ export interface UpdatePassengerSettingsOutput {
   updatedAt: string; // ISO-8601 UTC
 }
 
+export interface SubmitSkipTodayInput {
+  routeId: string;
+  dateKey: string; // YYYY-MM-DD (Europe/Istanbul today)
+  idempotencyKey: string;
+}
+
+export interface SubmitSkipTodayOutput {
+  routeId: string;
+  dateKey: string;
+  status: "skip_today";
+}
+
 export interface CreateGuestSessionInput {
   srvCode: string;
   ttlMinutes?: number; // 5..60

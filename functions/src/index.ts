@@ -137,6 +137,12 @@ interface UpdatePassengerSettingsOutput {
   updatedAt: string;
 }
 
+interface SubmitSkipTodayOutput {
+  routeId: string;
+  dateKey: string;
+  status: 'skip_today';
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -275,6 +281,12 @@ const updatePassengerSettingsInputSchema = z.object({
   notificationTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:mm formatinda olmalidir.'),
 });
 
+const submitSkipTodayInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  idempotencyKey: z.string().trim().min(8).max(128),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -380,6 +392,15 @@ function inferStopsFromTrace(
 
 function mapGhostTraceValidationError(error: GhostTraceValidationError): HttpsError {
   return new HttpsError('invalid-argument', `${error.code}: ${error.message}`);
+}
+
+function buildIstanbulDateKey(when: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(when);
 }
 
 async function requireOwnedRoute(
@@ -1233,6 +1254,71 @@ export const updatePassengerSettings = onCall(async (request) => {
   return apiOk<UpdatePassengerSettingsOutput>({
     routeId: input.routeId,
     updatedAt: nowIso,
+  });
+});
+
+export const submitSkipToday = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['passenger'],
+  });
+
+  const input = validateInput(submitSkipTodayInputSchema, request.data);
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const passengerRef = routeRef.collection('passengers').doc(auth.uid);
+  const skipRequestRef = routeRef.collection('skip_requests').doc(`${auth.uid}_${input.dateKey}`);
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const todayKey = buildIstanbulDateKey(now);
+
+  if (input.dateKey !== todayKey) {
+    throw new HttpsError(
+      'failed-precondition',
+      `submitSkipToday sadece bugun icin kabul edilir. beklenenDateKey=${todayKey}`,
+    );
+  }
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    if (routeData.isArchived === true) {
+      throw new HttpsError('failed-precondition', 'Arsivlenmis route icin skip kaydi acilamaz.');
+    }
+
+    const passengerSnap = await tx.get(passengerRef);
+    if (!passengerSnap.exists) {
+      throw new HttpsError('permission-denied', 'Bu route icin passenger kaydin bulunmuyor.');
+    }
+
+    const skipRequestSnap = await tx.get(skipRequestRef);
+    const existingSkipRequest = asRecord(skipRequestSnap.data());
+    const existingCreatedAt = pickString(existingSkipRequest, 'createdAt');
+
+    tx.set(
+      skipRequestRef,
+      {
+        passengerId: auth.uid,
+        dateKey: input.dateKey,
+        status: 'skip_today',
+        idempotencyKey: input.idempotencyKey,
+        createdAt: existingCreatedAt ?? nowIso,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+  });
+
+  return apiOk<SubmitSkipTodayOutput>({
+    routeId: input.routeId,
+    dateKey: input.dateKey,
+    status: 'skip_today',
   });
 });
 
