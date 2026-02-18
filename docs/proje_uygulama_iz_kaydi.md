@@ -6378,3 +6378,46 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 236: `updateRoute` callable.
+
+## STEP-236 - updateRoute Callable
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Driver route'larini server-side yetki + validation kurallariyla guncelleyebilen `updateRoute` callable endpointini eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (UpdateRoute schema/interface/helper + callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check`
+5. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+6. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (236 `[x]`)
+7. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (236 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `updateRoute` callable eklendi.
+- Endpoint guvenlik zinciri:
+  - auth + non-anonymous + role(driver) + driver profile
+  - route sahibi kontrolu (`driverId == auth.uid`)
+- Input validation zod ile yapiliyor.
+- Desteklenen guncelleme alanlari:
+  - `name`, `startPoint`, `startAddress`, `endPoint`, `endAddress`, `scheduledTime`, `timeSlot`, `allowGuestTracking`, `authorizedDriverIds`, `isArchived`, `vacationUntil`.
+- `authorizedDriverIds` degisirse `memberIds` listesi server-side yeniden hesaplanarak stale driver üyelikleri temizleniyor (passenger üyeler korunuyor).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryolarinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 236A: `createRouteFromGhostDrive` callable.

@@ -520,7 +520,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 234 `upsertDriverProfile` callable yaz.
 - [x] 235 `createRoute` callable yaz.
 - [x] 235A `createRoute` icinde SRV kodunu server-side uret: `nanoid(6,'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')` + collision retry (max 5) + deterministic hata kodu.
-- [ ] 236 `updateRoute` callable yaz.
+- [x] 236 `updateRoute` callable yaz.
 - [ ] 236A `createRouteFromGhostDrive` callable yaz (trace -> route + stop candidate donusumu).
 - [ ] 236B Ghost trace sanitize kurali yaz (min point, max point, duplicate point drop, distance threshold).
 - [ ] 236C Ghost trace polyline'i Douglas-Peucker ile sadeleÅŸtir (epsilon politikasi + max point limiti + Firestore boyut guard).
@@ -1047,6 +1047,7 @@ Kopyala-yapistir cevap seti:
 - Her kritik adimda kanit + dogrulama + onay gerekir.
 - Onaysiz production degisikligi yapilmaz.
 - Limit asimi icin coklu hesap acarak ucretsiz model suistimali yapilmaz.
+
 
 
 

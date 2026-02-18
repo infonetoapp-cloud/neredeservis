@@ -77,6 +77,11 @@ interface CreateRouteOutput {
   srvCode: string;
 }
 
+interface UpdateRouteOutput {
+  routeId: string;
+  updatedAt: string;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -115,6 +120,34 @@ const createRouteInputSchema = z.object({
   authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
 });
 
+const updateRouteInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  name: z.string().trim().min(2).max(80).optional(),
+  startPoint: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    })
+    .optional(),
+  startAddress: z.string().trim().min(3).max(256).optional(),
+  endPoint: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    })
+    .optional(),
+  endAddress: z.string().trim().min(3).max(256).optional(),
+  scheduledTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:mm formatinda olmalidir.')
+    .optional(),
+  timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']).optional(),
+  allowGuestTracking: z.boolean().optional(),
+  authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional(),
+  isArchived: z.boolean().optional(),
+  vacationUntil: z.string().datetime().nullable().optional(),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -143,6 +176,17 @@ function pickString(record: Record<string, unknown> | null, key: string): string
   }
   const value = record[key];
   return typeof value === 'string' ? value : null;
+}
+
+function pickStringArray(record: Record<string, unknown> | null, key: string): string[] {
+  if (!record) {
+    return [];
+  }
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === 'string');
 }
 
 function normalizeAuthorizedDriverIds(rawIds: readonly string[], ownerUid: string): string[] {
@@ -398,6 +442,93 @@ export const createRoute = onCall(async (request) => {
     'resource-exhausted',
     `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
   );
+});
+
+export const updateRoute = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(updateRouteInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const routeSnap = await routeRef.get();
+
+  if (!routeSnap.exists) {
+    throw new HttpsError('not-found', 'Route bulunamadi.');
+  }
+
+  const routeData = asRecord(routeSnap.data());
+  const routeOwnerUid = pickString(routeData, 'driverId');
+  if (routeOwnerUid !== auth.uid) {
+    throw new HttpsError('permission-denied', 'Bu route icin guncelleme yetkin yok.');
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    updatedAt: nowIso,
+  };
+
+  if (input.name != null) {
+    updatePayload['name'] = input.name;
+  }
+  if (input.startPoint != null) {
+    updatePayload['startPoint'] = input.startPoint;
+  }
+  if (input.startAddress != null) {
+    updatePayload['startAddress'] = input.startAddress;
+  }
+  if (input.endPoint != null) {
+    updatePayload['endPoint'] = input.endPoint;
+  }
+  if (input.endAddress != null) {
+    updatePayload['endAddress'] = input.endAddress;
+  }
+  if (input.scheduledTime != null) {
+    updatePayload['scheduledTime'] = input.scheduledTime;
+  }
+  if (input.timeSlot != null) {
+    updatePayload['timeSlot'] = input.timeSlot;
+  }
+  if (input.allowGuestTracking != null) {
+    updatePayload['allowGuestTracking'] = input.allowGuestTracking;
+  }
+  if (input.isArchived != null) {
+    updatePayload['isArchived'] = input.isArchived;
+  }
+  if (input.vacationUntil !== undefined) {
+    updatePayload['vacationUntil'] = input.vacationUntil;
+  }
+
+  if (input.authorizedDriverIds != null) {
+    const existingAuthorized = pickStringArray(routeData, 'authorizedDriverIds');
+    const existingMemberIds = pickStringArray(routeData, 'memberIds');
+    const passengerMembers = existingMemberIds.filter(
+      (memberUid) => memberUid !== auth.uid && !existingAuthorized.includes(memberUid),
+    );
+    const newAuthorizedDriverIds = normalizeAuthorizedDriverIds(
+      input.authorizedDriverIds,
+      auth.uid,
+    );
+    const newMemberIds = Array.from(
+      new Set<string>([auth.uid, ...newAuthorizedDriverIds, ...passengerMembers]),
+    );
+
+    updatePayload['authorizedDriverIds'] = newAuthorizedDriverIds;
+    updatePayload['memberIds'] = newMemberIds;
+  }
+
+  await routeRef.update(updatePayload);
+
+  return apiOk<UpdateRouteOutput>({
+    routeId: input.routeId,
+    updatedAt: nowIso,
+  });
 });
 
 export const searchDriverDirectory = onCall(async (request) => {
