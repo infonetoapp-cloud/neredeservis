@@ -6890,3 +6890,64 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 246: `sendDriverAnnouncement` callable.
+
+## STEP-246-246C - Announcement + Subscription Authority + Premium Guard
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 246: `sendDriverAnnouncement` callable.
+- 246A: `startTrip` bildirim firtinasina karsi 15 dk cooldown guard.
+- 246B: `getSubscriptionState` callable (server-authoritative).
+- 246C: premium aksiyonlar icin function tarafinda entitlement guard.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (subscription helper/type katmani + announcement/getSubscriptionState schema/interface)
+2. `apply_patch` -> `functions/src/index.ts` (`startTrip` route-level cooldown alan guncellemesi)
+3. `apply_patch` -> `functions/src/index.ts` (`getSubscriptionState` + `sendDriverAnnouncement` callable)
+4. `npm --prefix functions run build` (ilk kosu fail)
+5. `apply_patch` -> `functions/src/index.ts` (`GetSubscriptionStateOutput` optional field exact-type fix)
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint`
+8. `npm --prefix functions run format:check`
+9. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (246..246C `[x]`)
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (246..246C `[x]`)
+12. `apply_patch` -> `docs/api_contracts.md` (`SendDriverAnnouncement` I/O + startTrip cooldown + premium guard notlari)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `getSubscriptionState` callable eklendi:
+  - non-anonymous auth zorunlu.
+  - `drivers/{uid}` kaynagi server-authoritative okunuyor.
+  - trial expiry zamani gecmisse efektif durum `expired`e dusuruluyor.
+  - output: `subscriptionStatus`, `trialEndsAt?`, `products[]`.
+- `sendDriverAnnouncement` callable eklendi:
+  - auth + non-anonymous + role(driver) + driver profile.
+  - route owner/authorized driver yetki kontrolu.
+  - archived route guard.
+  - idempotent announcement id: `announcements/{routeId}_{uid}_{idempotencyKey}`.
+  - output: `announcementId`, `fcmCount=0`, `shareUrl=https://nerede.servis/r/{srvCode}`.
+- Premium guard (246C):
+  - `requirePremiumEntitlement` helper'i ile `active/trial` disi durumda `permission-denied`.
+  - ilk premium guard `sendDriverAnnouncement` endpointine baglandi.
+- StartTrip cooldown (246A):
+  - route alaninda `lastTripStartedNotificationAt` 15 dk policy ile guncelleniyor.
+  - cooldown disinda yeni timestamp yaziliyor; icindeyse mevcut deger korunuyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk build turunda `exactOptionalPropertyTypes` kaynakli optional alan tipi hatasi alindi.
+  - Cozum: `trialEndsAt` yalnizca mevcutsa output objesine eklenerek duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 247: `syncPassengerCount` trigger.

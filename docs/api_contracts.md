@@ -446,6 +446,19 @@ export interface GetSubscriptionStateOutput {
   products: Array<{ id: string; price: string }>;
 }
 
+export interface SendDriverAnnouncementInput {
+  routeId: string;
+  templateKey: string;
+  customText?: string; // max 240
+  idempotencyKey: string;
+}
+
+export interface SendDriverAnnouncementOutput {
+  announcementId: string;
+  fcmCount: number;
+  shareUrl: string;
+}
+
 export interface SearchDriverDirectoryInput {
   queryHash: string; // normalized hash string (min 8 chars)
   limit?: number; // 1..10
@@ -477,6 +490,7 @@ Directory callable guardrails:
 - Optimistic lock rule: if `expectedTransitionVersion != currentTransitionVersion`, server returns `FAILED_PRECONDITION`.
 - Idempotent replay key: `trip_requests/{uid}_{idempotencyKey}`.
 - Success path grants RTDB writer access: `routeWriters/{routeId}/{uid} = true`.
+- Trip-start notification cooldown key lives on route doc: `lastTripStartedNotificationAt` (`15dk`).
 
 ## finishTrip Contract
 - Input must include `idempotencyKey` + `expectedTransitionVersion`.
@@ -494,6 +508,7 @@ Directory callable guardrails:
   - live publish cadence is forced to low-priority mode on server policies.
   - paid optional services (for example high-cost directions path) can be downgraded to fallback.
 - Any endpoint that requires premium-only behavior must return `PERMISSION_DENIED` when server entitlement check fails.
+- `sendDriverAnnouncement` is premium-gated (allowed: `active` or `trial`; denied: `expired` or `mock`).
 
 ## Device Ownership Contract (finishTrip)
 - `finishTrip.deviceId` must match trip `startedByDeviceId`.

@@ -541,10 +541,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 244B `startTrip` transaction'ina optimistic lock ekle: `expectedTransitionVersion == currentTransitionVersion` saglanmadan state gecisi yapma.
 - [x] 245 `finishTrip` callable yaz.
 - [x] 245A `finishTrip` transaction'ina optimistic lock ekle: version mismatch'te `FAILED_PRECONDITION` don.
-- [ ] 246 `sendDriverAnnouncement` callable yaz.
-- [ ] 246A `startTrip` bildirim akisina 15 dk cooldown ekle (`trip_started` firtinasini engelle).
-- [ ] 246B `getSubscriptionState` callable yaz; subscription kaynagi server-authoritative (client local override yok).
-- [ ] 246C Premium aksiyonlar icin server-side entitlement guard ekle (`subscriptionStatus`/trial kontrolu function tarafinda).
+- [x] 246 `sendDriverAnnouncement` callable yaz.
+- [x] 246A `startTrip` bildirim akisina 15 dk cooldown ekle (`trip_started` firtinasini engelle).
+- [x] 246B `getSubscriptionState` callable yaz; subscription kaynagi server-authoritative (client local override yok).
+- [x] 246C Premium aksiyonlar icin server-side entitlement guard ekle (`subscriptionStatus`/trial kontrolu function tarafinda).
 - [ ] 247 `syncPassengerCount` trigger yaz.
 - [ ] 248 `syncRouteMembership` trigger yaz.
 - [ ] 249 `syncTripHeartbeatFromLocation` RTDB trigger yaz.

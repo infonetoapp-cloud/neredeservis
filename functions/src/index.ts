@@ -42,6 +42,7 @@ const DRIVER_SEARCH_RATE_WINDOW_MS = 60_000;
 const DRIVER_SEARCH_RATE_MAX_CALLS = 30;
 const GUEST_SESSION_TTL_MINUTES_DEFAULT = 30;
 const TRIP_REQUEST_TTL_DAYS = 7;
+const TRIP_STARTED_NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -165,6 +166,25 @@ interface FinishTripOutput {
   status: 'completed' | 'abandoned';
   endedAt: string;
   transitionVersion: number;
+}
+
+interface SendDriverAnnouncementOutput {
+  announcementId: string;
+  fcmCount: number;
+  shareUrl: string;
+}
+
+type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'mock';
+
+interface SubscriptionProductOutput {
+  id: string;
+  price: string;
+}
+
+interface GetSubscriptionStateOutput {
+  subscriptionStatus: SubscriptionStatus;
+  trialEndsAt?: string;
+  products: SubscriptionProductOutput[];
 }
 
 const profileInputSchema = z.object({
@@ -334,6 +354,13 @@ const finishTripInputSchema = z.object({
   expectedTransitionVersion: z.number().int().min(0),
 });
 
+const sendDriverAnnouncementInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  templateKey: z.string().trim().min(1).max(64),
+  customText: z.string().trim().min(1).max(240).optional(),
+  idempotencyKey: z.string().trim().min(8).max(128),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -468,6 +495,66 @@ function parseTripIdFromResultRef(resultRef: string | null): string | null {
   }
   const tripId = resultRef.slice(prefix.length).trim();
   return tripId.length > 0 ? tripId : null;
+}
+
+function parseIsoToMs(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readSubscriptionStatus(value: unknown): SubscriptionStatus {
+  if (value === 'active' || value === 'expired' || value === 'mock' || value === 'trial') {
+    return value;
+  }
+  return 'mock';
+}
+
+function resolveEffectiveSubscriptionStatus(
+  status: SubscriptionStatus,
+  trialEndsAt: string | null,
+  nowMs: number,
+): SubscriptionStatus {
+  if (status !== 'trial') {
+    return status;
+  }
+  const trialEndsAtMs = parseIsoToMs(trialEndsAt);
+  if (trialEndsAtMs != null && trialEndsAtMs <= nowMs) {
+    return 'expired';
+  }
+  return 'trial';
+}
+
+async function resolveDriverSubscriptionState(uid: string): Promise<GetSubscriptionStateOutput> {
+  const nowMs = Date.now();
+  const driverSnap = await db.collection('drivers').doc(uid).get();
+  const driverData = asRecord(driverSnap.data());
+
+  const rawStatus = readSubscriptionStatus(driverData?.subscriptionStatus);
+  const trialEndsAt = pickString(driverData, 'trialEndsAt');
+  const effectiveStatus = resolveEffectiveSubscriptionStatus(rawStatus, trialEndsAt, nowMs);
+
+  const output: GetSubscriptionStateOutput = {
+    subscriptionStatus: effectiveStatus,
+    products: [],
+  };
+  if (trialEndsAt) {
+    output.trialEndsAt = trialEndsAt;
+  }
+  return output;
+}
+
+async function requirePremiumEntitlement(uid: string, feature: string): Promise<void> {
+  const state = await resolveDriverSubscriptionState(uid);
+  if (state.subscriptionStatus === 'active' || state.subscriptionStatus === 'trial') {
+    return;
+  }
+  throw new HttpsError(
+    'permission-denied',
+    `${feature} icin premium entitlement gerekli. subscriptionStatus=${state.subscriptionStatus}`,
+  );
 }
 
 async function requireOwnedRoute(
@@ -1644,6 +1731,19 @@ export const startTrip = onCall(async (request) => {
       expiresAt: requestExpiresAtIso,
     });
 
+    const lastTripStartedNotificationAt = pickString(routeData, 'lastTripStartedNotificationAt');
+    const lastTripStartedNotificationAtMs = parseIsoToMs(lastTripStartedNotificationAt);
+    const shouldRefreshTripStartedNotification =
+      lastTripStartedNotificationAtMs == null ||
+      now - lastTripStartedNotificationAtMs >= TRIP_STARTED_NOTIFICATION_COOLDOWN_MS;
+
+    tx.update(routeRef, {
+      updatedAt: nowIso,
+      lastTripStartedNotificationAt: shouldRefreshTripStartedNotification
+        ? nowIso
+        : lastTripStartedNotificationAt,
+    });
+
     output = {
       tripId: tripRef.id,
       status: 'active',
@@ -1828,6 +1928,86 @@ export const finishTrip = onCall(async (request) => {
   await rtdb.ref(`routeWriters/${routeIdForWriterRevokeValue}/${auth.uid}`).set(false);
 
   return apiOk<FinishTripOutput>(output);
+});
+
+export const getSubscriptionState = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  const output = await resolveDriverSubscriptionState(auth.uid);
+  return apiOk<GetSubscriptionStateOutput>(output);
+});
+
+export const sendDriverAnnouncement = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+  await requirePremiumEntitlement(auth.uid, 'sendDriverAnnouncement');
+
+  const input = validateInput(sendDriverAnnouncementInputSchema, request.data);
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const announcementRef = db
+    .collection('announcements')
+    .doc(`${input.routeId}_${auth.uid}_${input.idempotencyKey}`);
+  const nowIso = new Date().toISOString();
+  let shareUrl = '';
+  let output: SendDriverAnnouncementOutput | null = null;
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    if (routeData.isArchived === true) {
+      throw new HttpsError('failed-precondition', 'Arsivlenmis route icin duyuru gonderilemez.');
+    }
+
+    const routeOwnerUid = pickString(routeData, 'driverId');
+    const authorizedDriverIds = pickStringArray(routeData, 'authorizedDriverIds');
+    const canAnnounce = routeOwnerUid === auth.uid || authorizedDriverIds.includes(auth.uid);
+    if (!canAnnounce) {
+      throw new HttpsError('permission-denied', 'Bu route icin duyuru gonderme yetkin yok.');
+    }
+
+    const srvCode = pickString(routeData, 'srvCode');
+    if (!srvCode) {
+      throw new HttpsError('failed-precondition', 'Route srvCode bilgisi eksik.');
+    }
+    shareUrl = `https://nerede.servis/r/${srvCode}`;
+
+    const announcementSnap = await tx.get(announcementRef);
+    if (!announcementSnap.exists) {
+      tx.set(announcementRef, {
+        routeId: input.routeId,
+        driverId: auth.uid,
+        templateKey: input.templateKey,
+        customText: input.customText ?? null,
+        channels: ['fcm', 'whatsapp_link'],
+        shareUrl,
+        idempotencyKey: input.idempotencyKey,
+        createdAt: nowIso,
+      });
+    }
+
+    output = {
+      announcementId: announcementRef.id,
+      fcmCount: 0,
+      shareUrl,
+    };
+  });
+
+  if (!output) {
+    throw new HttpsError('internal', 'sendDriverAnnouncement sonucu hesaplanamadi.');
+  }
+
+  return apiOk<SendDriverAnnouncementOutput>(output);
 });
 
 export const searchDriverDirectory = onCall(async (request) => {
