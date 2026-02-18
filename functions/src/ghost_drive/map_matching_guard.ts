@@ -161,7 +161,7 @@ function runMapMatchingProvider(
     return Promise.resolve([...tracePoints]);
   }
 
-  const token = process.env.MAPBOX_TOKEN?.trim() ?? '';
+  const token = process.env.MAPBOX_SECRET_TOKEN?.trim() ?? process.env.MAPBOX_TOKEN?.trim() ?? '';
   if (!token) {
     return Promise.resolve([...tracePoints]);
   }

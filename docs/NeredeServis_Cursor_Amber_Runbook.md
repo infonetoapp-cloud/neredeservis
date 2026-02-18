@@ -607,11 +607,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 280 Faz F kapanis raporu yaz.
 - [x] 281 Mapbox directions proxy function yaz (imzali istek + per-route rate limit + aylik hard cap).
 - [x] 281A Mapbox map-matching proxy function yaz (trace post-process + request budget + graceful fallback).
-- [ ] 282 Secret manager'a Mapbox secret token koy.
-- [ ] 283 KULLANICIDAN ONAY ISTE: "Mapbox secret token paylas + Directions varsayilan kapali kalsin mi?".
-- [ ] 284 Token geldiginde sadece server tarafina yaz.
-- [ ] 285 Token rotation + audit cron notu ekle.
-- [ ] 286 DOGRULAMA: secret token client buildde yok mu?
+- [x] 282 Secret manager'a Mapbox secret token koy.
+- [x] 283 KULLANICIDAN ONAY ISTE: "Mapbox secret token paylas + Directions varsayilan kapali kalsin mi?".
+- [x] 284 Token geldiginde sadece server tarafina yaz.
+- [x] 285 Token rotation + audit cron notu ekle.
+- [x] 286 DOGRULAMA: secret token client buildde yok mu?
 - [ ] 287 WhatsApp share URL generator function yaz (WhatsApp yoksa sistem share sheet fallback).
 - [ ] 287A `https://nerede.servis/r/{srvCode}` landing page kontratini yaz: app yÃ¼klÃ¼ degilse mini route karti + store CTA; app yÃ¼klÃ¼yse deep link.
 - [ ] 288 Dynamic route preview endpoint yaz (signed token + rate limit, opsiyonel degil).

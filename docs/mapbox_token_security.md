@@ -1,7 +1,7 @@
 # Mapbox Token Security Checklist (099D)
 
-Tarih: 2026-02-17  
-Durum: Hazirlandi (token bekleniyor)
+Tarih: 2026-02-18  
+Durum: Uygulandi (sk token Secret Manager'a yazildi)
 
 ## Hedef
 - Public token sadece mobil uygulama erisimi ile kisitli olacak.
@@ -32,6 +32,17 @@ Durum: Hazirlandi (token bekleniyor)
 - Secret token istemci tarafina hic cikmamali.
 - `directions_enabled=false` iken Directions cagrisi server tarafinda kapali olmali.
 
+## Rotation ve Audit Notu (STEP-285)
+- Rotasyon periyodu: 90 gun.
+- Rotasyon akisi:
+  1. Mapbox'tan yeni `sk.*` token olustur.
+  2. `firebase functions:secrets:set MAPBOX_SECRET_TOKEN --project <dev|stg|prod> --data-file -`
+  3. `firebase deploy --only functions --project <dev|stg|prod>`
+  4. `mapboxDirectionsProxy` disabled mod ve `healthCheck` smoke dogrulamalarini tekrarla.
+- Audit kaydi:
+  - Secret version artis kaydi (`projects/*/secrets/MAPBOX_SECRET_TOKEN/versions/*`) iz kaydina append edilir.
+  - GCP audit log filtre onerisi:
+    - `protoPayload.methodName=("google.cloud.secretmanager.v1.SecretManagerService.AddSecretVersion" OR "google.cloud.secretmanager.v1.SecretManagerService.AccessSecretVersion")`
+
 ## Mevcut Blokaj
-- Bu checklist uygulamasi icin aktif Mapbox `pk/sk` token degerleri gerekli.
-- Tokenlar paylasilmadigi icin 099D teknik olarak "hazir ama uygulanmadi" durumunda.
+- Public token kisitlama adimlari (package/bundle restriction) operasyonel olarak ayrica uygulanacak.

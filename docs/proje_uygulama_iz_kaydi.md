@@ -8032,3 +8032,83 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 282: Secret Manager'a Mapbox secret token koy.
+
+## STEP-282-286 - Mapbox Secret Manager + Server-Only Yazim + Rotation/Audit + Leak Dogrulama
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 282: Mapbox `sk` tokeni Secret Manager'a yazmak.
+- 283: Kullanicidan token paylasim/onayini almak ve directions varsayilaninin kapali kalmasini netlestirmek.
+- 284: Tokeni sadece server tarafinda kullanmak (istemciye sizdirmamak).
+- 285: Rotasyon + audit notunu belgelemek.
+- 286: Secret tokenin client build/uygulama kodunda bulunmadigini dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`MAPBOX_SECRET_TOKEN` okuma + mapbox proxy secret binding)
+2. `apply_patch` -> `functions/src/ghost_drive/map_matching_guard.ts` (`MAPBOX_SECRET_TOKEN` fallback okuma)
+3. `npm --prefix functions run format`
+4. `npm --prefix functions run build`
+5. `npm --prefix functions run lint`
+6. `npm --prefix functions run format:check`
+7. `npm --prefix functions run test:rules:unit`
+8. `firebase functions:secrets:set MAPBOX_SECRET_TOKEN --project dev --data-file - --force` (`stdin`, token redacted)
+9. `firebase functions:secrets:set MAPBOX_SECRET_TOKEN --project stg --data-file - --force` (`stdin`, token redacted)
+10. `firebase functions:secrets:set MAPBOX_SECRET_TOKEN --project prod --data-file - --force` (`stdin`, token redacted)
+11. `firebase functions:artifacts:setpolicy --project dev --location europe-west1 --days 7 --force`
+12. `firebase deploy --only functions --project dev` (tekrarlarla tamamlama)
+13. `firebase deploy --only functions --project stg`
+14. `firebase deploy --only functions --project prod`
+15. `firebase functions:list --project dev --json` (mapbox proxy filtre)
+16. `firebase functions:list --project stg --json` (mapbox proxy filtre)
+17. `firebase functions:list --project prod --json` (mapbox proxy filtre)
+18. `rg -n "MAPBOX_SECRET_TOKEN|MAPBOX_TOKEN|sk\\." -g "!docs/**" -g "!**/node_modules/**"`
+19. `apply_patch` -> `docs/mapbox_token_security.md` (rotation + audit notu)
+20. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`282-286` `[x]`)
+21. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`282-286` `[x]`)
+22. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-282:
+  - `MAPBOX_SECRET_TOKEN` secret versiyonlari olustu:
+    - dev: `projects/882097896542/secrets/MAPBOX_SECRET_TOKEN/versions/1`
+    - stg: `projects/691483247415/secrets/MAPBOX_SECRET_TOKEN/versions/1`
+    - prod: `projects/705689926965/secrets/MAPBOX_SECRET_TOKEN/versions/1`
+- STEP-283:
+  - kullanici tokeni paylasti.
+  - directions default kapali stratejisi korundu (`MAPBOX_DIRECTIONS_ENABLED` default `false`).
+- STEP-284:
+  - `mapboxDirectionsProxy` ve `mapboxMapMatchingProxy` function'larina secret binding eklendi.
+  - token okumasi `MAPBOX_SECRET_TOKEN` uzerinden server-side yapildi.
+- STEP-285:
+  - rotation + audit notu `docs/mapbox_token_security.md` dosyasina eklendi.
+- STEP-286:
+  - client tarafinda secret leakage taramasi:
+    - `sk.` degeri kod tabaninda bulunmadi (`docs` haric tarama).
+    - `MAPBOX_SECRET_TOKEN` sadece `functions/src/*` altinda gorundu.
+- Deploy dogrulamasi:
+  - dev/stg/prod function deploylari tamamlandi.
+  - mapbox proxy function durumlari uc ortamda da `ACTIVE`.
+
+### Hata Kaydi (Silinmez)
+- Dev ilk deploy denemesinde Eventarc service-agent propagation gecikmesi nedeniyle 3 trigger fonksiyon gecici fail verdi.
+  - Cozum: deploy tekrarlandi, trigger olusumlari tamamlandi.
+- Dev ikinci denemede `europe-west1` cleanup policy eksikligi nedeniyle CLI non-zero exit verdi.
+  - Cozum: `functions:artifacts:setpolicy` uygulanip deploy temiz tamamlandi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass (`27/27`).
+- `functions:list` mapbox proxy durumlari (`dev/stg/prod`) -> `ACTIVE`.
+- Secret leakage taramasi -> client tarafta `sk.` bulunmadi.
+
+### Sonraki Adim
+- Faz F / 287: WhatsApp share URL generator function yaz.
