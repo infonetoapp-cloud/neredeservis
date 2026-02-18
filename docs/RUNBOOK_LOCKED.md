@@ -574,7 +574,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 264 Role mismatch red testleri yaz.
 - [x] 265 Invalid payload red testleri yaz.
 - [x] 266 Idempotency tekrar cagrisi testleri yaz.
-- [ ] 267 Concurrency race testleri yaz.
+- [x] 267 Concurrency race testleri yaz.
 - [ ] 268 RTDB heartbeat -> Firestore `lastLocationAt` testi yaz.
 - [ ] 268A `routeWriters` revoke/race testlerini yaz (trip biter bitmez write deny).
 - [ ] 268B Offline replay stale filtre testini yaz (`>60 sn` replay canli marker'i guncellemiyor mu).

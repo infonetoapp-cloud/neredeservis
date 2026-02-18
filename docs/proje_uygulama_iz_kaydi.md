@@ -7434,3 +7434,39 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 267: concurrency race testleri (cift gecis denemesinde tek gecerli state).
+
+## STEP-267 - Concurrency Race Testleri
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Eslzamanli cift `startTrip` denemesinde tek gecerli active transition'in kaldigini test etmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (STEP-267 race testi)
+2. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+3. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (267 `[x]`)
+4. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (267 `[x]`)
+5. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-267 testi eklendi:
+  - ayni route/device icin iki farkli idempotency key ile eszamanli `startTrip` cagrisi.
+  - sonuc beklentisi: `1 fulfilled + 1 rejected(failed-precondition)`.
+  - Firestore dogrulamasi: route icin aktif trip sayisi `1`.
+- Tum test paketi pass: `13/13`.
+
+### Hata Kaydi (Silinmez)
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `13/13` pass.
+
+### Sonraki Adim
+- Faz F / 268: RTDB heartbeat -> Firestore `lastLocationAt` testi.

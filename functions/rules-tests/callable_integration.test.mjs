@@ -272,3 +272,48 @@ test("STEP-266 idempotency replay: startTrip + finishTrip", async () => {
   assert.equal(startRequestSnap.exists, true);
   assert.equal(finishRequestSnap.exists, true);
 });
+
+test("STEP-267 concurrency race: cift startTrip denemesinde tek aktif transition", async () => {
+  const driverUid = "driver-race-1";
+  const routeId = "route-race-1";
+  const deviceId = "device-race-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "QWER45",
+  });
+
+  const requestA = callableRequest(
+    {
+      routeId,
+      deviceId,
+      idempotencyKey: "race-start-key-a",
+      expectedTransitionVersion: 0,
+    },
+    authContext(driverUid),
+  );
+  const requestB = callableRequest(
+    {
+      routeId,
+      deviceId,
+      idempotencyKey: "race-start-key-b",
+      expectedTransitionVersion: 0,
+    },
+    authContext(driverUid),
+  );
+
+  const raceResults = await Promise.allSettled([startTrip.run(requestA), startTrip.run(requestB)]);
+  const fulfilled = raceResults.filter((result) => result.status === "fulfilled");
+  const rejected = raceResults.filter((result) => result.status === "rejected");
+
+  assert.equal(fulfilled.length, 1);
+  assert.equal(rejected.length, 1);
+  assert.equal(rejected[0].reason?.code, "failed-precondition");
+
+  const activeTripsSnap = await firestore
+    .collection("trips")
+    .where("routeId", "==", routeId)
+    .where("status", "==", "active")
+    .get();
+  assert.equal(activeTripsSnap.size, 1);
+});
