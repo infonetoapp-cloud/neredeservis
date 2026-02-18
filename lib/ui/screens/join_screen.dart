@@ -8,6 +8,7 @@ import '../tokens/spacing_tokens.dart';
 enum JoinRole {
   unknown,
   passenger,
+  guest,
   driver,
 }
 
@@ -16,6 +17,9 @@ JoinRole joinRoleFromQuery(String? rawRole) {
     case 'passenger':
     case 'yolcu':
       return JoinRole.passenger;
+    case 'guest':
+    case 'misafir':
+      return JoinRole.guest;
     case 'driver':
     case 'sofor':
       return JoinRole.driver;
@@ -72,6 +76,7 @@ class _JoinScreenState extends State<JoinScreen> {
     final roleLabel = switch (widget.selectedRole) {
       JoinRole.driver => 'Sofor modu secili',
       JoinRole.passenger => 'Yolcu modu secili',
+      JoinRole.guest => 'Misafir modu secili',
       JoinRole.unknown => 'Rol secimi bekleniyor',
     };
 

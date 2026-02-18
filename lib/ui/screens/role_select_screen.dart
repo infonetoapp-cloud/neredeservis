@@ -11,11 +11,13 @@ class RoleSelectScreen extends StatelessWidget {
     required this.appName,
     this.onDriverTap,
     this.onPassengerTap,
+    this.onGuestTap,
   });
 
   final String appName;
   final VoidCallback? onDriverTap;
   final VoidCallback? onPassengerTap;
+  final VoidCallback? onGuestTap;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,7 @@ class RoleSelectScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AmberSpacingTokens.space8),
                   Text(
-                    'Iki net secenek var: sofor veya yolcu.',
+                    'Uc net secenek var: sofor, yolcu veya misafir takip.',
                     style: textTheme.bodyMedium?.copyWith(
                       color: AmberColorTokens.ink700,
                     ),
@@ -76,6 +78,17 @@ class RoleSelectScreen extends StatelessWidget {
                     action: AmberSecondaryButton(
                       label: 'Yolcu Olarak Devam Et',
                       onPressed: onPassengerTap,
+                    ),
+                  ),
+                  const SizedBox(height: AmberSpacingTokens.space12),
+                  _RoleOptionCard(
+                    icon: Icons.remove_red_eye_outlined,
+                    title: 'Misafirim',
+                    description:
+                        'Sadece takip et. Konum izni gerekmeden servis durumunu gor.',
+                    action: AmberSecondaryButton(
+                      label: 'Misafir Olarak Devam Et',
+                      onPressed: onGuestTap,
                     ),
                   ),
                 ],

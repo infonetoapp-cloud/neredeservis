@@ -76,4 +76,13 @@ void main() {
     expect(qrTapped, isTrue);
     expect(driverQuickTapped, isTrue);
   });
+
+  testWidgets('join screen shows guest mode label',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(buildTestApp(role: JoinRole.guest));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Misafir modu secili'), findsOneWidget);
+    expect(find.text('Sofor Paneline Gec'), findsNothing);
+  });
 }

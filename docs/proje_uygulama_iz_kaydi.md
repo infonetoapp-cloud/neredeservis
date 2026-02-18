@@ -4516,6 +4516,55 @@ Etiket: opus 4.6
 ### Sonraki Adim
 - 157: Join + settings ekranini amber stile gore kodla.
 
+## STEP-CODEX-GOOGLE-ROLE-HOTFIX-001 - Google Giris + Rol Secimi Akisi Duzeltmesi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex hotfix
+
+### Amac
+- Auth ekrandaki `Google ile Giris` butonunu gerçek Firebase Google auth akışına bağlamak.
+- Plana uygun rol secimi akisini netlestirmek: `sofor | yolcu | misafir`.
+- Cihaz build blocker'ini kapatmak (`minSdkVersion` Firebase Auth uyumu).
+
+### Calistirilan Komutlar (Ham)
+1. `rg -n "Google|onGoogleSignInTap|RoleSelect|guest|AuthGuard|RoleGuard" lib test`
+2. `apply_patch` -> `lib/app/router/app_router.dart` (Google auth + role-select route)
+3. `apply_patch` -> `lib/app/router/app_route_paths.dart` (`/role/select`)
+4. `apply_patch` -> `lib/ui/screens/role_select_screen.dart` (misafir secenegi)
+5. `apply_patch` -> `lib/ui/screens/join_screen.dart` (guest role parse/label)
+6. `apply_patch` -> `lib/app/router/auth_guard.dart` (role-select public route)
+7. `apply_patch` -> `lib/app/router/role_guard.dart` (unknown role redirect bypass)
+8. `apply_patch` -> `lib/app/providers/auth_state_provider.dart` (firebase auth state provider)
+9. `apply_patch` -> `lib/app/nerede_servis_app.dart` (AuthGuard dynamic sign-in state)
+10. `apply_patch` -> `test/ui/role_select_screen_test.dart` (3 rol testi)
+11. `apply_patch` -> `test/ui/join_screen_test.dart` (guest label testi)
+12. `apply_patch` -> `android/app/build.gradle` (`minSdkVersion = 23`)
+13. `.\.fvm\flutter_sdk\bin\flutter.bat analyze`
+14. `.\.fvm\flutter_sdk\bin\flutter.bat test`
+15. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+
+### Bulgular
+- `Google ile Giris` artik `FirebaseAuth.signInWithProvider(GoogleAuthProvider())` cagiriyor.
+- Basarili auth sonrasi akiş `RoleSelectScreen`e geciyor.
+- Rol seciminde uc secenek var:
+  - `Sofor Olarak Devam Et`
+  - `Yolcu Olarak Devam Et`
+  - `Misafir Olarak Devam Et`
+- Join ekrani `guest/misafir` query'sini taniyor ve `Misafir modu secili` etiketi gosteriyor.
+- App seviyesinde `AuthGuard` artik Firebase auth state'e gore hesaplaniyor.
+- Android cihazda build/install engeli olan `minSdk` uyumsuzluğu kapatildi (`23`).
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed (`+53`).
+- Fiziksel cihaz deploy -> basarili (`app-dev-debug.apk` build + install + sync).
+
+### Sonraki Adim
+- 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
+
 ## STEP-157A - Sofor Abonelik/Paywall Ekrani (Amber UIX, Manual Flow)
 Tarih: 2026-02-18
 Durum: Tamamlandi

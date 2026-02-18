@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/app_flavor.dart';
@@ -7,6 +9,7 @@ import '../../ui/screens/driver_home_screen.dart';
 import '../../ui/screens/join_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
 import '../../ui/screens/paywall_screen.dart';
+import '../../ui/screens/role_select_screen.dart';
 import '../../ui/screens/settings_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
@@ -24,18 +27,28 @@ GoRouter buildAppRouter({
         path: AppRoutePath.auth,
         builder: (context, state) => AuthHeroLoginScreen(
           appName: flavorConfig.appName,
-          onSignInTap: () => context.go(AppRoutePath.join),
-          onGoogleSignInTap: () => context.go(AppRoutePath.join),
-          onRegisterTap: () => context.go(AppRoutePath.join),
+          onSignInTap: () => context.go(AppRoutePath.roleSelect),
+          onGoogleSignInTap: () => _handleGoogleSignIn(context),
+          onRegisterTap: () => context.go(AppRoutePath.roleSelect),
         ),
       ),
       GoRoute(
         path: AppRoutePath.splash,
         builder: (context, state) => AuthHeroLoginScreen(
           appName: flavorConfig.appName,
-          onSignInTap: () => context.go(AppRoutePath.join),
-          onGoogleSignInTap: () => context.go(AppRoutePath.join),
-          onRegisterTap: () => context.go(AppRoutePath.join),
+          onSignInTap: () => context.go(AppRoutePath.roleSelect),
+          onGoogleSignInTap: () => _handleGoogleSignIn(context),
+          onRegisterTap: () => context.go(AppRoutePath.roleSelect),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutePath.roleSelect,
+        builder: (context, state) => RoleSelectScreen(
+          appName: flavorConfig.appName,
+          onDriverTap: () => context.go(AppRoutePath.driverHome),
+          onPassengerTap: () =>
+              context.go('${AppRoutePath.join}?role=passenger'),
+          onGuestTap: () => context.go('${AppRoutePath.join}?role=guest'),
         ),
       ),
       GoRoute(
@@ -103,4 +116,38 @@ GoRouter buildAppRouter({
       return null;
     },
   );
+}
+
+Future<void> _handleGoogleSignIn(BuildContext context) async {
+  try {
+    await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
+    if (!context.mounted) {
+      return;
+    }
+    context.go(AppRoutePath.roleSelect);
+  } on FirebaseAuthException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+
+    final message = switch (error.code) {
+      'network-request-failed' =>
+        'Google girisi acilamadi. Internet baglantini kontrol et.',
+      'operation-not-allowed' =>
+        'Google provider kapali gorunuyor. Firebase ayarini kontrol et.',
+      'invalid-credential' => 'Google giris kimligi dogrulanamadi.',
+      _ => 'Google girisi baslatilamadi (${error.code}).',
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Google girisi su an baslatilamadi.')),
+    );
+  }
 }

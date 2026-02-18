@@ -10,6 +10,7 @@ class AuthGuard {
   static const Set<String> _publicRoutes = <String>{
     AppRoutePath.splash,
     AppRoutePath.auth,
+    AppRoutePath.roleSelect,
     AppRoutePath.join,
   };
 

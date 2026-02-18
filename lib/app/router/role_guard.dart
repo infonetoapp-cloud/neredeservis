@@ -9,6 +9,10 @@ class RoleGuard {
   final UserRole currentRole;
 
   String? redirect(String location) {
+    if (currentRole == UserRole.unknown) {
+      return null;
+    }
+
     if (location.startsWith('/driver/') && currentRole != UserRole.driver) {
       return AppRoutePath.passengerHome;
     }

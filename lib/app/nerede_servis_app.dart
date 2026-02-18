@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_flavor.dart';
 import '../features/auth/domain/user_role.dart';
+import 'providers/auth_state_provider.dart';
 import 'providers/theme_provider.dart';
 import 'router/app_router.dart';
 import 'router/auth_guard.dart';
@@ -18,9 +19,10 @@ class NeredeServisApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isSignedIn = ref.watch(isSignedInProvider);
     final router = buildAppRouter(
       flavorConfig: flavorConfig,
-      authGuard: const AuthGuard(isSignedIn: false),
+      authGuard: AuthGuard(isSignedIn: isSignedIn),
       roleGuard: const RoleGuard(currentRole: UserRole.unknown),
     );
     final theme = ref.watch(amberLightThemeProvider);
