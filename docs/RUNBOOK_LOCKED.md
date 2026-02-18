@@ -616,10 +616,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 292A DOGRULAMA: aktif abonelikte interceptor calisiyor, abonelik yoksa delete akisi normal devam ediyor mu?
 - [x] 293 Retention cleanup fonksiyonunu verify et.
 - [x] 294 DOGRULAMA: KVKK test seti green mi?
-- [ ] 295 Error catalog dosyasini guncelle.
-- [ ] 296 Function telemetry dashboard notlarini ekle.
-- [ ] 297 Alert esiklerini tanimla.
-- [ ] 298 Incident runbook dosyasini olustur.
+- [x] 295 Error catalog dosyasini guncelle.
+- [x] 296 Function telemetry dashboard notlarini ekle.
+- [x] 297 Alert esiklerini tanimla.
+- [x] 298 Incident runbook dosyasini olustur.
 - [ ] 299 Staging replay testini tekrar calistir.
 - [ ] 300 Faz F final kapanis raporu yaz.
 

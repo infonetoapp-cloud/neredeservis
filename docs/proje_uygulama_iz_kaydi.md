@@ -8539,3 +8539,51 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 295: error catalog dosyasini guncellemek.
+
+## STEP-295-298 - Error Catalog + Telemetry + Alert Esikleri + Incident Runbook
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 295: error catalog kaynagini guncellemek.
+- 296: function telemetry dashboard notlarini kalici dokumante etmek.
+- 297: operasyonel alert esiklerini netlestirmek.
+- 298: incident response runbook dosyasini olusturmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `docs/error_catalog.md` (yeni dosya)
+2. `apply_patch` -> `docs/function_telemetry_dashboard.md` (yeni dosya)
+3. `apply_patch` -> `docs/incident_runbook.md` (yeni dosya)
+4. `apply_patch` -> `docs/api_contracts.md`
+   - account delete guardrail bolumune scheduler hard-delete notu eklendi
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md`
+   - `295`, `296`, `297`, `298` checkbox -> `[x]`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md`
+   - `295`, `296`, `297`, `298` checkbox -> `[x]`
+7. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `docs/error_catalog.md` olusturuldu:
+  - canonical error code tablosu
+  - domain-level tag listesi
+  - KVKK delete flow'un response-level interceptor notu
+- `docs/function_telemetry_dashboard.md` olusturuldu:
+  - dashboard kapsam fonksiyonlari
+  - minimum metrik listesi
+  - P1/P2/P3 alert esikleri
+- `docs/incident_runbook.md` olusturuldu:
+  - severity seviyeleri
+  - ilk 15 dakika triage adimlari
+  - mitigation ve post-incident kapanis checklist'i
+- Runbook'ta Faz F 295-298 adimlari tamamlandi olarak isaretlendi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimlar dokuman odakli oldugu icin derleme/test hatasi olusmadi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- Yeni dokuman dosyalari olustu ve runbook checklist adimlari `[x]` olarak guncellendi.
+
+### Sonraki Adim
+- Faz F / 299: staging replay testini tekrar calistirip kayda almak.
