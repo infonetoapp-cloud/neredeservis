@@ -6260,3 +6260,68 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 231: `bootstrapUserProfile` callable.
+
+## STEP-231-234 - Auth/Profile/Consent Callables
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 231: `bootstrapUserProfile` callable.
+- 232: `updateUserProfile` callable.
+- 233: `upsertConsent` callable.
+- 234: `upsertDriverProfile` callable.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (yeni callable endpointler + schema/helper)
+2. `apply_patch` -> `docs/api_contracts.md` (auth/profile/consent callable interface bloklari)
+3. `npm --prefix functions run build` (ilk kosu fail)
+4. `apply_patch` -> `functions/src/index.ts` (`UpsertDriverProfileInput.companyId` tipi)
+5. `npm --prefix functions run build` (fail)
+6. `apply_patch` -> `functions/src/index.ts` (`validateInput` generic kaldirildi)
+7. `npm --prefix functions run build` (lint fail)
+8. `apply_patch` -> `functions/src/index.ts` (kullanilmayan interface'ler kaldirildi)
+9. `npm --prefix functions run build`
+10. `npm --prefix functions run lint`
+11. `npm --prefix functions run format:check` (fail)
+12. `npm --prefix functions run format`
+13. `npm --prefix functions run build`
+14. `npm --prefix functions run lint`
+15. `npm --prefix functions run format:check` (pass)
+16. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+17. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (231..234 `[x]`)
+18. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (231..234 `[x]`)
+19. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni callable endpointler eklendi:
+  - `bootstrapUserProfile`
+  - `updateUserProfile`
+  - `upsertConsent`
+  - `upsertDriverProfile`
+- Tum endpointler `apiOk` wrapper ile `requestId/serverTime/data` formatina donuyor.
+- Input validation katmani zod schema ile call-level dogrulaniyor.
+- `upsertDriverProfile` endpointi role ve driver profile policy zinciriyle guvence altina alindi.
+- `docs/api_contracts.md` auth/profile/consent callable input/output interface'leriyle guncellendi.
+
+### Hata Kaydi (Silinmez)
+- Ilk build turunda `companyId` optional/null type mismatch hatasi alindi.
+  - Cozum: input tipi schema ile uyumlu hale getirildi.
+- Sonraki turda `validateInput` generic tipi schema output ile cakisti.
+  - Cozum: generic parametre kaldirildi, schema output infer edildi.
+- Lint turunda kullanilmayan interface hatalari alindi.
+  - Cozum: gereksiz interface tanimlari kaldirildi.
+- Format check ilk kosuda fail verdi.
+  - Cozum: `npm run format` sonrasi format gate green.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi bu adimda da append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 235: `createRoute` callable + 235A SRV code server-side uretim.

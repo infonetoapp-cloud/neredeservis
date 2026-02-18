@@ -44,6 +44,49 @@ interface SearchDriverDirectoryOutput {
   results: DriverDirectoryResult[];
 }
 
+type WritableRole = 'driver' | 'passenger' | 'guest';
+
+interface BootstrapUserProfileOutput {
+  uid: string;
+  role: WritableRole;
+  createdOrUpdated: boolean;
+}
+
+interface UpdateUserProfileOutput {
+  uid: string;
+  updatedAt: string;
+}
+
+interface UpsertConsentOutput {
+  uid: string;
+  acceptedAt: string;
+}
+
+interface UpsertDriverProfileOutput {
+  driverId: string;
+  updatedAt: string;
+}
+
+const profileInputSchema = z.object({
+  displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
+  phone: z.string().trim().min(7).max(24).optional(),
+});
+
+const upsertConsentInputSchema = z.object({
+  privacyVersion: z.string().trim().min(1).max(32),
+  kvkkTextVersion: z.string().trim().min(1).max(32),
+  locationConsent: z.boolean(),
+  platform: z.enum(['android', 'ios']),
+});
+
+const upsertDriverProfileInputSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone: z.string().trim().min(7).max(24),
+  plate: z.string().trim().min(2).max(20),
+  showPhoneToPassengers: z.boolean().default(false),
+  companyId: z.string().trim().min(1).max(64).nullable().optional(),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -54,11 +97,175 @@ const searchDriverDirectoryInputSchema = z.object({
   limit: z.number().int().min(1).max(DRIVER_SEARCH_MAX_LIMIT).optional().default(5),
 });
 
+function readRole(value: unknown): WritableRole | null {
+  if (value === 'driver' || value === 'passenger' || value === 'guest') {
+    return value;
+  }
+  return null;
+}
+
+function isAnonymousProvider(token: Record<string, unknown>): boolean {
+  const firebaseClaim = asRecord(token.firebase);
+  return firebaseClaim?.sign_in_provider === 'anonymous';
+}
+
+function pickString(record: Record<string, unknown> | null, key: string): string | null {
+  if (!record) {
+    return null;
+  }
+  const value = record[key];
+  return typeof value === 'string' ? value : null;
+}
+
 export const healthCheck = onCall(() => {
   return apiOk<HealthCheckOutput>({
     ok: true,
     timestamp: Date.now(),
     region: 'europe-west3',
+  });
+});
+
+export const bootstrapUserProfile = onCall(async (request) => {
+  const auth = requireAuth(request);
+  const input = validateInput(profileInputSchema, request.data);
+
+  const nowIso = new Date().toISOString();
+  const userRef = db.collection('users').doc(auth.uid);
+  const userSnap = await userRef.get();
+  const existing = asRecord(userSnap.data());
+
+  const existingRole = readRole(existing?.role);
+  const resolvedRole: WritableRole =
+    existingRole ?? (isAnonymousProvider(auth.token) ? 'guest' : 'passenger');
+
+  const existingCreatedAt = pickString(existing, 'createdAt');
+  const emailClaim = auth.token.email;
+  const email = typeof emailClaim === 'string' ? emailClaim : null;
+
+  await userRef.set(
+    {
+      role: resolvedRole,
+      displayName: input.displayName,
+      phone: input.phone ?? null,
+      email,
+      createdAt: existingCreatedAt ?? nowIso,
+      updatedAt: nowIso,
+      deletedAt: null,
+    },
+    { merge: true },
+  );
+
+  return apiOk<BootstrapUserProfileOutput>({
+    uid: auth.uid,
+    role: resolvedRole,
+    createdOrUpdated: true,
+  });
+});
+
+export const updateUserProfile = onCall(async (request) => {
+  const auth = requireAuth(request);
+  const input = validateInput(profileInputSchema, request.data);
+
+  const nowIso = new Date().toISOString();
+  const userRef = db.collection('users').doc(auth.uid);
+  const userSnap = await userRef.get();
+  const existing = asRecord(userSnap.data());
+
+  const existingRole = readRole(existing?.role);
+  const resolvedRole: WritableRole =
+    existingRole ?? (isAnonymousProvider(auth.token) ? 'guest' : 'passenger');
+  const existingCreatedAt = pickString(existing, 'createdAt');
+  const existingEmail = pickString(existing, 'email');
+  const tokenEmail = auth.token.email;
+  const resolvedEmail = existingEmail ?? (typeof tokenEmail === 'string' ? tokenEmail : null);
+
+  await userRef.set(
+    {
+      role: resolvedRole,
+      displayName: input.displayName,
+      phone: input.phone ?? pickString(existing, 'phone'),
+      email: resolvedEmail,
+      createdAt: existingCreatedAt ?? nowIso,
+      updatedAt: nowIso,
+      deletedAt: null,
+    },
+    { merge: true },
+  );
+
+  return apiOk<UpdateUserProfileOutput>({
+    uid: auth.uid,
+    updatedAt: nowIso,
+  });
+});
+
+export const upsertConsent = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  const input = validateInput(upsertConsentInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+
+  await db.collection('consents').doc(auth.uid).set(
+    {
+      privacyVersion: input.privacyVersion,
+      kvkkTextVersion: input.kvkkTextVersion,
+      locationConsent: input.locationConsent,
+      acceptedAt: nowIso,
+      platform: input.platform,
+    },
+    { merge: true },
+  );
+
+  return apiOk<UpsertConsentOutput>({
+    uid: auth.uid,
+    acceptedAt: nowIso,
+  });
+});
+
+export const upsertDriverProfile = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+
+  const input = validateInput(upsertDriverProfileInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+  const driverRef = db.collection('drivers').doc(auth.uid);
+  const driverSnap = await driverRef.get();
+  const existing = asRecord(driverSnap.data());
+
+  const existingCreatedAt = pickString(existing, 'createdAt');
+  const existingSubscriptionStatus = pickString(existing, 'subscriptionStatus');
+  const existingTrialStartDate = pickString(existing, 'trialStartDate');
+  const existingTrialEndsAt = pickString(existing, 'trialEndsAt');
+  const existingLastPaywallShownAt = pickString(existing, 'lastPaywallShownAt');
+  const existingActiveDeviceToken = pickString(existing, 'activeDeviceToken');
+
+  await driverRef.set(
+    {
+      name: input.name,
+      phone: input.phone,
+      plate: input.plate,
+      showPhoneToPassengers: input.showPhoneToPassengers,
+      companyId: input.companyId ?? null,
+      subscriptionStatus: existingSubscriptionStatus ?? 'trial',
+      trialStartDate: existingTrialStartDate,
+      trialEndsAt: existingTrialEndsAt,
+      lastPaywallShownAt: existingLastPaywallShownAt,
+      activeDeviceToken: existingActiveDeviceToken,
+      createdAt: existingCreatedAt ?? nowIso,
+      updatedAt: nowIso,
+    },
+    { merge: true },
+  );
+
+  return apiOk<UpsertDriverProfileOutput>({
+    driverId: auth.uid,
+    updatedAt: nowIso,
   });
 });
 

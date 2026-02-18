@@ -184,6 +184,55 @@ export interface FinishTripOutput {
 }
 ```
 
+## Auth Profile and Consent
+```ts
+export interface BootstrapUserProfileInput {
+  displayName: string;
+  phone?: string;
+}
+
+export interface BootstrapUserProfileOutput {
+  uid: string;
+  role: Role;
+  createdOrUpdated: boolean;
+}
+
+export interface UpdateUserProfileInput {
+  displayName: string;
+  phone?: string;
+}
+
+export interface UpdateUserProfileOutput {
+  uid: string;
+  updatedAt: string; // ISO-8601 UTC
+}
+
+export interface UpsertConsentInput {
+  privacyVersion: string;
+  kvkkTextVersion: string;
+  locationConsent: boolean;
+  platform: "android" | "ios";
+}
+
+export interface UpsertConsentOutput {
+  uid: string;
+  acceptedAt: string; // ISO-8601 UTC
+}
+
+export interface UpsertDriverProfileInput {
+  name: string;
+  phone: string;
+  plate: string;
+  showPhoneToPassengers: boolean;
+  companyId?: string | null;
+}
+
+export interface UpsertDriverProfileOutput {
+  driverId: string;
+  updatedAt: string; // ISO-8601 UTC
+}
+```
+
 ## Passenger and Guest
 ```ts
 export interface UpdatePassengerSettingsInput {
