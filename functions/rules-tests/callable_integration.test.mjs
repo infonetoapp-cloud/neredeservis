@@ -26,6 +26,7 @@ process.env.FIREBASE_DATABASE_EMULATOR_HOST ??= "127.0.0.1:9000";
 process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
 
 const {
+  createRouteFromGhostDrive,
   createGuestSession,
   registerDevice,
   sendDriverAnnouncement,
@@ -151,6 +152,28 @@ async function seedDriverRoute({ driverUid, routeId, srvCode, subscriptionStatus
     isArchived: false,
     allowGuestTracking: true,
     lastTripStartedNotificationAt: null,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  });
+}
+
+async function seedDriverIdentity({ driverUid, subscriptionStatus = "active" }) {
+  const nowIso = new Date().toISOString();
+
+  await firestore.collection("users").doc(driverUid).set({
+    role: "driver",
+    displayName: "Driver User",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    deletedAt: null,
+  });
+
+  await firestore.collection("drivers").doc(driverUid).set({
+    name: "Driver User",
+    phone: "+905551112233",
+    plate: "34ABC34",
+    showPhoneToPassengers: true,
+    subscriptionStatus,
     createdAt: nowIso,
     updatedAt: nowIso,
   });
@@ -639,6 +662,79 @@ test("STEP-268D transitionVersion race: cift startTrip/finishTrip", async () => 
   assert.equal(tripSnap.get("transitionVersion"), 2);
 });
 
+test("STEP-268C ghost drive map matching kalite: urban canyon trace stabil + fallback veri kaybi yok", async () => {
+  const driverUid = "driver-ghost-mapmatch-1";
+  await seedDriverIdentity({ driverUid });
+
+  const baseTs = Date.now();
+  const urbanCanyonTrace = [
+    { lat: 41.0098, lng: 28.9736, accuracy: 8, sampledAtMs: baseTs + 0 },
+    { lat: 41.0101, lng: 28.9741, accuracy: 7, sampledAtMs: baseTs + 1_000 },
+    { lat: 41.0104, lng: 28.9747, accuracy: 9, sampledAtMs: baseTs + 2_000 },
+    { lat: 41.0108, lng: 28.9752, accuracy: 10, sampledAtMs: baseTs + 3_000 },
+    { lat: 41.0112, lng: 28.9758, accuracy: 6, sampledAtMs: baseTs + 4_000 },
+    { lat: 41.0116, lng: 28.9763, accuracy: 11, sampledAtMs: baseTs + 5_000 },
+    { lat: 41.0119, lng: 28.9768, accuracy: 7, sampledAtMs: baseTs + 6_000 },
+    { lat: 41.0123, lng: 28.9772, accuracy: 6, sampledAtMs: baseTs + 7_000 },
+    { lat: 41.0127, lng: 28.9777, accuracy: 10, sampledAtMs: baseTs + 8_000 },
+    { lat: 41.0131, lng: 28.9781, accuracy: 9, sampledAtMs: baseTs + 9_000 },
+    { lat: 41.0135, lng: 28.9787, accuracy: 8, sampledAtMs: baseTs + 10_000 },
+    { lat: 41.0138, lng: 28.9792, accuracy: 7, sampledAtMs: baseTs + 11_000 },
+  ];
+
+  await firestore.collection("_runtime_flags").doc("map_matching").set({
+    enabled: true,
+    monthlyRequestMax: 1,
+    timeoutMs: 1_500,
+  });
+
+  const firstResult = await createRouteFromGhostDrive.run(
+    callableRequest(
+      {
+        name: "Ghost Urban A",
+        tracePoints: urbanCanyonTrace,
+        scheduledTime: "08:15",
+        timeSlot: "morning",
+        allowGuestTracking: true,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  const firstRouteSnap = await firestore.collection("routes").doc(firstResult.data.routeId).get();
+  assert.equal(firstRouteSnap.exists, true);
+  assert.equal(firstRouteSnap.get("ghostTraceMeta.mapMatchingSource"), "map_matching");
+  assert.equal(firstRouteSnap.get("ghostTraceMeta.mapMatchingFallbackUsed"), false);
+  assert.equal(firstRouteSnap.get("ghostTraceMeta.mapMatchingConfidence"), 0.5);
+  assert.equal(firstRouteSnap.get("ghostTraceMeta.finalCount") >= 2, true);
+  assert.equal(firstResult.data.inferredStops.length >= 2, true);
+
+  const secondResult = await createRouteFromGhostDrive.run(
+    callableRequest(
+      {
+        name: "Ghost Urban B",
+        tracePoints: urbanCanyonTrace,
+        scheduledTime: "08:30",
+        timeSlot: "morning",
+        allowGuestTracking: true,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  const secondRouteSnap = await firestore.collection("routes").doc(secondResult.data.routeId).get();
+  assert.equal(secondRouteSnap.exists, true);
+  assert.equal(secondRouteSnap.get("ghostTraceMeta.mapMatchingSource"), "fallback");
+  assert.equal(secondRouteSnap.get("ghostTraceMeta.mapMatchingFallbackUsed"), true);
+  assert.equal(secondRouteSnap.get("ghostTraceMeta.mapMatchingConfidence"), 0);
+  assert.equal(
+    secondRouteSnap.get("ghostTraceMeta.finalCount"),
+    secondRouteSnap.get("ghostTraceMeta.simplifiedCount"),
+  );
+  assert.equal(typeof secondRouteSnap.get("routePolyline"), "string");
+  assert.equal(secondRouteSnap.get("routePolyline").length > 0, true);
+});
+
 test("STEP-269 abandonedTripGuard stale kosul testleri", async () => {
   const nowMs = Date.now();
   const staleTripId = "trip-guard-stale-1";
@@ -794,6 +890,55 @@ test("STEP-270A trip_started cooldown: kisa aralikta ikinci start'ta bildirim za
   const secondTripNotificationAt = secondRouteSnap.get("lastTripStartedNotificationAt");
 
   assert.equal(secondTripNotificationAt, firstTripNotificationAt);
+});
+
+test("STEP-270B startTrip undo window: hizli iptalde server'da aktif trip kalmaz", async () => {
+  const driverUid = "driver-undo-window-1";
+  const routeId = "route-undo-window-1";
+  const deviceId = "device-undo-window-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "UNDO10",
+  });
+
+  const started = await startTrip.run(
+    callableRequest(
+      {
+        routeId,
+        deviceId,
+        idempotencyKey: "undo-start-1",
+        expectedTransitionVersion: 0,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  await finishTrip.run(
+    callableRequest(
+      {
+        tripId: started.data.tripId,
+        deviceId,
+        idempotencyKey: "undo-finish-1",
+        expectedTransitionVersion: started.data.transitionVersion,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  const activeTripsSnap = await firestore
+    .collection("trips")
+    .where("routeId", "==", routeId)
+    .where("status", "==", "active")
+    .get();
+  assert.equal(activeTripsSnap.size, 0);
+
+  const completedTripSnap = await firestore.collection("trips").doc(started.data.tripId).get();
+  assert.equal(completedTripSnap.exists, true);
+  assert.equal(completedTripSnap.get("status"), "completed");
+
+  const writerSnap = await database.ref(`routeWriters/${routeId}/${driverUid}`).get();
+  assert.equal(writerSnap.val(), false);
 });
 
 test("STEP-270C registerDevice policy: eski cihaz revoke + finishTrip device kurali", async () => {

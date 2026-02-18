@@ -7711,3 +7711,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 270B (acik): undo window istemci-zamanlama testi (client tarafi davranis).
+
+## STEP-268C + STEP-270B + Test Altyapi Stabilizasyonu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 268C: Ghost Drive map matching kalite testini eklemek (urban canyon trace stabilitesi + fallbackte veri kaybi olmamasi).
+- 270B: `startTrip` hizli iptal (undo penceresi) senaryosunda server'da aktif trip kalmadigini dogrulamak.
+- Emulator test zincirini deterministic hale getirmek (rules testte host/port explicit).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (`createRouteFromGhostDrive` importu, `seedDriverIdentity` helper, STEP-268C ve STEP-270B testleri)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check`
+5. `npm --prefix functions run test:rules:unit` (fail: `security_rules.test.mjs` DB emulator host/port belirtilmedi)
+6. `apply_patch` -> `functions/rules-tests/security_rules.test.mjs` (Firestore/RTDB emulator host/port explicit ayari)
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `npm --prefix functions run test:rules:unit` (pass)
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`268C`, `270B` `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`268C`, `270B` `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-268C testi:
+  - `_runtime_flags/map_matching` icin `enabled=true`, `monthlyRequestMax=1` ayarlandi.
+  - ilk `createRouteFromGhostDrive` cagrisi `map_matching` kaynagi ile tamamladi (`fallbackUsed=false`, `confidence=0.5`).
+  - ikinci cagri ayni ayarlarda budget doldugu icin `fallback` ile tamamladi (`fallbackUsed=true`, `confidence=0`).
+  - fallback senaryosunda `finalCount == simplifiedCount` dogrulandi (veri kaybi yok), `routePolyline` dolu.
+- STEP-270B testi:
+  - `startTrip -> finishTrip` hizli akisi calistirildi.
+  - route icin `status=active` trip sayisi `0`.
+  - ilgili trip `status=completed`.
+  - `routeWriters/{routeId}/{driverUid}` degeri `false`.
+- Rules + callable full paket sonucu: `25/25` pass.
+
+### Hata Kaydi (Silinmez)
+- Ilk full test kosusunda `security_rules.test.mjs` tarafinda DB emulator host/port eksikligi nedeniyle suite fail oldu.
+  - Cozum: `initializeTestEnvironment` icine Firestore/RTDB `host/port` explicit verildi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `25/25` pass.
+
+### Sonraki Adim
+- Faz F / 272: KULLANICIDAN ONAY ISTE - "Function davranislarina onay veriyor musun?"

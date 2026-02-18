@@ -15,11 +15,19 @@ const __dirname = dirname(__filename);
 const FIRESTORE_RULES = readFileSync(resolve(__dirname, "../../firestore.rules"), "utf8");
 const RTDB_RULES = readFileSync(resolve(__dirname, "../../database.rules.json"), "utf8");
 const PROJECT_ID = "demo-neredeservis-rules";
+const [firestoreHost, firestorePortRaw] = (
+  process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080"
+).split(":");
+const [databaseHost, databasePortRaw] = (
+  process.env.FIREBASE_DATABASE_EMULATOR_HOST ?? "127.0.0.1:9000"
+).split(":");
+const firestorePort = Number.parseInt(firestorePortRaw, 10);
+const databasePort = Number.parseInt(databasePortRaw, 10);
 
 const testEnv = await initializeTestEnvironment({
   projectId: PROJECT_ID,
-  firestore: { rules: FIRESTORE_RULES },
-  database: { rules: RTDB_RULES },
+  firestore: { rules: FIRESTORE_RULES, host: firestoreHost, port: firestorePort },
+  database: { rules: RTDB_RULES, host: databaseHost, port: databasePort },
 });
 
 test.after(async () => {

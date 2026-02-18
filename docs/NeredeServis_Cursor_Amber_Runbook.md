@@ -586,12 +586,12 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 268 RTDB heartbeat -> Firestore `lastLocationAt` testi yaz.
 - [x] 268A `routeWriters` revoke/race testlerini yaz (trip biter bitmez write deny).
 - [x] 268B Offline replay stale filtre testini yaz (`>60 sn` replay canli marker'i guncellemiyor mu).
-- [ ] 268C Ghost Drive map matching kalite testini yaz (urban canyon trace -> snapped rota stabil mi, fallbackte veri kaybi yok mu).
+- [x] 268C Ghost Drive map matching kalite testini yaz (urban canyon trace -> snapped rota stabil mi, fallbackte veri kaybi yok mu).
 - [x] 268D TransitionVersion race testini yaz (cift `startTrip`/`finishTrip` cagrilarinda tek gecerli state transition).
 - [x] 269 `abandonedTripGuard` kosul testleri yaz.
 - [x] 270 Announcement dedupe testleri yaz.
 - [x] 270A `trip_started` cooldown testini yaz (yanlislikla start/stop/start durumunda ikinci push ya bastirilir ya "tekrar hareket etti" formatina doner).
-- [ ] 270B `startTrip` undo window testi yaz (ilk 10 sn iptal edilirse server'da `active trip` olusmuyor mu).
+- [x] 270B `startTrip` undo window testi yaz (ilk 10 sn iptal edilirse server'da `active trip` olusmuyor mu).
 - [x] 270C `registerDevice` policy testini yaz (eski cihaz revoke + finishTrip device kurali).
 - [x] 270D `morningReminderDispatcher` timezone testini yaz (Europe/Istanbul ve UTC offset sapmasi yok).
 - [x] 270E Subscription tamper testi yaz (client local manipule etse de premium guard server-side blokluyor mu).
