@@ -7768,3 +7768,113 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 272: KULLANICIDAN ONAY ISTE - "Function davranislarina onay veriyor musun?"
+
+## STEP-272-275 - Function Onayi + Staging Dry-Run/Deploy/Smoke
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 272: Kullanici function davranis onayini almak.
+- 273: `stg` ortami icin functions deploy dry-run almak.
+- 274: staging functions deploy'u tamamlamak.
+- 275: staging smoke test ile canli dogrulama almak.
+
+### Calistirilan Komutlar (Ham)
+1. `firebase --version`
+2. `firebase deploy --help`
+3. `firebase projects:list --json`
+4. `firebase deploy --only functions --project stg --dry-run`
+5. `firebase deploy --only functions --project stg` (ilk deneme, kismi basari + 3 fonksiyon fail)
+6. `firebase database:instances:list --project stg --json`
+7. `firebase database:instances:list --project dev --json`
+8. `firebase database:instances:list --project prod --json`
+9. `apply_patch` -> `functions/src/index.ts` (`syncTripHeartbeatFromLocation` icin `region: 'europe-west1'`)
+10. `npm --prefix functions run build`
+11. `npm --prefix functions run lint`
+12. `npm --prefix functions run format:check`
+13. `firebase deploy --only functions --project stg` (ikinci deneme, deploy ok + cleanup policy hatasi)
+14. `firebase functions:artifacts:setpolicy --project stg --location europe-west1 --days 7 --force`
+15. `firebase functions:artifacts:setpolicy --project stg --location europe-west3 --days 7 --force`
+16. `firebase deploy --only functions --project stg` (ucuncu deneme, tam basari)
+17. `firebase functions:list --project stg --json`
+18. `Invoke-RestMethod -Uri "https://europe-west3-neredeservis-stg-01.cloudfunctions.net/healthCheck" -Method Post -ContentType "application/json" -Body '{"data":{}}'`
+19. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (272-275 `[x]`)
+20. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (272-275 `[x]`)
+21. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-272: kullanici onayi alindi (`"onaylıyorum"`).
+- STEP-273: dry-run basarili tamamlandi.
+- STEP-274:
+  - staging functions deploy tamamlandi.
+  - RTDB trigger fonksiyonu `syncTripHeartbeatFromLocation` stagingde `europe-west1` bolgesinde aktif.
+  - Firestore trigger fonksiyonlari `syncPassengerCount` ve `syncRouteMembership` aktif.
+- STEP-275 smoke:
+  - `firebase functions:list --project stg --json` sonucunda function durumlari `ACTIVE`.
+  - `healthCheck` callable canli cagrisi basarili:
+    - `ok=true`
+    - `serverTime=2026-02-18T20:34:02.005Z`
+    - `region=europe-west3`
+
+### Hata Kaydi (Silinmez)
+- Ilk staging deploy denemesinde:
+  - `syncTripHeartbeatFromLocation` icin RTDB trigger region uyumsuzlugu (`europe-west3`).
+  - `syncPassengerCount` ve `syncRouteMembership` icin Eventarc service agent propagasyon gecikmesi.
+- Cozum:
+  - `syncTripHeartbeatFromLocation` fonksiyonu `region: 'europe-west1'` olarak sabitlendi.
+  - Deploy tekrarlandi; Eventarc trigger olusumlari basariyla tamamlandi.
+- Ikinci deploy denemesinde:
+  - Artifact cleanup policy yoklugu nedeniyle CLI hata kodu dondurdu (deploy olmasina ragmen).
+- Cozum:
+  - `firebase functions:artifacts:setpolicy` ile `europe-west1` ve `europe-west3` icin 7 gun cleanup policy ayarlandi.
+  - Ucuncu deploy temiz `Deploy complete` ile bitti.
+- Bilgilendirme:
+  - Node.js 20 deprecation uyarisi goruldu (decommission: 2026-10-30).
+  - `firebase-functions` versiyon guncelleme uyarisi goruldu.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `firebase deploy --only functions --project stg --dry-run` -> pass.
+- `firebase deploy --only functions --project stg` -> pass.
+- `firebase functions:list --project stg --json` -> ACTIVE.
+- `healthCheck` canli cagrisi -> pass.
+
+### Sonraki Adim
+- Faz F / 276: Prod deploy icin release note hazirla.
+
+## STEP-276 - Prod Deploy Release Note Hazirligi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Prod deploy oncesi teknik kapsami, staging kanitini, riskleri ve rollback planini tek dokumanda toplamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `docs/faz_f_prod_release_note.md` (release note dosyasi olusturma)
+2. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`276` `[x]`)
+3. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`276` `[x]`)
+4. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Release note dosyasi olusturuldu: `docs/faz_f_prod_release_note.md`.
+- Icerik kapsaminda:
+  - Faz F teknik degisiklik ozeti
+  - Staging dry-run/deploy/smoke kanitlari
+  - Bilinen uyarilar (Node.js 20 lifecycle + firebase-functions upgrade notu)
+  - Risk analizi ve rollback plani
+  - Prod gate checklist
+
+### Hata Kaydi (Silinmez)
+- Bu adimda teknik hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `docs/faz_f_prod_release_note.md` dosyasi olusturuldu ve runbook adimlari guncellendi.
+
+### Sonraki Adim
+- Faz F / 277: KULLANICIDAN ONAY ISTE - "Prod function deploy onayi"

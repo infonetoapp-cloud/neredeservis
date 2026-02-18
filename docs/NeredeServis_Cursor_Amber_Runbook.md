@@ -596,11 +596,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 270D `morningReminderDispatcher` timezone testini yaz (Europe/Istanbul ve UTC offset sapmasi yok).
 - [x] 270E Subscription tamper testi yaz (client local manipule etse de premium guard server-side blokluyor mu).
 - [x] 271 DOGRULAMA: Emulator integration full green mi?
-- [ ] 272 KULLANICIDAN ONAY ISTE: "Function davranislarina onay veriyor musun?".
-- [ ] 273 Deploy dry-run komutu calistir.
-- [ ] 274 Staging deploy yap.
-- [ ] 275 Staging smoke test yap.
-- [ ] 276 Prod deploy icin release note hazirla.
+- [x] 272 KULLANICIDAN ONAY ISTE: "Function davranislarina onay veriyor musun?".
+- [x] 273 Deploy dry-run komutu calistir.
+- [x] 274 Staging deploy yap.
+- [x] 275 Staging smoke test yap.
+- [x] 276 Prod deploy icin release note hazirla.
 - [ ] 277 KULLANICIDAN ONAY ISTE: "Prod function deploy onayi".
 - [ ] 278 Prod deploy yap.
 - [ ] 279 Post-deploy health check yap.

@@ -2324,7 +2324,10 @@ export const syncRouteMembership = onDocumentWritten('routes/{routeId}', async (
 });
 
 export const syncTripHeartbeatFromLocation = onValueWritten(
-  '/locations/{routeId}',
+  {
+    ref: '/locations/{routeId}',
+    region: 'europe-west1',
+  },
   async (event) => {
     const routeId = event.params.routeId;
     const afterValue: unknown = event.data.after.val();
