@@ -633,7 +633,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 306 Driver profil olusturma akisini bagla.
 - [x] 307 Route create ekranini callable'a bagla.
 - [x] 307A Route create girisinde iki mod sun: `Hizli (pin)` ve `Ghost Drive (Rotayi Kaydet)`.
-- [ ] 307B Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).
+- [x] 307B Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).
 - [ ] 307C Ghost Drive kayit sonunda otomatik baslangic/bitis + durak adayi onerilerini goster; kullanicidan tek ekranda onay al.
 - [ ] 307D KULLANICIDAN ONAY ISTE: "Ghost Drive varsayilan rota olusturma akisi olarak uygun mu?".
 - [ ] 308 Route update ekranini callable'a bagla.

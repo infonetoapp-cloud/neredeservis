@@ -6,10 +6,15 @@ import 'package:neredeservis/ui/theme/theme_amber.dart';
 void main() {
   Widget buildTestApp({
     Future<void> Function(RouteCreateFormInput input)? onCreate,
+    Future<void> Function(RouteCreateGhostFormInput input)?
+        onCreateFromGhostDrive,
   }) {
     return MaterialApp(
       theme: AmberTheme.light(),
-      home: RouteCreateScreen(onCreate: onCreate),
+      home: RouteCreateScreen(
+        onCreate: onCreate,
+        onCreateFromGhostDrive: onCreateFromGhostDrive,
+      ),
     );
   }
 
@@ -36,10 +41,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('Ghost Drive modu ile rotayi surus sirasinda'),
+      find.textContaining('Ghost Drive kaydinda adimlar'),
       findsOneWidget,
     );
-    expect(find.text('Ghost Drive Hazirla'), findsOneWidget);
+    expect(find.text('Ghost Drive Ile Kaydet'), findsOneWidget);
   });
 
   testWidgets('route create submit sends normalized payload', (tester) async {
@@ -69,5 +74,41 @@ void main() {
     expect(submitted!.endAddress, 'Gebze OSB');
     expect(submitted!.scheduledTime, '06:45');
     expect(submitted!.timeSlot, 'morning');
+  });
+
+  testWidgets('ghost drive start/stop/preview/save flow triggers callback', (
+    tester,
+  ) async {
+    RouteCreateGhostFormInput? submitted;
+    await tester.pumpWidget(
+      buildTestApp(
+        onCreateFromGhostDrive: (input) async {
+          submitted = input;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ghost Drive'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), 'Ghost Rota');
+    await tester.tap(find.text('Kaydi Baslat'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kaydi Bitir'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Onizleme'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Onizleme'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Ghost Drive Ile Kaydet'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ghost Drive Ile Kaydet'));
+    await tester.pumpAndSettle();
+
+    expect(submitted, isNotNull);
+    expect(submitted!.name, 'Ghost Rota');
+    expect(submitted!.tracePoints.length, greaterThanOrEqualTo(2));
   });
 }

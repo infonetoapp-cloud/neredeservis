@@ -8,9 +8,12 @@ class RouteCreateScreen extends StatefulWidget {
   const RouteCreateScreen({
     super.key,
     this.onCreate,
+    this.onCreateFromGhostDrive,
   });
 
   final Future<void> Function(RouteCreateFormInput input)? onCreate;
+  final Future<void> Function(RouteCreateGhostFormInput input)?
+      onCreateFromGhostDrive;
 
   @override
   State<RouteCreateScreen> createState() => _RouteCreateScreenState();
@@ -32,6 +35,10 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
   bool _submitting = false;
   String? _validationError;
 
+  bool _isGhostRecording = false;
+  bool _ghostPreviewVisible = false;
+  final List<RouteTracePointInput> _ghostTracePoints = <RouteTracePointInput>[];
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -45,13 +52,8 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (_mode == RouteCreateMode.ghostDrive) {
-      _setValidation('Ghost Drive modu 307B adiminda acilacak.');
-      return;
-    }
-
-    final input = _buildInput();
+  Future<void> _submitQuickPin() async {
+    final input = _buildQuickPinInput();
     if (input == null) {
       return;
     }
@@ -72,7 +74,29 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     }
   }
 
-  RouteCreateFormInput? _buildInput() {
+  Future<void> _submitGhostDrive() async {
+    final input = _buildGhostDriveInput();
+    if (input == null) {
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _validationError = null;
+    });
+
+    try {
+      await widget.onCreateFromGhostDrive?.call(input);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  RouteCreateFormInput? _buildQuickPinInput() {
     final name = _nameController.text.trim();
     final startAddress = _startAddressController.text.trim();
     final endAddress = _endAddressController.text.trim();
@@ -122,6 +146,89 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     );
   }
 
+  RouteCreateGhostFormInput? _buildGhostDriveInput() {
+    final name = _nameController.text.trim();
+    final scheduledTime = _scheduledTimeController.text.trim();
+    if (name.length < 2) {
+      _setValidation('Rota adi en az 2 karakter olmali.');
+      return null;
+    }
+    if (!_isValidTime(scheduledTime)) {
+      _setValidation('Saat HH:mm formatinda olmali.');
+      return null;
+    }
+    if (_isGhostRecording) {
+      _setValidation('Kaydi once bitirmen gerekiyor.');
+      return null;
+    }
+    if (_ghostTracePoints.length < 2) {
+      _setValidation('Ghost Drive icin en az 2 nokta kaydedilmeli.');
+      return null;
+    }
+
+    return RouteCreateGhostFormInput(
+      name: name,
+      tracePoints: List<RouteTracePointInput>.from(_ghostTracePoints),
+      scheduledTime: scheduledTime,
+      timeSlot: _selectedTimeSlot,
+      allowGuestTracking: _allowGuestTracking,
+    );
+  }
+
+  void _startGhostCapture() {
+    if (_isGhostRecording) {
+      return;
+    }
+    final startLat = _parseOrDefault(_startLatController.text, 40.7700);
+    final startLng = _parseOrDefault(_startLngController.text, 29.4000);
+    setState(() {
+      _ghostTracePoints
+        ..clear()
+        ..add(
+          RouteTracePointInput(
+            lat: startLat,
+            lng: startLng,
+            accuracy: 12,
+            sampledAtMs: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+      _ghostPreviewVisible = false;
+      _validationError = null;
+      _isGhostRecording = true;
+    });
+  }
+
+  void _stopGhostCapture() {
+    if (!_isGhostRecording) {
+      return;
+    }
+    final endLat = _parseOrDefault(_endLatController.text, 40.9700);
+    final endLng = _parseOrDefault(_endLngController.text, 29.2000);
+    setState(() {
+      _ghostTracePoints.add(
+        RouteTracePointInput(
+          lat: endLat,
+          lng: endLng,
+          accuracy: 15,
+          sampledAtMs: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      _isGhostRecording = false;
+      _validationError = null;
+    });
+  }
+
+  void _toggleGhostPreview() {
+    setState(() {
+      _ghostPreviewVisible = !_ghostPreviewVisible;
+      _validationError = null;
+    });
+  }
+
+  double _parseOrDefault(String raw, double fallback) {
+    return double.tryParse(raw.trim()) ?? fallback;
+  }
+
   bool _isValidTime(String value) {
     final matcher = RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
     return matcher.hasMatch(value);
@@ -141,7 +248,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
   Widget build(BuildContext context) {
     return AmberScreenScaffold(
       title: 'Rota Olustur',
-      subtitle: 'Callable: createRoute',
+      subtitle: 'Callable: createRoute / createRouteFromGhostDrive',
       scrollable: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,14 +278,12 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
           if (_mode == RouteCreateMode.quickPin)
             ..._buildQuickPinForm()
           else
-            _buildGhostDriveMode(),
+            ..._buildGhostDriveForm(),
           if (_validationError != null) ...<Widget>[
             const SizedBox(height: AmberSpacingTokens.space8),
             Text(
               _validationError!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
           const SizedBox(height: AmberSpacingTokens.space20),
@@ -187,8 +292,12 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
                 ? 'Isleniyor...'
                 : _mode == RouteCreateMode.quickPin
                     ? 'Rotayi Olustur'
-                    : 'Ghost Drive Hazirla',
-            onPressed: _submitting ? null : _submit,
+                    : 'Ghost Drive Ile Kaydet',
+            onPressed: _submitting
+                ? null
+                : _mode == RouteCreateMode.quickPin
+                    ? _submitQuickPin
+                    : _submitGhostDrive,
           ),
         ],
       ),
@@ -314,26 +423,121 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     ];
   }
 
-  Widget _buildGhostDriveMode() {
+  List<Widget> _buildGhostDriveForm() {
+    return <Widget>[
+      TextField(
+        controller: _nameController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Rota Adi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      TextField(
+        controller: _scheduledTimeController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Planlanan Saat (HH:mm)'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      DropdownButtonFormField<String>(
+        initialValue: _selectedTimeSlot,
+        items: const <DropdownMenuItem<String>>[
+          DropdownMenuItem(value: 'morning', child: Text('Sabah')),
+          DropdownMenuItem(value: 'midday', child: Text('Oglen')),
+          DropdownMenuItem(value: 'evening', child: Text('Aksam')),
+          DropdownMenuItem(value: 'custom', child: Text('Ozel')),
+        ],
+        onChanged: _submitting
+            ? null
+            : (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedTimeSlot = value;
+                });
+              },
+        decoration: const InputDecoration(labelText: 'Zaman Dilimi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        value: _allowGuestTracking,
+        onChanged: _submitting
+            ? null
+            : (value) {
+                setState(() {
+                  _allowGuestTracking = value;
+                });
+              },
+        title: const Text('Misafir takip izni'),
+        subtitle: const Text('Acil durumlarda misafir takip acik olabilir.'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Text(
+            'Ghost Drive kaydinda adimlar: kaydi baslat, kaydi bitir, onizle, kaydet.',
+          ),
+        ),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      AmberSecondaryButton(
+        label: _isGhostRecording ? 'Kayit Suruyor' : 'Kaydi Baslat',
+        onPressed: _submitting || _isGhostRecording ? null : _startGhostCapture,
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      AmberSecondaryButton(
+        label: 'Kaydi Bitir',
+        onPressed: _submitting || !_isGhostRecording ? null : _stopGhostCapture,
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      AmberSecondaryButton(
+        label: _ghostPreviewVisible ? 'Onizlemeyi Gizle' : 'Onizleme',
+        onPressed: _submitting ? null : _toggleGhostPreview,
+      ),
+      if (_ghostPreviewVisible) ...<Widget>[
+        const SizedBox(height: AmberSpacingTokens.space8),
+        _GhostDrivePreview(points: _ghostTracePoints),
+      ],
+    ];
+  }
+}
+
+class _GhostDrivePreview extends StatelessWidget {
+  const _GhostDrivePreview({required this.points});
+
+  final List<RouteTracePointInput> points;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = points.isEmpty ? null : points.first;
+    final last = points.isEmpty ? null : points.last;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(12),
-        child: Text(
-          'Ghost Drive modu ile rotayi surus sirasinda kaydedeceksin. '
-          'Bu adimda sadece mod secimi acildi; capture adimlari 307B ile baglanacak.',
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Kayitli nokta: ${points.length}'),
+            if (first != null)
+              Text(
+                  'Baslangic: ${first.lat.toStringAsFixed(5)}, ${first.lng.toStringAsFixed(5)}'),
+            if (last != null)
+              Text(
+                  'Bitis: ${last.lat.toStringAsFixed(5)}, ${last.lng.toStringAsFixed(5)}'),
+          ],
         ),
       ),
     );
   }
-}
-
-enum RouteCreateMode {
-  quickPin,
-  ghostDrive,
 }
 
 class RouteCreateFormInput {
@@ -360,4 +564,39 @@ class RouteCreateFormInput {
   final String scheduledTime;
   final String timeSlot;
   final bool allowGuestTracking;
+}
+
+class RouteCreateGhostFormInput {
+  const RouteCreateGhostFormInput({
+    required this.name,
+    required this.tracePoints,
+    required this.scheduledTime,
+    required this.timeSlot,
+    required this.allowGuestTracking,
+  });
+
+  final String name;
+  final List<RouteTracePointInput> tracePoints;
+  final String scheduledTime;
+  final String timeSlot;
+  final bool allowGuestTracking;
+}
+
+class RouteTracePointInput {
+  const RouteTracePointInput({
+    required this.lat,
+    required this.lng,
+    required this.accuracy,
+    required this.sampledAtMs,
+  });
+
+  final double lat;
+  final double lng;
+  final double accuracy;
+  final int sampledAtMs;
+}
+
+enum RouteCreateMode {
+  quickPin,
+  ghostDrive,
 }

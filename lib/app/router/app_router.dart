@@ -97,6 +97,8 @@ GoRouter buildAppRouter({
         path: AppRoutePath.driverRouteCreate,
         builder: (context, state) => RouteCreateScreen(
           onCreate: (input) => _handleCreateRoute(context, input),
+          onCreateFromGhostDrive: (input) =>
+              _handleCreateRouteFromGhostDrive(context, input),
         ),
       ),
       GoRoute(
@@ -561,6 +563,46 @@ Future<void> _handleCreateRoute(
       return;
     }
     _showInfo(context, 'Rota olusturulamadi (${error.code}).');
+  }
+}
+
+Future<void> _handleCreateRouteFromGhostDrive(
+  BuildContext context,
+  RouteCreateGhostFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('createRouteFromGhostDrive');
+    final response = await callable.call(<String, dynamic>{
+      'name': input.name,
+      'tracePoints': input.tracePoints
+          .map(
+            (point) => <String, dynamic>{
+              'lat': point.lat,
+              'lng': point.lng,
+              'accuracy': point.accuracy,
+              'sampledAtMs': point.sampledAtMs,
+            },
+          )
+          .toList(),
+      'scheduledTime': input.scheduledTime,
+      'timeSlot': input.timeSlot,
+      'allowGuestTracking': input.allowGuestTracking,
+      'authorizedDriverIds': const <String>[],
+    });
+    final payload = _extractCallableData(response.data);
+    final srvCode = payload['srvCode'] as String? ?? '-';
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Ghost rota olusturuldu. SRV: $srvCode');
+    context.go(AppRoutePath.driverHome);
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Ghost rota olusturulamadi (${error.code}).');
   }
 }
 

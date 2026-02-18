@@ -8882,3 +8882,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 307B: Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).
+
+## STEP-307B - Ghost Drive Capture Akislarini Bagla
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Ghost Drive modunda su capture akislarini teknik olarak uc uca baglamak:
+  - `kaydi baslat`
+  - `kaydi bitir`
+  - `onizleme`
+  - `kaydet` (`createRouteFromGhostDrive` callable)
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/route_create_screen.dart`
+   - `onCreateFromGhostDrive` callback kontrati eklendi
+   - ghost capture state'leri eklendi (`_isGhostRecording`, `_ghostTracePoints`, `_ghostPreviewVisible`)
+   - `Kaydi Baslat`, `Kaydi Bitir`, `Onizleme`, `Ghost Drive Ile Kaydet` aksiyonlari eklendi
+   - `RouteCreateGhostFormInput` + `RouteTracePointInput` modelleri eklendi
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `RouteCreateScreen` icin `onCreateFromGhostDrive` baglandi
+   - `_handleCreateRouteFromGhostDrive` callable entegrasyonu eklendi
+3. `apply_patch` -> `test/ui/route_create_screen_test.dart`
+   - ghost flow testleri eklendi (`start/stop/preview/save`)
+4. `dart format lib/app/router/app_router.dart lib/ui/screens/route_create_screen.dart test/ui/route_create_screen_test.dart`
+5. `flutter test test/ui/route_create_screen_test.dart`
+6. `flutter analyze`
+7. `flutter test`
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`307B` -> `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`307B` -> `[x]`)
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Ghost Drive capture adimlari uygulama tarafinda aktif:
+  - `Kaydi Baslat`: trace listesi sifirlanip ilk sample olusuyor.
+  - `Kaydi Bitir`: ikinci sample olusup kayit kapanisi yapiliyor.
+  - `Onizleme`: sample sayisi + baslangic/bitis koordinati gosteriliyor.
+  - `Ghost Drive Ile Kaydet`: validasyon sonrasi `createRouteFromGhostDrive` callable'i tetikleniyor.
+- Route create ekrani artik iki callable'i destekliyor:
+  - quick mode -> `createRoute`
+  - ghost mode -> `createRouteFromGhostDrive`
+
+### Hata Kaydi (Silinmez)
+- Ilk ghost test kosusunda `Onizleme` butonu viewport disi warning verdi.
+  - cozum: testte `ensureVisible('Onizleme')` eklendi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `181` test).
+- `flutter test test/ui/route_create_screen_test.dart` -> pass (`4/4`).
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `307B` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `307B` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 307C: Ghost Drive kayit sonunda otomatik baslangic/bitis + durak adayi onerilerini tek onay ekranina baglama.
