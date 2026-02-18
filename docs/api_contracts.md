@@ -500,6 +500,17 @@ Directory callable guardrails:
 - Success path writes terminal state (`completed` or no-op terminal replay) and revokes writer access:
   - `routeWriters/{routeId}/{uid} = false`.
 
+## Reconciliation Triggers
+- `syncPassengerCount`:
+  - source: `routes/{routeId}/passengers/*` writes
+  - effect: `routes/{routeId}.passengerCount` is recomputed from actual passenger docs.
+- `syncRouteMembership`:
+  - source: `routes/{routeId}` writes
+  - effect: `memberIds = [driverId] U authorizedDriverIds U passengerIds` is rebuilt deterministically.
+- `syncTripHeartbeatFromLocation`:
+  - source: RTDB `/locations/{routeId}` writes
+  - effect: active trip `lastLocationAt` is refreshed from live location payload.
+
 ## Subscription Enforcement Contract (server-side, V1.0)
 - `getSubscriptionState` is the only authority for subscription state.
 - Client-side paywall state never unlocks premium behavior by itself.

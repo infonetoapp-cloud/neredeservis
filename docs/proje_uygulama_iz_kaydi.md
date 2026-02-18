@@ -6951,3 +6951,59 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 247: `syncPassengerCount` trigger.
+
+## STEP-247-249 - Route/Trip Reconciliation Triggerlari
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 247: `syncPassengerCount` trigger.
+- 248: `syncRouteMembership` trigger.
+- 249: `syncTripHeartbeatFromLocation` RTDB trigger.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`onDocumentWritten` / `onValueWritten` import + helper)
+2. `apply_patch` -> `functions/src/index.ts` (247/248/249 trigger implementasyonu)
+3. `npm --prefix functions run build`
+4. `npm --prefix functions run lint` (fail)
+5. `npm --prefix functions run format:check` (fail)
+6. `apply_patch` -> `functions/src/index.ts` (`event.data.after.val()` unsafe any fix: `unknown`)
+7. `npx --prefix functions prettier --write functions/src/index.ts`
+8. `npm --prefix functions run build`
+9. `npm --prefix functions run lint`
+10. `npm --prefix functions run format:check`
+11. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (247, 248, 249 `[x]`)
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (247, 248, 249 `[x]`)
+14. `apply_patch` -> `docs/api_contracts.md` (reconciliation trigger contract notlari)
+15. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `syncPassengerCount` trigger eklendi:
+  - `routes/{routeId}/passengers/*` write olayinda passenger sayisini yeniden hesaplayip route'a yaziyor.
+- `syncRouteMembership` trigger eklendi:
+  - route degisikliklerinde `memberIds` listesini deterministic sekilde yeniden uretiyor:
+    - `driverId + authorizedDriverIds + passengerIds`.
+  - listeler ayniysa no-op; gereksiz write engelleniyor.
+- `syncTripHeartbeatFromLocation` RTDB trigger eklendi:
+  - `/locations/{routeId}` write olayinda aktif trip `lastLocationAt` alanini canli payload `timestamp` verisiyle guncelliyor.
+  - route/trip uyumsuzlugu veya aktif olmayan tripte no-op.
+
+### Hata Kaydi (Silinmez)
+- Ilk lint turunda RTDB event payload'inda unsafe `any` assignment hatasi alindi.
+  - Cozum: payload girisi `unknown` tipine cekilip `asRecord` ile daraltildi.
+- Ilk format check turu fail verdi.
+  - Cozum: `prettier --write` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 249A: stale replay location ingestion ayrimi (`location_history`) ve live marker korumasi.

@@ -1,6 +1,8 @@
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { getFirestore } from 'firebase-admin/firestore';
+import { onValueWritten } from 'firebase-functions/v2/database';
+import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
 import { z } from 'zod';
@@ -503,6 +505,13 @@ function parseIsoToMs(value: string | null): number | null {
   }
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function sameStringArray(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((value, index) => value === b[index]);
 }
 
 function readSubscriptionStatus(value: unknown): SubscriptionStatus {
@@ -2074,3 +2083,117 @@ export const searchDriverDirectory = onCall(async (request) => {
     results: Array.from(merged.values()),
   });
 });
+
+export const syncPassengerCount = onDocumentWritten(
+  'routes/{routeId}/passengers/{passengerId}',
+  async (event) => {
+    const routeId = event.params.routeId;
+    const routeRef = db.collection('routes').doc(routeId);
+    const routeSnap = await routeRef.get();
+    if (!routeSnap.exists) {
+      return;
+    }
+
+    const passengersSnap = await routeRef.collection('passengers').get();
+    const nextPassengerCount = passengersSnap.size;
+    const routeData = asRecord(routeSnap.data());
+    const currentPassengerCountRaw = routeData?.passengerCount;
+    const currentPassengerCount =
+      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
+        ? currentPassengerCountRaw
+        : 0;
+
+    if (currentPassengerCount === nextPassengerCount) {
+      return;
+    }
+
+    await routeRef.set(
+      {
+        passengerCount: nextPassengerCount,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+  },
+);
+
+export const syncRouteMembership = onDocumentWritten('routes/{routeId}', async (event) => {
+  const routeId = event.params.routeId;
+  const afterSnap = event.data?.after;
+  if (!afterSnap || !afterSnap.exists) {
+    return;
+  }
+
+  const routeData = asRecord(afterSnap.data()) ?? {};
+  const routeDriverUid = pickString(routeData, 'driverId');
+  if (!routeDriverUid) {
+    return;
+  }
+
+  const normalizedAuthorizedDrivers = normalizeAuthorizedDriverIds(
+    pickStringArray(routeData, 'authorizedDriverIds'),
+    routeDriverUid,
+  ).sort();
+  const passengerIds = (
+    await db.collection('routes').doc(routeId).collection('passengers').get()
+  ).docs
+    .map((doc) => doc.id)
+    .sort();
+  const expectedMemberIds = [routeDriverUid, ...normalizedAuthorizedDrivers, ...passengerIds];
+  const currentMemberIds = pickStringArray(routeData, 'memberIds');
+
+  if (sameStringArray(currentMemberIds, expectedMemberIds)) {
+    return;
+  }
+
+  await db.collection('routes').doc(routeId).set(
+    {
+      memberIds: expectedMemberIds,
+      updatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+});
+
+export const syncTripHeartbeatFromLocation = onValueWritten(
+  '/locations/{routeId}',
+  async (event) => {
+    const routeId = event.params.routeId;
+    const afterValue: unknown = event.data.after.val();
+    const payload = asRecord(afterValue);
+    if (!payload) {
+      return;
+    }
+
+    const tripId = pickString(payload, 'tripId');
+    if (!tripId) {
+      return;
+    }
+
+    const tripRef = db.collection('trips').doc(tripId);
+    const tripSnap = await tripRef.get();
+    if (!tripSnap.exists) {
+      return;
+    }
+    const tripData = asRecord(tripSnap.data()) ?? {};
+    if (pickString(tripData, 'routeId') !== routeId) {
+      return;
+    }
+    if (pickString(tripData, 'status') !== 'active') {
+      return;
+    }
+
+    const timestampRaw = payload['timestamp'];
+    const timestampMs =
+      typeof timestampRaw === 'number' && Number.isFinite(timestampRaw) ? timestampRaw : Date.now();
+    const lastLocationAtIso = new Date(timestampMs).toISOString();
+
+    await tripRef.set(
+      {
+        lastLocationAt: lastLocationAtIso,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+  },
+);
