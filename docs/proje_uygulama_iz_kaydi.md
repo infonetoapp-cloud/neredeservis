@@ -6705,3 +6705,62 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 243: `createGuestSession` callable.
+
+## STEP-243 - createGuestSession Callable
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Misafir takip akisini server-side guvenlik ve TTL kurallariyla acan `createGuestSession` callable endpointini eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `shell` text update -> `functions/src/index.ts` (`getDatabase` import + RTDB handle + TTL constant)
+2. `apply_patch` -> `functions/src/index.ts` (`CreateGuestSession` schema/interface/callable)
+3. `npm --prefix functions run build`
+4. `npm --prefix functions run lint` (fail)
+5. `npm --prefix functions run format:check` (fail)
+6. `apply_patch` -> `functions/src/index.ts` (`catch` unused var fix)
+7. `npx --prefix functions prettier --write functions/src/index.ts`
+8. `npm --prefix functions run build`
+9. `npm --prefix functions run lint`
+10. `npm --prefix functions run format:check`
+11. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (243 `[x]`)
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (243 `[x]`)
+14. `apply_patch` -> `docs/api_contracts.md` (guest session guardrail notlari)
+15. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `createGuestSession` callable eklendi.
+- Endpoint davranisi:
+  - auth zorunlu, anonymous kabul (non-anonymous zorunlulugu yok).
+  - `srvCode + isArchived=false` route lookup.
+  - `allowGuestTracking != true` ise `permission-denied`.
+  - TTL: `ttlMinutes` (5..60), varsayilan `30`.
+- Firestore tarafi:
+  - `guest_sessions/{sessionId}` kaydi (`routeId`, `guestUid`, `expiresAt`, `status=active`, `createdAt`).
+  - `users/{uid}` kaydi yoksa veya rol gecersizse `role=guest` profile bootstrap.
+- RTDB tarafi:
+  - `guestReaders/{routeId}/{guestUid}` altina TTL grant yaziliyor (`active`, `expiresAtMs`, `updatedAtMs`).
+  - RTDB yazimi fail olursa guest session `revoked` olarak isaretlenip hata donuluyor.
+- Output:
+  - `sessionId`, `routeId`, `expiresAt`, `rtdbReadPath`.
+
+### Hata Kaydi (Silinmez)
+- Ilk lint turunda unused catch variable hatasi alindi.
+  - Cozum: `catch {}` semantigi ile duzeltildi.
+- Ilk format check turu fail verdi.
+  - Cozum: hedef dosya `prettier --write` ile formatlandi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 244: `startTrip` callable.

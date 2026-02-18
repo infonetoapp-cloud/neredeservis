@@ -1,4 +1,5 @@
-﻿import { getApps, initializeApp } from 'firebase-admin/app';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getDatabase } from 'firebase-admin/database';
 import { getFirestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
@@ -34,10 +35,12 @@ if (!getApps().length) {
 }
 
 const db = getFirestore();
+const rtdb = getDatabase();
 
 const DRIVER_SEARCH_MAX_LIMIT = 10;
 const DRIVER_SEARCH_RATE_WINDOW_MS = 60_000;
 const DRIVER_SEARCH_RATE_MAX_CALLS = 30;
+const GUEST_SESSION_TTL_MINUTES_DEFAULT = 30;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -141,6 +144,13 @@ interface SubmitSkipTodayOutput {
   routeId: string;
   dateKey: string;
   status: 'skip_today';
+}
+
+interface CreateGuestSessionOutput {
+  sessionId: string;
+  routeId: string;
+  expiresAt: string;
+  rtdbReadPath: string;
 }
 
 const profileInputSchema = z.object({
@@ -285,6 +295,15 @@ const submitSkipTodayInputSchema = z.object({
   routeId: z.string().trim().min(1).max(128),
   dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   idempotencyKey: z.string().trim().min(8).max(128),
+});
+
+const createGuestSessionInputSchema = z.object({
+  srvCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/),
+  ttlMinutes: z.number().int().min(5).max(60).optional(),
 });
 
 const searchDriverDirectoryInputSchema = z.object({
@@ -1319,6 +1338,99 @@ export const submitSkipToday = onCall(async (request) => {
     routeId: input.routeId,
     dateKey: input.dateKey,
     status: 'skip_today',
+  });
+});
+
+export const createGuestSession = onCall(async (request) => {
+  const auth = requireAuth(request);
+  const input = validateInput(createGuestSessionInputSchema, request.data);
+
+  const routeQuery = await db
+    .collection('routes')
+    .where('srvCode', '==', input.srvCode)
+    .where('isArchived', '==', false)
+    .limit(1)
+    .get();
+
+  if (routeQuery.empty) {
+    throw new HttpsError('not-found', 'SRV kodu ile route bulunamadi.');
+  }
+
+  const routeDoc = routeQuery.docs[0];
+  if (!routeDoc) {
+    throw new HttpsError('not-found', 'Route bulunamadi.');
+  }
+  const routeData = asRecord(routeDoc.data()) ?? {};
+  if (routeData.allowGuestTracking !== true) {
+    throw new HttpsError('permission-denied', 'Bu route icin misafir takip kapali.');
+  }
+
+  const now = Date.now();
+  const ttlMinutes = input.ttlMinutes ?? GUEST_SESSION_TTL_MINUTES_DEFAULT;
+  const expiresAtMs = now + ttlMinutes * 60_000;
+  const nowIso = new Date(now).toISOString();
+  const expiresAtIso = new Date(expiresAtMs).toISOString();
+
+  const sessionRef = db.collection('guest_sessions').doc();
+  const userRef = db.collection('users').doc(auth.uid);
+
+  await db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    const existingUser = asRecord(userSnap.data());
+    const existingRole = readRole(existingUser?.role);
+    const existingCreatedAt = pickString(existingUser, 'createdAt');
+    const existingDisplayName = pickString(existingUser, 'displayName');
+    const existingPhone = pickString(existingUser, 'phone');
+    const existingEmail = pickString(existingUser, 'email');
+
+    if (!userSnap.exists || existingRole == null) {
+      tx.set(
+        userRef,
+        {
+          role: 'guest',
+          displayName: existingDisplayName ?? 'Misafir',
+          phone: existingPhone,
+          email: existingEmail,
+          createdAt: existingCreatedAt ?? nowIso,
+          updatedAt: nowIso,
+          deletedAt: null,
+        },
+        { merge: true },
+      );
+    }
+
+    tx.set(sessionRef, {
+      routeId: routeDoc.id,
+      guestUid: auth.uid,
+      expiresAt: expiresAtIso,
+      status: 'active',
+      createdAt: nowIso,
+    });
+  });
+
+  try {
+    await rtdb.ref(`guestReaders/${routeDoc.id}/${auth.uid}`).set({
+      active: true,
+      expiresAtMs,
+      updatedAtMs: now,
+    });
+  } catch {
+    await sessionRef.set(
+      {
+        status: 'revoked',
+        revokedAt: nowIso,
+        revokeReason: 'RTDB_WRITE_FAILED',
+      },
+      { merge: true },
+    );
+    throw new HttpsError('internal', 'Guest reader erisimi acilamadi.');
+  }
+
+  return apiOk<CreateGuestSessionOutput>({
+    sessionId: sessionRef.id,
+    routeId: routeDoc.id,
+    expiresAt: expiresAtIso,
+    rtdbReadPath: `/locations/${routeDoc.id}`,
   });
 });
 

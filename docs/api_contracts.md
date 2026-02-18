@@ -346,6 +346,12 @@ export interface CreateGuestSessionOutput {
 }
 ```
 
+Guest session guardrails:
+- `createGuestSession` can run with anonymous auth; other callables require non-anonymous auth.
+- If `users/{uid}` is missing, server bootstraps `role="guest"` profile atomically.
+- `allowGuestTracking != true` routes are rejected.
+- Successful create writes RTDB grant under `guestReaders/{routeId}/{guestUid}` with TTL.
+
 ## Ghost Drive and Maps
 ```ts
 export interface TracePointDto {
