@@ -575,7 +575,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 258 Guest session TTL enforcement mekanizmasi yaz.
 - [x] 259 `skip_requests` tek-gun tek-kayit kurali uygula.
 - [x] 259A `skip_requests` gun degisimi kuralini netlestir: reset yazimi yok; sadece `dateKey == today` filtrelenir, eski kayitlar retention ile temizlenir.
-- [ ] 260 DOGRULAMA: Function unit testleri green mi?
+- [x] 260 DOGRULAMA: Function unit testleri green mi?
 - [ ] 261 Emulator callable integration testleri yaz.
 - [ ] 262 Auth yokken endpoint red testleri yaz.
 - [ ] 263 Anonymous endpoint red testleri yaz (except guest session).

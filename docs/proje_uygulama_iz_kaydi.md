@@ -7345,3 +7345,40 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 260: function unit test toplami green kaniti (mevcutta green, test kapsam genisletmesi bir sonraki blok).
+
+## STEP-260 - Function Test Dogrulama Green
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz F function katmaninda mevcut unit/dogrulama sinyalinin green oldugunu adim bazinda kilitlemek.
+
+### Calistirilan Komutlar (Ham)
+1. `npm --prefix functions run build`
+2. `npm --prefix functions run lint`
+3. `npm --prefix functions run format:check`
+4. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (260 `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (260 `[x]`)
+7. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Functions TypeScript derleme temiz.
+- ESLint kurallari temiz.
+- Prettier kontrol temiz.
+- Emulator rules unit testleri `6/6` green.
+
+### Hata Kaydi (Silinmez)
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `build` -> pass.
+- `lint` -> pass.
+- `format:check` -> pass.
+- `test:rules:unit` -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 261: emulator callable integration test katmani.
