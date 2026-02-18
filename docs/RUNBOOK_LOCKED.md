@@ -461,8 +461,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 190 Repository arayuzlerini tamamla.
 - [x] 191 Firestore datasource implementation yaz.
 - [x] 192 RTDB datasource implementation yaz.
-- [ ] 193 Drift queue tablolarini olustur (`location_queue`, `trip_action_queue`, `status`, `failed_retry_count`, `next_retry_at`, `max_retry_reached_at`, `local_meta`).
-- [ ] 193A Drift `schemaVersion=1` ve `MigrationStrategy` iskeletini yaz (`onCreate`, `onUpgrade`, `beforeOpen`).
+- [x] 193 Drift queue tablolarini olustur (`location_queue`, `trip_action_queue`, `status`, `failed_retry_count`, `next_retry_at`, `max_retry_reached_at`, `local_meta`).
+- [x] 193A Drift `schemaVersion=1` ve `MigrationStrategy` iskeletini yaz (`onCreate`, `onUpgrade`, `beforeOpen`).
 - [ ] 193B Drift migration testlerini ekle (v1->v2 dry-run; ownerUid ve queue verisi korunuyor mu).
 - [ ] 193C `trip_action_queue` state machine'i uygula (`pending -> in_flight -> failed_permanent`) ve 3 deneme sonrasi auto-replay'i kes.
 - [ ] 194 Queue repository yaz (exponential backoff + dead-letter davranisi).

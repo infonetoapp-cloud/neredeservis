@@ -5214,3 +5214,64 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 193: Drift queue tablolarini olustur.
+
+## STEP-193..193A - Drift Queue Tablolari + MigrationStrategy Iskeleti
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adim 193 kapsaminda local queue tablolarini Drift uzerinde olusturmak.
+- Faz E adim 193A kapsaminda `schemaVersion=1` ve migration stratejisi iskeletini eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/local_drift_database.dart`
+2. `apply_patch` -> `test/domain/local_drift_database_test.dart`
+3. `apply_patch` -> `pubspec.yaml` (`build_runner`, `drift_dev`, generator uyumu)
+4. `flutter pub get`
+5. `dart run build_runner build --delete-conflicting-outputs`
+6. `dart format lib/features/domain/data/local_drift_database.dart test/domain/local_drift_database_test.dart`
+7. `flutter analyze`
+8. `flutter test`
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (193, 193A `[x]`)
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (193, 193A `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Drift database eklendi:
+  - `lib/features/domain/data/local_drift_database.dart`
+  - `lib/features/domain/data/local_drift_database.g.dart` (codegen)
+- Drift tablolari olusturuldu:
+  - `location_queue`
+  - `trip_action_queue`
+  - `local_meta`
+- `trip_action_queue` icinde adim 193 kontrat alanlari tanimlandi:
+  - `status`
+  - `failed_retry_count`
+  - `next_retry_at`
+  - `max_retry_reached_at`
+  - `local_meta`
+- `LocalDriftDatabase` icinde:
+  - `schemaVersion = 1`
+  - `MigrationStrategy.onCreate`
+  - `MigrationStrategy.onUpgrade` (iskelet)
+  - `MigrationStrategy.beforeOpen`
+- Drift schema testi eklendi:
+  - `test/domain/local_drift_database_test.dart`
+  - tablo varligi ve kritik kolonlar dogrulandi.
+
+### Hata Kaydi (Silinmez)
+- Drift codegen asamasinda bagimlilik cakismasi alindi:
+  - `drift_dev` ile eski `build_runner` ve `riverpod_generator` uyumsuzdu.
+  - Cozum:
+    - `build_runner` guncellendi (`2.11.1`)
+    - `drift_dev` eklendi (`2.31.0`)
+    - aktif kullanimi olmayan `riverpod_generator` dev dependency'den cikarildi.
+- Ilk test iterasyonunda Drift `QueryRow` API uyumsuzlugu cikti; testte `TypedResult/data` kullanimlari `QueryRow.read(...)` ile duzeltildi.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 99 test passed.
+
+### Sonraki Adim
+- Faz E / 193B: Drift migration testleri (v1->v2 dry-run; ownerUid + queue veri korunum kontrolu).
