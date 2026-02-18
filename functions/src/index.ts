@@ -132,6 +132,11 @@ interface RegisterDeviceOutput {
   updatedAt: string;
 }
 
+interface UpdatePassengerSettingsOutput {
+  routeId: string;
+  updatedAt: string;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -255,6 +260,21 @@ const registerDeviceInputSchema = z.object({
   lastSeenAt: z.string().datetime().optional(),
 });
 
+const updatePassengerSettingsInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  showPhoneToDriver: z.boolean(),
+  phone: z.string().trim().min(7).max(24).optional(),
+  boardingArea: z.string().trim().min(1).max(120),
+  virtualStop: z
+    .object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    })
+    .optional(),
+  virtualStopLabel: z.string().trim().min(1).max(120).optional(),
+  notificationTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:mm formatinda olmalidir.'),
+});
+
 const searchDriverDirectoryInputSchema = z.object({
   queryHash: z
     .string()
@@ -294,6 +314,28 @@ function pickStringArray(record: Record<string, unknown> | null, key: string): s
     return [];
   }
   return value.filter((item): item is string => typeof item === 'string');
+}
+
+function pickGeoPoint(
+  record: Record<string, unknown> | null,
+  key: string,
+): { lat: number; lng: number } | null {
+  if (!record) {
+    return null;
+  }
+  const value = asRecord(record[key]);
+  if (!value) {
+    return null;
+  }
+  const lat = value['lat'];
+  const lng = value['lng'];
+  if (typeof lat !== 'number' || !Number.isFinite(lat)) {
+    return null;
+  }
+  if (typeof lng !== 'number' || !Number.isFinite(lng)) {
+    return null;
+  }
+  return { lat, lng };
 }
 
 function normalizeAuthorizedDriverIds(rawIds: readonly string[], ownerUid: string): string[] {
@@ -1114,6 +1156,83 @@ export const leaveRoute = onCall(async (request) => {
   return apiOk<LeaveRouteOutput>({
     routeId: input.routeId,
     left,
+  });
+});
+
+export const updatePassengerSettings = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['passenger'],
+  });
+
+  const input = validateInput(updatePassengerSettingsInputSchema, request.data);
+  const routeRef = db.collection('routes').doc(input.routeId);
+  const passengerRef = routeRef.collection('passengers').doc(auth.uid);
+  const nowIso = new Date().toISOString();
+
+  await db.runTransaction(async (tx) => {
+    const routeSnap = await tx.get(routeRef);
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    if (pickString(routeData, 'driverId') === auth.uid) {
+      throw new HttpsError('permission-denied', 'Route sahibi passenger ayari guncelleyemez.');
+    }
+    if (routeData.isArchived === true) {
+      throw new HttpsError('failed-precondition', 'Arsivlenmis route icin ayar guncellenemez.');
+    }
+
+    const passengerSnap = await tx.get(passengerRef);
+    if (!passengerSnap.exists) {
+      throw new HttpsError('not-found', 'Passenger kaydi bulunamadi.');
+    }
+    const passengerData = asRecord(passengerSnap.data()) ?? {};
+
+    const memberIds = pickStringArray(routeData, 'memberIds');
+    const isMember = memberIds.includes(auth.uid);
+    const nextMembers = isMember
+      ? memberIds
+      : Array.from(new Set<string>([...memberIds, auth.uid]));
+
+    const currentPassengerCountRaw = routeData.passengerCount;
+    const currentPassengerCount =
+      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
+        ? currentPassengerCountRaw
+        : 0;
+    const nextPassengerCount = isMember ? currentPassengerCount : currentPassengerCount + 1;
+
+    tx.set(
+      passengerRef,
+      {
+        showPhoneToDriver: input.showPhoneToDriver,
+        phone: input.phone ?? pickString(passengerData, 'phone') ?? null,
+        boardingArea: input.boardingArea,
+        virtualStop: input.virtualStop ?? pickGeoPoint(passengerData, 'virtualStop'),
+        virtualStopLabel: input.virtualStopLabel ?? pickString(passengerData, 'virtualStopLabel'),
+        notificationTime: input.notificationTime,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+
+    if (!isMember) {
+      tx.update(routeRef, {
+        memberIds: nextMembers,
+        passengerCount: nextPassengerCount,
+        updatedAt: nowIso,
+      });
+    }
+  });
+
+  return apiOk<UpdatePassengerSettingsOutput>({
+    routeId: input.routeId,
+    updatedAt: nowIso,
   });
 });
 

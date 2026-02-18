@@ -6607,3 +6607,52 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 240C: `finishTrip` cihaz kurali (callable 245 icinde `startedByDeviceId` zorunlu karsilastirma).
+
+## STEP-241 - updatePassengerSettings Callable
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Passenger profil ayarlarini (`showPhoneToDriver`, `phone`, `boardingArea`, `virtualStop`, `notificationTime`) server-side yetki/validation ile guncelleyen `updatePassengerSettings` callable endpointini eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`UpdatePassengerSettings` schema/interface/helper + callable)
+2. `npm --prefix functions run build`
+3. `npm --prefix functions run lint`
+4. `npm --prefix functions run format:check`
+5. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+6. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (241 `[x]`)
+7. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (241 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `updatePassengerSettings` callable eklendi.
+- Endpoint guvenlik zinciri:
+  - auth + non-anonymous + role(passenger).
+  - route varlik kontrolu + archived route guard.
+  - route owner (driver) bu endpointi kullanamiyor.
+  - `routes/{routeId}/passengers/{uid}` kaydi yoksa `not-found`.
+- Input validation zod ile uygulanıyor:
+  - `boardingArea` zorunlu.
+  - `notificationTime` `HH:mm` formatinda.
+  - `virtualStop` koordinat sinirlari dogrulaniyor.
+- Membership self-heal:
+  - passenger kaydi var ama `memberIds` icinde uid yoksa transaction icinde uid tekrar ekleniyor.
+  - bu durumda `passengerCount` tutarliligi da transaction icinde normalize ediliyor.
+- `virtualStop`/`virtualStopLabel` icin mevcut kayit korunarak patch semantigi saglandi.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 242: `submitSkipToday` callable.
