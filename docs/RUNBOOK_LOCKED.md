@@ -559,9 +559,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 252A `cleanupRouteWriters` schedule function yaz (trip bitiminden sonra stale writer temizligi).
 - [x] 252B `finishTrip` transaction'inda writer revoke zorunlulugunu uygula.
 - [x] 252C `support_reports` retention cleanup kuralini ekle (30 gunu asan raporlar silinsin/anonimlestirilsin).
-- [ ] 253 Transaction helper katmani yaz.
-- [ ] 254 Idempotency repository yaz.
-- [ ] 255 Duplicate push engelleme mekanizmasi yaz.
+- [x] 253 Transaction helper katmani yaz.
+- [x] 254 Idempotency repository yaz.
+- [x] 255 Duplicate push engelleme mekanizmasi yaz.
 - [ ] 256 Driver snapshot phone mask kurali uygula.
 - [ ] 257 `memberIds` turetimini function tarafina tasi.
 - [ ] 258 Guest session TTL enforcement mekanizmasi yaz.

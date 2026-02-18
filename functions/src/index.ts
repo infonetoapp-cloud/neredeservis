@@ -10,10 +10,17 @@ import { z } from 'zod';
 
 import { apiOk } from './common/api_response.js';
 import {
+  createTripRequestRef,
+  readTripRequestReplay,
+  setTripRequestRecord,
+} from './common/idempotency_repository.js';
+import { enqueueOutboxWithDedupe } from './common/notification_dedupe.js';
+import {
   SRV_CODE_COLLISION_LIMIT_ERROR,
   SRV_CODE_COLLISION_MAX_RETRY,
   generateSrvCodeCandidate,
 } from './common/srv_code.js';
+import { runTransactionVoid, runTransactionWithResult } from './common/transaction_helpers.js';
 import { applyMapMatchingWithGuard } from './ghost_drive/map_matching_guard.js';
 import {
   GhostTraceValidationError,
@@ -55,6 +62,8 @@ const CLEANUP_ROUTE_WRITERS_SCAN_LIMIT = 200;
 const CLEANUP_ROUTE_WRITER_TASK_BATCH_LIMIT = 200;
 const SUPPORT_REPORT_RETENTION_DAYS = 30;
 const WRITER_REVOKE_TASK_RETENTION_DAYS = 7;
+const DEVICE_SWITCH_NOTICE_DEDUPE_TTL_DAYS = 3;
+const ANNOUNCEMENT_DISPATCH_DEDUPE_TTL_DAYS = 7;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -508,18 +517,6 @@ function readTransitionVersion(record: Record<string, unknown> | null): number {
   return 0;
 }
 
-function parseTripIdFromResultRef(resultRef: string | null): string | null {
-  if (!resultRef) {
-    return null;
-  }
-  const prefix = 'trips/';
-  if (!resultRef.startsWith(prefix)) {
-    return null;
-  }
-  const tripId = resultRef.slice(prefix.length).trim();
-  return tripId.length > 0 ? tripId : null;
-}
-
 function parseIsoToMs(value: string | null): number | null {
   if (!value) {
     return null;
@@ -715,7 +712,7 @@ async function createRouteWithSrvCode({
     const srvCodeRef = db.collection('_srv_codes').doc(srvCode);
 
     try {
-      await db.runTransaction(async (tx) => {
+      await runTransactionVoid(db, async (tx) => {
         const srvCodeSnap = await tx.get(srvCodeRef);
         if (srvCodeSnap.exists) {
           throw new Error(SRV_CODE_COLLISION_LIMIT_ERROR);
@@ -925,12 +922,16 @@ export const registerDevice = onCall(async (request) => {
   await requireDriverProfile(db, auth.uid);
 
   const input = validateInput(registerDeviceInputSchema, request.data);
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const deviceSwitchNoticeDedupeExpiresAtIso = new Date(
+    nowMs + DEVICE_SWITCH_NOTICE_DEDUPE_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
   const driverRef = db.collection('drivers').doc(auth.uid);
   const currentDeviceRef = driverRef.collection('devices').doc(input.deviceId);
   let previousDeviceRevoked = false;
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const driverSnap = await tx.get(driverRef);
     if (!driverSnap.exists) {
       throw new HttpsError('not-found', 'Driver profile bulunamadi.');
@@ -953,23 +954,37 @@ export const registerDevice = onCall(async (request) => {
       );
 
       const switchAuditRef = db.collection('_audit_device_switches').doc();
+      const dedupeKey = `device_switch_notice_${auth.uid}_${previousDeviceId}_${input.deviceId}`;
+      const queued = await enqueueOutboxWithDedupe({
+        tx,
+        db,
+        dedupeKey,
+        dedupeData: {
+          uid: auth.uid,
+          dedupeType: 'device_switch_notice',
+          previousDeviceId,
+          nextDeviceId: input.deviceId,
+          createdAt: nowIso,
+          expiresAt: deviceSwitchNoticeDedupeExpiresAtIso,
+        },
+        outboxData: {
+          type: 'device_switch_notice',
+          uid: auth.uid,
+          previousDeviceId,
+          nextDeviceId: input.deviceId,
+          targetToken: pickString(driverData, 'activeDeviceToken'),
+          dedupeKey,
+          status: 'pending',
+          createdAt: nowIso,
+        },
+      });
+
       tx.set(switchAuditRef, {
         uid: auth.uid,
         previousDeviceId,
         nextDeviceId: input.deviceId,
         createdAt: nowIso,
-        notificationStatus: 'pending',
-      });
-
-      const notificationOutboxRef = db.collection('_notification_outbox').doc();
-      tx.set(notificationOutboxRef, {
-        type: 'device_switch_notice',
-        uid: auth.uid,
-        previousDeviceId,
-        nextDeviceId: input.deviceId,
-        targetToken: pickString(driverData, 'activeDeviceToken'),
-        status: 'pending',
-        createdAt: nowIso,
+        notificationStatus: queued ? 'pending' : 'deduped',
       });
     }
 
@@ -1330,7 +1345,7 @@ export const joinRouteBySrvCode = onCall(async (request) => {
   const passengerRef = routeRef.collection('passengers').doc(auth.uid);
   const nowIso = new Date().toISOString();
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -1406,7 +1421,7 @@ export const leaveRoute = onCall(async (request) => {
   const nowIso = new Date().toISOString();
   let left = false;
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -1474,7 +1489,7 @@ export const updatePassengerSettings = onCall(async (request) => {
   const passengerRef = routeRef.collection('passengers').doc(auth.uid);
   const nowIso = new Date().toISOString();
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -1561,7 +1576,7 @@ export const submitSkipToday = onCall(async (request) => {
     );
   }
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -1634,7 +1649,7 @@ export const createGuestSession = onCall(async (request) => {
   const sessionRef = db.collection('guest_sessions').doc();
   const userRef = db.collection('users').doc(auth.uid);
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const userSnap = await tx.get(userRef);
     const existingUser = asRecord(userSnap.data());
     const existingRole = readRole(existingUser?.role);
@@ -1714,16 +1729,14 @@ export const startTrip = onCall(async (request) => {
 
   const routeRef = db.collection('routes').doc(input.routeId);
   const driverRef = db.collection('drivers').doc(auth.uid);
-  const requestRef = db.collection('trip_requests').doc(`${auth.uid}_${input.idempotencyKey}`);
+  const requestRef = createTripRequestRef(db, auth.uid, input.idempotencyKey);
   const activeTripQuery = db
     .collection('trips')
     .where('routeId', '==', input.routeId)
     .where('status', '==', 'active')
     .limit(1);
 
-  let output: StartTripOutput | null = null;
-
-  await db.runTransaction(async (tx) => {
+  const output = await runTransactionWithResult<StartTripOutput>(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -1740,24 +1753,12 @@ export const startTrip = onCall(async (request) => {
       throw new HttpsError('permission-denied', 'Bu route icin startTrip yetkin yok.');
     }
 
-    const requestSnap = await tx.get(requestRef);
-    if (requestSnap.exists) {
-      const requestData = asRecord(requestSnap.data());
-      if (pickString(requestData, 'requestType') !== 'start_trip') {
-        throw new HttpsError(
-          'failed-precondition',
-          'Idempotency key farkli islem tipiyle kullanildi.',
-        );
-      }
-
-      const existingTripId = parseTripIdFromResultRef(pickString(requestData, 'resultRef'));
-      if (!existingTripId) {
-        throw new HttpsError(
-          'failed-precondition',
-          'Idempotency kaydi gecersiz resultRef iceriyor.',
-        );
-      }
-
+    const existingTripId = await readTripRequestReplay({
+      tx,
+      requestRef,
+      expectedRequestType: 'start_trip',
+    });
+    if (existingTripId) {
       const existingTripRef = db.collection('trips').doc(existingTripId);
       const existingTripSnap = await tx.get(existingTripRef);
       if (!existingTripSnap.exists) {
@@ -1776,12 +1777,11 @@ export const startTrip = onCall(async (request) => {
         );
       }
 
-      output = {
+      return {
         tripId: existingTripRef.id,
         status: 'active',
         transitionVersion: readTransitionVersion(existingTripData),
       };
-      return;
     }
 
     const activeTripSnap = await tx.get(activeTripQuery);
@@ -1803,20 +1803,21 @@ export const startTrip = onCall(async (request) => {
         throw new HttpsError('failed-precondition', 'Route icin zaten aktif bir trip var.');
       }
 
-      tx.set(requestRef, {
+      setTripRequestRecord({
+        tx,
+        requestRef,
         requestType: 'start_trip',
         uid: auth.uid,
-        resultRef: `trips/${activeTripDoc.id}`,
+        tripId: activeTripDoc.id,
         createdAt: nowIso,
         expiresAt: requestExpiresAtIso,
       });
 
-      output = {
+      return {
         tripId: activeTripDoc.id,
         status: 'active',
         transitionVersion: currentTransitionVersion,
       };
-      return;
     }
 
     const driverSnap = await tx.get(driverRef);
@@ -1848,10 +1849,12 @@ export const startTrip = onCall(async (request) => {
       updatedAt: nowIso,
     });
 
-    tx.set(requestRef, {
+    setTripRequestRecord({
+      tx,
+      requestRef,
       requestType: 'start_trip',
       uid: auth.uid,
-      resultRef: `trips/${tripRef.id}`,
+      tripId: tripRef.id,
       createdAt: nowIso,
       expiresAt: requestExpiresAtIso,
     });
@@ -1869,16 +1872,12 @@ export const startTrip = onCall(async (request) => {
         : lastTripStartedNotificationAt,
     });
 
-    output = {
+    return {
       tripId: tripRef.id,
       status: 'active',
       transitionVersion,
     };
   });
-
-  if (!output) {
-    throw new HttpsError('internal', 'startTrip sonucu hesaplanamadi.');
-  }
 
   await rtdb.ref(`routeWriters/${input.routeId}/${auth.uid}`).set(true);
 
@@ -1907,13 +1906,13 @@ export const finishTrip = onCall(async (request) => {
   ).toISOString();
 
   const tripRef = db.collection('trips').doc(input.tripId);
-  const requestRef = db.collection('trip_requests').doc(`${auth.uid}_${input.idempotencyKey}`);
+  const requestRef = createTripRequestRef(db, auth.uid, input.idempotencyKey);
 
   let output: FinishTripOutput | null = null;
   let routeIdForWriterRevoke: string | null = null;
   let writerRevokeTaskId: string | null = null;
 
-  await db.runTransaction(async (tx) => {
+  await runTransactionVoid(db, async (tx) => {
     const tripSnap = await tx.get(tripRef);
     if (!tripSnap.exists) {
       throw new HttpsError('not-found', 'Trip bulunamadi.');
@@ -1952,24 +1951,12 @@ export const finishTrip = onCall(async (request) => {
       );
     };
 
-    const requestSnap = await tx.get(requestRef);
-    if (requestSnap.exists) {
-      const requestData = asRecord(requestSnap.data());
-      if (pickString(requestData, 'requestType') !== 'finish_trip') {
-        throw new HttpsError(
-          'failed-precondition',
-          'Idempotency key farkli islem tipiyle kullanildi.',
-        );
-      }
-
-      const existingTripId = parseTripIdFromResultRef(pickString(requestData, 'resultRef'));
-      if (!existingTripId) {
-        throw new HttpsError(
-          'failed-precondition',
-          'Idempotency kaydi gecersiz resultRef iceriyor.',
-        );
-      }
-
+    const existingTripId = await readTripRequestReplay({
+      tx,
+      requestRef,
+      expectedRequestType: 'finish_trip',
+    });
+    if (existingTripId) {
       const existingTripRef = db.collection('trips').doc(existingTripId);
       const existingTripSnap = await tx.get(existingTripRef);
       if (!existingTripSnap.exists) {
@@ -2019,10 +2006,12 @@ export const finishTrip = onCall(async (request) => {
 
     if (currentStatus === 'completed' || currentStatus === 'abandoned') {
       const endedAt = pickString(tripData, 'endedAt') ?? nowIso;
-      tx.set(requestRef, {
+      setTripRequestRecord({
+        tx,
+        requestRef,
         requestType: 'finish_trip',
         uid: auth.uid,
-        resultRef: `trips/${tripRef.id}`,
+        tripId: tripRef.id,
         createdAt: nowIso,
         expiresAt: requestExpiresAtIso,
       });
@@ -2058,10 +2047,12 @@ export const finishTrip = onCall(async (request) => {
       updatedAt: nowIso,
     });
 
-    tx.set(requestRef, {
+    setTripRequestRecord({
+      tx,
+      requestRef,
       requestType: 'finish_trip',
       uid: auth.uid,
-      resultRef: `trips/${tripRef.id}`,
+      tripId: tripRef.id,
       createdAt: nowIso,
       expiresAt: requestExpiresAtIso,
     });
@@ -2150,11 +2141,13 @@ export const sendDriverAnnouncement = onCall(async (request) => {
   const announcementRef = db
     .collection('announcements')
     .doc(`${input.routeId}_${auth.uid}_${input.idempotencyKey}`);
-  const nowIso = new Date().toISOString();
-  let shareUrl = '';
-  let output: SendDriverAnnouncementOutput | null = null;
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const announcementDispatchDedupeExpiresAtIso = new Date(
+    nowMs + ANNOUNCEMENT_DISPATCH_DEDUPE_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
-  await db.runTransaction(async (tx) => {
+  const output = await runTransactionWithResult<SendDriverAnnouncementOutput>(db, async (tx) => {
     const routeSnap = await tx.get(routeRef);
     if (!routeSnap.exists) {
       throw new HttpsError('not-found', 'Route bulunamadi.');
@@ -2175,7 +2168,7 @@ export const sendDriverAnnouncement = onCall(async (request) => {
     if (!srvCode) {
       throw new HttpsError('failed-precondition', 'Route srvCode bilgisi eksik.');
     }
-    shareUrl = `https://nerede.servis/r/${srvCode}`;
+    const shareUrl = `https://nerede.servis/r/${srvCode}`;
 
     const announcementSnap = await tx.get(announcementRef);
     if (!announcementSnap.exists) {
@@ -2189,18 +2182,38 @@ export const sendDriverAnnouncement = onCall(async (request) => {
         idempotencyKey: input.idempotencyKey,
         createdAt: nowIso,
       });
+
+      const dedupeKey = `announcement_dispatch_${announcementRef.id}`;
+      await enqueueOutboxWithDedupe({
+        tx,
+        db,
+        dedupeKey,
+        dedupeData: {
+          dedupeType: 'announcement_dispatch',
+          announcementId: announcementRef.id,
+          routeId: input.routeId,
+          driverId: auth.uid,
+          createdAt: nowIso,
+          expiresAt: announcementDispatchDedupeExpiresAtIso,
+        },
+        outboxData: {
+          type: 'driver_announcement_dispatch',
+          announcementId: announcementRef.id,
+          routeId: input.routeId,
+          driverId: auth.uid,
+          dedupeKey,
+          status: 'pending',
+          createdAt: nowIso,
+        },
+      });
     }
 
-    output = {
+    return {
       announcementId: announcementRef.id,
       fcmCount: 0,
       shareUrl,
     };
   });
-
-  if (!output) {
-    throw new HttpsError('internal', 'sendDriverAnnouncement sonucu hesaplanamadi.');
-  }
 
   return apiOk<SendDriverAnnouncementOutput>(output);
 });
@@ -2425,7 +2438,7 @@ export const abandonedTripGuard = onSchedule('every 10 minutes', async () => {
   const writerRevokeTargets = new Set<string>();
 
   for (const tripDoc of staleTripCandidatesSnap.docs) {
-    await db.runTransaction(async (tx) => {
+    await runTransactionVoid(db, async (tx) => {
       const tripRef = db.collection('trips').doc(tripDoc.id);
       const tripSnap = await tx.get(tripRef);
       if (!tripSnap.exists) {
@@ -2501,32 +2514,29 @@ export const morningReminderDispatcher = onSchedule('every 1 minutes', async () 
     }
 
     const dedupeKey = `${routeDoc.id}_${istanbulClock.dateKey}_morning_reminder`;
-    const dedupeRef = db.collection('_notification_dedup').doc(dedupeKey);
-    const reminderOutboxRef = db.collection('_notification_outbox').doc();
     const dedupeExpiresAtIso = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
-    await db.runTransaction(async (tx) => {
-      const dedupeSnap = await tx.get(dedupeRef);
-      if (dedupeSnap.exists) {
-        return;
-      }
-
-      tx.set(dedupeRef, {
-        routeId: routeDoc.id,
-        dateKey: istanbulClock.dateKey,
-        reminderType: 'morning_reminder',
-        createdAt: nowIso,
-        expiresAt: dedupeExpiresAtIso,
-      });
-
-      tx.set(reminderOutboxRef, {
-        type: 'morning_reminder',
-        routeId: routeDoc.id,
-        dateKey: istanbulClock.dateKey,
-        scheduledTime,
+    await runTransactionVoid(db, async (tx) => {
+      await enqueueOutboxWithDedupe({
+        tx,
+        db,
         dedupeKey,
-        status: 'pending',
-        createdAt: nowIso,
+        dedupeData: {
+          routeId: routeDoc.id,
+          dateKey: istanbulClock.dateKey,
+          reminderType: 'morning_reminder',
+          createdAt: nowIso,
+          expiresAt: dedupeExpiresAtIso,
+        },
+        outboxData: {
+          type: 'morning_reminder',
+          routeId: routeDoc.id,
+          dateKey: istanbulClock.dateKey,
+          scheduledTime,
+          dedupeKey,
+          status: 'pending',
+          createdAt: nowIso,
+        },
       });
     });
   }

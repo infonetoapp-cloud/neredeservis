@@ -7218,3 +7218,68 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 253: transaction helper katmani.
+
+## STEP-253-255 - Transaction Helper + Idempotency Repository + Duplicate Push Prevention
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 253: Firestore transaction davranisini ortak helper katmanina tasimak.
+- 254: Trip lifecycle icin idempotency repository olusturup `startTrip/finishTrip` akisini standardize etmek.
+- 255: Notification outbox icin ortak duplicate push engelleme mekanizmasi kurmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/common/transaction_helpers.ts` (runTransaction helperlari)
+2. `apply_patch` -> `functions/src/common/idempotency_repository.ts` (trip request repository)
+3. `apply_patch` -> `functions/src/common/notification_dedupe.ts` (dedupe+outbox helper)
+4. `apply_patch` -> `functions/src/index.ts` (yeni helper importlari + sabitler)
+5. `apply_patch` -> `functions/src/index.ts` (`registerDevice` dedupe/outbox + transaction helper)
+6. `apply_patch` -> `functions/src/index.ts` (`startTrip`/`finishTrip` idempotency repository entegrasyonu)
+7. `apply_patch` -> `functions/src/index.ts` (`sendDriverAnnouncement` dispatch dedupe/outbox)
+8. `apply_patch` -> `functions/src/index.ts` (`morningReminderDispatcher` ortak dedupe helper)
+9. `apply_patch` -> `functions/src/index.ts` (kalan dogrudan transaction cagrilarini helper katmanina tasima)
+10. `npm --prefix functions run build`
+11. `npm --prefix functions run lint`
+12. `npm --prefix functions run format:check` (fail)
+13. `npx --prefix functions prettier --write functions/src/index.ts functions/src/common/idempotency_repository.ts`
+14. `npm --prefix functions run build`
+15. `npm --prefix functions run lint`
+16. `npm --prefix functions run format:check`
+17. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+18. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (253, 254, 255 `[x]`)
+19. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (253, 254, 255 `[x]`)
+20. `apply_patch` -> `docs/api_contracts.md` (transaction/idempotency/dedupe kontrat notlari)
+21. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `common/transaction_helpers.ts` eklendi:
+  - `runTransactionVoid`
+  - `runTransactionWithResult`
+- `common/idempotency_repository.ts` eklendi:
+  - `createTripRequestRef`
+  - `readTripRequestReplay`
+  - `setTripRequestRecord`
+- `startTrip` ve `finishTrip` trip-request idempotency akislari repository uzerine alindi; tekrar eden parse/type kontrol kodu tek katmana indirildi.
+- `common/notification_dedupe.ts` ile ortak dedupe/outbox mekanizmasi eklendi.
+- Duplicate push engelleme aktif baglantilari:
+  - `morningReminderDispatcher`
+  - `registerDevice` (`device_switch_notice`)
+  - `sendDriverAnnouncement` (`driver_announcement_dispatch`)
+- Index icindeki Firestore transaction cagrilari ortak helper katmanina tasindi.
+
+### Hata Kaydi (Silinmez)
+- Ilk format kontrol turunda `prettier` uyumsuzlugu alindi.
+  - Cozum: hedef dosyalarda `prettier --write` calistirildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 256: driver snapshot phone mask kurali.

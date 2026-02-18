@@ -484,6 +484,23 @@ Directory callable guardrails:
 - `expectedTransitionVersion` is mandatory for trip transitions.
 - `srvCode` generation is server-side and collision-safe.
 
+## Transaction Helper Contract
+- Tum Firestore state-transition yazimlari ortak helper katmani ile calisir:
+  - `runTransactionVoid(...)`
+  - `runTransactionWithResult<T>(...)`
+- Islem kurallari endpointten bagimsiz, helper seviyesinde tek bir transaction semantigiyle korunur.
+
+## Idempotency Repository Contract
+- Trip lifecycle idempotency repository kurali:
+  - doc id: `trip_requests/{uid}_{idempotencyKey}`
+  - `requestType`: `start_trip | finish_trip`
+  - `resultRef`: `trips/{tripId}`
+- Repository API:
+  - `createTripRequestRef(...)`
+  - `readTripRequestReplay(...)`
+  - `setTripRequestRecord(...)`
+- Replay kaydi mevcutsa ayni `requestType` zorunludur; farkli tipte kullanim `FAILED_PRECONDITION` dondurur.
+
 ## startTrip Contract
 - `startTrip` is invoked after client-side `10s` undo window closes.
 - Input must include `idempotencyKey` + `expectedTransitionVersion`.
@@ -561,6 +578,16 @@ Directory callable guardrails:
 - Dedup key is mandatory: `routeId + dateKey(YYYY-MM-DD, Europe/Istanbul) + reminder_type`.
 - Dedup state is persisted at `_notification_dedup/{dedupeKey}`.
 - Dispatch payload is enqueued to `_notification_outbox` with type `morning_reminder`.
+
+## Duplicate Push Prevention Contract
+- Ortak dedupe mekanizmasi: `enqueueOutboxWithDedupe(...)`.
+- Isleyis:
+  - `_notification_dedup/{dedupeKey}` varsa yeni outbox olusmaz.
+  - Yoksa dedupe ve `_notification_outbox` atomik olarak ayni transaction'da yazilir.
+- Aktif dedupe kullanimlari:
+  - `morning_reminder`
+  - `device_switch_notice`
+  - `driver_announcement_dispatch`
 
 ## cleanupStaleData Contract
 - Schedule: `03:00` (`Europe/Istanbul`).
