@@ -5751,3 +5751,91 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
+
+## STEP-203A - Stabilizasyon Notu (Cihaz Install Restriction)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- STEP-203 sonrasi ek dogrulama turunda olusan cihaz kaynakli blokaji kayda gecmek ve kod tabanini stabil hale getirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter analyze`
+2. `flutter test`
+3. `flutter test integration_test/smoke_startup_test.dart --flavor dev`
+4. `apply_patch` -> `android/app/build.gradle` (otomatik migrate edilen `minSdkVersion` satiri geri alindi, `23` sabit tutuldu)
+5. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `flutter analyze` temiz.
+- `flutter test` tamami gecti (`137` test).
+- Integration kosusu bu turda cihaz kurulum kisitina takildi:
+  - `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`
+- Bu hata kod/regresyon degil; cihaz/USB install izin politikasindan kaynaklandi.
+
+### Hata Kaydi (Silinmez)
+- `flutter test integration_test/smoke_startup_test.dart --flavor dev` kosusunda ADB kurulum adimi kullanici kisitina takildi.
+  - Not: STEP-203 icinde ayni integration testi bir onceki kosuda basariyla gecmisti (`1/1`).
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 137 test passed.
+- Kod tabaninda otomatik `build.gradle` migrate diff'i birakilmadi; commit kapsamindan cikarildi.
+
+### Sonraki Adim
+- Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
+
+## STEP-203 - Tum Unit Testler Green Dogrulama
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Teknik altyapinin mevcut kod tabaninda test/derleme seviyesinde calistigini dogrulamak ve hata varsa kapatmak.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter analyze`
+2. `flutter test`
+3. `flutter build apk --debug`
+4. `flutter build apk --debug --flavor dev -t lib/main_dev.dart`
+5. `flutter build apk --debug --flavor stg -t lib/main_stg.dart`
+6. `flutter build apk --debug --flavor prod -t lib/main_prod.dart`
+7. `flutter test integration_test/smoke_startup_test.dart`
+8. `flutter test integration_test/smoke_startup_test.dart --flavor dev`
+9. `apply_patch` -> `integration_test/smoke_startup_test.dart`
+10. `dart format integration_test/smoke_startup_test.dart`
+11. `flutter analyze`
+12. `flutter test`
+13. `flutter test integration_test/smoke_startup_test.dart --flavor dev`
+14. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (203 `[x]`)
+15. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (203 `[x]`)
+16. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `flutter analyze` temiz.
+- Tum unit/widget/golden testleri gecti.
+- Flavor bazli Android debug build zinciri gecti:
+  - `app-dev-debug.apk`
+  - `app-stg-debug.apk`
+  - `app-prod-debug.apk`
+- Integration smoke testi guncellendi:
+  - Eski beklenti: splash metni
+  - Yeni beklenti: auth acilis ekrani (`Giris Yap`, `Google ile Giris`)
+
+### Hata Kaydi (Silinmez)
+- `flutter build apk --debug` komutu flavor'li projede APK adini otomatik bulamadi ve non-zero cikti; ancak artifactler `build/app/outputs/flutter-apk/` altina uretildi.
+  - Cozum: build dogrulama flavor bazli explicit komutlarla calistirildi.
+- `integration_test/smoke_startup_test.dart` ilk kosuda auth akisi degistigi icin eski splash assertion'inda fail verdi.
+  - Cozum: test beklentisi guncel acilis ekranina revize edildi.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 137 test passed.
+- `flutter test integration_test/smoke_startup_test.dart --flavor dev` -> 1/1 passed.
+- `flutter build apk --debug --flavor dev -t lib/main_dev.dart` -> success.
+- `flutter build apk --debug --flavor stg -t lib/main_stg.dart` -> success.
+- `flutter build apk --debug --flavor prod -t lib/main_prod.dart` -> success.
+
+### Sonraki Adim
+- Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.

@@ -7,7 +7,8 @@ import 'package:neredeservis/config/app_flavor.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('dev flavor shell renders on device', (WidgetTester tester) async {
+  testWidgets('dev flavor shell renders on device',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       const ProviderScope(
         child: NeredeServisApp(
@@ -22,6 +23,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('NeredeServis Dev'), findsOneWidget);
-    expect(find.text('Splash / Router Skeleton (dev)'), findsOneWidget);
+    expect(find.text('Giris Yap'), findsOneWidget);
+    expect(find.text('Google ile Giris'), findsOneWidget);
   });
 }
