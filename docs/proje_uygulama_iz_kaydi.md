@@ -7878,3 +7878,94 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 277: KULLANICIDAN ONAY ISTE - "Prod function deploy onayi"
+
+## STEP-277-279 - Prod Deploy Onayi + Deploy + Post-Deploy Health Check
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 277: Prod function deploy onayini almak.
+- 278: functions'i production ortamina deploy etmek.
+- 279: post-deploy health check ile canli dogrulamayi tamamlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `firebase deploy --only functions --project prod` (ilk deneme; kismi basari)
+2. `firebase functions:artifacts:setpolicy --project prod --location europe-west1 --days 7 --force` (repo henuz yok -> bilgilendirme)
+3. `firebase functions:artifacts:setpolicy --project prod --location europe-west3 --days 7 --force`
+4. `firebase deploy --only functions --project prod` (ikinci deneme; `syncTripHeartbeatFromLocation` olustu, cleanup policy nedeniyle non-zero exit)
+5. `firebase functions:artifacts:setpolicy --project prod --location europe-west1 --days 7 --force`
+6. `firebase deploy --only functions --project prod` (ucuncu deneme; temiz basari)
+7. `$json = firebase functions:list --project prod --json; $obj = $json | ConvertFrom-Json; $obj.result | Where-Object { $_.id -in @('healthCheck','syncTripHeartbeatFromLocation','syncPassengerCount','syncRouteMembership') } | Select-Object id, region, state`
+8. `Invoke-RestMethod -Uri "https://europe-west3-neredeservis-prod-01.cloudfunctions.net/healthCheck" -Method Post -ContentType "application/json" -Body '{"data":{}}'`
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`277-279` `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`277-279` `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- STEP-277: kullanici onayi alindi (`"evet devam et"`).
+- STEP-278:
+  - production functions deploy tamamlandi (`Deploy complete`).
+  - `syncTripHeartbeatFromLocation` productionda `europe-west1` bolgesinde aktif.
+- STEP-279:
+  - kritik function durumlari:
+    - `healthCheck` -> `ACTIVE` (`europe-west3`)
+    - `syncTripHeartbeatFromLocation` -> `ACTIVE` (`europe-west1`)
+    - `syncPassengerCount` -> `ACTIVE` (`europe-west3`)
+    - `syncRouteMembership` -> `ACTIVE` (`europe-west3`)
+  - canli `healthCheck` cagrisi:
+    - `ok=true`
+    - `serverTime=2026-02-18T20:43:30.330Z`
+    - `region=europe-west3`
+
+### Hata Kaydi (Silinmez)
+- Ilk prod deploy denemesinde `syncTripHeartbeatFromLocation` Eventarc service-agent propagation gecikmesi nedeniyle fail oldu.
+  - Cozum: deploy tekrarlandi; fonksiyon olusumu tamamlandi.
+- Ikinci denemede `europe-west1` Artifact Registry cleanup policy eksikligi nedeniyle CLI non-zero exit verdi.
+  - Cozum: `firebase functions:artifacts:setpolicy --project prod --location europe-west1 --days 7 --force` uygulandi.
+  - Sonraki deploy temiz tamamlandi.
+- Bilgilendirme:
+  - Node.js 20 lifecycle uyarisi goruldu.
+  - `firebase-functions` upgrade uyarisi goruldu.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `firebase deploy --only functions --project prod` -> pass.
+- `functions:list` kritik fonksiyonlar `ACTIVE`.
+- `healthCheck` canli cagrisi -> pass.
+
+### Sonraki Adim
+- Faz F / 280: Faz F kapanis raporu yaz.
+
+## STEP-280 - Faz F Kapanis Raporu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz F kapsami boyunca tamamlanan teknik kazanimlari, dogrulama kanitlarini ve sonraki faz girisini tek raporda toplamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `docs/faz_f_kapanis_raporu.md`
+2. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`280` `[x]`)
+3. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`280` `[x]`)
+4. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Faz F kapanis raporu olusturuldu: `docs/faz_f_kapanis_raporu.md`.
+- Rapor kapsaminda:
+  - Faz F teknik ozet ve kazanımlar
+  - local/staging/prod dogrulama ozetleri
+  - operasyonel notlar (artifact cleanup policy)
+  - bilinen uyarilar (Node20 lifecycle, firebase-functions upgrade)
+  - sonraki backlog gecisi (281+)
+
+### Hata Kaydi (Silinmez)
+- Bu adimda teknik hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `docs/faz_f_kapanis_raporu.md` dosyasi olusturuldu ve runbook adimi kapatildi.
+
+### Sonraki Adim
+- Faz F / 281: Mapbox directions proxy function yaz.

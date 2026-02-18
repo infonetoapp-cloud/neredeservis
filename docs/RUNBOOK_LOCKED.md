@@ -593,10 +593,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 274 Staging deploy yap.
 - [x] 275 Staging smoke test yap.
 - [x] 276 Prod deploy icin release note hazirla.
-- [ ] 277 KULLANICIDAN ONAY ISTE: "Prod function deploy onayi".
-- [ ] 278 Prod deploy yap.
-- [ ] 279 Post-deploy health check yap.
-- [ ] 280 Faz F kapanis raporu yaz.
+- [x] 277 KULLANICIDAN ONAY ISTE: "Prod function deploy onayi".
+- [x] 278 Prod deploy yap.
+- [x] 279 Post-deploy health check yap.
+- [x] 280 Faz F kapanis raporu yaz.
 - [ ] 281 Mapbox directions proxy function yaz (imzali istek + per-route rate limit + aylik hard cap).
 - [ ] 281A Mapbox map-matching proxy function yaz (trace post-process + request budget + graceful fallback).
 - [ ] 282 Secret manager'a Mapbox secret token koy.
