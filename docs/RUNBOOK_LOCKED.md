@@ -552,9 +552,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 249B RTDB live write tazelik kuralini uygula: `timestamp >= now-30000` disindaki nokta live path'e kabul edilmez.
 - [x] 250 `abandonedTripGuard` schedule function yaz (event-driven stale sinyal varsa once onu kullan, schedule fallback).
 - [x] 250A `abandonedTripGuard` sorgu/index kontratini yaz ve emulator query-plan kanitini ekle.
-- [ ] 251 `morningReminderDispatcher` schedule function yaz.
-- [ ] 251A Timezone kararini enforce et: `scheduledTime` karsilastirmasi `Europe/Istanbul`; UTC sapmasi icin test yaz.
-- [ ] 251B Reminder algoritmasini sabitle: `target = scheduledTime - 5 dk`, gonderim penceresi `[target,target+1dk)`, dedupe key=`routeId+dateKey+reminderType`.
+- [x] 251 `morningReminderDispatcher` schedule function yaz.
+- [x] 251A Timezone kararini enforce et: `scheduledTime` karsilastirmasi `Europe/Istanbul`; UTC sapmasi icin test yaz.
+- [x] 251B Reminder algoritmasini sabitle: `target = scheduledTime - 5 dk`, gonderim penceresi `[target,target+1dk)`, dedupe key=`routeId+dateKey+reminderType`.
 - [ ] 252 `cleanupStaleData` schedule function yaz.
 - [ ] 252A `cleanupRouteWriters` schedule function yaz (trip bitiminden sonra stale writer temizligi).
 - [ ] 252B `finishTrip` transaction'inda writer revoke zorunlulugunu uygula.

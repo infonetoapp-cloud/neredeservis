@@ -557,6 +557,8 @@ Directory callable guardrails:
   - compute `target = scheduledTime - 5 minutes`.
   - send reminder only if `now_istanbul` is inside `[target, target+1m)` window.
 - Dedup key is mandatory: `routeId + dateKey(YYYY-MM-DD, Europe/Istanbul) + reminder_type`.
+- Dedup state is persisted at `_notification_dedup/{dedupeKey}`.
+- Dispatch payload is enqueued to `_notification_outbox` with type `morning_reminder`.
 
 ## srvCode Generation Contract
 - Alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (ambiguous chars yok).

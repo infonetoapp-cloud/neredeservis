@@ -49,6 +49,7 @@ const TRIP_STARTED_NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000;
 const LIVE_LOCATION_MAX_AGE_MS = 30_000;
 const LIVE_LOCATION_FUTURE_TOLERANCE_MS = 5_000;
 const ABANDONED_TRIP_STALE_WINDOW_MS = 10 * 60 * 1000;
+const MORNING_REMINDER_LEAD_MINUTES = 5;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -527,6 +528,54 @@ function sameStringArray(a: readonly string[], b: readonly string[]): boolean {
     return false;
   }
   return a.every((value, index) => value === b[index]);
+}
+
+function parseHourMinuteToMinuteOfDay(value: string | null): number | null {
+  if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    return null;
+  }
+  const [hourText, minuteText] = value.split(':', 2);
+  if (!hourText || !minuteText) {
+    return null;
+  }
+  const hour = Number.parseInt(hourText, 10);
+  const minute = Number.parseInt(minuteText, 10);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
+  return hour * 60 + minute;
+}
+
+function getIstanbulClockInfo(when: Date): { dateKey: string; minuteOfDay: number } | null {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const parts = formatter.formatToParts(when);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  const hourText = parts.find((part) => part.type === 'hour')?.value;
+  const minuteText = parts.find((part) => part.type === 'minute')?.value;
+  if (!year || !month || !day || !hourText || !minuteText) {
+    return null;
+  }
+
+  const hour = Number.parseInt(hourText, 10);
+  const minute = Number.parseInt(minuteText, 10);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
+
+  return {
+    dateKey: `${year}-${month}-${day}`,
+    minuteOfDay: hour * 60 + minute,
+  };
 }
 
 function readSubscriptionStatus(value: unknown): SubscriptionStatus {
@@ -2304,4 +2353,59 @@ export const abandonedTripGuard = onSchedule('every 10 minutes', async () => {
       await rtdb.ref(`routeWriters/${routeId}/${driverId}`).set(false);
     }),
   );
+});
+
+export const morningReminderDispatcher = onSchedule('every 1 minutes', async () => {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const istanbulClock = getIstanbulClockInfo(now);
+  if (!istanbulClock) {
+    return;
+  }
+
+  const activeRoutesSnap = await db.collection('routes').where('isArchived', '==', false).get();
+  for (const routeDoc of activeRoutesSnap.docs) {
+    const routeData = asRecord(routeDoc.data()) ?? {};
+    const scheduledTime = pickString(routeData, 'scheduledTime');
+    const scheduledMinuteOfDay = parseHourMinuteToMinuteOfDay(scheduledTime);
+    if (scheduledMinuteOfDay == null) {
+      continue;
+    }
+
+    const targetMinuteOfDay =
+      (scheduledMinuteOfDay - MORNING_REMINDER_LEAD_MINUTES + 24 * 60) % (24 * 60);
+    if (istanbulClock.minuteOfDay !== targetMinuteOfDay) {
+      continue;
+    }
+
+    const dedupeKey = `${routeDoc.id}_${istanbulClock.dateKey}_morning_reminder`;
+    const dedupeRef = db.collection('_notification_dedup').doc(dedupeKey);
+    const reminderOutboxRef = db.collection('_notification_outbox').doc();
+    const dedupeExpiresAtIso = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    await db.runTransaction(async (tx) => {
+      const dedupeSnap = await tx.get(dedupeRef);
+      if (dedupeSnap.exists) {
+        return;
+      }
+
+      tx.set(dedupeRef, {
+        routeId: routeDoc.id,
+        dateKey: istanbulClock.dateKey,
+        reminderType: 'morning_reminder',
+        createdAt: nowIso,
+        expiresAt: dedupeExpiresAtIso,
+      });
+
+      tx.set(reminderOutboxRef, {
+        type: 'morning_reminder',
+        routeId: routeDoc.id,
+        dateKey: istanbulClock.dateKey,
+        scheduledTime,
+        dedupeKey,
+        status: 'pending',
+        createdAt: nowIso,
+      });
+    });
+  }
 });

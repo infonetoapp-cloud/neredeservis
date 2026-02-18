@@ -7106,3 +7106,58 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 251: `morningReminderDispatcher` schedule function.
+
+## STEP-251-251B - morningReminderDispatcher + Timezone + Dedupe Algoritmasi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 251: `morningReminderDispatcher` schedule function.
+- 251A: `Europe/Istanbul` timezone kararini server tarafinda enforce etmek.
+- 251B: `target = scheduledTime - 5dk`, pencere `[target,target+1dk)`, dedupe key kontratini kodlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (reminder lead constant + timezone helperlar)
+2. `apply_patch` -> `functions/src/index.ts` (`morningReminderDispatcher` schedule implementasyonu)
+3. `npm --prefix functions run build`
+4. `npm --prefix functions run lint`
+5. `npm --prefix functions run format:check` (fail)
+6. `npx --prefix functions prettier --write functions/src/index.ts`
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (251, 251A, 251B `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (251, 251A, 251B `[x]`)
+13. `apply_patch` -> `docs/api_contracts.md` (morning reminder dedupe/outbox notlari)
+14. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `morningReminderDispatcher` schedule function eklendi (`every 1 minutes`).
+- Timezone enforcement (251A):
+  - saat/karsilastirma tamamen `Europe/Istanbul` locale parse/part logic'iyle yapiliyor.
+- Reminder algoritmasi (251B):
+  - `scheduledTime(HH:mm)` -> minute-of-day parse.
+  - `targetMinute = scheduledMinute - 5` (mod 1440).
+  - yalniz `nowMinute == targetMinute` aninda tetik.
+- Dedupe/outbox:
+  - dedupe key: `{routeId}_{dateKey}_morning_reminder`.
+  - `_notification_dedup` dokumani varsa no-op.
+  - yeni event `_notification_outbox` altina `type=morning_reminder` olarak kuyuga yaziliyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk format check turu fail verdi.
+  - Cozum: `prettier --write` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 252: `cleanupStaleData` schedule function.
