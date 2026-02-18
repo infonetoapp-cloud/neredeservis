@@ -5752,6 +5752,50 @@ Etiket: codex
 ### Sonraki Adim
 - Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
 
+## STEP-204-204A - Riverpod Provider Baglama + Ownership Transfer Use-Case
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 204: Domain veri katmanini Riverpod provider zinciri ile baglamak.
+- 204A: `transferLocalOwnershipAfterAccountLink` use-case'ini ayri application katmanina almak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/application/transfer_local_ownership_after_account_link_use_case.dart`
+2. `apply_patch` -> `lib/app/providers/domain_data_providers.dart`
+3. `apply_patch` -> `test/domain/transfer_local_ownership_after_account_link_use_case_test.dart`
+4. `dart format lib/features/domain/application/transfer_local_ownership_after_account_link_use_case.dart lib/app/providers/domain_data_providers.dart test/domain/transfer_local_ownership_after_account_link_use_case_test.dart`
+5. `flutter test test/domain/transfer_local_ownership_after_account_link_use_case_test.dart test/domain/local_queue_repository_test.dart`
+6. `flutter analyze`
+7. `flutter test`
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (204, 204A `[x]`)
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (204, 204A `[x]`)
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Yeni application use-case eklendi:
+  - `TransferLocalOwnershipAfterAccountLinkUseCase.execute(...)`
+  - `migratedAt` verilmezse UTC `now` kullaniliyor.
+- Yeni provider zinciri eklendi:
+  - `localDriftDatabaseProvider`
+  - `localQueueRepositoryProvider`
+  - `transferLocalOwnershipAfterAccountLinkUseCaseProvider`
+- Use-case unit testleri eklendi:
+  - anonymous -> registered owner devri dogrulamasi
+  - `migratedAt` verilmediginde otomatik timestamp yazimi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter test test/domain/transfer_local_ownership_after_account_link_use_case_test.dart test/domain/local_queue_repository_test.dart` -> 9/9 passed.
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 141 test passed.
+
+### Sonraki Adim
+- Faz E / 205: Error propagation kurali.
+
 ## STEP-202A - Anonymous linkWithCredential Sonrasi Drift Owner Transfer Unit Testi
 Tarih: 2026-02-18
 Durum: Tamamlandi
