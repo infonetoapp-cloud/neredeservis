@@ -447,10 +447,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 ## FAZ E - Domain ve Data Katmani (181-220)
 
 - [x] 181 User entity/model/mapper yaz.
-- [ ] 182 Driver entity/model/mapper yaz.
-- [ ] 183 Route entity/model/mapper yaz.
-- [ ] 183A Ghost Drive iz kaydi icin `RouteTracePoint` entity/model/mapper yaz.
-- [ ] 183B Route olusturma modunu modele ekle: `manual_pin | ghost_drive`.
+- [x] 182 Driver entity/model/mapper yaz.
+- [x] 183 Route entity/model/mapper yaz.
+- [x] 183A Ghost Drive iz kaydi icin `RouteTracePoint` entity/model/mapper yaz.
+- [x] 183B Route olusturma modunu modele ekle: `manual_pin | ghost_drive`.
 - [ ] 184 Stop entity/model/mapper yaz.
 - [ ] 185 Passenger profile entity/model/mapper yaz.
 - [ ] 186 Trip entity/model/mapper yaz.

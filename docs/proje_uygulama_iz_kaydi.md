@@ -4927,3 +4927,61 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 182: Driver entity/model/mapper.
+
+## STEP-182-183B - Driver + Route + Ghost Trace Entity/Model/Mapper
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adimlarini toplu kapatmak:
+  - 182: Driver entity/model/mapper
+  - 183: Route entity/model/mapper
+  - 183A: `RouteTracePoint` entity/model/mapper
+  - 183B: Route olusturma modu (`manual_pin | ghost_drive`) model kontrati
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/entities/driver_entity.dart`
+2. `apply_patch` -> `lib/features/domain/models/driver_model.dart`
+3. `apply_patch` -> `lib/features/domain/mappers/driver_mapper.dart`
+4. `apply_patch` -> `lib/features/domain/entities/route_entity.dart`
+5. `apply_patch` -> `lib/features/domain/models/route_model.dart`
+6. `apply_patch` -> `lib/features/domain/mappers/route_mapper.dart`
+7. `apply_patch` -> `lib/features/domain/entities/route_trace_point_entity.dart`
+8. `apply_patch` -> `lib/features/domain/models/route_trace_point_model.dart`
+9. `apply_patch` -> `lib/features/domain/mappers/route_trace_point_mapper.dart`
+10. `apply_patch` -> `test/domain/driver_mapper_test.dart`
+11. `apply_patch` -> `test/domain/route_mapper_test.dart`
+12. `apply_patch` -> `test/domain/route_trace_point_mapper_test.dart`
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (182/183/183A/183B `[x]`)
+14. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (182/183/183A/183B `[x]`)
+15. `dart format lib/features/domain test/domain`
+16. `flutter analyze`
+17. `flutter test test/domain`
+18. `flutter test`
+
+### Bulgular
+- Driver katmani eklendi:
+  - `DriverEntity`, `DriverModel`, `DriverModelMapper`
+  - `subscriptionStatus` enum donusumu (`trial|active|expired|unknown`)
+- Route katmani eklendi:
+  - `RouteEntity`, `RouteModel`, `RouteModelMapper`
+  - `RouteVisibility`, `RouteTimeSlot`, `RouteCreationMode`
+  - `creationMode` artik acik olarak `manual_pin|ghost_drive` raw degerlerine mapleniyor.
+- Ghost trace katmani eklendi:
+  - `RouteTracePointEntity`, `RouteTracePointModel`, mapper
+- Test kapsami genislendi:
+  - `driver_mapper_test.dart`
+  - `route_mapper_test.dart`
+  - `route_trace_point_mapper_test.dart`
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test test/domain` -> 11/11 passed.
+- `flutter test` -> 76 test passed.
+
+### Sonraki Adim
+- Faz E / 184: Stop entity/model/mapper.
