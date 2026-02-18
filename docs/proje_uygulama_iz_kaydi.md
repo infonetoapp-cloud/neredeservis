@@ -4755,3 +4755,36 @@ Etiket: codex hotfix
 
 ### Sonraki Adim
 - 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.
+
+## STEP-CODEX-PAYWALL-PATH-HOTFIX-004 - Sofor Home Ayarlar Kisayolu
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex hotfix
+
+### Amac
+- Paywall gorusune girisi acik ve hizli hale getirmek.
+- Sofor home ekranindan tek dokunusla Ayarlar ekranina gecis eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/driver_home_screen.dart` (appbar `Ayarlar` ikonu)
+2. `apply_patch` -> `lib/app/router/app_router.dart` (ikon -> settings route)
+3. `apply_patch` -> `test/ui/driver_home_screen_test.dart` (tooltip tap testi)
+4. `flutter analyze`
+5. `flutter test`
+6. `flutter run --flavor dev -t lib/main_dev.dart -d 99TSTCV4YTOJYXC6 --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+
+### Bulgular
+- Sofor home app bar'ina `Ayarlar` (disli) ikonu eklendi.
+- Kullanici artik su kisa yoldan paywalla ulasabilir:
+  - `Google giris -> Sofor Olarak Devam Et -> Ayarlar (disli) -> Aboneligi Yonet`.
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> All tests passed.
+- Fiziksel cihaz deploy -> basarili.
+
+### Sonraki Adim
+- 157B: Odeme metin kaynagini `docs/NeredeServis_Paywall_Copy_TR.md` ile birebir bagla.

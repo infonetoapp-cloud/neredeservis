@@ -31,6 +31,7 @@ void main() {
     var startTapCount = 0;
     var manageTapCount = 0;
     var announcementTapCount = 0;
+    var settingsTapCount = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -46,6 +47,9 @@ void main() {
           onAnnouncementTap: () {
             announcementTapCount++;
           },
+          onSettingsTap: () {
+            settingsTapCount++;
+          },
         ),
       ),
     );
@@ -60,9 +64,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Duyuru gonder'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Ayarlar'));
+    await tester.pumpAndSettle();
 
     expect(startTapCount, greaterThan(0));
     expect(manageTapCount, greaterThan(0));
     expect(announcementTapCount, equals(1));
+    expect(settingsTapCount, equals(1));
   });
 }

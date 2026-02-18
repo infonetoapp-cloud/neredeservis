@@ -60,6 +60,7 @@ GoRouter buildAppRouter({
           onStartTripTap: () => context.go(AppRoutePath.activeTrip),
           onManageRouteTap: () => context.go(AppRoutePath.settings),
           onAnnouncementTap: () => context.go(AppRoutePath.settings),
+          onSettingsTap: () => context.go(AppRoutePath.settings),
         ),
       ),
       GoRoute(

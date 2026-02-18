@@ -15,18 +15,27 @@ class DriverHomeScreen extends StatelessWidget {
     this.onStartTripTap,
     this.onManageRouteTap,
     this.onAnnouncementTap,
+    this.onSettingsTap,
   });
 
   final String appName;
   final VoidCallback? onStartTripTap;
   final VoidCallback? onManageRouteTap;
   final VoidCallback? onAnnouncementTap;
+  final VoidCallback? onSettingsTap;
 
   @override
   Widget build(BuildContext context) {
     return AmberScreenScaffold(
       title: 'Sofor Home',
       subtitle: appName,
+      actions: <Widget>[
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: 'Ayarlar',
+          onPressed: onSettingsTap ?? onManageRouteTap,
+        ),
+      ],
       scrollable: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
