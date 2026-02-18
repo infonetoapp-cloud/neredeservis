@@ -605,8 +605,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 278 Prod deploy yap.
 - [x] 279 Post-deploy health check yap.
 - [x] 280 Faz F kapanis raporu yaz.
-- [ ] 281 Mapbox directions proxy function yaz (imzali istek + per-route rate limit + aylik hard cap).
-- [ ] 281A Mapbox map-matching proxy function yaz (trace post-process + request budget + graceful fallback).
+- [x] 281 Mapbox directions proxy function yaz (imzali istek + per-route rate limit + aylik hard cap).
+- [x] 281A Mapbox map-matching proxy function yaz (trace post-process + request budget + graceful fallback).
 - [ ] 282 Secret manager'a Mapbox secret token koy.
 - [ ] 283 KULLANICIDAN ONAY ISTE: "Mapbox secret token paylas + Directions varsayilan kapali kalsin mi?".
 - [ ] 284 Token geldiginde sadece server tarafina yaz.

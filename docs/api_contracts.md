@@ -380,25 +380,37 @@ export interface MapboxDirectionsProxyInput {
   routeId: string;
   origin: GeoPointDto;
   destination: GeoPointDto;
+  waypoints?: GeoPointDto[]; // max 10
+  profile?: "driving" | "driving-traffic";
 }
 
 export interface MapboxDirectionsProxyOutput {
-  etaSeconds: number;
+  routeId: string;
+  profile: "driving" | "driving-traffic";
+  geometry: string; // mapbox polyline6
   distanceMeters: number;
-  source: "directions" | "fallback";
+  durationSeconds: number;
+  source: "mapbox";
+  requestSignature: string | null; // HMAC signature if signing secret present
 }
 
 export interface MapboxMapMatchingProxyInput {
   tracePoints: TracePointDto[];
-  profile: "driving";
 }
 
 export interface MapboxMapMatchingProxyOutput {
-  snappedPolyline: string;
+  tracePoints: TracePointDto[];
   confidence: number;
+  source: "map_matching" | "fallback";
   fallbackUsed: boolean;
 }
 ```
+
+Mapbox proxy guardrails:
+- `mapboxDirectionsProxy` default-state kapali calisir (`MAPBOX_DIRECTIONS_DISABLED`) ve runtime flag ile acilir.
+- Directions cagrilarinda route-level rate limit (`_rate_limits`) ve aylik hard cap (`_usage_counters`) zorunludur.
+- Directions istegi server tarafinda imzalanir (`MAPBOX_PROXY_SIGNING_SECRET` varsa `requestSignature` uretir).
+- `mapboxMapMatchingProxy` path'i `applyMapMatchingWithGuard` kullanir: budget dolu/timeout/upstream hata durumunda graceful fallback doner.
 
 ## Device and Support
 ```ts

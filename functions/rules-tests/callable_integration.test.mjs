@@ -32,6 +32,8 @@ const {
   sendDriverAnnouncement,
   finishTrip,
   getSubscriptionState,
+  mapboxDirectionsProxy,
+  mapboxMapMatchingProxy,
   morningReminderDispatcher,
   searchDriverDirectory,
   startTrip,
@@ -1079,4 +1081,66 @@ test("STEP-270E subscription tamper testi: premium guard server-side", async () 
       return true;
     },
   );
+});
+
+test("STEP-281 mapboxDirectionsProxy: varsayilan kapali mod fail-fast", async () => {
+  const driverUid = "driver-mapbox-dir-1";
+  const routeId = "route-mapbox-dir-1";
+  await seedDriverRoute({
+    driverUid,
+    routeId,
+    srvCode: "MAP281",
+  });
+
+  await assert.rejects(
+    async () =>
+      mapboxDirectionsProxy.run(
+        callableRequest(
+          {
+            routeId,
+            origin: { lat: 41.01, lng: 28.97 },
+            destination: { lat: 41.02, lng: 28.99 },
+          },
+          authContext(driverUid),
+        ),
+      ),
+    (error) => {
+      assert.equal(error.code, "failed-precondition");
+      return true;
+    },
+  );
+});
+
+test("STEP-281A mapboxMapMatchingProxy: graceful fallback sonucu doner", async () => {
+  const driverUid = "driver-mapbox-match-1";
+  await seedDriverIdentity({ driverUid });
+
+  const baseTs = Date.now();
+  const tracePoints = [
+    { lat: 41.001, lng: 28.971, accuracy: 8, sampledAtMs: baseTs + 0 },
+    { lat: 41.0012, lng: 28.9713, accuracy: 9, sampledAtMs: baseTs + 1_000 },
+    { lat: 41.0014, lng: 28.9716, accuracy: 7, sampledAtMs: baseTs + 2_000 },
+    { lat: 41.0017, lng: 28.9719, accuracy: 8, sampledAtMs: baseTs + 3_000 },
+    { lat: 41.002, lng: 28.9722, accuracy: 9, sampledAtMs: baseTs + 4_000 },
+    { lat: 41.0023, lng: 28.9726, accuracy: 7, sampledAtMs: baseTs + 5_000 },
+    { lat: 41.0026, lng: 28.9729, accuracy: 8, sampledAtMs: baseTs + 6_000 },
+    { lat: 41.0029, lng: 28.9733, accuracy: 10, sampledAtMs: baseTs + 7_000 },
+    { lat: 41.0032, lng: 28.9737, accuracy: 7, sampledAtMs: baseTs + 8_000 },
+    { lat: 41.0035, lng: 28.974, accuracy: 9, sampledAtMs: baseTs + 9_000 },
+  ];
+
+  const result = await mapboxMapMatchingProxy.run(
+    callableRequest(
+      {
+        tracePoints,
+      },
+      authContext(driverUid),
+    ),
+  );
+
+  assert.equal(Array.isArray(result.data.tracePoints), true);
+  assert.equal(result.data.tracePoints.length >= 2, true);
+  assert.equal(result.data.fallbackUsed, true);
+  assert.equal(result.data.source, "fallback");
+  assert.equal(result.data.confidence, 0);
 });

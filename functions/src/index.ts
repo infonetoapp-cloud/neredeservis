@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -64,6 +66,11 @@ const SUPPORT_REPORT_RETENTION_DAYS = 30;
 const WRITER_REVOKE_TASK_RETENTION_DAYS = 7;
 const DEVICE_SWITCH_NOTICE_DEDUPE_TTL_DAYS = 3;
 const ANNOUNCEMENT_DISPATCH_DEDUPE_TTL_DAYS = 7;
+const MAPBOX_DIRECTIONS_RATE_WINDOW_MS = 60_000;
+const MAPBOX_DIRECTIONS_RATE_MAX_CALLS = 20;
+const MAPBOX_DIRECTIONS_DEFAULT_MONTHLY_MAX = 20_000;
+const MAPBOX_DIRECTIONS_DEFAULT_TIMEOUT_MS = 3_000;
+const MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS = 10;
 
 interface HealthCheckOutput {
   ok: boolean;
@@ -82,6 +89,7 @@ interface SearchDriverDirectoryOutput {
 }
 
 type WritableRole = 'driver' | 'passenger' | 'guest';
+type MapboxDirectionsProfile = 'driving' | 'driving-traffic';
 
 interface BootstrapUserProfileOutput {
   uid: string;
@@ -127,6 +135,28 @@ interface CreateRouteFromGhostDriveOutput {
   routeId: string;
   srvCode: string;
   inferredStops: InferredStopOutput[];
+}
+
+interface MapboxDirectionsProxyOutput {
+  routeId: string;
+  profile: MapboxDirectionsProfile;
+  geometry: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  source: 'mapbox';
+  requestSignature: string | null;
+}
+
+interface MapboxMapMatchingProxyOutput {
+  tracePoints: {
+    lat: number;
+    lng: number;
+    accuracy: number;
+    sampledAtMs: number;
+  }[];
+  fallbackUsed: boolean;
+  source: 'map_matching' | 'fallback';
+  confidence: number;
 }
 
 interface UpsertStopOutput {
@@ -290,6 +320,42 @@ const createRouteFromGhostDriveInputSchema = z.object({
   timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']),
   allowGuestTracking: z.boolean(),
   authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
+});
+
+const mapboxDirectionsProxyInputSchema = z.object({
+  routeId: z.string().trim().min(1).max(128),
+  origin: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }),
+  destination: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }),
+  waypoints: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      }),
+    )
+    .max(MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS)
+    .optional()
+    .default([]),
+  profile: z.enum(['driving', 'driving-traffic']).optional().default('driving'),
+});
+
+const mapboxMapMatchingProxyInputSchema = z.object({
+  tracePoints: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        accuracy: z.number().min(0).max(500),
+        sampledAtMs: z.number().int().min(0),
+      }),
+    )
+    .min(2),
 });
 
 const upsertStopInputSchema = z.object({
@@ -711,6 +777,232 @@ async function requireOwnedRoute(
   }
 
   return routeData ?? {};
+}
+
+async function requireRouteMember(routeId: string, uid: string): Promise<Record<string, unknown>> {
+  const routeSnap = await db.collection('routes').doc(routeId).get();
+  if (!routeSnap.exists) {
+    throw new HttpsError('not-found', 'Route bulunamadi.');
+  }
+
+  const routeData = asRecord(routeSnap.data()) ?? {};
+  const routeOwnerUid = pickString(routeData, 'driverId');
+  const authorizedDriverIds = pickStringArray(routeData, 'authorizedDriverIds');
+  const memberIds = pickStringArray(routeData, 'memberIds');
+  const isMember =
+    routeOwnerUid === uid || authorizedDriverIds.includes(uid) || memberIds.includes(uid);
+  if (!isMember) {
+    throw new HttpsError('permission-denied', 'Bu route icin erisim yetkin yok.');
+  }
+
+  return routeData;
+}
+
+interface MapboxDirectionsRuntimeConfig {
+  enabled: boolean;
+  monthlyRequestMax: number;
+  timeoutMs: number;
+  perRouteWindowMs: number;
+  perRouteMaxCalls: number;
+}
+
+function parsePositiveIntValue(rawValue: unknown, fallback: number): number {
+  let parsed: number;
+  if (typeof rawValue === 'number') {
+    parsed = rawValue;
+  } else if (typeof rawValue === 'string') {
+    parsed = Number.parseInt(rawValue, 10);
+  } else {
+    return fallback;
+  }
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
+function readMapboxDirectionsConfigFromEnv(): MapboxDirectionsRuntimeConfig {
+  const enabled = (process.env.MAPBOX_DIRECTIONS_ENABLED ?? 'false').toLowerCase() === 'true';
+  const monthlyRequestMax = parsePositiveIntValue(
+    process.env.MAPBOX_DIRECTIONS_MONTHLY_MAX,
+    MAPBOX_DIRECTIONS_DEFAULT_MONTHLY_MAX,
+  );
+  const timeoutMs = parsePositiveIntValue(
+    process.env.MAPBOX_DIRECTIONS_TIMEOUT_MS,
+    MAPBOX_DIRECTIONS_DEFAULT_TIMEOUT_MS,
+  );
+  const perRouteWindowMs = parsePositiveIntValue(
+    process.env.MAPBOX_DIRECTIONS_RATE_WINDOW_MS,
+    MAPBOX_DIRECTIONS_RATE_WINDOW_MS,
+  );
+  const perRouteMaxCalls = parsePositiveIntValue(
+    process.env.MAPBOX_DIRECTIONS_RATE_MAX_CALLS,
+    MAPBOX_DIRECTIONS_RATE_MAX_CALLS,
+  );
+
+  return {
+    enabled,
+    monthlyRequestMax,
+    timeoutMs,
+    perRouteWindowMs,
+    perRouteMaxCalls,
+  };
+}
+
+async function readMapboxDirectionsRuntimeConfig(
+  fallback: MapboxDirectionsRuntimeConfig,
+): Promise<MapboxDirectionsRuntimeConfig> {
+  try {
+    const snap = await db.collection('_runtime_flags').doc('mapbox_directions').get();
+    const data = asRecord(snap.data()) ?? {};
+
+    return {
+      enabled: typeof data.enabled === 'boolean' ? data.enabled : fallback.enabled,
+      monthlyRequestMax: parsePositiveIntValue(data.monthlyRequestMax, fallback.monthlyRequestMax),
+      timeoutMs: parsePositiveIntValue(data.timeoutMs, fallback.timeoutMs),
+      perRouteWindowMs: parsePositiveIntValue(data.perRouteWindowMs, fallback.perRouteWindowMs),
+      perRouteMaxCalls: parsePositiveIntValue(data.perRouteMaxCalls, fallback.perRouteMaxCalls),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+async function reserveMonthlyUsageBudget(usageKey: string, monthlyMax: number): Promise<boolean> {
+  const now = new Date();
+  const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+  const counterRef = db.collection('_usage_counters').doc(`${usageKey}_${monthKey}`);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(counterRef);
+    const data = asRecord(snap.data()) ?? {};
+    const existingCount = parsePositiveIntValue(data.count, 0);
+
+    if (existingCount >= monthlyMax) {
+      return false;
+    }
+
+    tx.set(
+      counterRef,
+      {
+        count: existingCount + 1,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+    return true;
+  });
+}
+
+function readMapboxToken(): string | null {
+  const token = process.env.MAPBOX_TOKEN?.trim() ?? '';
+  return token.length > 0 ? token : null;
+}
+
+function buildDirectionsCoordinatePath(points: readonly { lat: number; lng: number }[]): string {
+  return points.map((point) => `${point.lng},${point.lat}`).join(';');
+}
+
+function buildMapboxRequestSignature(
+  routeId: string,
+  profile: MapboxDirectionsProfile,
+  coordinatePath: string,
+): string | null {
+  const signingSecret = process.env.MAPBOX_PROXY_SIGNING_SECRET?.trim() ?? '';
+  if (!signingSecret) {
+    return null;
+  }
+
+  const payload = `${routeId}|${profile}|${coordinatePath}`;
+  return createHmac('sha256', signingSecret).update(payload).digest('hex');
+}
+
+function buildMapboxDirectionsUrl({
+  profile,
+  coordinatePath,
+  token,
+}: {
+  profile: MapboxDirectionsProfile;
+  coordinatePath: string;
+  token: string;
+}): string {
+  const baseUrl = (process.env.MAPBOX_BASE_URL ?? 'https://api.mapbox.com').replace(/\/+$/, '');
+  const query = new URLSearchParams({
+    geometries: 'polyline6',
+    overview: 'full',
+    steps: 'false',
+    access_token: token,
+  });
+
+  return `${baseUrl}/directions/v5/mapbox/${profile}/${coordinatePath}?${query.toString()}`;
+}
+
+async function fetchJsonWithTimeout({
+  url,
+  timeoutMs,
+  headers,
+}: {
+  url: string;
+  timeoutMs: number;
+  headers: Record<string, string>;
+}): Promise<unknown> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new HttpsError('unavailable', `MAPBOX_DIRECTIONS_UPSTREAM_${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
+    const errorRecord = asRecord(error as Record<string, unknown> | null);
+    if (pickString(errorRecord, 'name') === 'AbortError') {
+      throw new HttpsError('deadline-exceeded', 'MAPBOX_DIRECTIONS_TIMEOUT');
+    }
+    throw new HttpsError('unavailable', 'MAPBOX_DIRECTIONS_UPSTREAM_FAILED');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseMapboxDirectionsResponse(payload: unknown): {
+  geometry: string;
+  distanceMeters: number;
+  durationSeconds: number;
+} {
+  const body = asRecord(payload) ?? {};
+  const routes = Array.isArray(body.routes) ? body.routes : [];
+  const firstRoute = asRecord(routes[0]) ?? {};
+  const geometry = pickString(firstRoute, 'geometry');
+  const distanceRaw = firstRoute.distance;
+  const durationRaw = firstRoute.duration;
+  const distanceMeters =
+    typeof distanceRaw === 'number' && Number.isFinite(distanceRaw) ? distanceRaw : null;
+  const durationSeconds =
+    typeof durationRaw === 'number' && Number.isFinite(durationRaw) ? durationRaw : null;
+
+  if (!geometry || distanceMeters == null || durationSeconds == null) {
+    throw new HttpsError('unavailable', 'MAPBOX_DIRECTIONS_INVALID_RESPONSE');
+  }
+
+  return {
+    geometry,
+    distanceMeters,
+    durationSeconds,
+  };
 }
 
 async function createRouteWithSrvCode({
@@ -1180,6 +1472,124 @@ export const createRouteFromGhostDrive = onCall(async (request) => {
     routeId: created.routeId,
     srvCode: created.srvCode,
     inferredStops,
+  });
+});
+
+export const mapboxDirectionsProxy = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver', 'passenger'],
+  });
+
+  const input = validateInput(mapboxDirectionsProxyInputSchema, request.data);
+  const routeData = await requireRouteMember(input.routeId, auth.uid);
+  if (routeData.isArchived === true) {
+    throw new HttpsError(
+      'failed-precondition',
+      'Arsivlenmis route icin directions cagrisi yapilamaz.',
+    );
+  }
+
+  const directionsConfig = await readMapboxDirectionsRuntimeConfig(
+    readMapboxDirectionsConfigFromEnv(),
+  );
+  if (!directionsConfig.enabled) {
+    throw new HttpsError('failed-precondition', 'MAPBOX_DIRECTIONS_DISABLED');
+  }
+
+  const mapboxToken = readMapboxToken();
+  if (!mapboxToken) {
+    throw new HttpsError('failed-precondition', 'MAPBOX_TOKEN_MISSING');
+  }
+
+  await enforceRateLimit({
+    db,
+    key: `mapbox_directions_route_${input.routeId}`,
+    windowMs: directionsConfig.perRouteWindowMs,
+    maxCalls: directionsConfig.perRouteMaxCalls,
+    exceededMessage: 'Mapbox directions route limiti asildi, lutfen bekleyip tekrar dene.',
+  });
+
+  const budgetReserved = await reserveMonthlyUsageBudget(
+    'mapbox_directions',
+    directionsConfig.monthlyRequestMax,
+  );
+  if (!budgetReserved) {
+    throw new HttpsError('resource-exhausted', 'MAPBOX_DIRECTIONS_MONTHLY_CAP_REACHED');
+  }
+
+  const profile: MapboxDirectionsProfile = input.profile ?? 'driving';
+  const waypoints = input.waypoints ?? [];
+  const coordinates = [input.origin, ...waypoints, input.destination];
+  const coordinatePath = buildDirectionsCoordinatePath(coordinates);
+  const requestSignature = buildMapboxRequestSignature(input.routeId, profile, coordinatePath);
+
+  const headers: Record<string, string> = {
+    'User-Agent': 'neredeservis-functions/1.0',
+  };
+  if (requestSignature) {
+    headers['X-Nsv-Signature'] = requestSignature;
+  }
+
+  const payload = await fetchJsonWithTimeout({
+    url: buildMapboxDirectionsUrl({
+      profile,
+      coordinatePath,
+      token: mapboxToken,
+    }),
+    timeoutMs: directionsConfig.timeoutMs,
+    headers,
+  });
+  const parsed = parseMapboxDirectionsResponse(payload);
+
+  return apiOk<MapboxDirectionsProxyOutput>({
+    routeId: input.routeId,
+    profile,
+    geometry: parsed.geometry,
+    distanceMeters: parsed.distanceMeters,
+    durationSeconds: parsed.durationSeconds,
+    source: 'mapbox',
+    requestSignature,
+  });
+});
+
+export const mapboxMapMatchingProxy = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(mapboxMapMatchingProxyInputSchema, request.data);
+
+  let processedTrace;
+  try {
+    processedTrace = processGhostTrace(input.tracePoints);
+  } catch (error) {
+    if (error instanceof GhostTraceValidationError) {
+      throw mapGhostTraceValidationError(error);
+    }
+    throw error;
+  }
+
+  const mapMatched = await applyMapMatchingWithGuard({
+    db,
+    tracePoints: processedTrace.simplifiedTrace,
+  });
+
+  return apiOk<MapboxMapMatchingProxyOutput>({
+    tracePoints: mapMatched.tracePoints,
+    fallbackUsed: mapMatched.fallbackUsed,
+    source: mapMatched.source,
+    confidence: mapMatched.confidence,
   });
 });
 

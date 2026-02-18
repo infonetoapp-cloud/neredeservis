@@ -7969,3 +7969,66 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 281: Mapbox directions proxy function yaz.
+
+## STEP-281-281A - Mapbox Directions Proxy + Map Matching Proxy
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 281: imzali istek + per-route rate limit + aylik hard cap kurallariyla `mapboxDirectionsProxy` callable eklemek.
+- 281A: trace post-process + request budget + graceful fallback davranisiyla `mapboxMapMatchingProxy` callable eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`mapboxDirectionsProxy`, `mapboxMapMatchingProxy`, config/rate-limit/budget helperlari)
+2. `apply_patch` -> `functions/src/ghost_drive/map_matching_guard.ts` (Mapbox provider entegrasyonu + fallback korunumu)
+3. `apply_patch` -> `functions/rules-tests/callable_integration.test.mjs` (STEP-281, STEP-281A testleri)
+4. `apply_patch` -> `docs/api_contracts.md` (Mapbox proxy input/output kontratlari)
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`281`, `281A` `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`281`, `281A` `[x]`)
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format`
+10. `npm --prefix functions run format:check`
+11. `npm --prefix functions run test:rules:unit`
+12. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `mapboxDirectionsProxy` eklendi:
+  - yetki: authenticated non-anonymous + role (`driver|passenger`) + route membership.
+  - runtime gate: `_runtime_flags/mapbox_directions.enabled` veya env gate.
+  - per-route rate limit: `_rate_limits/mapbox_directions_route_{routeId}`.
+  - aylik hard cap: `_usage_counters/mapbox_directions_{YYYY-MM}`.
+  - imza: `MAPBOX_PROXY_SIGNING_SECRET` varsa `requestSignature` HMAC uretiliyor.
+  - token yok/disabled durumlarinda fail-fast (`MAPBOX_TOKEN_MISSING`, `MAPBOX_DIRECTIONS_DISABLED`).
+- `mapboxMapMatchingProxy` eklendi:
+  - yetki: authenticated non-anonymous + role `driver`.
+  - `processGhostTrace` + `applyMapMatchingWithGuard` zinciri kullaniliyor.
+  - budget/timeouts/upstream hata durumunda graceful fallback korunuyor.
+- `map_matching_guard` provider entegrasyonu:
+  - `MAP_MATCHING_PROVIDER=mapbox` ve token mevcutsa Mapbox Matching endpoint'i kullaniliyor.
+  - aksi halde passthrough davranisi korunuyor (test ve local stabilite).
+  - chunking ile >100 nokta trace parcalanip birlestiriliyor.
+- Yeni testler:
+  - STEP-281: directions proxy varsayilan kapali mod fail-fast.
+  - STEP-281A: map matching proxy fallback sonucu dogrulandi.
+- Tum test paketi green: `27/27`.
+
+### Hata Kaydi (Silinmez)
+- Ilk derleme/lint kosusunda tip/format uyumsuzluklari goruldu.
+  - Cozum: `index.ts` ve `map_matching_guard.ts` nullability + no-unsafe + format duzeltmeleri yapildi.
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: emulator test sonucunu etkilemedi; tum testler pass.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` -> pass.
+- Toplam test: `27/27` pass.
+
+### Sonraki Adim
+- Faz F / 282: Secret Manager'a Mapbox secret token koy.
