@@ -6325,3 +6325,56 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 235: `createRoute` callable + 235A SRV code server-side uretim.
+
+## STEP-235-235A - createRoute Callable + Server-side SRV Code Uretimi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 235: `createRoute` callable endpointini yazmak.
+- 235A: SRV kodunu server-side `nanoid` ile collision-safe uretmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/package.json` (`nanoid` dependency)
+2. `apply_patch` -> `functions/src/common/srv_code.ts`
+3. `apply_patch` -> `functions/src/index.ts` (createRoute schema + callable + collision retry)
+4. `npm install` (`functions/`)
+5. `npm --prefix functions run build` (ilk kosu fail)
+6. `apply_patch` -> `functions/src/index.ts` (`authorizedDriverIds ?? []` guard)
+7. `npm --prefix functions run build`
+8. `npm --prefix functions run lint`
+9. `npm --prefix functions run format:check`
+10. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+11. `powershell` regex update -> `docs/RUNBOOK_LOCKED.md` (235, 235A `[x]`)
+12. `powershell` regex update -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (235, 235A `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `createRoute` callable eklendi ve middleware zinciriyle korunuyor:
+  - auth + non-anonymous + role(driver) + driver profile.
+- Route input validation zod ile yapiliyor (`name`, `start/end point`, `scheduledTime`, `timeSlot`, `authorizedDriverIds`).
+- Route yaziminda contract alanlari server tarafinda setleniyor:
+  - `visibility=private`, `creationMode=manual_pin`, `memberIds` dedupe, vb.
+- SRV code algoritmasi server-side:
+  - kaynak: `functions/src/common/srv_code.ts`
+  - `nanoid(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')`
+  - collision retry max `5`
+  - limit asiminda deterministic hata: `SRVCODE_COLLISION_LIMIT` (`resource-exhausted`).
+- Uniqueness guvencesi icin `_srv_codes/{srvCode}` rezervasyon dokumani transaction icinde olusturuluyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk build turunda `authorizedDriverIds` olasi `undefined` tip hatasi alindi.
+  - Cozum: `input.authorizedDriverIds ?? []` fallback'i eklendi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Bu adimda da iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 236: `updateRoute` callable.

@@ -518,8 +518,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 232 `updateUserProfile` callable yaz.
 - [x] 233 `upsertConsent` callable yaz.
 - [x] 234 `upsertDriverProfile` callable yaz.
-- [ ] 235 `createRoute` callable yaz.
-- [ ] 235A `createRoute` icinde SRV kodunu server-side uret: `nanoid(6,'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')` + collision retry (max 5) + deterministic hata kodu.
+- [x] 235 `createRoute` callable yaz.
+- [x] 235A `createRoute` icinde SRV kodunu server-side uret: `nanoid(6,'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')` + collision retry (max 5) + deterministic hata kodu.
 - [ ] 236 `updateRoute` callable yaz.
 - [ ] 236A `createRouteFromGhostDrive` callable yaz (trace -> route + stop candidate donusumu).
 - [ ] 236B Ghost trace sanitize kurali yaz (min point, max point, duplicate point drop, distance threshold).
@@ -1047,6 +1047,7 @@ Kopyala-yapistir cevap seti:
 - Her kritik adimda kanit + dogrulama + onay gerekir.
 - Onaysiz production degisikligi yapilmaz.
 - Limit asimi icin coklu hesap acarak ucretsiz model suistimali yapilmaz.
+
 
 
 

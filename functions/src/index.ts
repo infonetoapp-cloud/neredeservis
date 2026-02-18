@@ -1,10 +1,15 @@
 ﻿import { getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2/options';
 import { z } from 'zod';
 
 import { apiOk } from './common/api_response.js';
+import {
+  SRV_CODE_COLLISION_LIMIT_ERROR,
+  SRV_CODE_COLLISION_MAX_RETRY,
+  generateSrvCodeCandidate,
+} from './common/srv_code.js';
 import { asRecord } from './common/type_guards.js';
 import { requireAuth, requireNonAnonymous } from './middleware/auth_middleware.js';
 import { requireDriverProfile } from './middleware/driver_profile_middleware.js';
@@ -67,6 +72,11 @@ interface UpsertDriverProfileOutput {
   updatedAt: string;
 }
 
+interface CreateRouteOutput {
+  routeId: string;
+  srvCode: string;
+}
+
 const profileInputSchema = z.object({
   displayName: z.string().trim().min(2, 'minimum 2 karakter olmalidir.').max(80),
   phone: z.string().trim().min(7).max(24).optional(),
@@ -85,6 +95,24 @@ const upsertDriverProfileInputSchema = z.object({
   plate: z.string().trim().min(2).max(20),
   showPhoneToPassengers: z.boolean().default(false),
   companyId: z.string().trim().min(1).max(64).nullable().optional(),
+});
+
+const createRouteInputSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  startPoint: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }),
+  startAddress: z.string().trim().min(3).max(256),
+  endPoint: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  }),
+  endAddress: z.string().trim().min(3).max(256),
+  scheduledTime: z.string().regex(/^([01]\\d|2[0-3]):[0-5]\\d$/, 'HH:mm formatinda olmalidir.'),
+  timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']),
+  allowGuestTracking: z.boolean(),
+  authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
 });
 
 const searchDriverDirectoryInputSchema = z.object({
@@ -115,6 +143,18 @@ function pickString(record: Record<string, unknown> | null, key: string): string
   }
   const value = record[key];
   return typeof value === 'string' ? value : null;
+}
+
+function normalizeAuthorizedDriverIds(rawIds: readonly string[], ownerUid: string): string[] {
+  const unique = new Set<string>();
+  for (const raw of rawIds) {
+    const normalized = raw.trim();
+    if (!normalized || normalized === ownerUid) {
+      continue;
+    }
+    unique.add(normalized);
+  }
+  return Array.from(unique.values());
 }
 
 export const healthCheck = onCall(() => {
@@ -267,6 +307,97 @@ export const upsertDriverProfile = onCall(async (request) => {
     driverId: auth.uid,
     updatedAt: nowIso,
   });
+});
+
+export const createRoute = onCall(async (request) => {
+  const auth = requireAuth(request);
+  requireNonAnonymous(auth);
+
+  await requireRole({
+    db,
+    uid: auth.uid,
+    allowedRoles: ['driver'],
+  });
+  await requireDriverProfile(db, auth.uid);
+
+  const input = validateInput(createRouteInputSchema, request.data);
+  const nowIso = new Date().toISOString();
+  const authorizedDriverIds = normalizeAuthorizedDriverIds(
+    input.authorizedDriverIds ?? [],
+    auth.uid,
+  );
+  const memberIds = Array.from(new Set<string>([auth.uid, ...authorizedDriverIds]));
+
+  for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
+    const srvCode = generateSrvCodeCandidate();
+    const routeRef = db.collection('routes').doc();
+    const srvCodeRef = db.collection('_srv_codes').doc(srvCode);
+
+    try {
+      await db.runTransaction(async (tx) => {
+        const srvCodeSnap = await tx.get(srvCodeRef);
+        if (srvCodeSnap.exists) {
+          throw new Error(SRV_CODE_COLLISION_LIMIT_ERROR);
+        }
+
+        tx.set(routeRef, {
+          name: input.name,
+          driverId: auth.uid,
+          authorizedDriverIds,
+          memberIds,
+          companyId: null,
+          srvCode,
+          visibility: 'private',
+          allowGuestTracking: input.allowGuestTracking,
+          creationMode: 'manual_pin',
+          routePolyline: null,
+          startPoint: input.startPoint,
+          startAddress: input.startAddress,
+          endPoint: input.endPoint,
+          endAddress: input.endAddress,
+          scheduledTime: input.scheduledTime,
+          timeSlot: input.timeSlot,
+          isArchived: false,
+          vacationUntil: null,
+          passengerCount: 0,
+          lastTripStartedNotificationAt: null,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+
+        tx.set(srvCodeRef, {
+          routeId: routeRef.id,
+          createdBy: auth.uid,
+          createdAt: nowIso,
+        });
+      });
+
+      return apiOk<CreateRouteOutput>({
+        routeId: routeRef.id,
+        srvCode,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === SRV_CODE_COLLISION_LIMIT_ERROR &&
+        attempt < SRV_CODE_COLLISION_MAX_RETRY
+      ) {
+        continue;
+      }
+      if (error instanceof Error && error.message === SRV_CODE_COLLISION_LIMIT_ERROR) {
+        throw new HttpsError(
+          'resource-exhausted',
+          `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  throw new HttpsError(
+    'resource-exhausted',
+    `${SRV_CODE_COLLISION_LIMIT_ERROR}: retry limiti asildi.`,
+  );
 });
 
 export const searchDriverDirectory = onCall(async (request) => {
