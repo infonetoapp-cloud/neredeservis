@@ -5566,3 +5566,46 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 198: Phone masking helper.
+
+## STEP-198 - Phone Masking Helper
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Telefon numaralarinin UI/log tarafinda guvenli sekilde maske edilmesi icin ortak helper eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/phone_masking_helper.dart`
+2. `apply_patch` -> `test/domain/phone_masking_helper_test.dart`
+3. `dart format lib/features/domain/data/phone_masking_helper.dart test/domain/phone_masking_helper_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (198 `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (198 `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `PhoneMaskingHelper.mask(...)` eklendi.
+- Davranis ozeti:
+  - separator/format korunur (`+`, bosluk vb.)
+  - orta digitler maskelenir
+  - kisa numaralar icin guvenli fallback maskeleme uygulanir
+  - null/bos girdi bos string doner
+
+### Test Kapsami
+- `phone_masking_helper_test.dart`:
+  - formatli numara maskesi
+  - plain digit string maskesi
+  - kisa numara fallback
+  - null/bos davranisi
+
+### Hata Kaydi (Silinmez)
+- Bu adimda kalici hata yok.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 130 test passed.
+
+### Sonraki Adim
+- Faz E / 199: PII filter helper.
