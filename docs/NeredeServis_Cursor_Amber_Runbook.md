@@ -481,7 +481,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 197A SRV kod algoritmasini dokumante et: `nanoid(6, 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789')`, collision retry max `5`.
 - [x] 198 Phone masking helper yaz.
 - [x] 199 PII filter helper yaz.
-- [ ] 200 Unit test: mapper coverage >= %80.
+- [x] 200 Unit test: mapper coverage >= %80.
 - [ ] 201 Unit test: validator seti.
 - [ ] 202 Unit test: queue isleyisi (network kopmasi, app kill, duplicate replay, idempotency korunumu, stale replay live-skip).
 - [ ] 202A Unit test: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi olmadan calisiyor mu?

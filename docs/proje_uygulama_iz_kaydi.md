@@ -5651,3 +5651,33 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 200: mapper coverage >= %80 dogrulama.
+
+## STEP-200 - Mapper Coverage >= %80 Dogrulama
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Domain mapper test coverage hedefini (>= %80) olcup dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter test --coverage`
+2. `powershell` parser -> `coverage/lcov.info` icinden `lib/features/domain/mappers/*` satir coverage hesabi
+3. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (200 `[x]`)
+4. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (200 `[x]`)
+5. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Coverage Sonucu (Mapper)
+- `MAPPER_LINES=351`
+- `MAPPER_HIT=337`
+- `MAPPER_COVERAGE=96.01`
+
+### Hata Kaydi (Silinmez)
+- Ilk parser denemesi paralel kosu nedeniyle `coverage/lcov.info` olusmadan calisti.
+  - Cozum: coverage tamamlandiktan sonra parser tekrar calistirildi.
+
+### Dogrulama
+- Mapper coverage `%96.01` ile `%80` hedefinin uzerinde.
+
+### Sonraki Adim
+- Faz E / 201: validator seti unit testleri.
