@@ -412,6 +412,22 @@ function pickString(record: Record<string, unknown> | null, key: string): string
   return typeof value === 'string' ? value : null;
 }
 
+function maskPhoneForSnapshot(phone: string | null): string | null {
+  if (!phone) {
+    return null;
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 6) {
+    return null;
+  }
+
+  const visiblePrefix = digits.slice(0, 2);
+  const visibleSuffix = digits.slice(-2);
+  const maskedMiddle = '*'.repeat(Math.max(0, digits.length - 4));
+  return `${visiblePrefix}${maskedMiddle}${visibleSuffix}`;
+}
+
 function pickStringArray(record: Record<string, unknown> | null, key: string): string[] {
   if (!record) {
     return [];
@@ -1362,24 +1378,6 @@ export const joinRouteBySrvCode = onCall(async (request) => {
 
     const passengerSnap = await tx.get(passengerRef);
     const existingPassenger = asRecord(passengerSnap.data());
-    const hasPassengerRecord = passengerSnap.exists;
-    const currentMembers = pickStringArray(currentRoute, 'memberIds');
-    const isMember = currentMembers.includes(auth.uid);
-    const nextMembers = isMember
-      ? currentMembers
-      : Array.from(new Set<string>([...currentMembers, auth.uid]));
-
-    const currentPassengerCountRaw = currentRoute.passengerCount;
-    const currentPassengerCount =
-      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
-        ? currentPassengerCountRaw
-        : 0;
-
-    tx.update(routeRef, {
-      memberIds: nextMembers,
-      passengerCount: hasPassengerRecord ? currentPassengerCount : currentPassengerCount + 1,
-      updatedAt: nowIso,
-    });
 
     tx.set(
       passengerRef,
@@ -1418,7 +1416,6 @@ export const leaveRoute = onCall(async (request) => {
   const input = validateInput(leaveRouteInputSchema, request.data);
   const routeRef = db.collection('routes').doc(input.routeId);
   const passengerRef = routeRef.collection('passengers').doc(auth.uid);
-  const nowIso = new Date().toISOString();
   let left = false;
 
   await runTransactionVoid(db, async (tx) => {
@@ -1442,27 +1439,6 @@ export const leaveRoute = onCall(async (request) => {
 
     const passengerSnap = await tx.get(passengerRef);
     const hasPassengerRecord = passengerSnap.exists;
-    const memberIds = pickStringArray(routeData, 'memberIds');
-    const nextMembers = hasPassengerRecord
-      ? memberIds.filter((memberUid) => memberUid !== auth.uid)
-      : memberIds;
-
-    const currentPassengerCountRaw = routeData.passengerCount;
-    const currentPassengerCount =
-      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
-        ? currentPassengerCountRaw
-        : 0;
-    const nextPassengerCount = hasPassengerRecord
-      ? Math.max(0, currentPassengerCount - 1)
-      : currentPassengerCount;
-
-    if (hasPassengerRecord) {
-      tx.update(routeRef, {
-        memberIds: nextMembers,
-        passengerCount: nextPassengerCount,
-        updatedAt: nowIso,
-      });
-    }
 
     tx.delete(passengerRef);
     left = hasPassengerRecord;
@@ -1509,19 +1485,6 @@ export const updatePassengerSettings = onCall(async (request) => {
     }
     const passengerData = asRecord(passengerSnap.data()) ?? {};
 
-    const memberIds = pickStringArray(routeData, 'memberIds');
-    const isMember = memberIds.includes(auth.uid);
-    const nextMembers = isMember
-      ? memberIds
-      : Array.from(new Set<string>([...memberIds, auth.uid]));
-
-    const currentPassengerCountRaw = routeData.passengerCount;
-    const currentPassengerCount =
-      typeof currentPassengerCountRaw === 'number' && Number.isFinite(currentPassengerCountRaw)
-        ? currentPassengerCountRaw
-        : 0;
-    const nextPassengerCount = isMember ? currentPassengerCount : currentPassengerCount + 1;
-
     tx.set(
       passengerRef,
       {
@@ -1535,14 +1498,6 @@ export const updatePassengerSettings = onCall(async (request) => {
       },
       { merge: true },
     );
-
-    if (!isMember) {
-      tx.update(routeRef, {
-        memberIds: nextMembers,
-        passengerCount: nextPassengerCount,
-        updatedAt: nowIso,
-      });
-    }
   });
 
   return apiOk<UpdatePassengerSettingsOutput>({
@@ -1593,7 +1548,20 @@ export const submitSkipToday = onCall(async (request) => {
 
     const skipRequestSnap = await tx.get(skipRequestRef);
     const existingSkipRequest = asRecord(skipRequestSnap.data());
+    const existingPassengerId = pickString(existingSkipRequest, 'passengerId');
+    const existingDateKey = pickString(existingSkipRequest, 'dateKey');
+    if (
+      skipRequestSnap.exists &&
+      (existingPassengerId !== auth.uid || existingDateKey !== input.dateKey)
+    ) {
+      throw new HttpsError(
+        'failed-precondition',
+        'skip_requests kaydi beklenmeyen kimlik iceriyor.',
+      );
+    }
     const existingCreatedAt = pickString(existingSkipRequest, 'createdAt');
+    const existingUpdatedAt = pickString(existingSkipRequest, 'updatedAt');
+    const existingIdempotencyKey = pickString(existingSkipRequest, 'idempotencyKey');
 
     tx.set(
       skipRequestRef,
@@ -1601,9 +1569,9 @@ export const submitSkipToday = onCall(async (request) => {
         passengerId: auth.uid,
         dateKey: input.dateKey,
         status: 'skip_today',
-        idempotencyKey: input.idempotencyKey,
+        idempotencyKey: existingIdempotencyKey ?? input.idempotencyKey,
         createdAt: existingCreatedAt ?? nowIso,
-        updatedAt: nowIso,
+        updatedAt: existingUpdatedAt ?? nowIso,
       },
       { merge: true },
     );
@@ -1826,7 +1794,9 @@ export const startTrip = onCall(async (request) => {
     }
     const driverData = asRecord(driverSnap.data()) ?? {};
     const showPhoneToPassengers = driverData.showPhoneToPassengers === true;
-    const snapshotPhone = showPhoneToPassengers ? pickString(driverData, 'phone') : null;
+    const snapshotPhone = showPhoneToPassengers
+      ? maskPhoneForSnapshot(pickString(driverData, 'phone'))
+      : null;
 
     const tripRef = db.collection('trips').doc();
     const transitionVersion = currentTransitionVersion + 1;
@@ -2542,11 +2512,78 @@ export const morningReminderDispatcher = onSchedule('every 1 minutes', async () 
   }
 });
 
+export const guestSessionTtlEnforcer = onSchedule('every 5 minutes', async () => {
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
+  const expiredSessionCandidatesSnap = await db
+    .collection('guest_sessions')
+    .where('expiresAt', '<=', nowIso)
+    .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+    .get();
+
+  if (expiredSessionCandidatesSnap.empty) {
+    return;
+  }
+
+  const revokeTargets = new Set<string>();
+  const batch = db.batch();
+  let updateCount = 0;
+
+  for (const sessionDoc of expiredSessionCandidatesSnap.docs) {
+    const sessionData = asRecord(sessionDoc.data()) ?? {};
+    if (pickString(sessionData, 'status') !== 'active') {
+      continue;
+    }
+
+    const routeId = pickString(sessionData, 'routeId');
+    const guestUid = pickString(sessionData, 'guestUid');
+    if (routeId && guestUid) {
+      revokeTargets.add(`${routeId}:${guestUid}`);
+    }
+
+    batch.set(
+      sessionDoc.ref,
+      {
+        status: 'expired',
+        expiredAt: nowIso,
+        updatedAt: nowIso,
+      },
+      { merge: true },
+    );
+    updateCount += 1;
+  }
+
+  if (updateCount > 0) {
+    await batch.commit();
+  }
+
+  if (revokeTargets.size === 0) {
+    return;
+  }
+
+  await Promise.all(
+    Array.from(revokeTargets.values()).map(async (target) => {
+      const [routeId, guestUid] = target.split(':', 2);
+      if (!routeId || !guestUid) {
+        return;
+      }
+      await rtdb.ref(`guestReaders/${routeId}/${guestUid}`).set({
+        active: false,
+        expiresAtMs: 0,
+        updatedAtMs: nowMs,
+        revokedAtMs: nowMs,
+        revokeReason: 'TTL_EXPIRED',
+      });
+    }),
+  );
+});
+
 export const cleanupStaleData = onSchedule(
   { schedule: '0 3 * * *', timeZone: 'Europe/Istanbul' },
   async () => {
     const now = new Date();
     const nowIso = now.toISOString();
+    const todayDateKey = buildIstanbulDateKey(now);
     const supportReportRetentionCutoffIso = new Date(
       now.getTime() - SUPPORT_REPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
     ).toISOString();
@@ -2605,15 +2642,26 @@ export const cleanupStaleData = onSchedule(
       .where('createdAt', '<=', supportReportRetentionCutoffIso)
       .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
       .get();
-    if (staleSupportReportSnap.empty) {
-      return;
+    if (!staleSupportReportSnap.empty) {
+      const supportReportDeleteBatch = db.batch();
+      for (const supportReportDoc of staleSupportReportSnap.docs) {
+        supportReportDeleteBatch.delete(supportReportDoc.ref);
+      }
+      await supportReportDeleteBatch.commit();
     }
 
-    const supportReportDeleteBatch = db.batch();
-    for (const supportReportDoc of staleSupportReportSnap.docs) {
-      supportReportDeleteBatch.delete(supportReportDoc.ref);
+    const staleSkipRequestSnap = await db
+      .collectionGroup('skip_requests')
+      .where('dateKey', '<', todayDateKey)
+      .limit(CLEANUP_STALE_DATA_BATCH_LIMIT)
+      .get();
+    if (!staleSkipRequestSnap.empty) {
+      const staleSkipDeleteBatch = db.batch();
+      for (const skipRequestDoc of staleSkipRequestSnap.docs) {
+        staleSkipDeleteBatch.delete(skipRequestDoc.ref);
+      }
+      await staleSkipDeleteBatch.commit();
     }
-    await supportReportDeleteBatch.commit();
   },
 );
 

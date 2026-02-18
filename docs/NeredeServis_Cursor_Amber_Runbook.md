@@ -570,11 +570,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 253 Transaction helper katmani yaz.
 - [x] 254 Idempotency repository yaz.
 - [x] 255 Duplicate push engelleme mekanizmasi yaz.
-- [ ] 256 Driver snapshot phone mask kurali uygula.
-- [ ] 257 `memberIds` turetimini function tarafina tasi.
-- [ ] 258 Guest session TTL enforcement mekanizmasi yaz.
-- [ ] 259 `skip_requests` tek-gun tek-kayit kurali uygula.
-- [ ] 259A `skip_requests` gun degisimi kuralini netlestir: reset yazimi yok; sadece `dateKey == today` filtrelenir, eski kayitlar retention ile temizlenir.
+- [x] 256 Driver snapshot phone mask kurali uygula.
+- [x] 257 `memberIds` turetimini function tarafina tasi.
+- [x] 258 Guest session TTL enforcement mekanizmasi yaz.
+- [x] 259 `skip_requests` tek-gun tek-kayit kurali uygula.
+- [x] 259A `skip_requests` gun degisimi kuralini netlestir: reset yazimi yok; sadece `dateKey == today` filtrelenir, eski kayitlar retention ile temizlenir.
 - [ ] 260 DOGRULAMA: Function unit testleri green mi?
 - [ ] 261 Emulator callable integration testleri yaz.
 - [ ] 262 Auth yokken endpoint red testleri yaz.

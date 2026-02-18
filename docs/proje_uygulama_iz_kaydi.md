@@ -7283,3 +7283,65 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 256: driver snapshot phone mask kurali.
+
+## STEP-256-259A - Snapshot Phone Mask + memberIds Trigger Authority + Guest TTL Enforcer + skip_requests Tek-Gun Kurali
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 256: Trip `driverSnapshot.phone` alaninda raw telefon yerine maskeli snapshot kurali uygulamak.
+- 257: `memberIds` turetimini callables'tan cikarip trigger authority modeline tasimak.
+- 258: Guest session TTL enforcement mekanizmasini sik periyotlu server goreviyle garantiye almak.
+- 259/259A: `skip_requests` tek-gun tek-kayit ve gun degisimi retention kuralini server tarafinda netlestirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `functions/src/index.ts` (`maskPhoneForSnapshot` helper + `startTrip` snapshot mask)
+2. `apply_patch` -> `functions/src/index.ts` (`joinRouteBySrvCode`, `leaveRoute`, `updatePassengerSettings` icinde memberIds/passengerCount turetimini kaldirma)
+3. `apply_patch` -> `functions/src/index.ts` (`submitSkipToday` tek-kayit guard + idempotencyKey stabilizasyonu)
+4. `apply_patch` -> `functions/src/index.ts` (`guestSessionTtlEnforcer` schedule function)
+5. `apply_patch` -> `functions/src/index.ts` (`cleanupStaleData` icine `skip_requests` retention cleanup)
+6. `npm --prefix functions run build`
+7. `npm --prefix functions run lint` (fail)
+8. `npm --prefix functions run format:check` (fail)
+9. `apply_patch` -> `functions/src/index.ts` (unused degisken temizligi)
+10. `npx --prefix functions prettier --write functions/src/index.ts`
+11. `npm --prefix functions run build`
+12. `npm --prefix functions run lint`
+13. `npm --prefix functions run format:check`
+14. `$env:FIREBASE_DATABASE_EMULATOR_HOST='127.0.0.1:9000'; $env:FIRESTORE_EMULATOR_HOST='127.0.0.1:8080'; $env:FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099'; npm --prefix functions run test:rules:unit`
+15. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (256, 257, 258, 259, 259A `[x]`)
+16. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (256, 257, 258, 259, 259A `[x]`)
+17. `apply_patch` -> `docs/api_contracts.md` (snapshot mask/memberIds authority/guest TTL/skip contract notlari)
+18. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `startTrip` icinde `driverSnapshot.phone` artik maskelenmis formatta tutuluyor (`raw phone` snapshot'a yazilmiyor).
+- `memberIds`/`passengerCount` alanlarinin callables icinde manuel turetimi kaldirildi:
+  - uyelik turetimi authority: `syncRouteMembership`
+  - sayim authority: `syncPassengerCount`
+- `guestSessionTtlEnforcer` eklendi (`every 5 minutes`):
+  - expired aktif guest session kayitlarini `status=expired` yapiyor.
+  - RTDB `guestReaders/{routeId}/{guestUid}` izinlerini aktif revoke ediyor.
+- `submitSkipToday` tek-gun tek-kayit kurali sertlestirildi:
+  - deterministic doc id uzerinden yeni kayit acilmiyor.
+  - mevcut kayitta `idempotencyKey` ilk deger olarak korunuyor.
+- `cleanupStaleData` gunluk retention'a `skip_requests` eski-gun temizligi eklendi (`dateKey < today(Europe/Istanbul)`).
+
+### Hata Kaydi (Silinmez)
+- Ilk lint turunda `unused variable` hatasi goruldu.
+  - Cozum: ilgili degisken kaldirildi.
+- Ilk format check turu fail verdi.
+  - Cozum: `prettier --write` ile duzeltildi.
+- Rules test logunda `permission_denied` warningleri goruldu.
+  - Not: deny senaryosu testlerinin beklenen davranisi; test sonucu pass.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `npm --prefix functions run build` -> pass.
+- `npm --prefix functions run lint` -> pass.
+- `npm --prefix functions run format:check` -> pass.
+- `npm --prefix functions run test:rules:unit` (emulator host env ile) -> 6/6 pass.
+
+### Sonraki Adim
+- Faz F / 260: function unit test toplami green kaniti (mevcutta green, test kapsam genisletmesi bir sonraki blok).

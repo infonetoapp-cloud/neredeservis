@@ -82,7 +82,7 @@ export interface TripDoc {
   driverSnapshot: {
     name: string;
     plate: string;
-    phone: string | null;
+    phone: string | null; // masked snapshot, raw phone yok
   };
   status: "active" | "completed" | "abandoned";
   startedAt: string; // UTC timestamp
@@ -526,6 +526,7 @@ Directory callable guardrails:
 - `syncRouteMembership`:
   - source: `routes/{routeId}` writes
   - effect: `memberIds = [driverId] U authorizedDriverIds U passengerIds` is rebuilt deterministically.
+  - `memberIds` path'i callables tarafinda dogrudan turetilmez; tek kaynak trigger'dir.
 - `syncTripHeartbeatFromLocation`:
   - source: RTDB `/locations/{routeId}` writes
   - effect: active trip `lastLocationAt` is refreshed from live location payload.
@@ -600,6 +601,8 @@ Directory callable guardrails:
   - `expiresAt <= now` ve `status == "active"` kayitlari `status="expired"` olarak isaretlenir.
 - `support_reports` retention policy (252C):
   - `createdAt <= now-30d` kayitlari silinir.
+- `skip_requests` retention policy (259A):
+  - collection-group `skip_requests` icinde `dateKey < today(Europe/Istanbul)` kayitlari temizlenir.
 
 ## cleanupRouteWriters Contract
 - Schedule: every `5 minutes`.
@@ -609,6 +612,18 @@ Directory callable guardrails:
 - Phase-2 stale writer sweep:
   - RTDB `routeWriters/*/* == true` kayitlari (limit `200`) kontrol edilir.
   - Ilgili `trips` kaydinda aktif (`status="active"`) sefer yoksa writer flag `false` yapilir.
+
+## guestSessionTtlEnforcer Contract
+- Schedule: every `5 minutes`.
+- `guest_sessions` icinde `expiresAt <= now` ve `status == "active"` kayitlari:
+  - `status = "expired"` olarak isaretlenir.
+  - `guestReaders/{routeId}/{guestUid}` RTDB erisimi aktif olarak revoke edilir (`active=false`).
+
+## skip_requests Single-Day Contract
+- Tek-gun tek-kayit anahtari: `routes/{routeId}/skip_requests/{uid}_{dateKey}`.
+- Callable sadece `dateKey == today(Europe/Istanbul)` kabul eder.
+- Ayni gun tekrar cagrilarinda yeni kayit acilmaz; mevcut dokuman yeniden kullanilir.
+- `idempotencyKey` ilk olusan deger olarak sabitlenir (tekrar cagrida degistirilmez).
 
 ## srvCode Generation Contract
 - Alphabet: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (ambiguous chars yok).
