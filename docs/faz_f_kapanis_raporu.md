@@ -2,51 +2,60 @@
 
 Tarih: 2026-02-18
 Durum: Tamamlandi
-Kapsam: RUNBOOK STEP-221 ... STEP-280
+Kapsam: RUNBOOK STEP-221 ... STEP-300
 
 ## Ozet
-- Function katmaninin teknik altyapisi production seviyesine getirildi.
-- Transaction/idempotency/dedupe, retention, trigger stabilitesi ve test guvenceleri tamamlandi.
-- Staging ve production deploy + smoke dogrulamalari tamamlandi.
+- Functions katmani Faz F kapsaminda production-grade seviyeye tamamlandi.
+- Transaction/idempotency/dedupe, replay korumalari, KVKK delete lifecycle'i ve audit izi birlikte kapanisa getirildi.
+- Staging replay yeniden kosuldu, staging deploy + smoke dogrulamasi tekrarlandi.
 
 ## Tamamlanan Kritik Kazanimlar
-- Transaction helper + idempotency repository + notification dedupe katmani eklendi.
-- Driver snapshot phone masking, guest TTL enforcement, skip retention kurallari uygulandi.
-- Concurrency/race ve replay senaryolariyla callable davranislar test edildi.
-- RTDB heartbeat stale replay filtresi ve route writer revoke akislari dogrulandi.
-- Announcement dedupe, trip cooldown, device policy, timezone reminder ve subscription tamper kontrolleri testlendi.
-- `syncTripHeartbeatFromLocation` RTDB instance lokasyonu ile uyumlu sekilde `europe-west1` bolgesine alindi.
+- Transaction helper + idempotency repository + notification dedupe katmani aktif.
+- Replay/race guvenceleri:
+  - `startTrip` / `finishTrip` idempotency replay
+  - optimistic lock transition race
+  - stale replay live-marker korumasi
+- Route share/preview guvenligi:
+  - signed preview token
+  - route/join abuse rate limit
+  - `_audit_route_events` audit kayitlari
+- KVKK delete zinciri:
+  - `deleteUserData` callable
+  - aktif abonelikte policy interceptor + `Manage Subscription` yonlendirmesi
+  - `_delete_requests` + scheduler hard-delete tamamlama
+  - `_audit_privacy_events` olay kayitlari
+- Operasyonel dokumanlar:
+  - `docs/error_catalog.md`
+  - `docs/function_telemetry_dashboard.md`
+  - `docs/incident_runbook.md`
 
 ## Dogrulama Ozeti
 - Local quality gate:
   - `npm --prefix functions run build` -> pass
   - `npm --prefix functions run lint` -> pass
   - `npm --prefix functions run format:check` -> pass
-  - `npm --prefix functions run test:rules:unit` -> pass (`25/25`)
+  - `npm --prefix functions run test:rules:unit` -> pass (`34/34`)
+- Replay test rerun:
+  - idempotency/race/stale replay kapsami tekrar kosuldu (lokal integration paketi)
+  - duplicate write/bildirim regression'i gozlenmedi
 - Staging:
-  - functions dry-run -> pass
-  - functions deploy -> pass
-  - smoke (`healthCheck`) -> pass
-- Production:
-  - functions deploy -> pass
-  - post-deploy check:
-    - `healthCheck` -> `ok=true` (2026-02-18T20:43:30.330Z)
-    - `syncTripHeartbeatFromLocation` -> `ACTIVE` (`europe-west1`)
-    - `syncPassengerCount` -> `ACTIVE` (`europe-west3`)
-    - `syncRouteMembership` -> `ACTIVE` (`europe-west3`)
+  - `firebase deploy --only functions --project stg` -> pass
+  - `healthCheck` callable smoke -> `ok=true`
+  - kritik callable fonksiyonlari `ACTIVE`:
+    - `startTrip`
+    - `finishTrip`
+    - `submitSkipToday`
+    - `sendDriverAnnouncement`
+    - `deleteUserData`
 
 ## Operasyonel Notlar
-- Artifact Registry cleanup policy:
+- Artifact cleanup policy aktif:
   - `europe-west3` -> 7 gun
   - `europe-west1` -> 7 gun
 - Bilinen uyarilar:
   - Node.js 20 lifecycle uyarisi (deprecation: 2026-04-30, decommission: 2026-10-30)
-  - `firebase-functions` paketinin guncellenmesi onerisi
+  - `firebase-functions` paket guncelleme uyarisi
 
-## Kalan Isler / Sonraki Faz
-- Faz F sonrasi backlog:
-  - `281`: Mapbox directions proxy function
-  - `281A`: Mapbox map-matching proxy function
-  - `282`: Secret Manager token tanimi
-  - `283`: Kullanicidan Mapbox token/onay gate
-- Faz G entegrasyon adimlari bu kapanis sonrasi ilerletilecek.
+## Faz F Cikis Kriteri Sonucu
+- RUNBOOK STEP-221..300 tamamlandi.
+- Faz G (Mobil Ozellik Entegrasyonu) adimlarina gecis hazir.

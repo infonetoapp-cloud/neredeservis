@@ -8587,3 +8587,54 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz F / 299: staging replay testini tekrar calistirip kayda almak.
+
+## STEP-299-300 - Staging Replay Re-Run + Faz F Final Kapanis
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 299: staging replay dogrulamasini yeniden kosmak.
+- 300: Faz F final kapanis raporunu STEP-221..300 kapsamiyla tamamlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `npm --prefix functions run test:rules:unit -- --test-name-pattern="STEP-266|STEP-267|STEP-268B"`
+2. `firebase deploy --only functions --project stg`
+3. `firebase functions:list --project stg --json` (filter: `startTrip|finishTrip|submitSkipToday|sendDriverAnnouncement|deleteUserData|healthCheck`)
+4. `Invoke-RestMethod -Uri "https://europe-west3-neredeservis-stg-01.cloudfunctions.net/healthCheck" -Method Post -ContentType "application/json" -Body '{"data":{}}'`
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`299`, `300` `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`299`, `300` `[x]`)
+7. `apply_patch` -> `docs/faz_f_kapanis_raporu.md` (scope `221..300`, final ozet guncellemesi)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Replay regression paketi yeniden kosuldu ve pass:
+  - idempotency replay (`STEP-266`)
+  - concurrency race (`STEP-267`)
+  - stale replay live-marker korumasi (`STEP-268B`)
+- Staging functions deploy temiz tamamlandi.
+- Staging smoke:
+  - `healthCheck` cagrisi basarili (`ok=true`, `region=europe-west3`, `serverTime=2026-02-18T22:35:52.089Z`)
+  - kritik replay/delete callable'lari `ACTIVE`:
+    - `startTrip`, `finishTrip`, `submitSkipToday`, `sendDriverAnnouncement`, `deleteUserData`
+- `docs/faz_f_kapanis_raporu.md` final kapsamla guncellendi:
+  - kapsam `STEP-221..300`
+  - KVKK delete lifecycle + audit + replay + staging dogrulama birlikte ozetlendi.
+
+### Hata Kaydi (Silinmez)
+- Test kosularinda `MetadataLookupWarning` (169.254.169.254 timeout) warning'i goruldu.
+  - Not: sonuclari etkilemedi.
+- Rules deny senaryolarinda beklenen `permission_denied` warningleri goruldu.
+  - Not: policy testlerinin beklenen davranisi.
+- Deploy cikisinda Node20 lifecycle ve `firebase-functions` guncelleme warning'i goruldu.
+  - Not: deploy sonucunu bloklamadi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- Replay regression rerun -> pass.
+- Staging deploy -> pass.
+- Staging smoke (`healthCheck`) -> pass.
+- Runbook `299`, `300` -> `[x]`.
+
+### Sonraki Adim
+- Faz G / 301: mobil auth akislarinin uygulama tarafina baglanmasi.

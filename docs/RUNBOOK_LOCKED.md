@@ -620,8 +620,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 296 Function telemetry dashboard notlarini ekle.
 - [x] 297 Alert esiklerini tanimla.
 - [x] 298 Incident runbook dosyasini olustur.
-- [ ] 299 Staging replay testini tekrar calistir.
-- [ ] 300 Faz F final kapanis raporu yaz.
+- [x] 299 Staging replay testini tekrar calistir.
+- [x] 300 Faz F final kapanis raporu yaz.
 
 ## FAZ G - Mobil Ozellik Entegrasyonu (301-380)
 
