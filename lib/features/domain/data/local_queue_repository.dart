@@ -78,6 +78,9 @@ class LocalQueueRepository {
   final math.Random _random;
 
   static const int staleReplayThresholdMs = 60000;
+  static const String _ownerCurrentMetaKey = 'ownership.current_owner_uid';
+  static const String _ownerPreviousMetaKey = 'ownership.previous_owner_uid';
+  static const String _ownerMigratedAtMetaKey = 'ownership.migrated_at_ms';
 
   static bool shouldSkipLiveReplay({
     required int sampledAtMs,
@@ -120,6 +123,43 @@ class LocalQueueRepository {
                 localMeta == null ? const Value.absent() : Value(localMeta),
           ),
         );
+  }
+
+  Future<void> transferLocalOwnershipAfterAccountLink({
+    required String previousOwnerUid,
+    required String newOwnerUid,
+    required int migratedAtMs,
+  }) async {
+    final previous = previousOwnerUid.trim();
+    final current = newOwnerUid.trim();
+    if (previous.isEmpty || current.isEmpty || previous == current) {
+      return;
+    }
+
+    await _database.transaction(() async {
+      await (_database.update(_database.locationQueueTable)
+            ..where((LocationQueueTable tbl) => tbl.ownerUid.equals(previous)))
+          .write(LocationQueueTableCompanion(ownerUid: Value(current)));
+
+      await (_database.update(_database.tripActionQueueTable)
+            ..where(
+              (TripActionQueueTable tbl) => tbl.ownerUid.equals(previous),
+            ))
+          .write(TripActionQueueTableCompanion(ownerUid: Value(current)));
+
+      await _upsertLocalMeta(
+        key: _ownerCurrentMetaKey,
+        value: current,
+      );
+      await _upsertLocalMeta(
+        key: _ownerPreviousMetaKey,
+        value: previous,
+      );
+      await _upsertLocalMeta(
+        key: _ownerMigratedAtMetaKey,
+        value: migratedAtMs.toString(),
+      );
+    });
   }
 
   Future<List<TripActionQueueTableData>> claimReplayableTripActions({
@@ -303,5 +343,17 @@ class LocalQueueRepository {
       ..where((LocationQueueTable tbl) => tbl.id.equals(id))
       ..limit(1);
     return query.getSingleOrNull();
+  }
+
+  Future<void> _upsertLocalMeta({
+    required String key,
+    required String value,
+  }) {
+    return _database.into(_database.localMetaTable).insertOnConflictUpdate(
+          LocalMetaTableCompanion.insert(
+            key: key,
+            value: Value(value),
+          ),
+        );
   }
 }

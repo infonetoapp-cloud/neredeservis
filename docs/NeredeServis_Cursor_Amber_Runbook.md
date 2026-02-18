@@ -484,7 +484,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 200 Unit test: mapper coverage >= %80.
 - [x] 201 Unit test: validator seti.
 - [x] 202 Unit test: queue isleyisi (network kopmasi, app kill, duplicate replay, idempotency korunumu, stale replay live-skip).
-- [ ] 202A Unit test: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi olmadan calisiyor mu?
+- [x] 202A Unit test: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi olmadan calisiyor mu?
 - [x] 203 DOGRULAMA: tum unit testler green mi?
 - [ ] 204 Riverpod providerlarini domain use-case'lere bagla.
 - [ ] 204A `transferLocalOwnershipAfterAccountLink` use-case'ini yaz (guest -> passenger gechisinde ownerId devri).

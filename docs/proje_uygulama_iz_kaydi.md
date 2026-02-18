@@ -5752,6 +5752,52 @@ Etiket: codex
 ### Sonraki Adim
 - Faz E / 202A: anonymous `linkWithCredential` sonrasi Drift owner transfer veri kaybi testi.
 
+## STEP-202A - Anonymous linkWithCredential Sonrasi Drift Owner Transfer Unit Testi
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Guest (anonymous) kullanicidan kayitli hesaba geciste local queue verisinin owner devri sirasinda kayipsiz kaldigini unit test ile dogrulamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/local_queue_repository.dart`
+2. `apply_patch` -> `test/domain/local_queue_repository_test.dart`
+3. `dart format lib/features/domain/data/local_queue_repository.dart test/domain/local_queue_repository_test.dart`
+4. `flutter test test/domain/local_queue_repository_test.dart`
+5. `apply_patch` -> `test/domain/local_queue_repository_test.dart` (import fix)
+6. `flutter test test/domain/local_queue_repository_test.dart`
+7. `flutter analyze`
+8. `flutter test`
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (202A `[x]`)
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (202A `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `LocalQueueRepository` icine owner devri icin atomik helper eklendi:
+  - `transferLocalOwnershipAfterAccountLink(previousOwnerUid, newOwnerUid, migratedAtMs)`
+- Method tek transaction icinde:
+  - `location_queue.owner_uid` devri
+  - `trip_action_queue.owner_uid` devri
+  - `local_meta` ownership metadata upsert
+- Unit test kapsamı:
+  - anonymous -> registered owner devrinde tum queue satirlari veri kaybi olmadan korunuyor
+  - owner ayniysa no-op davranisi dogru
+
+### Hata Kaydi (Silinmez)
+- Ilk test derlemesinde `OrderingTerm` importu eksik oldugu icin compile fail verdi.
+  - Cozum: `package:drift/drift.dart show OrderingTerm` eklendi.
+- Ilk import duzeltmesinde `isNull/isNotNull` cakismasi olustu.
+  - Cozum: Drift importu `show OrderingTerm` ile sinirlandirildi.
+
+### Dogrulama
+- `flutter test test/domain/local_queue_repository_test.dart` -> 7/7 passed.
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 139 test passed.
+
+### Sonraki Adim
+- Faz E / 204: Riverpod providerlarini domain use-case'lere bagla.
+
 ## STEP-203A - Stabilizasyon Notu (Cihaz Install Restriction)
 Tarih: 2026-02-18
 Durum: Tamamlandi

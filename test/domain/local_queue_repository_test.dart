@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/features/domain/data/local_drift_database.dart';
@@ -173,5 +174,189 @@ void main() {
           ..where((LocationQueueTable tbl) => tbl.id.equals(id)))
         .getSingleOrNull();
     expect(afterDelete, isNull);
+  });
+
+  test(
+      'anonymous linkWithCredential ownership transfer moves queue rows without data loss',
+      () async {
+    const previousOwnerUid = 'anon-owner';
+    const newOwnerUid = 'registered-owner';
+    const migratedAtMs = 1739999999000;
+
+    await repository.enqueueLocationSample(
+      ownerUid: previousOwnerUid,
+      routeId: 'route-a',
+      lat: 40.9101,
+      lng: 29.3101,
+      accuracy: 4.5,
+      sampledAtMs: 1000,
+      createdAtMs: 1000,
+      tripId: 'trip-a',
+      speed: 11.0,
+      heading: 85.0,
+    );
+    await repository.enqueueLocationSample(
+      ownerUid: previousOwnerUid,
+      routeId: 'route-b',
+      lat: 40.9102,
+      lng: 29.3102,
+      accuracy: 4.8,
+      sampledAtMs: 1001,
+      createdAtMs: 1001,
+    );
+    await repository.enqueueLocationSample(
+      ownerUid: newOwnerUid,
+      routeId: 'route-c',
+      lat: 40.9103,
+      lng: 29.3103,
+      accuracy: 5.1,
+      sampledAtMs: 1002,
+      createdAtMs: 1002,
+    );
+
+    await repository.enqueueTripAction(
+      ownerUid: previousOwnerUid,
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"route-a"}',
+      idempotencyKey: 'idem-transfer-1',
+      createdAtMs: 2000,
+      localMeta: 'meta-old-a',
+    );
+    await repository.enqueueTripAction(
+      ownerUid: previousOwnerUid,
+      actionType: TripQueuedActionType.finishTrip,
+      payloadJson: '{"tripId":"trip-a"}',
+      idempotencyKey: 'idem-transfer-2',
+      createdAtMs: 2001,
+      localMeta: 'meta-old-b',
+    );
+    await repository.enqueueTripAction(
+      ownerUid: newOwnerUid,
+      actionType: TripQueuedActionType.announcement,
+      payloadJson: '{"message":"hello"}',
+      idempotencyKey: 'idem-transfer-3',
+      createdAtMs: 2002,
+      localMeta: 'meta-new',
+    );
+
+    final beforeLocations = await (database.select(database.locationQueueTable)
+          ..orderBy([
+            (LocationQueueTable tbl) => OrderingTerm.asc(tbl.id),
+          ]))
+        .get();
+    final beforeTripActions =
+        await (database.select(database.tripActionQueueTable)
+              ..orderBy([
+                (TripActionQueueTable tbl) => OrderingTerm.asc(tbl.id),
+              ]))
+            .get();
+
+    await repository.transferLocalOwnershipAfterAccountLink(
+      previousOwnerUid: previousOwnerUid,
+      newOwnerUid: newOwnerUid,
+      migratedAtMs: migratedAtMs,
+    );
+
+    final afterLocations = await (database.select(database.locationQueueTable)
+          ..orderBy([
+            (LocationQueueTable tbl) => OrderingTerm.asc(tbl.id),
+          ]))
+        .get();
+    final afterTripActions =
+        await (database.select(database.tripActionQueueTable)
+              ..orderBy([
+                (TripActionQueueTable tbl) => OrderingTerm.asc(tbl.id),
+              ]))
+            .get();
+
+    expect(afterLocations, hasLength(beforeLocations.length));
+    for (final before in beforeLocations) {
+      final after = afterLocations.singleWhere((row) => row.id == before.id);
+      final expectedOwner =
+          before.ownerUid == previousOwnerUid ? newOwnerUid : before.ownerUid;
+      expect(after.ownerUid, expectedOwner);
+      expect(after.routeId, before.routeId);
+      expect(after.tripId, before.tripId);
+      expect(after.lat, before.lat);
+      expect(after.lng, before.lng);
+      expect(after.speed, before.speed);
+      expect(after.heading, before.heading);
+      expect(after.accuracy, before.accuracy);
+      expect(after.sampledAt, before.sampledAt);
+      expect(after.createdAt, before.createdAt);
+      expect(after.retryCount, before.retryCount);
+      expect(after.nextRetryAt, before.nextRetryAt);
+    }
+
+    expect(afterTripActions, hasLength(beforeTripActions.length));
+    for (final before in beforeTripActions) {
+      final after = afterTripActions.singleWhere((row) => row.id == before.id);
+      final expectedOwner =
+          before.ownerUid == previousOwnerUid ? newOwnerUid : before.ownerUid;
+      expect(after.ownerUid, expectedOwner);
+      expect(after.actionType, before.actionType);
+      expect(after.status, before.status);
+      expect(after.payloadJson, before.payloadJson);
+      expect(after.idempotencyKey, before.idempotencyKey);
+      expect(after.createdAt, before.createdAt);
+      expect(after.failedRetryCount, before.failedRetryCount);
+      expect(after.retryCount, before.retryCount);
+      expect(after.nextRetryAt, before.nextRetryAt);
+      expect(after.lastErrorCode, before.lastErrorCode);
+      expect(after.lastErrorAt, before.lastErrorAt);
+      expect(after.maxRetryReachedAt, before.maxRetryReachedAt);
+      expect(after.localMeta, before.localMeta);
+    }
+
+    expect(
+      afterLocations.where((row) => row.ownerUid == previousOwnerUid),
+      isEmpty,
+    );
+    expect(
+      afterTripActions.where((row) => row.ownerUid == previousOwnerUid),
+      isEmpty,
+    );
+
+    final localMetaRows = await (database.select(database.localMetaTable)
+          ..where(
+            (LocalMetaTable tbl) => tbl.key.isIn(
+              const [
+                'ownership.current_owner_uid',
+                'ownership.previous_owner_uid',
+                'ownership.migrated_at_ms',
+              ],
+            ),
+          ))
+        .get();
+    final metaMap = <String, String?>{
+      for (final row in localMetaRows) row.key: row.value,
+    };
+    expect(metaMap['ownership.current_owner_uid'], newOwnerUid);
+    expect(metaMap['ownership.previous_owner_uid'], previousOwnerUid);
+    expect(metaMap['ownership.migrated_at_ms'], '$migratedAtMs');
+  });
+
+  test('ownership transfer no-ops when previous and new owner are equal',
+      () async {
+    await repository.enqueueTripAction(
+      ownerUid: 'owner-1',
+      actionType: TripQueuedActionType.startTrip,
+      payloadJson: '{"routeId":"r1"}',
+      idempotencyKey: 'idem-noop',
+      createdAtMs: 5000,
+    );
+
+    await repository.transferLocalOwnershipAfterAccountLink(
+      previousOwnerUid: 'owner-1',
+      newOwnerUid: 'owner-1',
+      migratedAtMs: 6000,
+    );
+
+    final rows = await database.select(database.tripActionQueueTable).get();
+    expect(rows, hasLength(1));
+    expect(rows.first.ownerUid, 'owner-1');
+
+    final metaRows = await database.select(database.localMetaTable).get();
+    expect(metaRows, isEmpty);
   });
 }
