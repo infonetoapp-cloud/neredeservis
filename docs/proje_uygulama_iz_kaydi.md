@@ -5311,3 +5311,55 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 193C: `trip_action_queue` state machine (`pending -> in_flight -> failed_permanent`).
+
+## STEP-193C - Trip Action Queue State Machine
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- `trip_action_queue` icin state machine akisini uygulamak:
+  - `pending -> in_flight -> failed_permanent`
+- 3 deneme sonrasinda auto-replay'i durdurmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/data/trip_action_queue_state_machine.dart`
+2. `apply_patch` -> `test/domain/trip_action_queue_state_machine_test.dart`
+3. `dart format lib/features/domain/data/trip_action_queue_state_machine.dart test/domain/trip_action_queue_state_machine_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (193C `[x]`)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (193C `[x]`)
+8. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- `TripActionQueueStateMachine` eklendi:
+  - `markInFlight(id)` -> status `in_flight`, `retry_count +1`
+  - `markRetryFailure(...)` -> failure sayaci artar; 3'e ulasinca `failed_permanent`
+  - `markPermanentFailure(...)` -> dogrudan terminal fail
+  - `markSucceeded(id)` -> queue kaydini siler
+  - `loadReplayable(nowMs)` -> sadece replay uygun `pending` kayitlari dondurur
+- Status codec eklendi:
+  - `pending`
+  - `in_flight`
+  - `failed_permanent`
+- 3 deneme limiti kurali kod seviyesinde sabitlendi:
+  - `maxAutoReplayAttempts = 3`
+
+### Test Kapsami
+- `trip_action_queue_state_machine_test.dart`:
+  - pending -> in_flight gecisi + retry count artisi
+  - max onceki failde pending'e geri donus
+  - ucuncu failde `failed_permanent` ve replay disi kalma
+  - `loadReplayable` filtreleme kurallari
+
+### Hata Kaydi (Silinmez)
+- Ilk iterasyonda testte `isNull` import cakismasi (`drift` vs `flutter_test`) oldu.
+  - Cozum: Drift importu `show Value` ile daraltildi.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test` -> 104 test passed.
+
+### Sonraki Adim
+- Faz E / 194: Queue repository (exponential backoff + dead-letter) implementasyonu.
