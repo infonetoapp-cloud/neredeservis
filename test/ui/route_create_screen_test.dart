@@ -18,10 +18,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Rota Olustur'), findsOneWidget);
+    expect(find.text('Hizli (pin)'), findsOneWidget);
+    expect(find.text('Ghost Drive'), findsOneWidget);
     expect(find.text('Rota Adi'), findsOneWidget);
     expect(find.text('Baslangic Adresi'), findsOneWidget);
     expect(find.text('Bitis Adresi'), findsOneWidget);
     expect(find.text('Rotayi Olustur'), findsOneWidget);
+  });
+
+  testWidgets('route create supports quick pin and ghost drive mode switch', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildTestApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ghost Drive'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Ghost Drive modu ile rotayi surus sirasinda'),
+      findsOneWidget,
+    );
+    expect(find.text('Ghost Drive Hazirla'), findsOneWidget);
   });
 
   testWidgets('route create submit sends normalized payload', (tester) async {

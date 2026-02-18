@@ -8826,3 +8826,59 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 307A: Route create girisinde iki mod (`Hizli (pin)` + `Ghost Drive`) sunmak.
+
+## STEP-307A - Route Create Girisinde Cift Mod (Hizli Pin + Ghost Drive)
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Route create ekraninda iki ayri giris modunu net sunmak:
+  - `Hizli (pin)` (mevcut createRoute formu)
+  - `Ghost Drive (Rotayi Kaydet)` (307B oncesi onboarding)
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/route_create_screen.dart`
+   - `SegmentedButton` ile mod secimi eklendi (`Hizli (pin)` / `Ghost Drive`)
+   - quick pin formu helper'a ayrildi
+   - ghost drive modu icin bilgilendirme paneli eklendi
+   - ghost mode submit davranisi 307B hazir degil mesajina yonlendirildi
+2. `apply_patch` -> `test/ui/route_create_screen_test.dart`
+   - mode switch testi eklendi
+   - `Hizli` ve `Ghost` etiketlerinin render dogrulamasi eklendi
+3. `dart format lib/ui/screens/route_create_screen.dart test/ui/route_create_screen_test.dart`
+4. `flutter analyze`
+5. `flutter test`
+6. `flutter analyze` + `flutter test` (lint/test duzeltmeleri sonrasi rerun)
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`307A` -> `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`307A` -> `[x]`)
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (append-only)
+
+### Bulgular
+- Route create akisi artik giriste iki modu acikca sunuyor:
+  - `Hizli (pin)` secildiginde mevcut `createRoute` callable formu aynen calisiyor.
+  - `Ghost Drive` secildiginde kullaniciya 307B capture adimlarinin bir sonraki adimda acilacagi gosteriliyor.
+- Teknik borc azaltimi:
+  - ekran buyuk `build` blogu parcali yapiya ayrildi (`_buildQuickPinForm`, `_buildGhostDriveMode`).
+- UI test kapsaminda mod degisimi ve ghost metin gorunurlugu dogrulandi.
+
+### Hata Kaydi (Silinmez)
+- Ilk kontrol turunda:
+  - import order lint (`directives_ordering`)
+  - `DropdownButtonFormField.value` deprecation
+  - route create testinde buton viewport disinda kalma
+  - cozum:
+    - import sirasi duzeltildi
+    - `initialValue` kullanildi
+    - testte `ensureVisible` eklendi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; once raporlanan kayip bolumler icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found).
+- `flutter test` -> pass (tum testler green, `180` test).
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `307A` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `307A` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 307B: Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).

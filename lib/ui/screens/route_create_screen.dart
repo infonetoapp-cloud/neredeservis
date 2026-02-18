@@ -26,6 +26,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
   final _endLngController = TextEditingController(text: '29.2000');
   final _scheduledTimeController = TextEditingController(text: '07:00');
 
+  RouteCreateMode _mode = RouteCreateMode.quickPin;
   String _selectedTimeSlot = 'morning';
   bool _allowGuestTracking = true;
   bool _submitting = false;
@@ -45,6 +46,11 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
   }
 
   Future<void> _submit() async {
+    if (_mode == RouteCreateMode.ghostDrive) {
+      _setValidation('Ghost Drive modu 307B adiminda acilacak.');
+      return;
+    }
+
     final input = _buildInput();
     if (input == null) {
       return;
@@ -140,122 +146,32 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          TextField(
-            controller: _nameController,
-            enabled: !_submitting,
-            decoration: const InputDecoration(labelText: 'Rota Adi'),
-          ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          TextField(
-            controller: _startAddressController,
-            enabled: !_submitting,
-            decoration: const InputDecoration(labelText: 'Baslangic Adresi'),
-          ),
-          const SizedBox(height: AmberSpacingTokens.space8),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: TextField(
-                  controller: _startLatController,
-                  enabled: !_submitting,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Baslangic Lat'),
-                ),
+          SegmentedButton<RouteCreateMode>(
+            segments: const <ButtonSegment<RouteCreateMode>>[
+              ButtonSegment<RouteCreateMode>(
+                value: RouteCreateMode.quickPin,
+                label: Text('Hizli (pin)'),
               ),
-              const SizedBox(width: AmberSpacingTokens.space8),
-              Expanded(
-                child: TextField(
-                  controller: _startLngController,
-                  enabled: !_submitting,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Baslangic Lng'),
-                ),
+              ButtonSegment<RouteCreateMode>(
+                value: RouteCreateMode.ghostDrive,
+                label: Text('Ghost Drive'),
               ),
             ],
-          ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          TextField(
-            controller: _endAddressController,
-            enabled: !_submitting,
-            decoration: const InputDecoration(labelText: 'Bitis Adresi'),
-          ),
-          const SizedBox(height: AmberSpacingTokens.space8),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: TextField(
-                  controller: _endLatController,
-                  enabled: !_submitting,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Bitis Lat'),
-                ),
-              ),
-              const SizedBox(width: AmberSpacingTokens.space8),
-              Expanded(
-                child: TextField(
-                  controller: _endLngController,
-                  enabled: !_submitting,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
-                  decoration: const InputDecoration(labelText: 'Bitis Lng'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          TextField(
-            controller: _scheduledTimeController,
-            enabled: !_submitting,
-            decoration:
-                const InputDecoration(labelText: 'Planlanan Saat (HH:mm)'),
-          ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedTimeSlot,
-            items: const <DropdownMenuItem<String>>[
-              DropdownMenuItem(value: 'morning', child: Text('Sabah')),
-              DropdownMenuItem(value: 'midday', child: Text('Oglen')),
-              DropdownMenuItem(value: 'evening', child: Text('Aksam')),
-              DropdownMenuItem(value: 'custom', child: Text('Ozel')),
-            ],
-            onChanged: _submitting
+            selected: <RouteCreateMode>{_mode},
+            onSelectionChanged: _submitting
                 ? null
-                : (value) {
-                    if (value == null) {
-                      return;
-                    }
+                : (selection) {
                     setState(() {
-                      _selectedTimeSlot = value;
+                      _mode = selection.first;
+                      _validationError = null;
                     });
                   },
-            decoration: const InputDecoration(labelText: 'Zaman Dilimi'),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: _allowGuestTracking,
-            onChanged: _submitting
-                ? null
-                : (value) {
-                    setState(() {
-                      _allowGuestTracking = value;
-                    });
-                  },
-            title: const Text('Misafir takip izni'),
-            subtitle:
-                const Text('Acil durumlarda misafir takip acik olabilir.'),
-          ),
+          const SizedBox(height: AmberSpacingTokens.space12),
+          if (_mode == RouteCreateMode.quickPin)
+            ..._buildQuickPinForm()
+          else
+            _buildGhostDriveMode(),
           if (_validationError != null) ...<Widget>[
             const SizedBox(height: AmberSpacingTokens.space8),
             Text(
@@ -267,13 +183,157 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
           ],
           const SizedBox(height: AmberSpacingTokens.space20),
           AmberPrimaryButton(
-            label: _submitting ? 'Olusturuluyor...' : 'Rotayi Olustur',
+            label: _submitting
+                ? 'Isleniyor...'
+                : _mode == RouteCreateMode.quickPin
+                    ? 'Rotayi Olustur'
+                    : 'Ghost Drive Hazirla',
             onPressed: _submitting ? null : _submit,
           ),
         ],
       ),
     );
   }
+
+  List<Widget> _buildQuickPinForm() {
+    return <Widget>[
+      TextField(
+        controller: _nameController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Rota Adi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      TextField(
+        controller: _startAddressController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Baslangic Adresi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: TextField(
+              controller: _startLatController,
+              enabled: !_submitting,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Baslangic Lat'),
+            ),
+          ),
+          const SizedBox(width: AmberSpacingTokens.space8),
+          Expanded(
+            child: TextField(
+              controller: _startLngController,
+              enabled: !_submitting,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Baslangic Lng'),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      TextField(
+        controller: _endAddressController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Bitis Adresi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      Row(
+        children: <Widget>[
+          Expanded(
+            child: TextField(
+              controller: _endLatController,
+              enabled: !_submitting,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Bitis Lat'),
+            ),
+          ),
+          const SizedBox(width: AmberSpacingTokens.space8),
+          Expanded(
+            child: TextField(
+              controller: _endLngController,
+              enabled: !_submitting,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+                signed: true,
+              ),
+              decoration: const InputDecoration(labelText: 'Bitis Lng'),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      TextField(
+        controller: _scheduledTimeController,
+        enabled: !_submitting,
+        decoration: const InputDecoration(labelText: 'Planlanan Saat (HH:mm)'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space12),
+      DropdownButtonFormField<String>(
+        initialValue: _selectedTimeSlot,
+        items: const <DropdownMenuItem<String>>[
+          DropdownMenuItem(value: 'morning', child: Text('Sabah')),
+          DropdownMenuItem(value: 'midday', child: Text('Oglen')),
+          DropdownMenuItem(value: 'evening', child: Text('Aksam')),
+          DropdownMenuItem(value: 'custom', child: Text('Ozel')),
+        ],
+        onChanged: _submitting
+            ? null
+            : (value) {
+                if (value == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedTimeSlot = value;
+                });
+              },
+        decoration: const InputDecoration(labelText: 'Zaman Dilimi'),
+      ),
+      const SizedBox(height: AmberSpacingTokens.space8),
+      SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        value: _allowGuestTracking,
+        onChanged: _submitting
+            ? null
+            : (value) {
+                setState(() {
+                  _allowGuestTracking = value;
+                });
+              },
+        title: const Text('Misafir takip izni'),
+        subtitle: const Text('Acil durumlarda misafir takip acik olabilir.'),
+      ),
+    ];
+  }
+
+  Widget _buildGhostDriveMode() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(12),
+        child: Text(
+          'Ghost Drive modu ile rotayi surus sirasinda kaydedeceksin. '
+          'Bu adimda sadece mod secimi acildi; capture adimlari 307B ile baglanacak.',
+        ),
+      ),
+    );
+  }
+}
+
+enum RouteCreateMode {
+  quickPin,
+  ghostDrive,
 }
 
 class RouteCreateFormInput {
