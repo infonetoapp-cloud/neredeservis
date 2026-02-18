@@ -451,13 +451,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 183 Route entity/model/mapper yaz.
 - [x] 183A Ghost Drive iz kaydi icin `RouteTracePoint` entity/model/mapper yaz.
 - [x] 183B Route olusturma modunu modele ekle: `manual_pin | ghost_drive`.
-- [ ] 184 Stop entity/model/mapper yaz.
-- [ ] 185 Passenger profile entity/model/mapper yaz.
-- [ ] 186 Trip entity/model/mapper yaz.
-- [ ] 187 Announcement entity/model/mapper yaz.
-- [ ] 188 Consent entity/model/mapper yaz.
-- [ ] 189 Guest session entity/model/mapper yaz.
-- [ ] 189A Anonymous->registered gecisi icin local ownership modelini ekle (`ownerUid`, `previousOwnerUid`, `migratedAt`).
+- [x] 184 Stop entity/model/mapper yaz.
+- [x] 185 Passenger profile entity/model/mapper yaz.
+- [x] 186 Trip entity/model/mapper yaz.
+- [x] 187 Announcement entity/model/mapper yaz.
+- [x] 188 Consent entity/model/mapper yaz.
+- [x] 189 Guest session entity/model/mapper yaz.
+- [x] 189A Anonymous->registered gecisi icin local ownership modelini ekle (`ownerUid`, `previousOwnerUid`, `migratedAt`).
 - [ ] 190 Repository arayuzlerini tamamla.
 - [ ] 191 Firestore datasource implementation yaz.
 - [ ] 192 RTDB datasource implementation yaz.

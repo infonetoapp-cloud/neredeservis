@@ -4985,3 +4985,77 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz E / 184: Stop entity/model/mapper.
+
+## STEP-184-189A - Stop/Passenger/Trip/Announcement/Consent/GuestSession + Local Ownership
+Tarih: 2026-02-18
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz E adimlarini toplu kapatmak:
+  - 184: Stop entity/model/mapper
+  - 185: Passenger profile entity/model/mapper
+  - 186: Trip entity/model/mapper
+  - 187: Announcement entity/model/mapper
+  - 188: Consent entity/model/mapper
+  - 189: Guest session entity/model/mapper
+  - 189A: Local ownership modeli (`ownerUid`, `previousOwnerUid`, `migratedAt`)
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/entities/stop_entity.dart`
+2. `apply_patch` -> `lib/features/domain/models/stop_model.dart`
+3. `apply_patch` -> `lib/features/domain/mappers/stop_mapper.dart`
+4. `apply_patch` -> `lib/features/domain/entities/passenger_profile_entity.dart`
+5. `apply_patch` -> `lib/features/domain/models/passenger_profile_model.dart`
+6. `apply_patch` -> `lib/features/domain/mappers/passenger_profile_mapper.dart`
+7. `apply_patch` -> `lib/features/domain/entities/trip_entity.dart`
+8. `apply_patch` -> `lib/features/domain/models/trip_model.dart`
+9. `apply_patch` -> `lib/features/domain/mappers/trip_mapper.dart`
+10. `apply_patch` -> `lib/features/domain/entities/announcement_entity.dart`
+11. `apply_patch` -> `lib/features/domain/models/announcement_model.dart`
+12. `apply_patch` -> `lib/features/domain/mappers/announcement_mapper.dart`
+13. `apply_patch` -> `lib/features/domain/entities/consent_entity.dart`
+14. `apply_patch` -> `lib/features/domain/models/consent_model.dart`
+15. `apply_patch` -> `lib/features/domain/mappers/consent_mapper.dart`
+16. `apply_patch` -> `lib/features/domain/entities/local_ownership_entity.dart`
+17. `apply_patch` -> `lib/features/domain/models/local_ownership_model.dart`
+18. `apply_patch` -> `lib/features/domain/mappers/local_ownership_mapper.dart`
+19. `apply_patch` -> `lib/features/domain/entities/guest_session_entity.dart`
+20. `apply_patch` -> `lib/features/domain/models/guest_session_model.dart`
+21. `apply_patch` -> `lib/features/domain/mappers/guest_session_mapper.dart`
+22. `apply_patch` -> `test/domain/*_mapper_test.dart` (yeni test setleri)
+23. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (184-189A `[x]`)
+24. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (184-189A `[x]`)
+25. `dart format lib/features/domain test/domain`
+26. `flutter analyze`
+27. `flutter test test/domain`
+28. `flutter test`
+
+### Bulgular
+- Stop, passenger profile, trip, announcement, consent ve guest session icin tam entity/model/mapper setleri eklendi.
+- Trip tarafinda enum mapleri tanimlandi:
+  - `TripStatus: active|completed|abandoned|unknown`
+  - `TripEndReason: driver_finished|auto_abandoned|unknown`
+- Announcement kanal mapi tanimlandi:
+  - `fcm|whatsapp_link|unknown`
+- Consent platform mapi tanimlandi:
+  - `android|ios|unknown`
+- Guest session tarafinda ownership metadata opsiyonel olarak modele baglandi.
+- 189A kapsaminda ayri local ownership modeli eklendi:
+  - `LocalOwnershipEntity/Model/Mapper`
+  - alanlar: `ownerUid`, `previousOwnerUid`, `migratedAt`
+- Domain mapper test kapsamı genisletildi:
+  - announcement, consent, guest_session, local_ownership, passenger_profile, stop, trip
+
+### Hata Kaydi (Silinmez)
+- `flutter analyze` ilk kosuda tek uyarı verdi:
+  - `prefer_const_constructors` (`test/domain/local_ownership_mapper_test.dart`)
+- Testte `const` duzeltmesi yapildi; tekrar analyze temiz.
+
+### Dogrulama
+- `flutter analyze` -> No issues found.
+- `flutter test test/domain` -> 29/29 passed.
+- `flutter test` -> 94 test passed.
+
+### Sonraki Adim
+- Faz E / 190: Repository arayuzlerini tamamla.
