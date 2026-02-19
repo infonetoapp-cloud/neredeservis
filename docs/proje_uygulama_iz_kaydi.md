@@ -9209,3 +9209,62 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 313: `submitSkipToday` aksiyonunu bagla.
+
+## STEP-313-315 - Skip Today + Guest Session + Expiry Guard
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 313: `submitSkipToday` aksiyonunu yolcu tracking ekranina baglamak.
+- Faz G / 314: guest session olusturma akisini `createGuestSession` callable ile baglamak.
+- Faz G / 315: guest session expiry/revoke durumunda guvenli yonlendirme guard'i eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/tokens/icon_tokens.dart` (`skipToday` icon token)
+2. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart` (`onSkipTodayTap` aksiyonu + ust bar butonu)
+3. `apply_patch` -> `lib/ui/screens/join_screen.dart` (guest join icin minimal form/validasyon)
+4. `apply_patch` -> `lib/app/router/app_router.dart`
+   - join route rol bazli ayrim (`guest` -> `createGuestSession`)
+   - `_handleSubmitSkipToday` callable entegrasyonu
+   - `_handleCreateGuestSession` callable entegrasyonu
+   - `_GuestSessionExpiryGuard` stream tabanli expiry/revoke kontrolu
+   - Istanbul `dateKey` + skip idempotency helper'lari
+5. `apply_patch` -> `test/ui/join_screen_test.dart` (guest minimal payload testi)
+6. `apply_patch` -> `test/ui/passenger_tracking_screen_test.dart` (skip button callback testi)
+7. `dart format lib/app/router/app_router.dart lib/ui/screens/join_screen.dart lib/ui/screens/passenger_tracking_screen.dart lib/ui/tokens/icon_tokens.dart test/ui/join_screen_test.dart test/ui/passenger_tracking_screen_test.dart`
+8. `flutter analyze`
+9. `flutter test`
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`313, 314, 315` -> `[x]`)
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`313, 314, 315` -> `[x]`)
+
+### Bulgular
+- Yolcu tracking ust barda yeni `Bugun Binmiyorum` aksiyonu eklendi.
+- `submitSkipToday` cagrisi Istanbul tarih anahtari (`YYYY-MM-DD`) ve idempotency key ile gonderiliyor.
+- Guest join akisi sadelestirildi:
+  - guest rolde sadece SRV kodu zorunlu
+  - yolcuya ozel alanlar gizli
+  - backend payload guest icin kontrollu default alanlarla uretiliyor
+- `createGuestSession` basarili oldugunda tracking ekranina `guestSessionId`/`guestExpiresAt` query'si ile geciliyor.
+- `_GuestSessionExpiryGuard`, `guest_sessions/{sessionId}` dokumanini izliyor:
+  - oturum yoksa / `status!=active` ise / `expiresAt` gecmisse kullaniciyi `join?role=guest` ekranina geri yonlendiriyor.
+
+### Hata Kaydi (Silinmez)
+- `flutter analyze` ilk kosuda `unnecessary_string_escapes` lint uyarisi verdi.
+  - cozum: dialog metnindeki gereksiz kacis karakterleri temizlendi.
+- PowerShell'de tek satir `git add ... && git commit ...` denemesi `&&` ayiraci nedeniyle parser hatasi verdi.
+  - cozum: komutlar `;` ayiraci ile tekrar calistirildi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `197` test)
+- Yeni eklenen hedefli testler:
+  - guest minimal join payload kontrati
+  - tracking skip today callback gorunurluk/etkilesim kontrati
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `313, 314, 315` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `313, 314, 315` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 316: Driver `startTrip` aksiyonunu bagla.

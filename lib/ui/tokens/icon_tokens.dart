@@ -25,6 +25,7 @@ class AmberIconTokens {
   static const IconData ruler = PhosphorIconsRegular.ruler;
   static const IconData check = PhosphorIconsRegular.check;
   static const IconData signOut = PhosphorIconsRegular.signOut;
+  static const IconData skipToday = PhosphorIconsRegular.calendarX;
   static const IconData caretRight = PhosphorIconsRegular.caretRight;
   static const IconData caretDoubleRight =
       PhosphorIconsRegular.caretDoubleRight;

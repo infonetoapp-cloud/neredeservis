@@ -81,6 +81,7 @@ class _JoinScreenState extends State<JoinScreen> {
   }
 
   Future<void> _submitJoinCode() async {
+    final isGuestJoin = widget.selectedRole == JoinRole.guest;
     final normalizedCode = _normalizeSrvCode(_srvCodeController.text);
     final name = _nameController.text.trim();
     final phoneRaw = _phoneController.text.trim();
@@ -98,23 +99,23 @@ class _JoinScreenState extends State<JoinScreen> {
       _setError('SRV kodu 6 karakter olmali (ornek: 8K2Q7M).');
       return;
     }
-    if (name.length < 2) {
+    if (!isGuestJoin && name.length < 2) {
       _setError('Ad Soyad en az 2 karakter olmali.');
       return;
     }
-    if (phone != null && phone.length < 7) {
+    if (!isGuestJoin && phone != null && phone.length < 7) {
       _setError('Telefon en az 7 karakter olmali.');
       return;
     }
-    if (boardingArea.isEmpty) {
+    if (!isGuestJoin && boardingArea.isEmpty) {
       _setError('Binis alani zorunlu.');
       return;
     }
-    if (!_isValidTime(notificationTime)) {
+    if (!isGuestJoin && !_isValidTime(notificationTime)) {
       _setError('Bildirim saati HH:mm formatinda olmali.');
       return;
     }
-    if (_useVirtualStop) {
+    if (!isGuestJoin && _useVirtualStop) {
       final virtualStopLat =
           double.tryParse(_virtualStopLatController.text.trim());
       final virtualStopLng =
@@ -137,11 +138,11 @@ class _JoinScreenState extends State<JoinScreen> {
 
     final input = JoinBySrvFormInput(
       srvCode: normalizedCode,
-      name: name,
-      phone: phone,
+      name: isGuestJoin ? 'Misafir' : name,
+      phone: isGuestJoin ? null : phone,
       showPhoneToDriver: _showPhoneToDriver,
-      boardingArea: boardingArea,
-      notificationTime: notificationTime,
+      boardingArea: isGuestJoin ? 'guest' : boardingArea,
+      notificationTime: isGuestJoin ? '07:00' : notificationTime,
       virtualStop: virtualStop,
       virtualStopLabel: virtualStopLabel,
     );
@@ -264,113 +265,125 @@ class _JoinScreenState extends State<JoinScreen> {
                             },
                             onSubmitted: (_) => _submitJoinCode(),
                           ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          TextField(
-                            controller: _nameController,
-                            enabled: !_submitting,
-                            decoration: const InputDecoration(
-                              labelText: 'Ad Soyad',
+                          if (widget.selectedRole ==
+                              JoinRole.guest) ...<Widget>[
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            Text(
+                              'Misafir takipte yalnizca SRV kodu yeterli.',
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: AmberColorTokens.ink700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          TextField(
-                            controller: _phoneController,
-                            enabled: !_submitting,
-                            keyboardType: TextInputType.phone,
-                            decoration: const InputDecoration(
-                              labelText: 'Telefon (opsiyonel)',
-                            ),
-                          ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          TextField(
-                            controller: _boardingAreaController,
-                            enabled: !_submitting,
-                            decoration: const InputDecoration(
-                              labelText: 'Binis Alani',
-                            ),
-                          ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          TextField(
-                            controller: _notificationTimeController,
-                            enabled: !_submitting,
-                            decoration: const InputDecoration(
-                              labelText: 'Bildirim Saati (HH:mm)',
-                            ),
-                          ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            value: _useVirtualStop,
-                            onChanged: _submitting
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _useVirtualStop = value;
-                                    });
-                                  },
-                            title: const Text('Sanal Durak kullan (opsiyonel)'),
-                            subtitle: const Text(
-                              'Sanal durak yoksa Binis Alani ile devam edilir.',
-                            ),
-                          ),
-                          if (_useVirtualStop) ...<Widget>[
+                          ] else ...<Widget>[
                             const SizedBox(height: AmberSpacingTokens.space8),
                             TextField(
-                              controller: _virtualStopLabelController,
+                              controller: _nameController,
                               enabled: !_submitting,
                               decoration: const InputDecoration(
-                                labelText: 'Sanal Durak Etiketi (opsiyonel)',
+                                labelText: 'Ad Soyad',
                               ),
                             ),
                             const SizedBox(height: AmberSpacingTokens.space8),
-                            Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: TextField(
-                                    controller: _virtualStopLatController,
-                                    enabled: !_submitting,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                      signed: true,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Sanal Durak Lat',
+                            TextField(
+                              controller: _phoneController,
+                              enabled: !_submitting,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Telefon (opsiyonel)',
+                              ),
+                            ),
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            TextField(
+                              controller: _boardingAreaController,
+                              enabled: !_submitting,
+                              decoration: const InputDecoration(
+                                labelText: 'Binis Alani',
+                              ),
+                            ),
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            TextField(
+                              controller: _notificationTimeController,
+                              enabled: !_submitting,
+                              decoration: const InputDecoration(
+                                labelText: 'Bildirim Saati (HH:mm)',
+                              ),
+                            ),
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            SwitchListTile.adaptive(
+                              contentPadding: EdgeInsets.zero,
+                              value: _useVirtualStop,
+                              onChanged: _submitting
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _useVirtualStop = value;
+                                      });
+                                    },
+                              title:
+                                  const Text('Sanal Durak kullan (opsiyonel)'),
+                              subtitle: const Text(
+                                'Sanal durak yoksa Binis Alani ile devam edilir.',
+                              ),
+                            ),
+                            if (_useVirtualStop) ...<Widget>[
+                              const SizedBox(height: AmberSpacingTokens.space8),
+                              TextField(
+                                controller: _virtualStopLabelController,
+                                enabled: !_submitting,
+                                decoration: const InputDecoration(
+                                  labelText: 'Sanal Durak Etiketi (opsiyonel)',
+                                ),
+                              ),
+                              const SizedBox(height: AmberSpacingTokens.space8),
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _virtualStopLatController,
+                                      enabled: !_submitting,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Sanal Durak Lat',
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(
-                                    width: AmberSpacingTokens.space8),
-                                Expanded(
-                                  child: TextField(
-                                    controller: _virtualStopLngController,
-                                    enabled: !_submitting,
-                                    keyboardType:
-                                        const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                      signed: true,
-                                    ),
-                                    decoration: const InputDecoration(
-                                      labelText: 'Sanal Durak Lng',
+                                  const SizedBox(
+                                      width: AmberSpacingTokens.space8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _virtualStopLngController,
+                                      enabled: !_submitting,
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Sanal Durak Lng',
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ],
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            SwitchListTile.adaptive(
+                              contentPadding: EdgeInsets.zero,
+                              value: _showPhoneToDriver,
+                              onChanged: _submitting
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _showPhoneToDriver = value;
+                                      });
+                                    },
+                              title: const Text('Telefonumu sofor gorebilsin'),
                             ),
                           ],
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            value: _showPhoneToDriver,
-                            onChanged: _submitting
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _showPhoneToDriver = value;
-                                    });
-                                  },
-                            title: const Text('Telefonumu sofor gorebilsin'),
-                          ),
                           const SizedBox(height: AmberSpacingTokens.space12),
                           AmberPrimaryButton(
                             label: _submitting

@@ -101,4 +101,39 @@ void main() {
     expect(find.text('Misafir modu secili'), findsOneWidget);
     expect(find.text('Sofor Paneline Gec'), findsNothing);
   });
+
+  testWidgets('guest role hides passenger fields and submits minimal payload',
+      (WidgetTester tester) async {
+    JoinBySrvFormInput? joinedInput;
+
+    await tester.pumpWidget(
+      buildTestApp(
+        role: JoinRole.guest,
+        onJoinByCode: (value) async {
+          joinedInput = value;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ad Soyad'), findsNothing);
+    expect(find.text('Binis Alani'), findsNothing);
+    expect(
+      find.text('Misafir takipte yalnizca SRV kodu yeterli.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'srv-8k2q7m');
+    await tester.ensureVisible(find.text('Koda Katil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Koda Katil'));
+    await tester.pumpAndSettle();
+
+    expect(joinedInput, isNotNull);
+    expect(joinedInput!.srvCode, equals('8K2Q7M'));
+    expect(joinedInput!.name, equals('Misafir'));
+    expect(joinedInput!.phone, isNull);
+    expect(joinedInput!.boardingArea, equals('guest'));
+    expect(joinedInput!.notificationTime, equals('07:00'));
+  });
 }

@@ -166,12 +166,21 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.join,
-        builder: (context, state) => JoinScreen(
-          selectedRole: joinRoleFromQuery(state.uri.queryParameters['role']),
-          onJoinByCode: (input) => _handleJoinBySrvCode(context, input),
-          onScanQrTap: () => context.go(AppRoutePath.passengerTracking),
-          onContinueDriverTap: () => context.go(AppRoutePath.driverHome),
-        ),
+        builder: (context, state) {
+          final selectedRole =
+              joinRoleFromQuery(state.uri.queryParameters['role']);
+          return JoinScreen(
+            selectedRole: selectedRole,
+            onJoinByCode: (input) {
+              if (selectedRole == JoinRole.guest) {
+                return _handleCreateGuestSession(context, input);
+              }
+              return _handleJoinBySrvCode(context, input);
+            },
+            onScanQrTap: () => context.go(AppRoutePath.passengerTracking),
+            onContinueDriverTap: () => context.go(AppRoutePath.driverHome),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.settings,
@@ -837,6 +846,111 @@ Future<void> _handleJoinBySrvCode(
   }
 }
 
+Future<void> _handleCreateGuestSession(
+  BuildContext context,
+  JoinBySrvFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('createGuestSession');
+    final response = await callable.call(<String, dynamic>{
+      'srvCode': input.srvCode,
+    });
+    final payload = _extractCallableData(response.data);
+    final routeId = payload['routeId'] as String? ?? '';
+    final sessionId = payload['sessionId'] as String? ?? '';
+    final expiresAt = payload['expiresAt'] as String? ?? '';
+
+    if (!context.mounted) {
+      return;
+    }
+    if (routeId.isEmpty || sessionId.isEmpty || expiresAt.isEmpty) {
+      _showInfo(context, 'Misafir oturumu acilamadi (yanit eksik).');
+      return;
+    }
+
+    final trackingUri = Uri(
+      path: AppRoutePath.passengerTracking,
+      queryParameters: <String, String>{
+        'routeId': routeId,
+        'guestSessionId': sessionId,
+        'guestExpiresAt': expiresAt,
+      },
+    );
+    _showInfo(context, 'Misafir takip oturumu baslatildi.');
+    context.go(trackingUri.toString());
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (error.code) {
+      'permission-denied' => 'Bu route icin misafir takip kapali.',
+      'not-found' => 'SRV kodu ile route bulunamadi.',
+      _ => 'Misafir oturumu acilamadi (${error.code}).',
+    };
+    _showInfo(context, message);
+  }
+}
+
+Future<void> _handleSubmitSkipToday(
+  BuildContext context,
+  String routeId,
+) async {
+  final approved = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Bugun Binmiyorum'),
+        content: const Text(
+          'Bugun bu servis icin katilim durumun "Binmiyor" olarak isaretlenecek. Onayliyor musun?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Iptal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Onayla'),
+          ),
+        ],
+      );
+    },
+  );
+  if (approved != true) {
+    return;
+  }
+
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('submitSkipToday');
+    final dateKey = _buildIstanbulDateKey(DateTime.now().toUtc());
+    await callable.call(<String, dynamic>{
+      'routeId': routeId,
+      'dateKey': dateKey,
+      'idempotencyKey': _buildSkipTodayIdempotencyKey(dateKey),
+    });
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Bugun binmiyorum bildirimi kaydedildi.');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (error.code) {
+      'failed-precondition' => 'Bugun binmiyorum islemi su an kabul edilmiyor.',
+      'permission-denied' =>
+        'Bu route icin yolcu kaydin olmadigindan skip islemi yapilamadi.',
+      'not-found' => 'Route bulunamadi.',
+      _ => 'Bugun binmiyorum islemi basarisiz (${error.code}).',
+    };
+    _showInfo(context, message);
+  }
+}
+
 Future<void> _handleUpdatePassengerSettings(
   BuildContext context,
   PassengerSettingsFormInput input,
@@ -1121,12 +1235,46 @@ Widget _buildPassengerTrackingRoute(
   final routeName = _nullableParam(state.uri.queryParameters['routeName']);
   final etaSourceFromQuery =
       _nullableParam(state.uri.queryParameters['etaSourceLabel']);
+  final guestSessionId =
+      _nullableParam(state.uri.queryParameters['guestSessionId']);
+  final guestExpiresAt =
+      _nullableParam(state.uri.queryParameters['guestExpiresAt']);
   final user = FirebaseAuth.instance.currentUser;
+
+  PassengerTrackingScreen buildTrackingScreen({
+    required String resolvedRouteName,
+    required String etaSourceLabel,
+    VoidCallback? onSettingsTap,
+    VoidCallback? onSkipTodayTap,
+    VoidCallback? onLeaveRouteTap,
+  }) {
+    return PassengerTrackingScreen(
+      mapboxPublicToken: environment.mapboxPublicToken,
+      routeName: resolvedRouteName,
+      etaSourceLabel: etaSourceLabel,
+      onSettingsTap: onSettingsTap,
+      onSkipTodayTap: onSkipTodayTap,
+      onLeaveRouteTap: onLeaveRouteTap,
+    );
+  }
+
+  if (guestSessionId != null) {
+    return _GuestSessionExpiryGuard(
+      sessionId: guestSessionId,
+      initialRouteId: routeId,
+      initialRouteName: routeName,
+      initialExpiresAt: guestExpiresAt,
+      mapboxPublicToken: environment.mapboxPublicToken,
+      initialEtaSourceLabel: etaSourceFromQuery ?? 'Rota baslangici tahmini',
+    );
+  }
 
   VoidCallback? onLeaveRouteTap;
   VoidCallback? onSettingsTap;
+  VoidCallback? onSkipTodayTap;
   if (routeId != null) {
     onLeaveRouteTap = () => _handleLeaveRoute(context, routeId);
+    onSkipTodayTap = () => _handleSubmitSkipToday(context, routeId);
     onSettingsTap = () {
       final settingsUri = Uri(
         path: AppRoutePath.passengerSettings,
@@ -1139,21 +1287,25 @@ Widget _buildPassengerTrackingRoute(
     };
   }
 
-  PassengerTrackingScreen buildTrackingScreen(String etaSourceLabel) {
-    return PassengerTrackingScreen(
-      mapboxPublicToken: environment.mapboxPublicToken,
-      routeName: routeName ?? 'Darica -> GOSB',
-      etaSourceLabel: etaSourceLabel,
+  final defaultRouteName = routeName ?? 'Darica -> GOSB';
+
+  if (etaSourceFromQuery != null) {
+    return buildTrackingScreen(
+      resolvedRouteName: defaultRouteName,
+      etaSourceLabel: etaSourceFromQuery,
       onSettingsTap: onSettingsTap,
+      onSkipTodayTap: onSkipTodayTap,
       onLeaveRouteTap: onLeaveRouteTap,
     );
   }
-
-  if (etaSourceFromQuery != null) {
-    return buildTrackingScreen(etaSourceFromQuery);
-  }
   if (routeId == null || user == null) {
-    return buildTrackingScreen('Rota baslangici tahmini');
+    return buildTrackingScreen(
+      resolvedRouteName: defaultRouteName,
+      etaSourceLabel: 'Rota baslangici tahmini',
+      onSettingsTap: onSettingsTap,
+      onSkipTodayTap: onSkipTodayTap,
+      onLeaveRouteTap: onLeaveRouteTap,
+    );
   }
 
   return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -1168,7 +1320,13 @@ Widget _buildPassengerTrackingRoute(
       final etaSourceLabel = _resolveEtaSourceLabelFromPassengerData(
         passengerData,
       );
-      return buildTrackingScreen(etaSourceLabel);
+      return buildTrackingScreen(
+        resolvedRouteName: defaultRouteName,
+        etaSourceLabel: etaSourceLabel,
+        onSettingsTap: onSettingsTap,
+        onSkipTodayTap: onSkipTodayTap,
+        onLeaveRouteTap: onLeaveRouteTap,
+      );
     },
   );
 }
@@ -1228,6 +1386,102 @@ String? _nullableParam(String? value) {
     return null;
   }
   return normalized;
+}
+
+String _buildIstanbulDateKey(DateTime utcDateTime) {
+  final istanbulNow = utcDateTime.add(const Duration(hours: 3));
+  final year = istanbulNow.year.toString().padLeft(4, '0');
+  final month = istanbulNow.month.toString().padLeft(2, '0');
+  final day = istanbulNow.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+String _buildSkipTodayIdempotencyKey(String dateKey) {
+  final compactDateKey = dateKey.replaceAll('-', '');
+  final nowMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+  return 'skip_${compactDateKey}_$nowMs';
+}
+
+class _GuestSessionExpiryGuard extends StatefulWidget {
+  const _GuestSessionExpiryGuard({
+    required this.sessionId,
+    required this.mapboxPublicToken,
+    required this.initialEtaSourceLabel,
+    this.initialRouteId,
+    this.initialRouteName,
+    this.initialExpiresAt,
+  });
+
+  final String sessionId;
+  final String? initialRouteId;
+  final String? initialRouteName;
+  final String? initialExpiresAt;
+  final String? mapboxPublicToken;
+  final String initialEtaSourceLabel;
+
+  @override
+  State<_GuestSessionExpiryGuard> createState() =>
+      _GuestSessionExpiryGuardState();
+}
+
+class _GuestSessionExpiryGuardState extends State<_GuestSessionExpiryGuard> {
+  bool _redirected = false;
+
+  void _redirectToGuestJoin(String message) {
+    if (_redirected || !mounted) {
+      return;
+    }
+    _redirected = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _showInfo(context, message);
+      context.go('${AppRoutePath.join}?role=guest');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('guest_sessions')
+          .doc(widget.sessionId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data();
+        final status = _nullableParam(data?['status'] as String?);
+        final expiresAtRaw = _nullableParam(data?['expiresAt'] as String?) ??
+            _nullableParam(widget.initialExpiresAt);
+        final expiresAt = expiresAtRaw == null
+            ? null
+            : DateTime.tryParse(expiresAtRaw)?.toUtc();
+        final nowUtc = DateTime.now().toUtc();
+
+        final sessionMissing =
+            snapshot.connectionState == ConnectionState.done &&
+                !snapshot.hasData &&
+                data == null;
+        final sessionRevoked = status != null && status != 'active';
+        final sessionExpired = expiresAt == null || !expiresAt.isAfter(nowUtc);
+
+        if (snapshot.hasError ||
+            sessionMissing ||
+            sessionRevoked ||
+            sessionExpired) {
+          _redirectToGuestJoin(
+            'Misafir takip oturumu suresi doldu. Lutfen yeniden katil.',
+          );
+        }
+
+        return PassengerTrackingScreen(
+          mapboxPublicToken: widget.mapboxPublicToken,
+          routeName: widget.initialRouteName ?? 'Misafir Takip',
+          etaSourceLabel: widget.initialEtaSourceLabel,
+        );
+      },
+    );
+  }
 }
 
 String _resolveDisplayName(User? user) {

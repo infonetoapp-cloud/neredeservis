@@ -26,6 +26,7 @@ void main() {
     String? scheduledTime,
     List<PassengerStopInfo> stops = const <PassengerStopInfo>[],
     VoidCallback? onSettingsTap,
+    VoidCallback? onSkipTodayTap,
     VoidCallback? onLeaveRouteTap,
   }) {
     return MaterialApp(
@@ -39,6 +40,7 @@ void main() {
         scheduledTime: scheduledTime,
         stops: stops,
         onSettingsTap: onSettingsTap,
+        onSkipTodayTap: onSkipTodayTap,
         onLeaveRouteTap: onLeaveRouteTap,
       ),
     );
@@ -195,6 +197,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(settingsTapped, isTrue);
+    });
+
+    testWidgets('shows skip today action when callback is provided',
+        (WidgetTester tester) async {
+      var skipTapped = false;
+      await tester.pumpWidget(
+        buildTestApp(
+          onSkipTodayTap: () {
+            skipTapped = true;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final skipButton = find.byTooltip('Bugun Binmiyorum');
+      expect(skipButton, findsOneWidget);
+      await tester.tap(skipButton);
+      await tester.pumpAndSettle();
+
+      expect(skipTapped, isTrue);
     });
   });
 }

@@ -32,6 +32,7 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.scheduledTime,
     this.driverName,
     this.mapboxPublicToken,
+    this.onSkipTodayTap,
     this.onLeaveRouteTap,
     this.onSettingsTap,
   });
@@ -75,6 +76,9 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Optional settings action for passenger route preferences.
   final VoidCallback? onSettingsTap;
 
+  /// Optional skip-today action for passenger.
+  final VoidCallback? onSkipTodayTap;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,6 +100,7 @@ class PassengerTrackingScreen extends StatelessWidget {
               routeName: routeName,
               freshness: freshness,
               onSettingsTap: onSettingsTap,
+              onSkipTodayTap: onSkipTodayTap,
               onLeaveRouteTap: onLeaveRouteTap,
             ),
           ),
@@ -344,12 +349,14 @@ class _TopBar extends StatelessWidget {
     required this.routeName,
     required this.freshness,
     this.onSettingsTap,
+    this.onSkipTodayTap,
     this.onLeaveRouteTap,
   });
 
   final String routeName;
   final LocationFreshness freshness;
   final VoidCallback? onSettingsTap;
+  final VoidCallback? onSkipTodayTap;
   final VoidCallback? onLeaveRouteTap;
 
   @override
@@ -397,6 +404,14 @@ class _TopBar extends StatelessWidget {
               tooltip: 'Yolcu Ayarlari',
               onPressed: onSettingsTap,
               icon: const Icon(AmberIconTokens.settings),
+            ),
+          ],
+          if (onSkipTodayTap != null) ...<Widget>[
+            const SizedBox(width: AmberSpacingTokens.space8),
+            IconButton(
+              tooltip: 'Bugun Binmiyorum',
+              onPressed: onSkipTodayTap,
+              icon: const Icon(AmberIconTokens.skipToday),
             ),
           ],
           if (onLeaveRouteTap != null) ...<Widget>[

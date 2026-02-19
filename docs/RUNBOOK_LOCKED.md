@@ -644,9 +644,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 312A Yolcu katilim/ayar ekranina `Sanal Durak` secimini ekle (haritadan nokta sec veya mevcut `boardingArea` metniyle devam).
 - [x] 312B ETA kaynagini kisisellestir: varsa `Sanal Durak`, yoksa `boardingArea`/route baslangici.
 - [x] 312C KULLANICIDAN ONAY ISTE: "Sanal Durak secimi katilimda zorunlu mu, opsiyonel mi?".
-- [ ] 313 `submitSkipToday` aksiyonunu bagla.
-- [ ] 314 Guest session olusturma akisini bagla.
-- [ ] 315 Guest session expiry handling yaz.
+- [x] 313 `submitSkipToday` aksiyonunu bagla.
+- [x] 314 Guest session olusturma akisini bagla.
+- [x] 315 Guest session expiry handling yaz.
 - [ ] 316 Driver start trip aksiyonunu bagla.
 - [ ] 316A `Seferi Baslat` aksiyonunda 10 sn yerel bekleme penceresi ekle (`undo` butonu gorunur, server cagrisi gecikmeli).
 - [ ] 316B 10 sn dolmadan `Iptal` secilirse start istegini tamamen dusur, push ve trip olusmasin.
