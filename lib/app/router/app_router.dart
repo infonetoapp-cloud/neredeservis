@@ -16,13 +16,16 @@ import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
 import '../../ui/screens/driver_profile_setup_screen.dart';
+import '../../ui/screens/driver_route_management_screen.dart';
 import '../../ui/screens/join_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
 import '../../ui/screens/paywall_screen.dart';
 import '../../ui/screens/profile_edit_screen.dart';
 import '../../ui/screens/role_select_screen.dart';
 import '../../ui/screens/route_create_screen.dart';
+import '../../ui/screens/route_update_screen.dart';
 import '../../ui/screens/settings_screen.dart';
+import '../../ui/screens/stop_crud_screen.dart';
 import 'app_route_paths.dart';
 import 'auth_guard.dart';
 import 'consent_guard.dart';
@@ -88,9 +91,17 @@ GoRouter buildAppRouter({
         builder: (context, state) => DriverHomeScreen(
           appName: flavorConfig.appName,
           onStartTripTap: () => context.go(AppRoutePath.activeTrip),
-          onManageRouteTap: () => context.go(AppRoutePath.driverRouteCreate),
+          onManageRouteTap: () => context.go(AppRoutePath.driverRoutesManage),
           onAnnouncementTap: () => context.go(AppRoutePath.settings),
           onSettingsTap: () => context.go(AppRoutePath.settings),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutePath.driverRoutesManage,
+        builder: (context, state) => DriverRouteManagementScreen(
+          onCreateRouteTap: () => context.go(AppRoutePath.driverRouteCreate),
+          onUpdateRouteTap: () => context.go(AppRoutePath.driverRouteUpdate),
+          onManageStopsTap: () => context.go(AppRoutePath.driverRouteStops),
         ),
       ),
       GoRoute(
@@ -99,6 +110,19 @@ GoRouter buildAppRouter({
           onCreate: (input) => _handleCreateRoute(context, input),
           onCreateFromGhostDrive: (input) =>
               _handleCreateRouteFromGhostDrive(context, input),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutePath.driverRouteUpdate,
+        builder: (context, state) => RouteUpdateScreen(
+          onSubmit: (input) => _handleUpdateRoute(context, input),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutePath.driverRouteStops,
+        builder: (context, state) => StopCrudScreen(
+          onUpsert: (input) => _handleUpsertStop(context, input),
+          onDelete: (input) => _handleDeleteStop(context, input),
         ),
       ),
       GoRoute(
@@ -118,21 +142,37 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.passengerHome,
-        builder: (context, state) => PassengerTrackingScreen(
-          mapboxPublicToken: environment.mapboxPublicToken,
-        ),
+        builder: (context, state) {
+          final routeId = state.uri.queryParameters['routeId'];
+          final routeName = state.uri.queryParameters['routeName'];
+          return PassengerTrackingScreen(
+            mapboxPublicToken: environment.mapboxPublicToken,
+            routeName: routeName ?? 'Darica -> GOSB',
+            onLeaveRouteTap: routeId == null || routeId.trim().isEmpty
+                ? null
+                : () => _handleLeaveRoute(context, routeId),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.passengerTracking,
-        builder: (context, state) => PassengerTrackingScreen(
-          mapboxPublicToken: environment.mapboxPublicToken,
-        ),
+        builder: (context, state) {
+          final routeId = state.uri.queryParameters['routeId'];
+          final routeName = state.uri.queryParameters['routeName'];
+          return PassengerTrackingScreen(
+            mapboxPublicToken: environment.mapboxPublicToken,
+            routeName: routeName ?? 'Darica -> GOSB',
+            onLeaveRouteTap: routeId == null || routeId.trim().isEmpty
+                ? null
+                : () => _handleLeaveRoute(context, routeId),
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.join,
         builder: (context, state) => JoinScreen(
           selectedRole: joinRoleFromQuery(state.uri.queryParameters['role']),
-          onJoinByCode: (_) => context.go(AppRoutePath.passengerTracking),
+          onJoinByCode: (input) => _handleJoinBySrvCode(context, input),
           onScanQrTap: () => context.go(AppRoutePath.passengerTracking),
           onContinueDriverTap: () => context.go(AppRoutePath.driverHome),
         ),
@@ -603,6 +643,215 @@ Future<void> _handleCreateRouteFromGhostDrive(
       return;
     }
     _showInfo(context, 'Ghost rota olusturulamadi (${error.code}).');
+  }
+}
+
+Future<void> _handleUpdateRoute(
+  BuildContext context,
+  RouteUpdateFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('updateRoute');
+    final payload = <String, dynamic>{
+      'routeId': input.routeId,
+      if (input.name != null) 'name': input.name,
+      if (input.startAddress != null) 'startAddress': input.startAddress,
+      if (input.startPoint != null)
+        'startPoint': <String, dynamic>{
+          'lat': input.startPoint!.lat,
+          'lng': input.startPoint!.lng,
+        },
+      if (input.endAddress != null) 'endAddress': input.endAddress,
+      if (input.endPoint != null)
+        'endPoint': <String, dynamic>{
+          'lat': input.endPoint!.lat,
+          'lng': input.endPoint!.lng,
+        },
+      if (input.scheduledTime != null) 'scheduledTime': input.scheduledTime,
+      if (input.timeSlot != null) 'timeSlot': input.timeSlot,
+      if (input.allowGuestTracking != null)
+        'allowGuestTracking': input.allowGuestTracking,
+      if (input.authorizedDriverIds != null)
+        'authorizedDriverIds': input.authorizedDriverIds,
+      if (input.isArchived != null) 'isArchived': input.isArchived,
+      if (input.clearVacationUntil) 'vacationUntil': null,
+      if (input.vacationUntil != null) 'vacationUntil': input.vacationUntil,
+    };
+    await callable.call(payload);
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Route guncellendi.');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Route guncellenemedi (${error.code}).');
+  }
+}
+
+Future<void> _handleUpsertStop(
+  BuildContext context,
+  StopUpsertFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('upsertStop');
+    final response = await callable.call(<String, dynamic>{
+      'routeId': input.routeId,
+      if (input.stopId != null && input.stopId!.isNotEmpty)
+        'stopId': input.stopId,
+      'name': input.name,
+      'location': <String, dynamic>{
+        'lat': input.lat,
+        'lng': input.lng,
+      },
+      'order': input.order,
+    });
+    final payload = _extractCallableData(response.data);
+    final stopId = payload['stopId'] as String? ?? '-';
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Durak kaydedildi. Stop ID: $stopId');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Durak kaydedilemedi (${error.code}).');
+  }
+}
+
+Future<void> _handleDeleteStop(
+  BuildContext context,
+  StopDeleteFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('deleteStop');
+    await callable.call(<String, dynamic>{
+      'routeId': input.routeId,
+      'stopId': input.stopId,
+    });
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Durak silindi.');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Durak silinemedi (${error.code}).');
+  }
+}
+
+Future<void> _handleJoinBySrvCode(
+  BuildContext context,
+  JoinBySrvFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('joinRouteBySrvCode');
+    final response = await callable.call(<String, dynamic>{
+      'srvCode': input.srvCode,
+      'name': input.name,
+      if (input.phone != null && input.phone!.isNotEmpty) 'phone': input.phone,
+      'showPhoneToDriver': input.showPhoneToDriver,
+      'boardingArea': input.boardingArea,
+      'notificationTime': input.notificationTime,
+    });
+    final payload = _extractCallableData(response.data);
+    final routeId = payload['routeId'] as String? ?? '';
+    final routeName = payload['routeName'] as String? ?? '';
+    if (!context.mounted) {
+      return;
+    }
+    if (routeId.isEmpty) {
+      _showInfo(context, 'Katilim cevabi eksik geldi (routeId bos).');
+      return;
+    }
+
+    final trackingUri = Uri(
+      path: AppRoutePath.passengerTracking,
+      queryParameters: <String, String>{
+        'routeId': routeId,
+        if (routeName.trim().isNotEmpty) 'routeName': routeName.trim(),
+      },
+    );
+    _showInfo(context, 'Servise katilim basarili.');
+    context.go(trackingUri.toString());
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (error.code) {
+      'permission-denied' =>
+        'Bu hesapla katilim izni yok. Yolcu rolu ile tekrar dene.',
+      'not-found' => 'SRV kodu ile route bulunamadi.',
+      'failed-precondition' => 'Bu route su an katilima kapali.',
+      'resource-exhausted' => 'SRV deneme limiti doldu. Sonra tekrar dene.',
+      _ => 'Servise katilim basarisiz (${error.code}).',
+    };
+    _showInfo(context, message);
+  }
+}
+
+Future<void> _handleLeaveRoute(
+  BuildContext context,
+  String routeId,
+) async {
+  final decision = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Rotadan Ayril'),
+        content: const Text(
+          'Bu rotadan ayrilirsan tekrar SRV kodu ile katilman gerekir. Devam edilsin mi?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Iptal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Ayril'),
+          ),
+        ],
+      );
+    },
+  );
+  if (decision != true) {
+    return;
+  }
+
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('leaveRoute');
+    final response = await callable.call(<String, dynamic>{
+      'routeId': routeId,
+    });
+    final payload = _extractCallableData(response.data);
+    final left = payload['left'] as bool? ?? false;
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(
+      context,
+      left ? 'Rotadan ayrildin.' : 'Bu rota icin aktif katilim kaydi yoktu.',
+    );
+    context.go('${AppRoutePath.join}?role=passenger');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Rotadan ayrilma basarisiz (${error.code}).');
   }
 }
 

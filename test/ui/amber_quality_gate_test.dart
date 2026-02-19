@@ -164,7 +164,7 @@ void main() {
     testWidgets('join form remains usable when keyboard is open', (
       WidgetTester tester,
     ) async {
-      String? joinedCode;
+      JoinBySrvFormInput? joinedInput;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -176,8 +176,8 @@ void main() {
             ),
             child: JoinScreen(
               selectedRole: JoinRole.passenger,
-              onJoinByCode: (value) {
-                joinedCode = value;
+              onJoinByCode: (value) async {
+                joinedInput = value;
               },
             ),
           ),
@@ -185,13 +185,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'SRV123');
+      await tester.enterText(find.byType(TextField).at(0), 'SRV23A');
+      await tester.enterText(find.byType(TextField).at(1), 'Ali Yolcu');
+      await tester.enterText(find.byType(TextField).at(3), 'Darica');
       await tester.ensureVisible(find.text('Koda Katil'));
       await tester.tap(find.text('Koda Katil'));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(joinedCode, 'SRV123');
+      expect(joinedInput, isNotNull);
+      expect(joinedInput!.srvCode, 'SRV23A');
     });
 
     testWidgets('driver active trip contract keeps map + heartbeat + distance',

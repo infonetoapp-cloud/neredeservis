@@ -32,6 +32,7 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.scheduledTime,
     this.driverName,
     this.mapboxPublicToken,
+    this.onLeaveRouteTap,
   });
 
   /// Route display name.
@@ -67,6 +68,9 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Public Mapbox token supplied via `--dart-define MAPBOX_PUBLIC_TOKEN=pk...`.
   final String? mapboxPublicToken;
 
+  /// Optional leave action for joined passengers.
+  final VoidCallback? onLeaveRouteTap;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,6 +91,7 @@ class PassengerTrackingScreen extends StatelessWidget {
             child: _TopBar(
               routeName: routeName,
               freshness: freshness,
+              onLeaveRouteTap: onLeaveRouteTap,
             ),
           ),
 
@@ -330,10 +335,15 @@ class _RouteHintPainter extends CustomPainter {
 
 /// Transparent top bar with route name and connection status.
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.routeName, required this.freshness});
+  const _TopBar({
+    required this.routeName,
+    required this.freshness,
+    this.onLeaveRouteTap,
+  });
 
   final String routeName;
   final LocationFreshness freshness;
+  final VoidCallback? onLeaveRouteTap;
 
   @override
   Widget build(BuildContext context) {
@@ -374,6 +384,14 @@ class _TopBar extends StatelessWidget {
             tone: _freshnessTone(freshness),
             compact: true,
           ),
+          if (onLeaveRouteTap != null) ...<Widget>[
+            const SizedBox(width: AmberSpacingTokens.space8),
+            IconButton(
+              tooltip: 'Rota\'dan Ayril',
+              onPressed: onLeaveRouteTap,
+              icon: const Icon(AmberIconTokens.signOut),
+            ),
+          ],
         ],
       ),
     );

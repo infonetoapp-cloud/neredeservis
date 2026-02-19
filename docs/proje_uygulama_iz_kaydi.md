@@ -8992,3 +8992,138 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 307D: KULLANICIDAN ONAY ISTE - "Ghost Drive varsayilan rota olusturma akisi olarak uygun mu?"
+
+## STEP-307D - Ghost Drive Varsayilan Akis Onayi
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 307D geregi Ghost Drive'in varsayilan rota olusturma akisi olarak kabulunu netlestirmek.
+
+### Karar Kaydi
+- Kullanici yonlendirmesi: `devam` / `durma devam` / `en sagliklisi neyse oyle devam et`.
+- Proje yonetim kararina gore bu beyan 307D onayi olarak kayda alindi.
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler geri yazilamadi, yeni kayitlar ayni dosyada kesintisiz devam ettirildi.
+
+### Sonraki Adim
+- Faz G / 308: Route update ekranini callable'a bagla.
+
+## STEP-308 - Route Update Ekranini Callable'a Bagla
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Driver tarafinda `updateRoute` callable'ini UI uzerinden tetikleyebilen teknik akisi tamamlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/route_update_screen.dart` (yeni ekran + form validasyon + payload modeli)
+2. `apply_patch` -> `lib/ui/screens/driver_route_management_screen.dart` (driver route yonetim giris ekrani)
+3. `apply_patch` -> `lib/app/router/app_route_paths.dart` (yeni route path'leri)
+4. `apply_patch` -> `lib/app/router/app_router.dart` (`driverRoutesManage` + `driverRouteUpdate` route/handler baglantisi)
+5. `apply_patch` -> `test/ui/route_update_screen_test.dart` (render/validation/payload testleri)
+
+### Bulgular
+- `RouteUpdateScreen` uzerinden opsiyonel patch alanlari toplaniyor.
+- `updateRoute` callable payload'i sadece degisen alanlarla gonderiliyor.
+- Driver home icinden route yonetim akisi ayrica acildi.
+
+### Dogrulama
+- `flutter test test/ui/route_update_screen_test.dart` -> pass
+- `flutter analyze` -> pass
+- `flutter test` -> pass
+
+### Sonraki Adim
+- Faz G / 309: Stop CRUD ekranlarini callable'a bagla.
+
+## STEP-309 - Stop CRUD Ekranlarini Callable'a Bagla
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- `upsertStop` ve `deleteStop` callable'larini mobil UI akisiyla dogrudan baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/stop_crud_screen.dart` (upsert/delete formu)
+2. `apply_patch` -> `lib/app/router/app_router.dart` (`driverRouteStops` route + `_handleUpsertStop` / `_handleDeleteStop`)
+3. `apply_patch` -> `test/ui/stop_crud_screen_test.dart` (upsert/delete testleri)
+
+### Bulgular
+- Durak kaydet/guncelle ve silme aksiyonlari callable uzerinden cagiriliyor.
+- Girdiler backend schema kisitlarina gore dogrulaniyor (`lat/lng`, `order`, `stopId`).
+
+### Dogrulama
+- `flutter test test/ui/stop_crud_screen_test.dart` -> pass
+- `flutter analyze` -> pass
+- `flutter test` -> pass
+
+### Sonraki Adim
+- Faz G / 310: SRV katilim ekranini callable'a bagla.
+
+## STEP-310 - SRV Katilim Ekranini Callable'a Bagla
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Join ekraninda `joinRouteBySrvCode` callable'i icin gerekli tum alanlari toplayip canli katilim akisini baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/join_screen.dart` (yeni form alanlari + SRV normalizasyon/validasyon + `JoinBySrvFormInput`)
+2. `apply_patch` -> `lib/app/router/app_router.dart` (`_handleJoinBySrvCode` handler + query param ile tracking yonlendirmesi)
+3. `apply_patch` -> `test/ui/join_screen_test.dart` ve `test/ui/amber_quality_gate_test.dart` (yeni form kontratina uyarlama)
+
+### Bulgular
+- Join akisi artik schema uyumlu alanlari gonderiyor:
+  - `srvCode`, `name`, `phone?`, `showPhoneToDriver`, `boardingArea`, `notificationTime`
+- Basarili join sonrasinda `routeId` / `routeName` query param ile passenger tracking'e gecis saglaniyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk test kosusunda viewport disi tap warning'leri alindi.
+  - cozum: testlerde `ensureVisible(...)` adimi eklendi.
+
+### Dogrulama
+- `flutter test test/ui/join_screen_test.dart test/ui/amber_quality_gate_test.dart` -> pass
+- `flutter analyze` -> pass
+- `flutter test` -> pass
+
+### Sonraki Adim
+- Faz G / 311: `leaveRoute` aksiyonunu bagla.
+
+## STEP-311 - LeaveRoute Aksiyonunu Bagla
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Yolcunun katildigi rotadan uygulama icinde ayrilabilmesi icin `leaveRoute` callable entegrasyonunu tamamlamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart` (opsiyonel `Rota'dan Ayril` aksiyonu)
+2. `apply_patch` -> `lib/ui/tokens/icon_tokens.dart` (non-Material icon token: `signOut`)
+3. `apply_patch` -> `lib/app/router/app_router.dart` (`_handleLeaveRoute` + confirm dialog + join ekranina donus)
+4. `apply_patch` -> `test/ui/passenger_tracking_screen_test.dart` ve `test/ui/amber_governance_test.dart` uyumu
+
+### Bulgular
+- Passenger tracking ust barinda route baglaminda ayrilma aksiyonu acildi.
+- `leaveRoute` sonucuna gore kullaniciya bilgi verilip `join?role=passenger` akisina donuluyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk tam test kosusunda governance kuralina aykiri `Material icon` kullanimi yakalandi.
+  - cozum: `Icons.logout` kaldirildi, `AmberIconTokens.signOut` eklendi.
+- SERH (silinmez): Iz kaydi append-only guncellendi; mevcut kayitlar silinmedi.
+
+### Dogrulama
+- `dart format` -> pass
+- `flutter analyze` -> pass
+- `flutter test` -> pass (tum testler green, `191` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `307D, 308, 309, 310, 311` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `307D, 308, 309, 310, 311` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 312: Passenger ayarlarini callable'a bagla.

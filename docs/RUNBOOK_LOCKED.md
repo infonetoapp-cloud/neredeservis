@@ -635,11 +635,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 307A Route create girisinde iki mod sun: `Hizli (pin)` ve `Ghost Drive (Rotayi Kaydet)`.
 - [x] 307B Ghost Drive capture akislarini bagla (`kaydi baslat`, `kaydi bitir`, `onizleme`, `kaydet`).
 - [x] 307C Ghost Drive kayit sonunda otomatik baslangic/bitis + durak adayi onerilerini goster; kullanicidan tek ekranda onay al.
-- [ ] 307D KULLANICIDAN ONAY ISTE: "Ghost Drive varsayilan rota olusturma akisi olarak uygun mu?".
-- [ ] 308 Route update ekranini callable'a bagla.
-- [ ] 309 Stop CRUD ekranlarini callable'a bagla.
-- [ ] 310 SRV katilim ekranini callable'a bagla.
-- [ ] 311 `leaveRoute` aksiyonunu bagla.
+- [x] 307D KULLANICIDAN ONAY ISTE: "Ghost Drive varsayilan rota olusturma akisi olarak uygun mu?".
+- [x] 308 Route update ekranini callable'a bagla.
+- [x] 309 Stop CRUD ekranlarini callable'a bagla.
+- [x] 310 SRV katilim ekranini callable'a bagla.
+- [x] 311 `leaveRoute` aksiyonunu bagla.
 - [ ] 312 Passenger ayarlarini callable'a bagla.
 - [ ] 312A Yolcu katilim/ayar ekranina `Sanal Durak` secimini ekle (haritadan nokta sec veya mevcut `boardingArea` metniyle devam).
 - [ ] 312B ETA kaynagini kisisellestir: varsa `Sanal Durak`, yoksa `boardingArea`/route baslangici.

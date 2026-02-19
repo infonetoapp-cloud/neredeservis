@@ -25,6 +25,7 @@ void main() {
     bool isLate = false,
     String? scheduledTime,
     List<PassengerStopInfo> stops = const <PassengerStopInfo>[],
+    VoidCallback? onLeaveRouteTap,
   }) {
     return MaterialApp(
       theme: AmberTheme.light(),
@@ -36,6 +37,7 @@ void main() {
         isLate: isLate,
         scheduledTime: scheduledTime,
         stops: stops,
+        onLeaveRouteTap: onLeaveRouteTap,
       ),
     );
   }
@@ -151,6 +153,26 @@ void main() {
 
       expect(find.textContaining('baglantisi kesildi'), findsNothing);
       expect(find.textContaining('Konum bilgisi gecikiyor'), findsNothing);
+    });
+
+    testWidgets('shows leave action when callback is provided',
+        (WidgetTester tester) async {
+      var leaveTapped = false;
+      await tester.pumpWidget(
+        buildTestApp(
+          onLeaveRouteTap: () {
+            leaveTapped = true;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final leaveButton = find.byTooltip("Rota'dan Ayril");
+      expect(leaveButton, findsOneWidget);
+      await tester.tap(leaveButton);
+      await tester.pumpAndSettle();
+
+      expect(leaveTapped, isTrue);
     });
   });
 }

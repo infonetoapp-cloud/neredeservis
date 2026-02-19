@@ -40,7 +40,7 @@ class JoinScreen extends StatefulWidget {
   });
 
   final JoinRole selectedRole;
-  final ValueChanged<String>? onJoinByCode;
+  final Future<void> Function(JoinBySrvFormInput input)? onJoinByCode;
   final VoidCallback? onScanQrTap;
   final VoidCallback? onContinueDriverTap;
 
@@ -50,26 +50,103 @@ class JoinScreen extends StatefulWidget {
 
 class _JoinScreenState extends State<JoinScreen> {
   final TextEditingController _srvCodeController = TextEditingController();
-  String? _srvCodeError;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _boardingAreaController = TextEditingController();
+  final TextEditingController _notificationTimeController =
+      TextEditingController(text: '07:00');
+
+  bool _showPhoneToDriver = false;
+  bool _submitting = false;
+  String? _formError;
 
   @override
   void dispose() {
     _srvCodeController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    _boardingAreaController.dispose();
+    _notificationTimeController.dispose();
     super.dispose();
   }
 
-  void _submitJoinCode() {
-    final code = _srvCodeController.text.trim();
-    if (code.isEmpty) {
-      setState(() {
-        _srvCodeError = 'SRV kodu gir.';
-      });
+  Future<void> _submitJoinCode() async {
+    final normalizedCode = _normalizeSrvCode(_srvCodeController.text);
+    final name = _nameController.text.trim();
+    final phoneRaw = _phoneController.text.trim();
+    final phone = phoneRaw.isEmpty ? null : phoneRaw;
+    final boardingArea = _boardingAreaController.text.trim();
+    final notificationTime = _notificationTimeController.text.trim();
+
+    if (normalizedCode.isEmpty) {
+      _setError('SRV kodu gir.');
       return;
     }
+    if (!_isSrvCodeFormatValid(normalizedCode)) {
+      _setError('SRV kodu 6 karakter olmali (ornek: 8K2Q7M).');
+      return;
+    }
+    if (name.length < 2) {
+      _setError('Ad Soyad en az 2 karakter olmali.');
+      return;
+    }
+    if (phone != null && phone.length < 7) {
+      _setError('Telefon en az 7 karakter olmali.');
+      return;
+    }
+    if (boardingArea.isEmpty) {
+      _setError('Binis alani zorunlu.');
+      return;
+    }
+    if (!_isValidTime(notificationTime)) {
+      _setError('Bildirim saati HH:mm formatinda olmali.');
+      return;
+    }
+
+    final input = JoinBySrvFormInput(
+      srvCode: normalizedCode,
+      name: name,
+      phone: phone,
+      showPhoneToDriver: _showPhoneToDriver,
+      boardingArea: boardingArea,
+      notificationTime: notificationTime,
+    );
+
     setState(() {
-      _srvCodeError = null;
+      _submitting = true;
+      _formError = null;
     });
-    widget.onJoinByCode?.call(code);
+    try {
+      await widget.onJoinByCode?.call(input);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  void _setError(String message) {
+    setState(() {
+      _formError = message;
+    });
+  }
+
+  bool _isSrvCodeFormatValid(String value) {
+    return RegExp(r'^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$').hasMatch(value);
+  }
+
+  bool _isValidTime(String value) {
+    return RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(value);
+  }
+
+  String _normalizeSrvCode(String raw) {
+    var normalized = raw.trim().toUpperCase();
+    if (normalized.startsWith('SRV-')) {
+      normalized = normalized.substring(4);
+    }
+    return normalized.replaceAll(RegExp(r'[^A-Z0-9]'), '');
   }
 
   @override
@@ -133,30 +210,79 @@ class _JoinScreenState extends State<JoinScreen> {
                           const SizedBox(height: AmberSpacingTokens.space8),
                           TextField(
                             controller: _srvCodeController,
+                            enabled: !_submitting,
                             textInputAction: TextInputAction.done,
                             decoration: InputDecoration(
-                              hintText: 'Orn: SRV-8K2Q',
-                              errorText: _srvCodeError,
+                              hintText: 'Orn: 8K2Q7M',
+                              errorText: _formError,
                               prefixIcon: const Icon(AmberIconTokens.qrCode),
                             ),
                             onChanged: (_) {
-                              if (_srvCodeError != null) {
+                              if (_formError != null) {
                                 setState(() {
-                                  _srvCodeError = null;
+                                  _formError = null;
                                 });
                               }
                             },
                             onSubmitted: (_) => _submitJoinCode(),
                           ),
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          TextField(
+                            controller: _nameController,
+                            enabled: !_submitting,
+                            decoration: const InputDecoration(
+                              labelText: 'Ad Soyad',
+                            ),
+                          ),
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          TextField(
+                            controller: _phoneController,
+                            enabled: !_submitting,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              labelText: 'Telefon (opsiyonel)',
+                            ),
+                          ),
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          TextField(
+                            controller: _boardingAreaController,
+                            enabled: !_submitting,
+                            decoration: const InputDecoration(
+                              labelText: 'Binis Alani',
+                            ),
+                          ),
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          TextField(
+                            controller: _notificationTimeController,
+                            enabled: !_submitting,
+                            decoration: const InputDecoration(
+                              labelText: 'Bildirim Saati (HH:mm)',
+                            ),
+                          ),
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            value: _showPhoneToDriver,
+                            onChanged: _submitting
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _showPhoneToDriver = value;
+                                    });
+                                  },
+                            title: const Text('Telefonumu sofor gorebilsin'),
+                          ),
                           const SizedBox(height: AmberSpacingTokens.space12),
                           AmberPrimaryButton(
-                            label: AmberCtaTokens.joinByCode,
-                            onPressed: _submitJoinCode,
+                            label: _submitting
+                                ? 'Isleniyor...'
+                                : AmberCtaTokens.joinByCode,
+                            onPressed: _submitting ? null : _submitJoinCode,
                           ),
                           const SizedBox(height: AmberSpacingTokens.space8),
                           AmberSecondaryButton(
                             label: 'QR Tara',
-                            onPressed: widget.onScanQrTap,
+                            onPressed: _submitting ? null : widget.onScanQrTap,
                           ),
                         ],
                       ),
@@ -189,7 +315,9 @@ class _JoinScreenState extends State<JoinScreen> {
                             const SizedBox(height: AmberSpacingTokens.space12),
                             AmberSecondaryButton(
                               label: 'Sofor Paneline Gec',
-                              onPressed: widget.onContinueDriverTap,
+                              onPressed: _submitting
+                                  ? null
+                                  : widget.onContinueDriverTap,
                             ),
                           ],
                         ),
@@ -204,6 +332,24 @@ class _JoinScreenState extends State<JoinScreen> {
       ),
     );
   }
+}
+
+class JoinBySrvFormInput {
+  const JoinBySrvFormInput({
+    required this.srvCode,
+    required this.name,
+    required this.showPhoneToDriver,
+    required this.boardingArea,
+    required this.notificationTime,
+    this.phone,
+  });
+
+  final String srvCode;
+  final String name;
+  final String? phone;
+  final bool showPhoneToDriver;
+  final String boardingArea;
+  final String notificationTime;
 }
 
 class _RoleBadge extends StatelessWidget {

@@ -6,7 +6,7 @@ import 'package:neredeservis/ui/theme/theme_amber.dart';
 void main() {
   Widget buildTestApp({
     JoinRole role = JoinRole.unknown,
-    ValueChanged<String>? onJoinByCode,
+    Future<void> Function(JoinBySrvFormInput input)? onJoinByCode,
     VoidCallback? onScanQrTap,
     VoidCallback? onContinueDriverTap,
   }) {
@@ -29,6 +29,9 @@ void main() {
 
     expect(find.text('Servise Katil'), findsOneWidget);
     expect(find.text('SRV Kodu'), findsOneWidget);
+    expect(find.text('Ad Soyad'), findsOneWidget);
+    expect(find.text('Binis Alani'), findsOneWidget);
+    expect(find.text('Bildirim Saati (HH:mm)'), findsOneWidget);
     expect(find.text('Koda Katil'), findsOneWidget);
     expect(find.text('QR Tara'), findsOneWidget);
   });
@@ -44,15 +47,15 @@ void main() {
   });
 
   testWidgets('join actions trigger callbacks', (WidgetTester tester) async {
-    String? joinedCode;
+    JoinBySrvFormInput? joinedInput;
     var qrTapped = false;
     var driverQuickTapped = false;
 
     await tester.pumpWidget(
       buildTestApp(
         role: JoinRole.driver,
-        onJoinByCode: (value) {
-          joinedCode = value;
+        onJoinByCode: (value) async {
+          joinedInput = value;
         },
         onScanQrTap: () {
           qrTapped = true;
@@ -64,15 +67,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField), 'SRV-8K2Q');
+    await tester.enterText(find.byType(TextField).at(0), 'SRV-8K2Q7M');
+    await tester.enterText(find.byType(TextField).at(1), 'Ali Yilmaz');
+    await tester.enterText(find.byType(TextField).at(3), 'Darica Merkez');
     await tester.tap(find.text('Koda Katil'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('QR Tara'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('QR Tara'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Sofor Paneline Gec'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sofor Paneline Gec'));
     await tester.pumpAndSettle();
 
-    expect(joinedCode, equals('SRV-8K2Q'));
+    expect(joinedInput, isNotNull);
+    expect(joinedInput!.srvCode, equals('8K2Q7M'));
+    expect(joinedInput!.name, equals('Ali Yilmaz'));
+    expect(joinedInput!.boardingArea, equals('Darica Merkez'));
     expect(qrTapped, isTrue);
     expect(driverQuickTapped, isTrue);
   });
