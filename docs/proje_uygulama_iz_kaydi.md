@@ -10096,3 +10096,55 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 324A: driver aktif sefer ekraninda connection heartbeat katmanini canli veriyle baglamak.
+
+## STEP-324A-324B - Driver Connection Heartbeat Live Binding
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 324A: Sofor aktif sefer ekranindaki heartbeat'i canli veri akisina baglamak.
+- 324B: Heartbeat state kurallarini teknik olarak sabitlemek (`green`, `yellow`, `red`).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/driver_heartbeat_policy.dart`
+   - `LiveSignalFreshness` -> `ConnectionHeartbeatBand` policy katmani eklendi.
+   - degrade mode override ve subtitle uretimi eklendi.
+2. `apply_patch` -> `test/features/location/application/driver_heartbeat_policy_test.dart`
+   - live/degrade, mild-stale, lost senaryolari icin mapping testleri eklendi.
+3. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `_DriverFinishTripGuard` icine 5 sn UI ticker eklendi (stream gelmese bile stale gecisleri hesaplanir).
+   - aktif seferde `locations/{routeId}` RTDB stream'i okunup timestamp'ten heartbeat hesaplandi.
+   - `resolveLiveSignalFreshness(..., treatMissingAsLive: false)` ile state uretimi baglandi.
+   - policy sonucu `ActiveTripScreen`e `heartbeatState` + `lastHeartbeatAgo` olarak aktarildi.
+4. `dart format lib/app/router/app_router.dart lib/features/location/application/driver_heartbeat_policy.dart test/features/location/application/driver_heartbeat_policy_test.dart`
+5. `flutter analyze`
+6. `flutter test test/features/location/application/driver_heartbeat_policy_test.dart`
+7. `flutter test`
+8. `flutter build apk --debug --flavor dev -t lib/main.dart`
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324A`, `324B` -> `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324A`, `324B` -> `[x]`)
+
+### Bulgular
+- heartbeat artik sabit/metin degil; RTDB'deki son konum timestamp'ine gore canli hesaplanan state ile render ediliyor.
+- state kurali:
+  - `live` -> green
+  - `mild/stale` -> yellow
+  - `lost` -> red
+- degrade mode aktifse green state yellow'a dusurulerek kesinti riski gosterimi korunuyor.
+
+### Hata Kaydi (Silinmez)
+- Ek runtime hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/location/application/driver_heartbeat_policy_test.dart` -> pass (`4` test)
+- `flutter test` -> pass (`256` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324A`, `324B` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324A`, `324B` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324AA: aktif seferde sade harita katmanini gercek rota/marker verisiyle baglamak.

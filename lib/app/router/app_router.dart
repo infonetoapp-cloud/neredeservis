@@ -19,6 +19,7 @@ import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
 import '../../features/auth/domain/user_role.dart';
+import '../../features/location/application/driver_heartbeat_policy.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
@@ -2381,6 +2382,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
   bool _batteryDegradeMode = false;
   bool _batteryPromptInFlight = false;
   bool _resumeRecoveryInFlight = false;
+  Timer? _heartbeatUiTicker;
   Timer? _watchdogHeartbeatTimer;
 
   @override
@@ -2390,6 +2392,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     unawaited(_syncDriverLocationForegroundService(shouldRun: true));
     unawaited(_startOrRefreshIosWatchdogIfPossible());
     unawaited(_bootstrapBatteryOptimizationPolicy());
+    _startHeartbeatUiTicker();
     _startWatchdogHeartbeatTicker();
   }
 
@@ -2425,6 +2428,19 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
         unawaited(
           _iosSilentKillMitigationService.recordHeartbeat(movingSignal: true),
         );
+      },
+    );
+  }
+
+  void _startHeartbeatUiTicker() {
+    _heartbeatUiTicker?.cancel();
+    _heartbeatUiTicker = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {});
       },
     );
   }
@@ -2726,6 +2742,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _heartbeatUiTicker?.cancel();
     _watchdogHeartbeatTimer?.cancel();
     unawaited(_syncIosSilentKillWatchdog(shouldRun: false));
     super.dispose();
@@ -2733,16 +2750,69 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
 
   @override
   Widget build(BuildContext context) {
+    final normalizedRouteId = _nullableToken(widget.routeId);
+    if (normalizedRouteId == null) {
+      final fallbackHeartbeat = resolveDriverHeartbeatSnapshot(
+        freshness: LiveSignalFreshness.live,
+        lastSeenAgo: null,
+        degradeModeEnabled: _batteryDegradeMode,
+      );
+      return _buildActiveTripScreen(
+        heartbeatState: _toUiHeartbeatState(fallbackHeartbeat.band),
+        lastHeartbeatAgo: fallbackHeartbeat.subtitle,
+      );
+    }
+
+    return StreamBuilder<DatabaseEvent>(
+      stream:
+          FirebaseDatabase.instance.ref('locations/$normalizedRouteId').onValue,
+      builder: (context, snapshot) {
+        final rawMap = _mapFromRtdbValue(snapshot.data?.snapshot.value);
+        final timestampMs = parseLiveLocationTimestampMs(rawMap?['timestamp']);
+        final nowUtc = DateTime.now().toUtc();
+        final freshness = resolveLiveSignalFreshness(
+          nowUtc: nowUtc,
+          timestampMs: timestampMs,
+          treatMissingAsLive: false,
+        );
+        final lastSeenAgo = formatLastSeenAgo(
+          nowUtc: nowUtc,
+          timestampMs: timestampMs,
+        );
+        final heartbeat = resolveDriverHeartbeatSnapshot(
+          freshness: freshness,
+          lastSeenAgo: lastSeenAgo,
+          degradeModeEnabled: _batteryDegradeMode,
+        );
+        return _buildActiveTripScreen(
+          heartbeatState: _toUiHeartbeatState(heartbeat.band),
+          lastHeartbeatAgo: heartbeat.subtitle,
+        );
+      },
+    );
+  }
+
+  ActiveTripScreen _buildActiveTripScreen({
+    required HeartbeatState heartbeatState,
+    required String lastHeartbeatAgo,
+  }) {
     return ActiveTripScreen(
       key: ValueKey<String>(
         'active_trip_${widget.routeId ?? 'none'}_${widget.tripId ?? 'none'}_$_screenResetSeed',
       ),
       routeName: widget.routeName,
-      heartbeatState:
-          _batteryDegradeMode ? HeartbeatState.yellow : HeartbeatState.green,
-      lastHeartbeatAgo: _batteryDegradeMode ? 'Pil riski var' : '2 sn',
+      heartbeatState: heartbeatState,
+      lastHeartbeatAgo: lastHeartbeatAgo,
       onTripFinished: _finishing ? null : _handleTripFinishConfirmed,
     );
+  }
+
+  HeartbeatState _toUiHeartbeatState(ConnectionHeartbeatBand band) {
+    return switch (band) {
+      ConnectionHeartbeatBand.green => HeartbeatState.green,
+      ConnectionHeartbeatBand.yellow => HeartbeatState.yellow,
+      ConnectionHeartbeatBand.red => HeartbeatState.red,
+    };
   }
 }
 

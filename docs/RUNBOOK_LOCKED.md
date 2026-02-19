@@ -678,10 +678,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 324 OEM battery optimization yonlendirmesini bagla.
 - [x] 324D Pil optimizasyonu istisnasi ekranini sadece ihtiyac aninda ac (ilk aktif seferden sonra veya OEM kill sinyali alindiginda).
 - [x] 324E Pil optimizasyonu red durumunda degrade izleme modunu aktif et (arka planda kesinti riski metni + heartbeat uyari seviyesini yukselt).
-- [ ] 324A NS-391: Sofor aktif sefer ekranina "Connection Heartbeat" ekle (`YAYINDASIN` + pulse halka).
+- [x] 324A NS-391: Sofor aktif sefer ekranina "Connection Heartbeat" ekle (`YAYINDASIN` + pulse halka).
 - [ ] 324AA Sofor aktif sefer ekranina sade harita ekle (rota cizgisi + arac marker + siradaki durak markeri).
 - [ ] 324AB Driver Guidance Lite bilgisi bagla: `Siradaki Durak: {stopName}` + `Kus ucusu {distanceM} m`.
-- [ ] 324B Heartbeat durumlari: green=`canli`, yellow=`baglanti dalgali`, red=`yayin durdu`.
+- [x] 324B Heartbeat durumlari: green=`canli`, yellow=`baglanti dalgali`, red=`yayin durdu`.
 - [ ] 324BA Red state icin periferik alarm ekle: ekran cercevesi kirmizi flash + tekrarlayan ayri haptic pattern.
 - [ ] 324BB Red state'ten yellow/green'e donuste tek-shot "iyilesme" haptic + metin goster.
 - [ ] 324BF Heartbeat durum degisimlerinde sesli geri bildirim ekle (`Baglanti kesildi`, `Baglandim`, `Sefer sonlandirildi`).
