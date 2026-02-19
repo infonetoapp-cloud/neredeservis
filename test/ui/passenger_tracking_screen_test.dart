@@ -28,6 +28,8 @@ void main() {
     VoidCallback? onSettingsTap,
     VoidCallback? onSkipTodayTap,
     VoidCallback? onLeaveRouteTap,
+    VoidCallback? onKeepNotificationsTap,
+    VoidCallback? onBackToServicesTap,
   }) {
     return MaterialApp(
       theme: AmberTheme.light(),
@@ -42,6 +44,8 @@ void main() {
         onSettingsTap: onSettingsTap,
         onSkipTodayTap: onSkipTodayTap,
         onLeaveRouteTap: onLeaveRouteTap,
+        onKeepNotificationsTap: onKeepNotificationsTap,
+        onBackToServicesTap: onBackToServicesTap,
       ),
     );
   }
@@ -96,6 +100,62 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Olasi Gecikme'), findsNothing);
+    });
+
+    testWidgets('shows late fallback CTA buttons when callbacks provided', (
+      WidgetTester tester,
+    ) async {
+      var keepNotificationsTapped = false;
+      var backToServicesTapped = false;
+
+      await tester.pumpWidget(
+        buildTestApp(
+          isLate: true,
+          scheduledTime: '07:30',
+          onKeepNotificationsTap: () {
+            keepNotificationsTapped = true;
+          },
+          onBackToServicesTap: () {
+            backToServicesTapped = true;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final keepFinder = find.widgetWithText(
+        OutlinedButton,
+        'Bildirim Acik Kalsin',
+      );
+      final backFinder = find.widgetWithText(
+        OutlinedButton,
+        "Servislerim'e Don",
+      );
+      expect(keepFinder, findsOneWidget);
+      expect(backFinder, findsOneWidget);
+
+      await tester.ensureVisible(keepFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(keepFinder);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(backFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(backFinder);
+      await tester.pumpAndSettle();
+
+      expect(keepNotificationsTapped, isTrue);
+      expect(backToServicesTapped, isTrue);
+    });
+
+    testWidgets('hides late fallback CTA buttons without callbacks', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(isLate: true, scheduledTime: '07:30'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bildirim Acik Kalsin'), findsNothing);
+      expect(find.text("Servislerim'e Don"), findsNothing);
     });
 
     testWidgets('shows driver note when provided', (

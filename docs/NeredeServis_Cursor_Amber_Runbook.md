@@ -709,10 +709,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 326C `finishTrip` pending iken "Buluta yaziliyor..." indikatoru goster.
 - [x] 326D App kapanisinda pending kritik aksiyon varsa `PopScope` ile "veriler henuz gonderilmedi" uyarisini goster.
 - [x] 327 Queue replay sirasini dogrula (trip action once).
-- [ ] 328 Stale data state management bagla (4 seviye: 0-30, 31-120, 121-300, 300+ sn).
-- [ ] 328A Delay inference UI bagla: `now > scheduledTime + 10 dk` ve aktif trip yoksa "Sofor henuz baslatmadi (Olasi Gecikme)" etiketi.
-- [ ] 328B Delay inference kartinda fallback CTA goster: `Bildirim Acik Kalsin` + `Servislerim'e Don`.
-- [ ] 328C KULLANICIDAN ONAY ISTE: "Olasi gecikme esigi 10 dk kalsin mi?".
+- [x] 328 Stale data state management bagla (4 seviye: 0-30, 31-120, 121-300, 300+ sn).
+- [x] 328A Delay inference UI bagla: `now > scheduledTime + 10 dk` ve aktif trip yoksa "Sofor henuz baslatmadi (Olasi Gecikme)" etiketi.
+- [x] 328B Delay inference kartinda fallback CTA goster: `Bildirim Acik Kalsin` + `Servislerim'e Don`.
+- [x] 328C KULLANICIDAN ONAY ISTE: "Olasi gecikme esigi 10 dk kalsin mi?".
 - [ ] 329 Mapbox map widget entegrasyonunu bagla.
 - [ ] 329A Driver aktif sefer map modunu bagla (gesture kisitli, dikkat dagitici UI yok).
 - [ ] 329B Mapbox style/tile cache stratejisini agresif yap: `OfflineManager` + `TileStore`, style pack preload, sik kullanilan rota cevresi tile cache + cache size limit.

@@ -7,6 +7,7 @@ import '../../tokens/radius_tokens.dart';
 import '../../tokens/spacing_tokens.dart';
 import '../../tokens/typography_tokens.dart';
 import '../banners/amber_stale_status_banner.dart';
+import '../buttons/amber_buttons.dart';
 
 /// Data class representing a single stop in the route.
 class PassengerStopInfo {
@@ -68,6 +69,8 @@ class PassengerMapSheet extends StatelessWidget {
     this.isLate = false,
     this.routeName,
     this.scheduledTime,
+    this.onKeepNotificationsTap,
+    this.onBackToServicesTap,
   });
 
   /// Estimated time of arrival in minutes (crow-fly × 1.3 fallback).
@@ -97,6 +100,12 @@ class PassengerMapSheet extends StatelessWidget {
 
   /// Scheduled departure time label, e.g. `07:30`.
   final String? scheduledTime;
+
+  /// CTA action for "Bildirim Acik Kalsin".
+  final VoidCallback? onKeepNotificationsTap;
+
+  /// CTA action for "Servislerim'e Don".
+  final VoidCallback? onBackToServicesTap;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +157,11 @@ class PassengerMapSheet extends StatelessWidget {
                 AmberSpacingTokens.space16,
                 0,
               ),
-              child: _LateDepatureBanner(scheduledTime: scheduledTime),
+              child: _LateDepatureBanner(
+                scheduledTime: scheduledTime,
+                onKeepNotificationsTap: onKeepNotificationsTap,
+                onBackToServicesTap: onBackToServicesTap,
+              ),
             ),
 
           // Stale location warning
@@ -305,17 +318,50 @@ class _EtaHeroSection extends StatelessWidget {
 ///
 /// Runbook line 94: `now > scheduledTime + 10 dk` → show label.
 class _LateDepatureBanner extends StatelessWidget {
-  const _LateDepatureBanner({this.scheduledTime});
+  const _LateDepatureBanner({
+    this.scheduledTime,
+    this.onKeepNotificationsTap,
+    this.onBackToServicesTap,
+  });
 
   final String? scheduledTime;
+  final VoidCallback? onKeepNotificationsTap;
+  final VoidCallback? onBackToServicesTap;
 
   @override
   Widget build(BuildContext context) {
     final timeContext =
         scheduledTime != null ? ' (Planlanan: $scheduledTime)' : '';
-    return AmberStaleStatusBanner(
-      message: 'Sofor henuz baslatmadi (Olasi Gecikme)$timeContext',
-      severity: AmberStaleSeverity.warning,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        AmberStaleStatusBanner(
+          message: 'Sofor henuz baslatmadi (Olasi Gecikme)$timeContext',
+          severity: AmberStaleSeverity.warning,
+        ),
+        if (onKeepNotificationsTap != null ||
+            onBackToServicesTap != null) ...<Widget>[
+          const SizedBox(height: AmberSpacingTokens.space8),
+          Wrap(
+            spacing: AmberSpacingTokens.space8,
+            runSpacing: AmberSpacingTokens.space8,
+            children: <Widget>[
+              if (onKeepNotificationsTap != null)
+                AmberSecondaryButton(
+                  label: 'Bildirim Acik Kalsin',
+                  onPressed: onKeepNotificationsTap,
+                  fullWidth: false,
+                ),
+              if (onBackToServicesTap != null)
+                AmberSecondaryButton(
+                  label: "Servislerim'e Don",
+                  onPressed: onBackToServicesTap,
+                  fullWidth: false,
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

@@ -35,6 +35,8 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.onSkipTodayTap,
     this.onLeaveRouteTap,
     this.onSettingsTap,
+    this.onKeepNotificationsTap,
+    this.onBackToServicesTap,
   });
 
   /// Route display name.
@@ -79,6 +81,12 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Optional skip-today action for passenger.
   final VoidCallback? onSkipTodayTap;
 
+  /// Optional CTA for keeping notifications enabled on late inference card.
+  final VoidCallback? onKeepNotificationsTap;
+
+  /// Optional CTA for going back to passenger services/home.
+  final VoidCallback? onBackToServicesTap;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,6 +124,8 @@ class PassengerTrackingScreen extends StatelessWidget {
             stops: stops,
             isLate: isLate,
             scheduledTime: scheduledTime,
+            onKeepNotificationsTap: onKeepNotificationsTap,
+            onBackToServicesTap: onBackToServicesTap,
           ),
         ],
       ),
@@ -458,6 +468,8 @@ class _PassengerDraggableSheet extends StatelessWidget {
     required this.stops,
     required this.isLate,
     this.scheduledTime,
+    this.onKeepNotificationsTap,
+    this.onBackToServicesTap,
   });
 
   final String routeName;
@@ -469,6 +481,8 @@ class _PassengerDraggableSheet extends StatelessWidget {
   final List<PassengerStopInfo> stops;
   final bool isLate;
   final String? scheduledTime;
+  final VoidCallback? onKeepNotificationsTap;
+  final VoidCallback? onBackToServicesTap;
 
   @override
   Widget build(BuildContext context) {
@@ -491,6 +505,8 @@ class _PassengerDraggableSheet extends StatelessWidget {
             stops: stops,
             isLate: isLate,
             scheduledTime: scheduledTime,
+            onKeepNotificationsTap: onKeepNotificationsTap,
+            onBackToServicesTap: onBackToServicesTap,
           ),
         );
       },

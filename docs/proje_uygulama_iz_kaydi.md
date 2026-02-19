@@ -10515,3 +10515,66 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 328: stale data state management (4 seviye stale bandi) baglamak.
+
+## STEP-328-328A-328B-328C - Stale 4 Seviye + Delay Inference CTA
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 328: stale data state management'i 4 seviye olarak netlestirmek ve dogrulamak (`live/mild/stale/lost`).
+- 328A: `now > scheduledTime + 10 dk` ve aktif trip yoksa `Olasi Gecikme` etiketini gercek veriye baglamak.
+- 328B: gecikme kartina fallback CTA eklemek: `Bildirim Acik Kalsin` + `Servislerim'e Don`.
+- 328C: gecikme esigini `10 dk` olarak koruma kararini kayda almak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/delay_inference.dart`
+   - gecikme cikarimi icin uygulama katmani fonksiyonlari eklendi (`shouldShowLateDepartureBanner`, `resolveScheduledDepartureUtcForToday`).
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - passenger tracking route'una route `scheduledTime` + aktif trip stream baglandi.
+   - `isLate` hesaplamasi runtime baglandi.
+   - late kart CTA callbackleri router aksiyonlarina baglandi.
+3. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart`
+   - late kart CTA callbackleri ekran API'sine eklendi ve sheet'e aktarıldi.
+4. `apply_patch` -> `lib/ui/components/sheets/passenger_map_sheet.dart`
+   - late banner altina `Bildirim Acik Kalsin` ve `Servislerim'e Don` CTA'lari eklendi.
+5. `apply_patch` -> `test/features/location/application/delay_inference_test.dart`
+   - 10 dk threshold ve aktif trip davranisi icin birim testleri eklendi.
+6. `apply_patch` -> `test/ui/passenger_tracking_screen_test.dart`
+   - late CTA gorunurluk + callback testleri eklendi.
+7. `dart format lib/features/location/application/delay_inference.dart lib/app/router/app_router.dart lib/ui/screens/passenger_tracking_screen.dart lib/ui/components/sheets/passenger_map_sheet.dart test/ui/passenger_tracking_screen_test.dart test/features/location/application/delay_inference_test.dart`
+8. `flutter test test/features/location/application/delay_inference_test.dart test/ui/passenger_tracking_screen_test.dart`
+9. `flutter analyze`
+10. `flutter test`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`328`, `328A`, `328B`, `328C` -> `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`328`, `328A`, `328B`, `328C` -> `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Passenger tracking artik route verisinden `scheduledTime` okuyup aktif trip stream'i ile birlikte gecikme cikarimi yapiyor.
+- `Olasi Gecikme` etiketi artik sadece kural saglandiginda cikiyor:
+  - aktif trip yok
+  - `now > scheduledTime + 10 dk`
+- Gecikme karti fallback aksiyonlari baglandi:
+  - `Bildirim Acik Kalsin` -> notification permission value-moment orkestrasyonu tetikleniyor.
+  - `Servislerim'e Don` -> passenger home rotasina donus.
+- 4 seviye stale modeli mevcut akista korunuyor (`live/mild/stale/lost`) ve router->UI eslestirmesi dogrulandi.
+- 328C karar kaydi:
+  - Mimari sahip yonlendirmesi (`en saglikli sekilde devam et`) dogrultusunda gecikme esigi `10 dk` olarak korunarak onayli kabul edildi.
+
+### Hata Kaydi (Silinmez)
+- Ilk test turunda late CTA tiklama testi viewport disi offset uyarisi nedeniyle fail oldu.
+- Cozum: testte `ensureVisible` + `OutlinedButton` finder kullanilarak etkileşim stabil hale getirildi.
+- `flutter` komutlari sirasinda "newer incompatible versions available" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/features/location/application/delay_inference_test.dart test/ui/passenger_tracking_screen_test.dart` -> pass (`21` test)
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (`281` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md`: `328`, `328A`, `328B`, `328C` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`: `328`, `328A`, `328B`, `328C` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 329: map widget entegrasyon adimini runbook seviyesinde kapatip, 329A (driver aktif sefer map modu - gesture kisit/policy) icin teknik baglantiya gecmek.

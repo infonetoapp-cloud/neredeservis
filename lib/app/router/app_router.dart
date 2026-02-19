@@ -25,6 +25,7 @@ import '../../features/domain/application/trip_action_sync_service.dart';
 import '../../features/domain/data/local_drift_database.dart';
 import '../../features/domain/data/local_queue_repository.dart';
 import '../../features/domain/data/rtdb_domain_repositories.dart';
+import '../../features/location/application/delay_inference.dart';
 import '../../features/location/application/driver_heartbeat_policy.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
@@ -2057,9 +2058,13 @@ Widget _buildPassengerTrackingRoute(
     required String etaSourceLabel,
     LocationFreshness freshness = LocationFreshness.live,
     String? lastSeenAgo,
+    bool isLate = false,
+    String? scheduledTime,
     VoidCallback? onSettingsTap,
     VoidCallback? onSkipTodayTap,
     VoidCallback? onLeaveRouteTap,
+    VoidCallback? onKeepNotificationsTap,
+    VoidCallback? onBackToServicesTap,
   }) {
     return PassengerTrackingScreen(
       mapboxPublicToken: environment.mapboxPublicToken,
@@ -2067,9 +2072,13 @@ Widget _buildPassengerTrackingRoute(
       etaSourceLabel: etaSourceLabel,
       freshness: freshness,
       lastSeenAgo: lastSeenAgo,
+      isLate: isLate,
+      scheduledTime: scheduledTime,
       onSettingsTap: onSettingsTap,
       onSkipTodayTap: onSkipTodayTap,
       onLeaveRouteTap: onLeaveRouteTap,
+      onKeepNotificationsTap: onKeepNotificationsTap,
+      onBackToServicesTap: onBackToServicesTap,
     );
   }
 
@@ -2087,6 +2096,8 @@ Widget _buildPassengerTrackingRoute(
   VoidCallback? onLeaveRouteTap;
   VoidCallback? onSettingsTap;
   VoidCallback? onSkipTodayTap;
+  VoidCallback? onKeepNotificationsTap;
+  VoidCallback? onBackToServicesTap;
   if (routeId != null) {
     onLeaveRouteTap = () => _handleLeaveRoute(context, routeId);
     onSkipTodayTap = () => _handleSubmitSkipToday(context, routeId);
@@ -2100,19 +2111,19 @@ Widget _buildPassengerTrackingRoute(
       );
       context.go(settingsUri.toString());
     };
+    onKeepNotificationsTap = () {
+      unawaited(
+        _orchestrateNotificationPermissionAtValueMoment(
+          context,
+          NotificationPermissionTrigger.passengerJoin,
+        ),
+      );
+    };
+    onBackToServicesTap = () => context.go(AppRoutePath.passengerHome);
   }
 
   final defaultRouteName = routeName ?? 'Darica -> GOSB';
 
-  if (etaSourceFromQuery != null) {
-    return buildTrackingScreen(
-      resolvedRouteName: defaultRouteName,
-      etaSourceLabel: etaSourceFromQuery,
-      onSettingsTap: onSettingsTap,
-      onSkipTodayTap: onSkipTodayTap,
-      onLeaveRouteTap: onLeaveRouteTap,
-    );
-  }
   if (routeId == null || user == null) {
     return buildTrackingScreen(
       resolvedRouteName: defaultRouteName,
@@ -2120,6 +2131,8 @@ Widget _buildPassengerTrackingRoute(
       onSettingsTap: onSettingsTap,
       onSkipTodayTap: onSkipTodayTap,
       onLeaveRouteTap: onLeaveRouteTap,
+      onKeepNotificationsTap: onKeepNotificationsTap,
+      onBackToServicesTap: onBackToServicesTap,
     );
   }
 
@@ -2127,25 +2140,69 @@ Widget _buildPassengerTrackingRoute(
     stream: FirebaseFirestore.instance
         .collection('routes')
         .doc(routeId)
-        .collection('passengers')
-        .doc(user.uid)
         .snapshots(),
-    builder: (context, snapshot) {
-      final passengerData = snapshot.data?.data();
-      final etaSourceLabel = _resolveEtaSourceLabelFromPassengerData(
-        passengerData,
+    builder: (context, routeSnapshot) {
+      final routeData = routeSnapshot.data?.data();
+      final routeScheduledTimeRaw = routeData?['scheduledTime'];
+      final scheduledTime = _nullableParam(
+        routeScheduledTimeRaw is String ? routeScheduledTimeRaw : null,
       );
-      return _PassengerLocationStreamBuilder(
-        routeId: routeId,
-        builder: (location) => buildTrackingScreen(
-          resolvedRouteName: defaultRouteName,
-          etaSourceLabel: etaSourceLabel,
-          freshness: location.freshness,
-          lastSeenAgo: location.lastSeenAgo,
-          onSettingsTap: onSettingsTap,
-          onSkipTodayTap: onSkipTodayTap,
-          onLeaveRouteTap: onLeaveRouteTap,
-        ),
+
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection('trips')
+            .where('routeId', isEqualTo: routeId)
+            .where('status', isEqualTo: 'active')
+            .limit(1)
+            .snapshots(),
+        builder: (context, activeTripSnapshot) {
+          final hasActiveTrip =
+              activeTripSnapshot.data?.docs.isNotEmpty ?? false;
+          final isLate = shouldShowLateDepartureBanner(
+            nowUtc: DateTime.now().toUtc(),
+            scheduledTime: scheduledTime,
+            hasActiveTrip: hasActiveTrip,
+          );
+
+          Widget buildTrackingWithEtaSource(String etaSourceLabel) {
+            return _PassengerLocationStreamBuilder(
+              routeId: routeId,
+              builder: (location) => buildTrackingScreen(
+                resolvedRouteName: defaultRouteName,
+                etaSourceLabel: etaSourceLabel,
+                freshness: location.freshness,
+                lastSeenAgo: location.lastSeenAgo,
+                isLate: isLate,
+                scheduledTime: scheduledTime,
+                onSettingsTap: onSettingsTap,
+                onSkipTodayTap: onSkipTodayTap,
+                onLeaveRouteTap: onLeaveRouteTap,
+                onKeepNotificationsTap: onKeepNotificationsTap,
+                onBackToServicesTap: onBackToServicesTap,
+              ),
+            );
+          }
+
+          if (etaSourceFromQuery != null) {
+            return buildTrackingWithEtaSource(etaSourceFromQuery);
+          }
+
+          return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('routes')
+                .doc(routeId)
+                .collection('passengers')
+                .doc(user.uid)
+                .snapshots(),
+            builder: (context, passengerSnapshot) {
+              final passengerData = passengerSnapshot.data?.data();
+              final etaSourceLabel = _resolveEtaSourceLabelFromPassengerData(
+                passengerData,
+              );
+              return buildTrackingWithEtaSource(etaSourceLabel);
+            },
+          );
+        },
       );
     },
   );
