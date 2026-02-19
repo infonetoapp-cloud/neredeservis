@@ -9,6 +9,8 @@ class AppEnvironment {
     required this.adaptyEnabled,
     required this.adaptyApiKey,
     required this.mapboxPublicToken,
+    required this.mapboxTileCacheMb,
+    required this.mapboxStylePreloadEnabled,
   });
 
   final AppFlavor flavor;
@@ -18,6 +20,8 @@ class AppEnvironment {
   final bool adaptyEnabled;
   final String? adaptyApiKey;
   final String? mapboxPublicToken;
+  final int mapboxTileCacheMb;
+  final bool mapboxStylePreloadEnabled;
 
   String get name => flavor.name;
   bool get isProduction => flavor == AppFlavor.prod;
@@ -39,6 +43,12 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
       String.fromEnvironment('ADAPTY_ENABLED', defaultValue: '');
   const mapboxPublicTokenRaw =
       String.fromEnvironment('MAPBOX_PUBLIC_TOKEN', defaultValue: '');
+  const mapboxTileCacheMbRaw =
+      String.fromEnvironment('MAPBOX_TILE_CACHE_MB', defaultValue: '256');
+  const mapboxStylePreloadEnabledRaw = String.fromEnvironment(
+    'MAPBOX_STYLE_PRELOAD_ENABLED',
+    defaultValue: 'true',
+  );
 
   final sentryDsn = sentryDsnRaw.trim().isEmpty ? null : sentryDsnRaw.trim();
   final sentryEnabledOverride = _parseBoolOrNull(sentryEnabledRaw);
@@ -52,6 +62,12 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
   final adaptyEnabled = (adaptyEnabledOverride ?? true) && adaptyApiKey != null;
   final mapboxPublicToken =
       mapboxPublicTokenRaw.trim().isEmpty ? null : mapboxPublicTokenRaw.trim();
+  final mapboxTileCacheMb = _parsePositiveIntOrFallback(
+    mapboxTileCacheMbRaw,
+    fallback: 256,
+  );
+  final mapboxStylePreloadEnabled =
+      _parseBoolOrNull(mapboxStylePreloadEnabledRaw) ?? true;
 
   final appCheckDebugProviderEnabled = resolvedFlavor != AppFlavor.prod;
 
@@ -63,6 +79,8 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
     adaptyEnabled: adaptyEnabled,
     adaptyApiKey: adaptyApiKey,
     mapboxPublicToken: mapboxPublicToken,
+    mapboxTileCacheMb: mapboxTileCacheMb,
+    mapboxStylePreloadEnabled: mapboxStylePreloadEnabled,
   );
 }
 
@@ -93,4 +111,15 @@ bool? _parseBoolOrNull(String raw) {
     return false;
   }
   return null;
+}
+
+int _parsePositiveIntOrFallback(
+  String raw, {
+  required int fallback,
+}) {
+  final parsed = int.tryParse(raw.trim());
+  if (parsed == null || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
 }

@@ -25,6 +25,8 @@ void main() {
             adaptyEnabled: false,
             adaptyApiKey: null,
             mapboxPublicToken: null,
+            mapboxTileCacheMb: 256,
+            mapboxStylePreloadEnabled: true,
           ),
         ),
       ),

@@ -70,7 +70,11 @@ macOS/Linux:
 - Degeri yerel `.env.*` dosyana ekle:
 ```dotenv
 MAPBOX_PUBLIC_TOKEN=pk.XXXXXXXX
+MAPBOX_TILE_CACHE_MB=256
+MAPBOX_STYLE_PRELOAD_ENABLED=true
 ```
+- `MAPBOX_TILE_CACHE_MB`: cihazdaki tile cache ust limiti (MB).
+- `MAPBOX_STYLE_PRELOAD_ENABLED`: acilista style pack preload ac/kapa.
 - `sk...` secret token istemciye konulmaz; sadece server-side Secret Manager'da kalir.
 
 ## Not

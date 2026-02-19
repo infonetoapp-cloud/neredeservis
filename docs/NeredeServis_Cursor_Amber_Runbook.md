@@ -715,7 +715,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 328C KULLANICIDAN ONAY ISTE: "Olasi gecikme esigi 10 dk kalsin mi?".
 - [x] 329 Mapbox map widget entegrasyonunu bagla.
 - [x] 329A Driver aktif sefer map modunu bagla (gesture kisitli, dikkat dagitici UI yok).
-- [ ] 329B Mapbox style/tile cache stratejisini agresif yap: `OfflineManager` + `TileStore`, style pack preload, sik kullanilan rota cevresi tile cache + cache size limit.
+- [x] 329B Mapbox style/tile cache stratejisini agresif yap: `OfflineManager` + `TileStore`, style pack preload, sik kullanilan rota cevresi tile cache + cache size limit.
 - [ ] 329C DOGRULAMA: cache aktifken tekrar acilista map load suresi ve network cagrisi azaliyor mu?
 - [ ] 330 Mapbox Directions ETA servis entegrasyonunu bagla (remote config kill-switch ile varsayilan kapali).
 - [ ] 330A Ghost Drive polyline tolerance kuralini bagla: aracin polyline'a mesafesi `>500m` ise `off_route_eta` moduna gec.

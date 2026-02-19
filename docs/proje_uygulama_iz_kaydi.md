@@ -10632,3 +10632,70 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 329B: Mapbox offline/cache stratejisini (`OfflineManager` + `TileStore`, style pack preload, rota cevresi cache + size limit) baglamak.
+
+## STEP-329B - Mapbox Offline Cache Stratejisi (OfflineManager + TileStore)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 329B: Mapbox style/tile cache stratejisini agresif moda almak:
+  - `OfflineManager` + `TileStore` ile warm-up
+  - style pack preload
+  - sik kullanilan rota koridoru tile preload
+  - disk cache quota limiti
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/infrastructure/mapbox_offline_cache_service.dart`
+   - `MapboxOfflineCacheService` eklendi.
+   - `MapboxSdkOfflineCacheBackend` ile `OfflineManager` + `TileStore` baglandi.
+   - `READ_AND_UPDATE` tile store usage mode + disk quota ayari eklendi.
+   - style pack preload (`MapboxStyles.STANDARD`) + rota koridoru tile preload (GeoJSON polygon) eklendi.
+2. `apply_patch` -> `lib/config/app_environment.dart`
+   - yeni environment alanlari eklendi:
+     - `mapboxTileCacheMb` (`MAPBOX_TILE_CACHE_MB`, default `256`)
+     - `mapboxStylePreloadEnabled` (`MAPBOX_STYLE_PRELOAD_ENABLED`, default `true`)
+3. `apply_patch` -> `lib/bootstrap/app_bootstrap.dart`
+   - token set edildikten sonra cache warm-up non-blocking sekilde baglandi (`unawaited`).
+4. `apply_patch` -> `test/features/location/infrastructure/mapbox_offline_cache_service_test.dart`
+   - warm-up skip/idempotency/quota/style toggle/geometry testleri eklendi.
+5. `apply_patch` -> `test/widget_test.dart`
+6. `apply_patch` -> `integration_test/smoke_startup_test.dart`
+   - `AppEnvironment` yeni zorunlu alanlari test fixture'lara eklendi.
+7. `apply_patch` -> `README.md`
+   - Mapbox cache `dart-define` notlari eklendi.
+8. `dart format lib/features/location/infrastructure/mapbox_offline_cache_service.dart lib/bootstrap/app_bootstrap.dart lib/config/app_environment.dart test/widget_test.dart test/features/location/infrastructure/mapbox_offline_cache_service_test.dart integration_test/smoke_startup_test.dart`
+9. `flutter test test/features/location/infrastructure/mapbox_offline_cache_service_test.dart test/widget_test.dart`
+10. `flutter analyze`
+11. `flutter test`
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`329B` -> `[x]`)
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`329B` -> `[x]`)
+14. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Uygulama acilisinda (token + mobil runtime kosulunda) Mapbox cache warm-up calisiyor:
+  - `MapboxMapsOptions.setTileStoreUsageMode(READ_AND_UPDATE)`
+  - `TileStore.setDiskQuota(tileCacheMb * 1024 * 1024)`
+  - style pack preload (`STANDARD`)
+  - varsayilan sik rota koridoru (Darica -> GOSB) tile preload
+- Cache warm-up akisi idempotent tasarlandi; ayni session icinde tekrar cagrida ikinci kez ayni preload zinciri kosmuyor.
+- Feature flag sozlesmesi ile uyumlu iki runtime tunable compile-time define olarak baglandi:
+  - `MAPBOX_TILE_CACHE_MB`
+  - `MAPBOX_STYLE_PRELOAD_ENABLED`
+
+### Hata Kaydi (Silinmez)
+- `flutter analyze` ilk denemede `integration_test/smoke_startup_test.dart` icinde `AppEnvironment` yeni zorunlu alanlari eksik oldugu icin fail verdi.
+- Cozum: smoke startup fixture'ina `mapboxTileCacheMb` + `mapboxStylePreloadEnabled` eklendi.
+- `flutter` komutlari sirasinda "newer incompatible versions available" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/features/location/infrastructure/mapbox_offline_cache_service_test.dart test/widget_test.dart` -> pass (`6` test)
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (`287` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md`: `329B` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`: `329B` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 329C: cache etkin iken ikinci acilista map load/network azalimi dogrulama (olcum + kanit kaydi).
