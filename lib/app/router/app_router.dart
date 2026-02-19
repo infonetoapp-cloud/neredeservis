@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -91,7 +94,7 @@ GoRouter buildAppRouter({
         path: AppRoutePath.driverHome,
         builder: (context, state) => DriverHomeScreen(
           appName: flavorConfig.appName,
-          onStartTripTap: () => context.go(AppRoutePath.activeTrip),
+          onStartTripTap: () => _handleStartTripWithUndo(context),
           onManageRouteTap: () => context.go(AppRoutePath.driverRoutesManage),
           onAnnouncementTap: () => context.go(AppRoutePath.settings),
           onSettingsTap: () => context.go(AppRoutePath.settings),
@@ -139,7 +142,14 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.activeTrip,
-        builder: (context, state) => const ActiveTripScreen(),
+        builder: (context, state) {
+          final routeName =
+              _nullableParam(state.uri.queryParameters['routeName']) ??
+                  'Darica -> GOSB';
+          return ActiveTripScreen(
+            routeName: routeName,
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.passengerHome,
@@ -752,6 +762,138 @@ Future<void> _handleDeleteStop(
     }
     _showInfo(context, 'Durak silinemedi (${error.code}).');
   }
+}
+
+Future<void> _handleStartTripWithUndo(BuildContext context) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    if (context.mounted) {
+      _showInfo(context, 'Oturum bulunamadi. Lutfen tekrar giris yap.');
+    }
+    return;
+  }
+
+  final routeContext = await _resolvePrimaryDriverRouteContext(user.uid);
+  if (!context.mounted) {
+    return;
+  }
+  if (routeContext == null) {
+    _showInfo(
+        context, 'Baslatilabilir bir rota bulunamadi. Once rota olustur.');
+    return;
+  }
+
+  final shouldCommit = await _showStartTripUndoWindow(
+    context,
+    routeName: routeContext.routeName,
+  );
+  if (!context.mounted) {
+    return;
+  }
+  if (!shouldCommit) {
+    _showInfo(context, 'Sefer baslatma iptal edildi.');
+    return;
+  }
+
+  await _commitStartTrip(context, user, routeContext);
+}
+
+Future<void> _commitStartTrip(
+  BuildContext context,
+  User user,
+  _DriverRouteContext routeContext,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('startTrip');
+    final expectedTransitionVersion =
+        await _readCurrentTripTransitionVersion(routeContext.routeId);
+    final uidPrefix =
+        user.uid.length <= 8 ? user.uid : user.uid.substring(0, 8);
+    final deviceId = '${_devicePlatformKey()}_$uidPrefix';
+    final response = await callable.call(<String, dynamic>{
+      'routeId': routeContext.routeId,
+      'deviceId': deviceId,
+      'idempotencyKey': _buildTripActionIdempotencyKey(
+        action: 'start_trip',
+        subject: routeContext.routeId,
+      ),
+      'expectedTransitionVersion': expectedTransitionVersion,
+    });
+    final payload = _extractCallableData(response.data);
+    final tripId = payload['tripId'] as String? ?? '';
+    final status = payload['status'] as String? ?? '';
+    final transitionVersion = (payload['transitionVersion'] as num?)?.toInt() ??
+        expectedTransitionVersion;
+    if (!context.mounted) {
+      return;
+    }
+    if (tripId.isEmpty || status != 'active') {
+      _showInfo(context, 'Sefer baslatma cevabi eksik geldi.');
+      return;
+    }
+
+    final activeTripUri = Uri(
+      path: AppRoutePath.activeTrip,
+      queryParameters: <String, String>{
+        'routeId': routeContext.routeId,
+        'routeName': routeContext.routeName,
+        'tripId': tripId,
+        'transitionVersion': transitionVersion.toString(),
+      },
+    );
+    _showInfo(context, 'Sefer baslatildi.');
+    context.go(activeTripUri.toString());
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final transitionMismatch =
+        (error.message ?? '').contains('TRANSITION_VERSION_MISMATCH');
+    final message = switch (error.code) {
+      'permission-denied' => 'Bu route icin sefer baslatma yetkin yok.',
+      'not-found' => 'Route bulunamadi.',
+      'failed-precondition' => transitionMismatch
+          ? 'Sefer durumu degisti. Lutfen tekrar dene.'
+          : 'Sefer su an baslatilamiyor.',
+      _ => 'Sefer baslatma basarisiz (${error.code}).',
+    };
+    _showInfo(context, message);
+  }
+}
+
+Future<bool> _showStartTripUndoWindow(
+  BuildContext context, {
+  required String routeName,
+}) async {
+  final completer = Completer<bool>();
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  final controller = messenger.showSnackBar(
+    SnackBar(
+      duration: const Duration(seconds: 10),
+      content: Text(
+        'Sefer 10 sn sonra baslayacak ($routeName). Iptal etmek icin simdi dokun.',
+      ),
+      action: SnackBarAction(
+        label: 'Iptal',
+        onPressed: () {
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        },
+      ),
+    ),
+  );
+
+  controller.closed.then((reason) {
+    if (completer.isCompleted) {
+      return;
+    }
+    completer.complete(reason != SnackBarClosedReason.action);
+  });
+  return completer.future;
 }
 
 Future<void> _handleJoinBySrvCode(
@@ -1402,6 +1544,120 @@ String _buildSkipTodayIdempotencyKey(String dateKey) {
   return 'skip_${compactDateKey}_$nowMs';
 }
 
+final Random _idempotencyRandom = Random.secure();
+
+Future<_DriverRouteContext?> _resolvePrimaryDriverRouteContext(
+    String uid) async {
+  final routesCollection = FirebaseFirestore.instance.collection('routes');
+  final ownedFuture =
+      routesCollection.where('driverId', isEqualTo: uid).limit(20).get();
+  final sharedFuture = routesCollection
+      .where('authorizedDriverIds', arrayContains: uid)
+      .limit(20)
+      .get();
+  final snapshots =
+      await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+    ownedFuture,
+    sharedFuture,
+  ]);
+
+  final merged = <_DriverRouteContext>[];
+  final seenRouteIds = <String>{};
+  for (final snapshot in snapshots) {
+    for (final doc in snapshot.docs) {
+      if (!seenRouteIds.add(doc.id)) {
+        continue;
+      }
+      final data = doc.data();
+      if (data['isArchived'] == true) {
+        continue;
+      }
+      final routeNameRaw = (data['name'] as String?)?.trim();
+      final routeName = (routeNameRaw == null || routeNameRaw.isEmpty)
+          ? 'Sofor Rotasi'
+          : routeNameRaw;
+      final updatedAtRaw = (data['updatedAt'] as String?)?.trim();
+      final updatedAtUtc = DateTime.tryParse(updatedAtRaw ?? '')?.toUtc() ??
+          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      final ownerUid = (data['driverId'] as String?)?.trim();
+      merged.add(
+        _DriverRouteContext(
+          routeId: doc.id,
+          routeName: routeName,
+          updatedAtUtc: updatedAtUtc,
+          isOwnedByCurrentDriver: ownerUid == uid,
+        ),
+      );
+    }
+  }
+
+  if (merged.isEmpty) {
+    return null;
+  }
+  merged.sort((left, right) {
+    if (left.isOwnedByCurrentDriver != right.isOwnedByCurrentDriver) {
+      return left.isOwnedByCurrentDriver ? -1 : 1;
+    }
+    return right.updatedAtUtc.compareTo(left.updatedAtUtc);
+  });
+  return merged.first;
+}
+
+Future<int> _readCurrentTripTransitionVersion(String routeId) async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('trips')
+      .where('routeId', isEqualTo: routeId)
+      .where('status', isEqualTo: 'active')
+      .limit(1)
+      .get();
+  final data = snapshot.docs.isEmpty ? null : snapshot.docs.first.data();
+  final rawVersion = data?['transitionVersion'];
+  if (rawVersion is num) {
+    return rawVersion.toInt();
+  }
+  return 0;
+}
+
+String _buildTripActionIdempotencyKey({
+  required String action,
+  required String subject,
+  DateTime? nowUtc,
+}) {
+  final sanitizedAction = _sanitizeIdempotencyPart(action);
+  final sanitizedSubject = _sanitizeIdempotencyPart(subject);
+  final timestampPart = (nowUtc ?? DateTime.now().toUtc())
+      .millisecondsSinceEpoch
+      .toRadixString(36);
+  final randomPart = _randomIdempotencyToken(10);
+  return '$sanitizedAction-$sanitizedSubject-$timestampPart-$randomPart';
+}
+
+String _sanitizeIdempotencyPart(String raw, {int maxLength = 24}) {
+  final normalized = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
+  if (normalized.isEmpty) {
+    return 'item';
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return normalized.substring(0, maxLength);
+}
+
+String _randomIdempotencyToken(int length) {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  final buffer = StringBuffer();
+  for (var index = 0; index < length; index++) {
+    final alphabetIndex = _idempotencyRandom.nextInt(alphabet.length);
+    buffer.write(alphabet[alphabetIndex]);
+  }
+  return buffer.toString();
+}
+
 class _GuestSessionExpiryGuard extends StatefulWidget {
   const _GuestSessionExpiryGuard({
     required this.sessionId,
@@ -1607,6 +1863,20 @@ String? _nullableToken(String? value) {
     return null;
   }
   return token;
+}
+
+class _DriverRouteContext {
+  const _DriverRouteContext({
+    required this.routeId,
+    required this.routeName,
+    required this.updatedAtUtc,
+    required this.isOwnedByCurrentDriver,
+  });
+
+  final String routeId;
+  final String routeName;
+  final DateTime updatedAtUtc;
+  final bool isOwnedByCurrentDriver;
 }
 
 class _EmailAuthInput {

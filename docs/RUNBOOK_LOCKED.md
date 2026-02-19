@@ -647,10 +647,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 313 `submitSkipToday` aksiyonunu bagla.
 - [x] 314 Guest session olusturma akisini bagla.
 - [x] 315 Guest session expiry handling yaz.
-- [ ] 316 Driver start trip aksiyonunu bagla.
-- [ ] 316A `Seferi Baslat` aksiyonunda 10 sn yerel bekleme penceresi ekle (`undo` butonu gorunur, server cagrisi gecikmeli).
-- [ ] 316B 10 sn dolmadan `Iptal` secilirse start istegini tamamen dusur, push ve trip olusmasin.
-- [ ] 316C 10 sn sonunda otomatik commit et ve `startTrip` callable cagir.
+- [x] 316 Driver start trip aksiyonunu bagla.
+- [x] 316A `Seferi Baslat` aksiyonunda 10 sn yerel bekleme penceresi ekle (`undo` butonu gorunur, server cagrisi gecikmeli).
+- [x] 316B 10 sn dolmadan `Iptal` secilirse start istegini tamamen dusur, push ve trip olusmasin.
+- [x] 316C 10 sn sonunda otomatik commit et ve `startTrip` callable cagir.
 - [ ] 317 Driver finish trip aksiyonunu bagla.
 - [ ] 317A `Seferi Bitir` aksiyonunu guvenli hale getir (`slide-to-finish` veya `uzun bas`, tek tap yok).
 - [ ] 317B `Seferi Bitir` guvenli aksiyonu icin haptic+gorsel geri bildirim ekle; 3 sn icinde geri alma yoksa finalize et.

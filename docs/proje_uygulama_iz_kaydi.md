@@ -9268,3 +9268,51 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 316: Driver `startTrip` aksiyonunu bagla.
+
+## STEP-316-316C - Driver StartTrip + 10 sn Undo Window
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 316: Driver home uzerinden `startTrip` aksiyonunu backend callable'a baglamak.
+- Faz G / 316A: `Seferi Baslat` icin 10 sn yerel bekleme/undo penceresi eklemek.
+- Faz G / 316B: 10 sn dolmadan `Iptal` seciminde server cagrisini tamamen dusurmek.
+- Faz G / 316C: 10 sn sonunda otomatik commit ile `startTrip` callable cagrisini tetiklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `driverHome` start aksiyonu `context.go` yerine `_handleStartTripWithUndo` ile degistirildi
+   - `activeTrip` route'u query'den `routeName` alacak sekilde guncellendi
+   - `_handleStartTripWithUndo`, `_showStartTripUndoWindow`, `_commitStartTrip` eklendi
+   - route secim helper'i eklendi (`_resolvePrimaryDriverRouteContext`)
+   - optimistic lock input'u icin aktif trip transition version okuyucusu eklendi (`_readCurrentTripTransitionVersion`)
+   - startTrip icin idempotency key helper'lari eklendi
+2. `dart format lib/app/router/app_router.dart`
+3. `flutter analyze`
+4. `flutter test`
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`316, 316A, 316B, 316C` -> `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`316, 316A, 316B, 316C` -> `[x]`)
+
+### Bulgular
+- Driver home ekraninda `Seferi Baslat` artik 10 sn undo penceresi aciyor (SnackBar + `Iptal`).
+- Kullanici `Iptal` secerse server'a hic `startTrip` cagrisi gitmiyor.
+- Undo suresi dolarsa `startTrip` callable otomatik tetikleniyor.
+- Start cagrisi oncesi aktif trip transition version Firestore'dan okunup
+  `expectedTransitionVersion` olarak gonderiliyor (optimistic lock uyumu).
+- Idempotency key istemci tarafinda action/subject/timestamp/random token kombinasyonuyla uretiliyor.
+- Basarili start sonucunda uygulama `activeTrip` ekranina `routeId`, `routeName`,
+  `tripId`, `transitionVersion` query paramlariyla geciyor.
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `197` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `316, 316A, 316B, 316C` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `316, 316A, 316B, 316C` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 317: Driver `finishTrip` aksiyonunu bagla.
