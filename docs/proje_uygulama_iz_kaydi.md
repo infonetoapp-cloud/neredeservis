@@ -9790,3 +9790,58 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 322E: bildirim izni orkestrasyonu (deger aninda isteme) baglantisi.
+
+## STEP-322E - Notification Permission Orchestration (Value-Time Prompt)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 322E: bildirim izni istemini onboarding toplu istemeden cikarmak.
+- Izin istemini sadece deger anlarina baglamak:
+  - yolcu katilim tetigi (`joinRouteBySrvCode`)
+  - sofor duyuru tetigi (`sendDriverAnnouncement`)
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/permissions/application/notification_permission_orchestrator.dart`
+   - `NotificationPermissionOrchestrator`
+   - trigger enum: `passengerJoin`, `driverAnnouncement`
+   - outcome enum: `skipped`, `alreadyGranted`, `granted`, `denied`
+   - default policy: sadece Android/iOS'ta prompt
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - global orchestrator baglandi
+   - `_handleJoinBySrvCode` basinda value-time prompt orkestrasyonu eklendi
+   - `_handleSendDriverAnnouncement` tetiginde value-time prompt orkestrasyonu eklendi
+   - `_orchestrateNotificationPermissionAtValueMoment(...)` helper eklendi
+3. `apply_patch` -> `test/features/permissions/application/notification_permission_orchestrator_test.dart`
+   - prompt unsupported -> skipped
+   - already authorized -> request cagrilmadan alreadyGranted
+   - notDetermined/denied -> request sonucu granted/denied
+4. `dart format lib/app/router/app_router.dart lib/features/permissions/application/notification_permission_orchestrator.dart test/features/permissions/application/notification_permission_orchestrator_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `flutter build apk --debug --flavor dev -t lib/main.dart`
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`322E` -> `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`322E` -> `[x]`)
+
+### Bulgular
+- Bildirim izni istemi artik onboarding bootstrap akisina bagli degil.
+- Value-time prompt orkestrasyonu iki kritik eylemde aktif:
+  - yolcu katilim denemesi
+  - sofor duyuru gonderimi
+- Permission orkestrasyon mantigi izole edildigi icin test edilebilirlik artti.
+
+### Hata Kaydi (Silinmez)
+- Ek hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `228` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `322E` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `322E` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 322F: bildirim izni red fallback (in-app banner + Ayarlar CTA + 24 saat cooldown).

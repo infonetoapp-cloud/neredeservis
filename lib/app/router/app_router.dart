@@ -23,6 +23,7 @@ import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/permissions/application/location_permission_gate.dart';
+import '../../features/permissions/application/notification_permission_orchestrator.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
 import '../../ui/screens/active_trip_screen.dart';
@@ -1093,6 +1094,13 @@ Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
     return;
   }
 
+  await _orchestrateNotificationPermissionAtValueMoment(
+    NotificationPermissionTrigger.driverAnnouncement,
+  );
+  if (!context.mounted) {
+    return;
+  }
+
   try {
     final callable =
         FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
@@ -1277,6 +1285,13 @@ Future<void> _handleJoinBySrvCode(
   JoinBySrvFormInput input,
 ) async {
   try {
+    await _orchestrateNotificationPermissionAtValueMoment(
+      NotificationPermissionTrigger.passengerJoin,
+    );
+    if (!context.mounted) {
+      return;
+    }
+
     final callable =
         FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
             .httpsCallable('joinRouteBySrvCode');
@@ -2002,6 +2017,8 @@ String _buildSkipTodayIdempotencyKey(String dateKey) {
 
 final Random _idempotencyRandom = Random.secure();
 const LocationPermissionGate _locationPermissionGate = LocationPermissionGate();
+final NotificationPermissionOrchestrator _notificationPermissionOrchestrator =
+    NotificationPermissionOrchestrator();
 final AndroidLocationBackgroundService _androidLocationBackgroundService =
     AndroidLocationBackgroundService();
 
@@ -2022,6 +2039,18 @@ Future<void> _syncDriverLocationForegroundService({
   } catch (_) {
     debugPrint(
       'DriverLocationForegroundService sync failed (shouldRun=$shouldRun).',
+    );
+  }
+}
+
+Future<void> _orchestrateNotificationPermissionAtValueMoment(
+  NotificationPermissionTrigger trigger,
+) async {
+  try {
+    await _notificationPermissionOrchestrator.requestAtValueMoment(trigger);
+  } catch (_) {
+    debugPrint(
+      'Notification permission orchestration skipped (trigger=$trigger).',
     );
   }
 }
