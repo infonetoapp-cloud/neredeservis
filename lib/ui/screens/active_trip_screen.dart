@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import '../../features/location/application/driver_heartbeat_voice_feedback_service.dart';
 import '../../features/location/application/voice_feedback_settings_service.dart';
@@ -50,6 +52,7 @@ class ActiveTripScreen extends StatefulWidget {
     this.nextStopPoint,
     this.syncStateLabel,
     this.manualInterventionMessage,
+    this.mapboxPublicToken,
     this.onTripFinished,
     this.onEmergencyTap,
   });
@@ -89,6 +92,9 @@ class ActiveTripScreen extends StatefulWidget {
 
   /// Optional manual-intervention warning for permanent sync failures.
   final String? manualInterventionMessage;
+
+  /// Public Mapbox token supplied via `--dart-define MAPBOX_PUBLIC_TOKEN=pk...`.
+  final String? mapboxPublicToken;
 
   /// Fires when slide-to-finish confirms trip termination.
   final VoidCallback? onTripFinished;
@@ -274,6 +280,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
               routePathPoints: widget.routePathPoints,
               vehiclePoint: widget.vehiclePoint,
               nextStopPoint: widget.nextStopPoint,
+              mapboxPublicToken: widget.mapboxPublicToken,
             ),
           ),
 
@@ -339,15 +346,33 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
 
 // --- Internal Widgets ---
 
-/// The map background shell. In V1.0 this renders a styled placeholder;
-/// the actual Mapbox integration plugs in during FAZ G (step 320+).
-class _MapShell extends StatelessWidget {
+mapbox.GesturesSettings buildDriverLockedGesturesSettings() {
+  return mapbox.GesturesSettings(
+    rotateEnabled: false,
+    pinchToZoomEnabled: false,
+    scrollEnabled: false,
+    simultaneousRotateAndPinchToZoomEnabled: false,
+    pitchEnabled: false,
+    doubleTapToZoomInEnabled: false,
+    doubleTouchToZoomOutEnabled: false,
+    quickZoomEnabled: false,
+    pinchPanEnabled: false,
+    pinchToZoomDecelerationEnabled: false,
+    rotateDecelerationEnabled: false,
+    scrollDecelerationEnabled: false,
+  );
+}
+
+/// Driver map shell. Uses Mapbox on supported mobile runtime with token,
+/// and falls back to the placeholder shell in unsupported/missing-token cases.
+class _MapShell extends StatefulWidget {
   const _MapShell({
     this.routeName,
     this.nextStopName,
     this.routePathPoints = const <ActiveTripMapPoint>[],
     this.vehiclePoint,
     this.nextStopPoint,
+    this.mapboxPublicToken,
   });
 
   final String? routeName;
@@ -355,6 +380,290 @@ class _MapShell extends StatelessWidget {
   final List<ActiveTripMapPoint> routePathPoints;
   final ActiveTripMapPoint? vehiclePoint;
   final ActiveTripMapPoint? nextStopPoint;
+  final String? mapboxPublicToken;
+
+  @override
+  State<_MapShell> createState() => _MapShellState();
+}
+
+class _MapShellState extends State<_MapShell> {
+  mapbox.MapboxMap? _mapboxMap;
+  mapbox.PolylineAnnotationManager? _routeLineManager;
+  mapbox.CircleAnnotationManager? _markerManager;
+  bool _syncInProgress = false;
+
+  bool get _isMobilePlatform {
+    return !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+  }
+
+  bool get _hasToken {
+    final token = widget.mapboxPublicToken?.trim();
+    return token != null && token.isNotEmpty;
+  }
+
+  @override
+  void didUpdateWidget(covariant _MapShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_hasToken || !_isMobilePlatform) {
+      return;
+    }
+    unawaited(_syncMapContentIfReady());
+  }
+
+  @override
+  void dispose() {
+    unawaited(_teardownAnnotationManagers());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isMobilePlatform) {
+      return _DriverMapPlaceholderShell(
+        routeName: widget.routeName,
+        nextStopName: widget.nextStopName,
+        routePathPoints: widget.routePathPoints,
+        vehiclePoint: widget.vehiclePoint,
+        nextStopPoint: widget.nextStopPoint,
+        infoLabel: 'Mapbox yalnizca Android/iOS destekler.',
+      );
+    }
+    if (!_hasToken) {
+      return _DriverMapPlaceholderShell(
+        routeName: widget.routeName,
+        nextStopName: widget.nextStopName,
+        routePathPoints: widget.routePathPoints,
+        vehiclePoint: widget.vehiclePoint,
+        nextStopPoint: widget.nextStopPoint,
+        infoLabel: 'MAPBOX_PUBLIC_TOKEN tanimli degil.',
+      );
+    }
+
+    return mapbox.MapWidget(
+      styleUri: mapbox.MapboxStyles.STANDARD,
+      cameraOptions: _initialCameraOptions(),
+      onMapCreated: _onMapCreated,
+    );
+  }
+
+  Future<void> _onMapCreated(mapbox.MapboxMap mapboxMap) async {
+    _mapboxMap = mapboxMap;
+    await _configureDriverMapMode(mapboxMap);
+    await _ensureAnnotationManagers(mapboxMap);
+    await _syncMapContentIfReady();
+  }
+
+  Future<void> _configureDriverMapMode(mapbox.MapboxMap mapboxMap) async {
+    try {
+      await mapboxMap.gestures
+          .updateSettings(buildDriverLockedGesturesSettings());
+      await mapboxMap.compass.updateSettings(
+        mapbox.CompassSettings(
+          enabled: false,
+          visibility: false,
+        ),
+      );
+      await mapboxMap.scaleBar.updateSettings(
+        mapbox.ScaleBarSettings(enabled: false),
+      );
+    } catch (_) {
+      debugPrint('Driver map mode configuration skipped.');
+    }
+  }
+
+  Future<void> _ensureAnnotationManagers(mapbox.MapboxMap mapboxMap) async {
+    _routeLineManager ??=
+        await mapboxMap.annotations.createPolylineAnnotationManager();
+    _markerManager ??=
+        await mapboxMap.annotations.createCircleAnnotationManager();
+  }
+
+  Future<void> _syncMapContentIfReady() async {
+    if (_syncInProgress) {
+      return;
+    }
+    final mapboxMap = _mapboxMap;
+    final routeLineManager = _routeLineManager;
+    final markerManager = _markerManager;
+    if (mapboxMap == null ||
+        routeLineManager == null ||
+        markerManager == null) {
+      return;
+    }
+
+    _syncInProgress = true;
+    try {
+      await routeLineManager.deleteAll();
+      await markerManager.deleteAll();
+
+      final routeCoordinates = widget.routePathPoints
+          .map((point) => mapbox.Position(point.lng, point.lat))
+          .toList(growable: false);
+      if (routeCoordinates.length >= 2) {
+        await routeLineManager.create(
+          mapbox.PolylineAnnotationOptions(
+            geometry: mapbox.LineString(coordinates: routeCoordinates),
+            lineColor: AmberColorTokens.amber500.toARGB32(),
+            lineWidth: 4.0,
+            lineOpacity: 0.9,
+          ),
+        );
+      }
+
+      if (widget.vehiclePoint != null) {
+        await markerManager.create(
+          mapbox.CircleAnnotationOptions(
+            geometry: _toMapboxPoint(widget.vehiclePoint!),
+            circleColor: AmberColorTokens.amber500.toARGB32(),
+            circleRadius: 8.0,
+            circleOpacity: 1.0,
+            circleStrokeColor: AmberColorTokens.surface0.toARGB32(),
+            circleStrokeWidth: 2.0,
+          ),
+        );
+      }
+
+      if (widget.nextStopPoint != null) {
+        await markerManager.create(
+          mapbox.CircleAnnotationOptions(
+            geometry: _toMapboxPoint(widget.nextStopPoint!),
+            circleColor: AmberColorTokens.success.toARGB32(),
+            circleRadius: 6.0,
+            circleOpacity: 1.0,
+            circleStrokeColor: AmberColorTokens.surface0.toARGB32(),
+            circleStrokeWidth: 2.0,
+          ),
+        );
+      }
+
+      await _syncCamera(mapboxMap);
+    } catch (_) {
+      debugPrint('Driver map annotations sync skipped.');
+    } finally {
+      _syncInProgress = false;
+    }
+  }
+
+  Future<void> _syncCamera(mapbox.MapboxMap mapboxMap) async {
+    final points = _collectMapboxPoints();
+    if (points.isEmpty) {
+      return;
+    }
+
+    if (points.length == 1) {
+      await mapboxMap.setCamera(
+        mapbox.CameraOptions(
+          center: points.first,
+          zoom: 15.5,
+          pitch: 0,
+          bearing: 0,
+        ),
+      );
+      return;
+    }
+
+    final camera = await mapboxMap.cameraForCoordinatesPadding(
+      points,
+      mapbox.CameraOptions(
+        pitch: 0,
+        bearing: 0,
+      ),
+      mapbox.MbxEdgeInsets(
+        top: 90,
+        left: 56,
+        bottom: 240,
+        right: 56,
+      ),
+      16.0,
+      null,
+    );
+    await mapboxMap.setCamera(camera);
+  }
+
+  mapbox.CameraOptions _initialCameraOptions() {
+    final points = _collectMapboxPoints();
+    if (points.isEmpty) {
+      return mapbox.CameraOptions(
+        center: mapbox.Point(
+          coordinates: mapbox.Position(29.3739, 40.7731),
+        ),
+        zoom: 12.0,
+        pitch: 0,
+      );
+    }
+
+    final avgLng = points
+            .map((point) => point.coordinates.lng)
+            .reduce((left, right) => left + right) /
+        points.length;
+    final avgLat = points
+            .map((point) => point.coordinates.lat)
+            .reduce((left, right) => left + right) /
+        points.length;
+    return mapbox.CameraOptions(
+      center: mapbox.Point(coordinates: mapbox.Position(avgLng, avgLat)),
+      zoom: 14.5,
+      pitch: 0,
+      bearing: 0,
+    );
+  }
+
+  List<mapbox.Point> _collectMapboxPoints() {
+    final points = <mapbox.Point>[
+      ...widget.routePathPoints.map(_toMapboxPoint),
+      if (widget.vehiclePoint != null) _toMapboxPoint(widget.vehiclePoint!),
+      if (widget.nextStopPoint != null) _toMapboxPoint(widget.nextStopPoint!),
+    ];
+    return points;
+  }
+
+  mapbox.Point _toMapboxPoint(ActiveTripMapPoint point) {
+    return mapbox.Point(
+      coordinates: mapbox.Position(point.lng, point.lat),
+    );
+  }
+
+  Future<void> _teardownAnnotationManagers() async {
+    final mapboxMap = _mapboxMap;
+    final routeLineManager = _routeLineManager;
+    final markerManager = _markerManager;
+    _routeLineManager = null;
+    _markerManager = null;
+    if (mapboxMap == null) {
+      return;
+    }
+
+    try {
+      if (routeLineManager != null) {
+        await mapboxMap.annotations.removeAnnotationManager(routeLineManager);
+      }
+      if (markerManager != null) {
+        await mapboxMap.annotations.removeAnnotationManager(markerManager);
+      }
+    } catch (_) {
+      debugPrint('Driver map annotation manager teardown skipped.');
+    }
+  }
+}
+
+class _DriverMapPlaceholderShell extends StatelessWidget {
+  const _DriverMapPlaceholderShell({
+    this.routeName,
+    this.nextStopName,
+    this.routePathPoints = const <ActiveTripMapPoint>[],
+    this.vehiclePoint,
+    this.nextStopPoint,
+    this.infoLabel,
+  });
+
+  final String? routeName;
+  final String? nextStopName;
+  final List<ActiveTripMapPoint> routePathPoints;
+  final ActiveTripMapPoint? vehiclePoint;
+  final ActiveTripMapPoint? nextStopPoint;
+  final String? infoLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -375,32 +684,61 @@ class _MapShell extends StatelessWidget {
           final geometry = _projectToScreenGeometry(
             size: Size(constraints.maxWidth, constraints.maxHeight),
           );
-          if (geometry == null) {
-            return _buildFallbackShell(context);
-          }
+          final content = geometry == null
+              ? _buildFallbackShell(context)
+              : Stack(
+                  children: <Widget>[
+                    ..._buildGridLines(),
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _DriverRoutePainter(
+                          routeScreenPoints: geometry.routeScreenPoints,
+                        ),
+                      ),
+                    ),
+                    if (geometry.vehicleScreenPoint != null)
+                      Positioned(
+                        left: geometry.vehicleScreenPoint!.dx - 24,
+                        top: geometry.vehicleScreenPoint!.dy - 24,
+                        child: const _VehicleMarker(),
+                      ),
+                    if (geometry.nextStopScreenPoint != null)
+                      Positioned(
+                        left: geometry.nextStopScreenPoint!.dx - 16,
+                        top: geometry.nextStopScreenPoint!.dy - 28,
+                        child: _NextStopMarker(nextStopName: nextStopName),
+                      ),
+                  ],
+                );
 
+          if (infoLabel == null) {
+            return content;
+          }
           return Stack(
             children: <Widget>[
-              ..._buildGridLines(),
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DriverRoutePainter(
-                    routeScreenPoints: geometry.routeScreenPoints,
+              Positioned.fill(child: content),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 220,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AmberColorTokens.ink900.withAlpha(185),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    infoLabel!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AmberTypographyTokens.bodyFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AmberColorTokens.surface0,
+                    ),
                   ),
                 ),
               ),
-              if (geometry.vehicleScreenPoint != null)
-                Positioned(
-                  left: geometry.vehicleScreenPoint!.dx - 24,
-                  top: geometry.vehicleScreenPoint!.dy - 24,
-                  child: const _VehicleMarker(),
-                ),
-              if (geometry.nextStopScreenPoint != null)
-                Positioned(
-                  left: geometry.nextStopScreenPoint!.dx - 16,
-                  top: geometry.nextStopScreenPoint!.dy - 28,
-                  child: _NextStopMarker(nextStopName: nextStopName),
-                ),
             ],
           );
         },

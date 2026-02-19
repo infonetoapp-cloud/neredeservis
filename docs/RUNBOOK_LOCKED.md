@@ -705,8 +705,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 328A Delay inference UI bagla: `now > scheduledTime + 10 dk` ve aktif trip yoksa "Sofor henuz baslatmadi (Olasi Gecikme)" etiketi.
 - [x] 328B Delay inference kartinda fallback CTA goster: `Bildirim Acik Kalsin` + `Servislerim'e Don`.
 - [x] 328C KULLANICIDAN ONAY ISTE: "Olasi gecikme esigi 10 dk kalsin mi?".
-- [ ] 329 Mapbox map widget entegrasyonunu bagla.
-- [ ] 329A Driver aktif sefer map modunu bagla (gesture kisitli, dikkat dagitici UI yok).
+- [x] 329 Mapbox map widget entegrasyonunu bagla.
+- [x] 329A Driver aktif sefer map modunu bagla (gesture kisitli, dikkat dagitici UI yok).
 - [ ] 329B Mapbox style/tile cache stratejisini agresif yap: `OfflineManager` + `TileStore`, style pack preload, sik kullanilan rota cevresi tile cache + cache size limit.
 - [ ] 329C DOGRULAMA: cache aktifken tekrar acilista map load suresi ve network cagrisi azaliyor mu?
 - [ ] 330 Mapbox Directions ETA servis entegrasyonunu bagla (remote config kill-switch ile varsayilan kapali).

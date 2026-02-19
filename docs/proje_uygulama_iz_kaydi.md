@@ -10578,3 +10578,57 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 329: map widget entegrasyon adimini runbook seviyesinde kapatip, 329A (driver aktif sefer map modu - gesture kisit/policy) icin teknik baglantiya gecmek.
+
+## STEP-329-329A - Driver Active Trip Mapbox Entegrasyonu (Gesture Kilitli Mod)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 329: map widget entegrasyonunu aktif sefer akisiyla birlestirmek.
+- 329A: sofor aktif sefer map modunu gesture kisitli (dikkat dagitici etkilesim yok) hale getirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `_DriverFinishTripGuard` uzerinden `mapboxPublicToken` aktif sefer ekranina aktarildi.
+2. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+   - `ActiveTripScreen`e `mapboxPublicToken` alani eklendi.
+   - `_MapShell` placeholder yapidan `Mapbox` odakli stateful yapiya gecirildi.
+   - token+mobile kosulunda `MapWidget` aciliyor; aksi durumda mevcut placeholder shell korunuyor.
+   - route polyline + arac marker + siradaki durak marker'i annotation manager ile mapbox'a cizdirildi.
+   - `buildDriverLockedGesturesSettings` ile rotate/zoom/scroll/pitch/double tap/quick zoom/pinch-pan tamamen kapatildi.
+   - compass ve scale bar gizlenerek surus modu sade tutuldu.
+3. `apply_patch` -> `test/ui/active_trip_screen_map_mode_test.dart`
+   - gesture kilit politikasini dogrulayan test eklendi.
+4. `dart format lib/app/router/app_router.dart lib/ui/screens/active_trip_screen.dart test/ui/active_trip_screen_map_mode_test.dart`
+5. `flutter test test/ui/active_trip_screen_map_mode_test.dart test/ui/amber_quality_gate_test.dart`
+6. `flutter analyze`
+7. `flutter test`
+8. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`329`, `329A` -> `[x]`)
+9. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`329`, `329A` -> `[x]`)
+10. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Driver aktif sefer ekraninda map katmani artik token varken gercek Mapbox widget ile calisiyor.
+- Harita etkilesimi surus moduna uygun sekilde kilitlendi:
+  - scroll/zoom/rotate/pitch/double-tap/quick-zoom/pinch-pan kapali.
+  - compass + scale bar gizli.
+- Route path, arac ve siradaki durak markerlari mapbox annotation katmanina baglandi.
+- Token/platform uygun degilse fallback placeholder shell (mevcut UI davranisi) korunuyor; regresyon olusturulmadi.
+
+### Hata Kaydi (Silinmez)
+- `flutter analyze` ilk denemede `Color.value` deprecate uyarilarini (fatal info) hata olarak raporladi.
+- Cozum: Mapbox annotation renklerinde `.value` yerine `.toARGB32()` kullanildi.
+- `flutter` komutlari sirasinda "newer incompatible versions available" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/ui/active_trip_screen_map_mode_test.dart test/ui/amber_quality_gate_test.dart` -> pass (`15` test)
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (`282` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md`: `329`, `329A` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`: `329`, `329A` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 329B: Mapbox offline/cache stratejisini (`OfflineManager` + `TileStore`, style pack preload, rota cevresi cache + size limit) baglamak.

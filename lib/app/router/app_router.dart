@@ -186,6 +186,7 @@ GoRouter buildAppRouter({
             tripId: tripId,
             routeName: routeName,
             initialTransitionVersion: transitionVersion,
+            mapboxPublicToken: environment.mapboxPublicToken,
           );
         },
       ),
@@ -2564,12 +2565,14 @@ class _DriverFinishTripGuard extends StatefulWidget {
     this.routeId,
     this.tripId,
     this.initialTransitionVersion,
+    this.mapboxPublicToken,
   });
 
   final String routeName;
   final String? routeId;
   final String? tripId;
   final int? initialTransitionVersion;
+  final String? mapboxPublicToken;
 
   @override
   State<_DriverFinishTripGuard> createState() => _DriverFinishTripGuardState();
@@ -3227,6 +3230,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
       manualInterventionMessage: _hasManualInterventionSync
           ? 'Senkronizasyon deneme limiti asildi. Manuel mudahale gerekir.'
           : null,
+      mapboxPublicToken: widget.mapboxPublicToken,
       onTripFinished: _finishing ? null : _handleTripFinishConfirmed,
     );
     return PopScope(
