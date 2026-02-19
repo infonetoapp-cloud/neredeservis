@@ -659,8 +659,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 319 WhatsApp share intent bagla (WhatsApp/WhatsApp Business dene; app yoksa sistem share sheet fallback + hata mesaji).
 - [x] 319A Paylasim linki tiklaninca davranisi netlestir: app yÃ¼klÃ¼ degilse landing page mini takip karti + store; yÃ¼klÃ¼yse deep link ile route preview.
 - [x] 320 RTDB location stream dinlemeyi bagla.
-- [ ] 321 Location publish service yaz.
-- [ ] 321A Replay edilen konum kaydi `now - sampledAt > 60 sn` ise canli RTDB path'ine yazma; sadece history path'ine yaz.
+- [x] 321 Location publish service yaz.
+- [x] 321A Replay edilen konum kaydi `now - sampledAt > 60 sn` ise canli RTDB path'ine yazma; sadece history path'ine yaz.
 - [ ] 321B Canli marker akisi icin Kalman smoothing katmanini ekle (ham GPS + filtrelenmis marker ayrimi).
 - [ ] 322 Background service Android yapisini bagla.
 - [ ] 322A AndroidManifest'te servis tipini zorunlu tanimla: `foregroundServiceType=\"location\"`.

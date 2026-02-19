@@ -9547,3 +9547,61 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 321: Location publish service yaz.
+
+## STEP-321-321A - Location Publish Service + Stale Replay History-Only
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 321: canli konum publish servis katmanini yazmak.
+- Faz G / 321A: replay edilen stale (`now - sampledAt > 60 sn`) kayitlarda live RTDB yoluna yazmadan sadece history yoluna yazmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/location_publish_service.dart`
+   - `LocationPublishService` eklendi
+   - `publish(...)` (live publish, hata durumunda local queue)
+   - `flushQueued(...)` (queue replay)
+   - stale replay kurali: `LocalQueueRepository.shouldSkipLiveReplay` ile `>60 sn` kayitlar `location_history/{routeId}` altina yaziliyor
+   - `LocationPublishOutcome`, `LocationPublishResult`, `LocationFlushSummary`, `LocationHistorySampleRecord` tipleri eklendi
+2. `apply_patch` -> `lib/app/providers/domain_data_providers.dart`
+   - `liveLocationRepositoryProvider`
+   - `locationPublishServiceProvider`
+3. `apply_patch` -> `test/features/location/application/location_publish_service_test.dart`
+   - fresh publish -> live write testi
+   - live write fail -> queue testi
+   - stale publish -> history-only testi
+   - stale queue replay -> history-only + queue drop testi
+   - fresh replay fail -> retry_count artisi testi
+4. `dart format lib/features/location/application/location_publish_service.dart lib/app/providers/domain_data_providers.dart test/features/location/application/location_publish_service_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`321`, `321A` -> `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`321`, `321A` -> `[x]`)
+
+### Bulgular
+- Yeni servis katmani konum publish stratejisini tek yerde topladi:
+  - fresh sample: `locations/{routeId}` live write
+  - live write hatasi: local `location_queue` enqueue
+  - queue replay: stale kontrolu + retry/backoff entegrasyonu
+- 321A stale replay politikasi aktif:
+  - `now - sampledAt > 60 sn` ise live path bypass
+  - sample `location_history/{routeId}` altina `source=offline_replay` ile yaziliyor
+- Replay basariliysa queue satiri siliniyor; basarisizsa retry_count arttiriliyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk analiz/test turunda test dosyasinda lokal helper fonksiyonun deklarasyon sirasi nedeniyle derleme hatasi olustu.
+  - cozum: testte `buildService` closure'u `setUp` icine alindi.
+- Ilk analiz turunda import sirasi lint'i geldi (`directives_ordering`).
+  - cozum: import bloklari alfabetik siraya alindi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `213` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `321`, `321A` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `321`, `321A` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 321B: canli marker akisi icin Kalman smoothing katmanini ekle.
