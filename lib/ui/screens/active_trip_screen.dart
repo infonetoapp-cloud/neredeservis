@@ -7,6 +7,7 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 import '../../features/location/application/driver_heartbeat_voice_feedback_service.dart';
 import '../../features/location/application/voice_feedback_settings_service.dart';
+import '../../features/location/infrastructure/mapbox_cache_validation_probe.dart';
 import '../components/buttons/amber_slide_to_finish.dart';
 import '../components/feedback/amber_snackbars.dart';
 import '../components/indicators/amber_heartbeat_indicator.dart';
@@ -391,6 +392,7 @@ class _MapShellState extends State<_MapShell> {
   mapbox.PolylineAnnotationManager? _routeLineManager;
   mapbox.CircleAnnotationManager? _markerManager;
   bool _syncInProgress = false;
+  late final MapboxCacheValidationProbe _cacheValidationProbe;
 
   bool get _isMobilePlatform {
     return !kIsWeb &&
@@ -401,6 +403,14 @@ class _MapShellState extends State<_MapShell> {
   bool get _hasToken {
     final token = widget.mapboxPublicToken?.trim();
     return token != null && token.isNotEmpty;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheValidationProbe = MapboxCacheValidationProbe(
+      mapKey: 'driver_active_trip',
+    );
   }
 
   @override
@@ -445,6 +455,8 @@ class _MapShellState extends State<_MapShell> {
       styleUri: mapbox.MapboxStyles.STANDARD,
       cameraOptions: _initialCameraOptions(),
       onMapCreated: _onMapCreated,
+      onMapLoadedListener: _onMapLoadedListener,
+      onResourceRequestListener: _onResourceRequestListener,
     );
   }
 
@@ -453,6 +465,14 @@ class _MapShellState extends State<_MapShell> {
     await _configureDriverMapMode(mapboxMap);
     await _ensureAnnotationManagers(mapboxMap);
     await _syncMapContentIfReady();
+  }
+
+  void _onMapLoadedListener(mapbox.MapLoadedEventData eventData) {
+    _cacheValidationProbe.onMapboxMapLoaded(eventData);
+  }
+
+  void _onResourceRequestListener(mapbox.ResourceEventData eventData) {
+    _cacheValidationProbe.onMapboxResourceEvent(eventData);
   }
 
   Future<void> _configureDriverMapMode(mapbox.MapboxMap mapboxMap) async {

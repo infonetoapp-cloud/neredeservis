@@ -10699,3 +10699,51 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 329C: cache etkin iken ikinci acilista map load/network azalimi dogrulama (olcum + kanit kaydi).
+
+## STEP-329C-PREP - Map Cache Olcum Probe Entegrasyonu
+Tarih: 2026-02-19
+Durum: Tamamlandi (hazirlik)
+Etiket: codex
+
+### Amac
+- 329C dogrulamasi icin uygulama icine olcum probe'u eklemek:
+  - map load suresi
+  - network vs local resource request sayisi
+  - tekrar acilista delta logu
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/infrastructure/mapbox_cache_validation_probe.dart`
+   - `MapboxCacheValidationProbe` eklendi.
+   - baseline/repeat snapshot karsilastirma ve delta loglama eklendi.
+2. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+   - driver map widget'e `onMapLoadedListener` + `onResourceRequestListener` baglandi.
+3. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart`
+   - passenger map shell stateful hale getirilip ayni probe baglandi.
+4. `apply_patch` -> `test/features/location/infrastructure/mapbox_cache_validation_probe_test.dart`
+   - baseline/repeat log ve finalize-sonrasi ignore davranisi testleri eklendi.
+5. `dart format lib/features/location/infrastructure/mapbox_cache_validation_probe.dart lib/ui/screens/active_trip_screen.dart lib/ui/screens/passenger_tracking_screen.dart test/features/location/infrastructure/mapbox_cache_validation_probe_test.dart`
+6. `flutter test test/features/location/infrastructure/mapbox_cache_validation_probe_test.dart test/ui/amber_quality_gate_test.dart`
+7. `flutter analyze`
+8. `flutter test`
+9. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Driver ve passenger Mapbox ekranlarinda su formatta runtime olcum logu uretiliyor:
+  - `MapboxCacheProbe[<mapKey>] baseline ...`
+  - `MapboxCacheProbe[<mapKey>] repeat ... delta(... improved=<bool>)`
+- Bu loglar sayesinde 329C adimindaki "tekrar acilista yukleme/network azalimi" kaniti artik sayisal olarak toplanabilir durumda.
+- UI regresyonu olusturulmadi; probe sadece event listener seviyesinde telemetri topluyor.
+
+### Hata Kaydi (Silinmez)
+- `flutter analyze` ilk denemede sadece import sirasi (`directives_ordering`) info'su verdi.
+- Cozum: `active_trip_screen.dart` import sirasi lint beklentisine gore duzeltildi.
+- `flutter` komutlari sirasinda "newer incompatible versions available" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/features/location/infrastructure/mapbox_cache_validation_probe_test.dart test/ui/amber_quality_gate_test.dart` -> pass (`16` test)
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (`289` test)
+
+### Sonraki Adim
+- Faz G / 329C (saha kaniti): ayni cihazda iki acilis olcumu alip `MapboxCacheProbe[...] repeat delta` logunu kanit olarak iz kaydina yazmak.

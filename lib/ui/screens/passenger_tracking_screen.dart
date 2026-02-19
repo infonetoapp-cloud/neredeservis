@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
+import '../../features/location/infrastructure/mapbox_cache_validation_probe.dart';
 import '../components/indicators/amber_status_chip.dart';
 import '../components/sheets/passenger_map_sheet.dart';
 import '../tokens/color_tokens.dart';
@@ -137,12 +138,19 @@ class PassengerTrackingScreen extends StatelessWidget {
 
 /// Map background placeholder for the passenger view.
 /// Falls back to mock shell if token/platform is not ready.
-class _PassengerMapShell extends StatelessWidget {
+class _PassengerMapShell extends StatefulWidget {
   const _PassengerMapShell({
     required this.mapboxPublicToken,
   });
 
   final String? mapboxPublicToken;
+
+  @override
+  State<_PassengerMapShell> createState() => _PassengerMapShellState();
+}
+
+class _PassengerMapShellState extends State<_PassengerMapShell> {
+  late final MapboxCacheValidationProbe _cacheValidationProbe;
 
   bool get _isMobilePlatform {
     return !kIsWeb &&
@@ -151,8 +159,16 @@ class _PassengerMapShell extends StatelessWidget {
   }
 
   bool get _hasToken {
-    final token = mapboxPublicToken?.trim();
+    final token = widget.mapboxPublicToken?.trim();
     return token != null && token.isNotEmpty;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheValidationProbe = MapboxCacheValidationProbe(
+      mapKey: 'passenger_tracking',
+    );
   }
 
   @override
@@ -167,7 +183,19 @@ class _PassengerMapShell extends StatelessWidget {
         infoLabel: 'MAPBOX_PUBLIC_TOKEN tanimli degil.',
       );
     }
-    return const mapbox.MapWidget(styleUri: mapbox.MapboxStyles.STANDARD);
+    return mapbox.MapWidget(
+      styleUri: mapbox.MapboxStyles.STANDARD,
+      onMapLoadedListener: _onMapLoadedListener,
+      onResourceRequestListener: _onResourceRequestListener,
+    );
+  }
+
+  void _onMapLoadedListener(mapbox.MapLoadedEventData eventData) {
+    _cacheValidationProbe.onMapboxMapLoaded(eventData);
+  }
+
+  void _onResourceRequestListener(mapbox.ResourceEventData eventData) {
+    _cacheValidationProbe.onMapboxResourceEvent(eventData);
   }
 }
 
