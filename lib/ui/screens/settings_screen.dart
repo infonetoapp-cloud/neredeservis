@@ -15,9 +15,11 @@ class SettingsScreen extends StatefulWidget {
     this.showSubscriptionSection = true,
     this.subscriptionStatus = SubscriptionUiStatus.trialActive,
     this.initialConsentEnabled = true,
+    this.initialVoiceAlertEnabled = true,
     this.onSubscriptionTap,
     this.onProfileTap,
     this.onConsentTap,
+    this.onVoiceAlertTap,
     this.onSupportTap,
     this.onReportIssueTap,
     this.onDeleteAccountTap,
@@ -27,9 +29,11 @@ class SettingsScreen extends StatefulWidget {
   final bool showSubscriptionSection;
   final SubscriptionUiStatus subscriptionStatus;
   final bool initialConsentEnabled;
+  final bool initialVoiceAlertEnabled;
   final VoidCallback? onSubscriptionTap;
   final VoidCallback? onProfileTap;
   final ValueChanged<bool>? onConsentTap;
+  final ValueChanged<bool>? onVoiceAlertTap;
   final VoidCallback? onSupportTap;
   final VoidCallback? onReportIssueTap;
   final VoidCallback? onDeleteAccountTap;
@@ -40,11 +44,13 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late bool _consentEnabled;
+  late bool _voiceAlertEnabled;
 
   @override
   void initState() {
     super.initState();
     _consentEnabled = widget.initialConsentEnabled;
+    _voiceAlertEnabled = widget.initialVoiceAlertEnabled;
   }
 
   @override
@@ -92,6 +98,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _consentEnabled = value;
                 });
                 widget.onConsentTap?.call(value);
+              },
+            ),
+          ),
+          const SizedBox(height: AmberSpacingTokens.space12),
+          _SectionCard(
+            title: 'Bildirimler',
+            description:
+                'Sofor aktif seferde baglanti degisimlerini sesli bildirimle duyur.',
+            child: SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Sesli Uyari'),
+              subtitle: const Text(
+                'Baglanti kesildi/baglandi ve sefer sonu sesli okunur.',
+              ),
+              value: _voiceAlertEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _voiceAlertEnabled = value;
+                });
+                widget.onVoiceAlertTap?.call(value);
               },
             ),
           ),

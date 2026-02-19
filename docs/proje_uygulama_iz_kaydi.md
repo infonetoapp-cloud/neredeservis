@@ -10262,3 +10262,121 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 324BF: heartbeat durum degisimlerinde sesli geri bildirim eklemek.
+
+## STEP-324BF - Heartbeat Voice Feedback
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Heartbeat durum degisimlerinde sesli geri bildirim eklemek:
+  - `Baglanti kesildi`
+  - `Baglandim`
+  - `Sefer sonlandirildi`
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `pubspec.yaml`
+   - `flutter_tts: 4.2.3` bagimliligi eklendi.
+2. `apply_patch` -> `lib/features/location/application/driver_heartbeat_voice_feedback_service.dart`
+   - testlenebilir voice feedback servis katmani eklendi.
+   - event enum: `connectionLost`, `connected`, `tripEnded`.
+   - default engine: `FlutterTtsDriverVoiceEngine` (`tr-TR`, safe fallback, dedupe penceresi).
+3. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+   - heartbeat transition'larinda voice feedback baglandi:
+     - red'e gecis: `Baglanti kesildi`
+     - red/yellow -> green gecis: `Baglandim`
+   - `Seferi Bitir` onayinda `Sefer sonlandirildi` sesli geri bildirimi baglandi.
+4. `apply_patch` -> `test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart`
+   - mesaj mapleme, dedupe, disabled-mode testleri eklendi.
+5. `flutter pub get`
+6. `dart format lib/features/location/application/driver_heartbeat_voice_feedback_service.dart lib/ui/screens/active_trip_screen.dart test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart`
+7. `flutter analyze`
+8. `flutter test test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart`
+9. `flutter test`
+10. `flutter build apk --debug --flavor dev -t lib/main.dart`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324BF` -> `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324BF` -> `[x]`)
+13. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Voice feedback artik ekran state degisimiyle senkron calisiyor; UI callback'e bagimli degil.
+- `DriverHeartbeatVoiceFeedbackService` dedupe penceresi ile ayni mesaji kisa surede tekrar etmeden stabil kaliyor.
+- TTS tarafi plugin yok/erisilemez durumlarinda crash olmadan guvenli fallback yapiyor.
+
+### Hata Kaydi (Silinmez)
+- Bloklayici hata olusmadi.
+- `flutter pub get` sirasinda birden fazla paket icin "newer incompatible versions" bilgisi goruldu; bu adim kapsaminda degisiklik yapilmadi.
+- `flutter build` sirasinda Gradle/AGP/Kotlin "yakinda destek dusurulecek" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart` -> pass (`22` test)
+- `flutter test` -> pass (`261` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324BF` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324BF` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324BG: `Ayarlar > Sesli Uyari` toggle'i ekleyip voice feedback'i runtime ac/kapa yapilabilir hale getirmek.
+
+## STEP-324BG - Ayarlar > Sesli Uyari Toggle
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 324BG: sesli geri bildirim icin `Ayarlar > Sesli Uyari` toggle'i eklemek (varsayilan acik).
+- Toggle degerini kalici saklayip aktif seferde voice feedback'e runtime olarak uygulatmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/voice_feedback_settings_service.dart`
+   - `SharedPreferences` tabanli voice-alert ayar servisi eklendi (`default=true`).
+2. `apply_patch` -> `lib/features/location/application/driver_heartbeat_voice_feedback_service.dart`
+   - sabit `enabled` yerine async `isEnabled` provider destegi eklendi.
+3. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+   - voice feedback servisi `VoiceFeedbackSettingsService.isVoiceAlertEnabled` ile baglandi.
+4. `apply_patch` -> `lib/ui/screens/settings_screen.dart`
+   - yeni `Bildirimler` karti eklendi.
+   - `Sesli Uyari` toggle'i eklendi (`initialVoiceAlertEnabled`, `onVoiceAlertTap`).
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - settings route'u icin voice toggle ilk degeri `FutureBuilder` ile yuklendi.
+   - `_handleVoiceAlertSettingUpdate` eklenip toggle degisimi kalici saklandi.
+6. `apply_patch` -> `test/features/location/application/voice_feedback_settings_service_test.dart`
+   - varsayilan deger + persist/read testleri eklendi.
+7. `apply_patch` -> `test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart`
+   - yeni `isEnabled` provider kontratina gore test guncellemesi yapildi.
+8. `apply_patch` -> `test/ui/settings_screen_test.dart`
+   - `Bildirimler`/`Sesli Uyari` render ve callback dogrulamalari eklendi.
+9. `dart format lib/app/router/app_router.dart lib/ui/screens/settings_screen.dart lib/ui/screens/active_trip_screen.dart lib/features/location/application/driver_heartbeat_voice_feedback_service.dart lib/features/location/application/voice_feedback_settings_service.dart test/ui/settings_screen_test.dart test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/features/location/application/voice_feedback_settings_service_test.dart`
+10. `flutter analyze`
+11. `flutter test test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/features/location/application/voice_feedback_settings_service_test.dart test/ui/settings_screen_test.dart test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart`
+12. `flutter test`
+13. `flutter build apk --debug --flavor dev -t lib/main.dart`
+14. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324BG` -> `[x]`)
+15. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324BG` -> `[x]`)
+16. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- `Ayarlar` ekranina `Bildirimler > Sesli Uyari` toggle'i eklendi ve callback akisi calisiyor.
+- Toggle degeri `SharedPreferences` ile kalici tutuluyor; default deger `true`.
+- Aktif seferde voice feedback servisi toggle degerini runtime okuyarak karar veriyor.
+- Voice feedback altyapisi toggle kapaliyken tamamen sessiz calisiyor (testle dogrulandi).
+
+### Hata Kaydi (Silinmez)
+- Bloklayici hata olusmadi.
+- `flutter build` sirasinda Gradle/AGP/Kotlin "yakinda destek dusurulecek" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/features/location/application/voice_feedback_settings_service_test.dart test/ui/settings_screen_test.dart test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart` -> pass (`26` test)
+- `flutter test` -> pass (`263` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324BG` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324BG` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324BH: red/green gecislerinin ekran disi kullanimda sesle anlasilabilirlik dogrulamasini sahada test etmek.

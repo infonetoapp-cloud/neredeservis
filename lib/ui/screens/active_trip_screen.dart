@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../features/location/application/driver_heartbeat_voice_feedback_service.dart';
+import '../../features/location/application/voice_feedback_settings_service.dart';
 import '../components/buttons/amber_slide_to_finish.dart';
 import '../components/feedback/amber_snackbars.dart';
 import '../components/indicators/amber_heartbeat_indicator.dart';
@@ -94,6 +96,8 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _alarmController;
   late Animation<double> _alarmOpacity;
+  late final VoiceFeedbackSettingsService _voiceFeedbackSettingsService;
+  late final DriverHeartbeatVoiceFeedbackService _voiceFeedbackService;
   Timer? _redAlarmHapticTimer;
   bool _isRedAlarmHapticBurstInFlight = false;
 
@@ -107,6 +111,10 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     _alarmOpacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _alarmController, curve: Curves.easeInOut),
     );
+    _voiceFeedbackSettingsService = VoiceFeedbackSettingsService();
+    _voiceFeedbackService = DriverHeartbeatVoiceFeedbackService(
+      isEnabled: _voiceFeedbackSettingsService.isVoiceAlertEnabled,
+    );
 
     if (widget.heartbeatState == HeartbeatState.red) {
       _startRedAlarmEffects();
@@ -116,6 +124,12 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
   @override
   void didUpdateWidget(covariant ActiveTripScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.heartbeatState != oldWidget.heartbeatState) {
+      _handleHeartbeatVoiceFeedback(
+        oldState: oldWidget.heartbeatState,
+        newState: widget.heartbeatState,
+      );
+    }
     if (widget.heartbeatState == HeartbeatState.red &&
         oldWidget.heartbeatState != HeartbeatState.red) {
       _startRedAlarmEffects();
@@ -129,8 +143,31 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
   @override
   void dispose() {
     _redAlarmHapticTimer?.cancel();
+    unawaited(_voiceFeedbackService.dispose());
     _alarmController.dispose();
     super.dispose();
+  }
+
+  void _handleHeartbeatVoiceFeedback({
+    required HeartbeatState oldState,
+    required HeartbeatState newState,
+  }) {
+    if (newState == HeartbeatState.red) {
+      unawaited(
+        _voiceFeedbackService.announce(
+          DriverHeartbeatVoiceEvent.connectionLost,
+        ),
+      );
+      return;
+    }
+    if (newState == HeartbeatState.green &&
+        (oldState == HeartbeatState.red || oldState == HeartbeatState.yellow)) {
+      unawaited(
+        _voiceFeedbackService.announce(
+          DriverHeartbeatVoiceEvent.connected,
+        ),
+      );
+    }
   }
 
   void _startRedAlarmEffects() {
@@ -204,6 +241,15 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     });
   }
 
+  void _handleTripFinishConfirmedWithFeedback() {
+    unawaited(
+      _voiceFeedbackService.announce(
+        DriverHeartbeatVoiceEvent.tripEnded,
+      ),
+    );
+    widget.onTripFinished?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -247,7 +293,9 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
               nextStopName: widget.nextStopName,
               crowFlyDistanceMeters: widget.crowFlyDistanceMeters,
               passengersAtNextStop: widget.passengersAtNextStop,
-              onTripFinished: widget.onTripFinished,
+              onTripFinished: widget.onTripFinished == null
+                  ? null
+                  : _handleTripFinishConfirmedWithFeedback,
               isCompactDevice: isCompactDevice,
             ),
           ),

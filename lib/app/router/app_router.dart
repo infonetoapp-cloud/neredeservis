@@ -22,6 +22,7 @@ import '../../features/auth/domain/user_role.dart';
 import '../../features/location/application/driver_heartbeat_policy.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
+import '../../features/location/application/voice_feedback_settings_service.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/location/infrastructure/ios_silent_kill_mitigation_service.dart';
 import '../../features/permissions/application/android_battery_optimization_orchestrator.dart';
@@ -223,15 +224,27 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.settings,
-        builder: (context, state) => SettingsScreen(
-          appName: flavorConfig.appName,
-          subscriptionStatus: SubscriptionUiStatus.trialActive,
-          initialConsentEnabled: consentGuard.hasLocationConsent,
-          onSubscriptionTap: () => context.go(AppRoutePath.paywall),
-          onProfileTap: () => context.go(AppRoutePath.profileEdit),
-          onConsentTap: (value) => _handleConsentUpdate(context, value),
-          onDeleteAccountTap: () => _handleDeleteAccount(context),
-        ),
+        builder: (context, state) {
+          final voiceSettingsService = VoiceFeedbackSettingsService();
+          return FutureBuilder<bool>(
+            future: voiceSettingsService.isVoiceAlertEnabled(),
+            builder: (context, snapshot) {
+              final initialVoiceAlertEnabled = snapshot.data ?? true;
+              return SettingsScreen(
+                appName: flavorConfig.appName,
+                subscriptionStatus: SubscriptionUiStatus.trialActive,
+                initialConsentEnabled: consentGuard.hasLocationConsent,
+                initialVoiceAlertEnabled: initialVoiceAlertEnabled,
+                onSubscriptionTap: () => context.go(AppRoutePath.paywall),
+                onProfileTap: () => context.go(AppRoutePath.profileEdit),
+                onConsentTap: (value) => _handleConsentUpdate(context, value),
+                onVoiceAlertTap: (value) =>
+                    _handleVoiceAlertSettingUpdate(context, value),
+                onDeleteAccountTap: () => _handleDeleteAccount(context),
+              );
+            },
+          );
+        },
       ),
       GoRoute(
         path: AppRoutePath.profileEdit,
@@ -1704,6 +1717,28 @@ Future<void> _handleConsentUpdate(BuildContext context, bool value) async {
       return;
     }
     _showInfo(context, 'Acik riza guncellenemedi (${error.code}).');
+  }
+}
+
+Future<void> _handleVoiceAlertSettingUpdate(
+  BuildContext context,
+  bool enabled,
+) async {
+  try {
+    final service = VoiceFeedbackSettingsService();
+    await service.setVoiceAlertEnabled(enabled);
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(
+      context,
+      enabled ? 'Sesli uyari acildi.' : 'Sesli uyari kapatildi.',
+    );
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Sesli uyari ayari kaydedilemedi.');
   }
 }
 

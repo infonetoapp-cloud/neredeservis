@@ -8,6 +8,7 @@ void main() {
     VoidCallback? onSubscriptionTap,
     VoidCallback? onProfileTap,
     ValueChanged<bool>? onConsentTap,
+    ValueChanged<bool>? onVoiceAlertTap,
     VoidCallback? onSupportTap,
     VoidCallback? onReportIssueTap,
     VoidCallback? onDeleteAccountTap,
@@ -19,6 +20,7 @@ void main() {
         onSubscriptionTap: onSubscriptionTap,
         onProfileTap: onProfileTap,
         onConsentTap: onConsentTap,
+        onVoiceAlertTap: onVoiceAlertTap,
         onSupportTap: onSupportTap,
         onReportIssueTap: onReportIssueTap,
         onDeleteAccountTap: onDeleteAccountTap,
@@ -35,6 +37,8 @@ void main() {
     expect(find.text('Abonelik'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
     expect(find.text('Acik Riza ve KVKK'), findsOneWidget);
+    expect(find.text('Bildirimler'), findsOneWidget);
+    expect(find.text('Sesli Uyari'), findsOneWidget);
     expect(find.text('Destek'), findsOneWidget);
     expect(find.text('Hesap'), findsOneWidget);
     expect(find.text('Hesabimi Sil'), findsOneWidget);
@@ -45,6 +49,7 @@ void main() {
     var subscriptionTapped = false;
     var profileTapped = false;
     var consentCalls = 0;
+    var voiceAlertCalls = 0;
     var supportTapped = false;
     var reportTapped = false;
     var deleteTapped = false;
@@ -59,6 +64,9 @@ void main() {
         },
         onConsentTap: (_) {
           consentCalls++;
+        },
+        onVoiceAlertTap: (_) {
+          voiceAlertCalls++;
         },
         onSupportTap: () {
           supportTapped = true;
@@ -83,6 +91,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
+    await tester.tap(find.byType(Switch).at(1));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Destek Merkezi'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Destek Merkezi'));
@@ -99,6 +109,7 @@ void main() {
     expect(subscriptionTapped, isTrue);
     expect(profileTapped, isTrue);
     expect(consentCalls, greaterThan(0));
+    expect(voiceAlertCalls, greaterThan(0));
     expect(supportTapped, isTrue);
     expect(reportTapped, isTrue);
     expect(deleteTapped, isTrue);

@@ -692,8 +692,8 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 324B Heartbeat durumlari: green=`canli`, yellow=`baglanti dalgali`, red=`yayin durdu`.
 - [x] 324BA Red state icin periferik alarm ekle: ekran cercevesi kirmizi flash + tekrarlayan ayri haptic pattern.
 - [x] 324BB Red state'ten yellow/green'e donuste tek-shot "iyilesme" haptic + metin goster.
-- [ ] 324BF Heartbeat durum degisimlerinde sesli geri bildirim ekle (`Baglanti kesildi`, `Baglandim`, `Sefer sonlandirildi`).
-- [ ] 324BG Sesli geri bildirim icin `Ayarlar > Sesli Uyari` toggle ekle (varsayilan acik).
+- [x] 324BF Heartbeat durum degisimlerinde sesli geri bildirim ekle (`Baglanti kesildi`, `Baglandim`, `Sefer sonlandirildi`).
+- [x] 324BG Sesli geri bildirim icin `Ayarlar > Sesli Uyari` toggle ekle (varsayilan acik).
 - [ ] 324BH DOGRULAMA: ekran disi kullanimda (telefon tutucuda) red/green gecisleri sesle anlasilabiliyor mu?
 - [ ] 324BC KULLANICIDAN ONAY ISTE: "Heartbeat red alarm siddeti (flash/haptic) sahada yeterli mi?".
 - [ ] 324BD OLED burn-in korumasi ekle: heartbeat halkasi + `YAYINDASIN` etiketi her 60 sn'de 2-3 px micro-shift uygulasin.
