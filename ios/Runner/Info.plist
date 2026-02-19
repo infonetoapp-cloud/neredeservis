@@ -51,6 +51,12 @@
 	<string>Aktif seferde uygulama arka plandayken de konum paylasimi sursun.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Aktif seferde arka planda konum yayini icin izin gerekir.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Aktif seferde arka plan toparlanmasi icin hareket sinyali kullanilir.</string>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.neredeservis.driver.watchdog</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

@@ -682,7 +682,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 323B `background/always` iznini sadece `while-in-use` verildikten sonra, aktif sefer commit adiminda iste.
 - [x] 323C `while-in-use` red durumunda aktif seferi hard-block et; sofore neden/aksiyon metni goster (`Canli takip icin konum izni gerekli`).
 - [x] 323D `background/always` red durumunda foreground-only moda gec; sofora stale riski ve `Ayarlar'dan Ac` CTA goster.
-- [ ] 323E iOS silent-kill mitigasyonunu bagla: Activity Recognition sinyali + BGTask watchdog ile askidan donus toparlanmasi.
+- [x] 323E iOS silent-kill mitigasyonunu bagla: Activity Recognition sinyali + BGTask watchdog ile askidan donus toparlanmasi.
 - [ ] 324 OEM battery optimization yonlendirmesini bagla.
 - [ ] 324D Pil optimizasyonu istisnasi ekranini sadece ihtiyac aninda ac (ilk aktif seferden sonra veya OEM kill sinyali alindiginda).
 - [ ] 324E Pil optimizasyonu red durumunda degrade izleme modunu aktif et (arka planda kesinti riski metni + heartbeat uyari seviyesini yukselt).

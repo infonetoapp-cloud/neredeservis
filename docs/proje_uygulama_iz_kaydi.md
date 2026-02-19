@@ -9975,3 +9975,66 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 323E: iOS silent-kill mitigasyonu (Activity Recognition + BGTask watchdog).
+
+## STEP-323E - iOS Silent-Kill Mitigation (Activity Recognition + BGTask Watchdog)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 323E: iOS tarafinda silent-kill/askida kalma kaynakli yayin kopmalarina karsi toparlanma katmani eklemek.
+- Activity Recognition sinyalini BGTask watchdog ile birlestirip app resume aninda teknik toparlanma tetigini devreye almak.
+
+### Calistirilan Komutlar (Ham)
+1. `git status --short`
+2. `git diff -- ios/Runner/AppDelegate.swift`
+3. `apply_patch` -> `ios/Runner/AppDelegate.swift`
+   - `BackgroundTasks` + `CoreMotion` importlari eklendi.
+   - `neredeservis/ios_background_watchdog` method channel'i eklendi.
+   - `registerWatchdog`, `unregisterWatchdog`, `recordHeartbeat`, `readWatchdogSnapshot` native bridge'i eklendi.
+   - `BGAppRefreshTask` register/schedule (15 dk) akisi eklendi.
+   - duplicate pending request icin `cancel(taskRequestWithIdentifier:)` eklendi.
+   - `CMMotionActivityManager` ile hareket sinyali (`automotive/cycling/running/walking`) snapshot'a yazildi.
+4. `apply_patch` -> `ios/Runner/Info.plist`
+   - `NSMotionUsageDescription` eklendi.
+   - `BGTaskSchedulerPermittedIdentifiers` altina `com.neredeservis.driver.watchdog` eklendi.
+5. `apply_patch` -> `lib/features/location/infrastructure/ios_silent_kill_mitigation_service.dart`
+   - `MissingPluginException` fallback'i eklendi.
+   - `shouldRecoverAfterResume` karari activity sinyaline duyarlı hale getirildi.
+6. `apply_patch` -> `lib/app/router/app_router.dart`
+   - aktif sefer commit'te watchdog `start`, finish/dispose'da watchdog `stop` baglandi.
+   - `_DriverFinishTripGuard` icine `WidgetsBindingObserver` eklendi.
+   - 30 sn heartbeat ticker eklendi.
+   - `resumed` durumunda watchdog snapshot kontrolu + foreground service re-sync + bilgilendirme mesaji eklendi.
+7. `apply_patch` -> `test/features/location/infrastructure/ios_silent_kill_mitigation_service_test.dart`
+   - wake>heartbeat + moving=false senaryosunda recovery false testi eklendi.
+   - stale heartbeat + moving=true senaryosunda recovery true testi eklendi.
+8. `dart format lib/app/router/app_router.dart lib/features/location/infrastructure/ios_silent_kill_mitigation_service.dart test/features/location/infrastructure/ios_silent_kill_mitigation_service_test.dart`
+9. `flutter analyze`
+10. `flutter test test/features/location/infrastructure/ios_silent_kill_mitigation_service_test.dart`
+11. `flutter test`
+12. `flutter build apk --debug --flavor dev -t lib/main.dart`
+13. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`323E` -> `[x]`)
+14. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`323E` -> `[x]`)
+
+### Bulgular
+- iOS native watchdog kanali ve BGTask altyapisi aktif sefer lifecycle'ina baglandi.
+- Activity Recognition sinyali, resume recovery kararina dahil edildi.
+- aktif seferde periyodik heartbeat kaydi oldugu icin askidan donuste stale/wake farki tespiti yapilabiliyor.
+- toparlanma kosulu saglandiginda konum foreground service senkronizasyonu yeniden tetikleniyor.
+
+### Hata Kaydi (Silinmez)
+- `dart format` ilk denemede test dosyasindaki `digit-separators` parse hatasina takildi; sayisal literal'lar duzeltilerek format tekrarlandi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/location/infrastructure/ios_silent_kill_mitigation_service_test.dart` -> pass (`6` test)
+- `flutter test` -> pass (`245` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `323E` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `323E` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324: OEM battery optimization yonlendirmesi (ve 324D/324E degradasyon akislari).

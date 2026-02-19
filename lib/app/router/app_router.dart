@@ -22,6 +22,7 @@ import '../../features/auth/domain/user_role.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
+import '../../features/location/infrastructure/ios_silent_kill_mitigation_service.dart';
 import '../../features/permissions/application/ios_location_permission_orchestrator.dart';
 import '../../features/permissions/application/location_permission_gate.dart';
 import '../../features/permissions/application/notification_permission_fallback_service.dart';
@@ -901,6 +902,13 @@ Future<void> _commitStartTrip(
         IosBackgroundLocationPermissionResult.foregroundOnly) {
       _showIosForegroundOnlyLocationFallback(context);
     }
+    await _syncIosSilentKillWatchdog(
+      shouldRun: true,
+      tripId: tripId,
+    );
+    if (!context.mounted) {
+      return;
+    }
 
     final activeTripUri = Uri(
       path: AppRoutePath.activeTrip,
@@ -1015,6 +1023,7 @@ Future<bool> _commitFinishTrip(
       'expectedTransitionVersion': tripContext.transitionVersion,
     });
     await _syncDriverLocationForegroundService(shouldRun: false);
+    await _syncIosSilentKillWatchdog(shouldRun: false);
     if (!context.mounted) {
       return false;
     }
@@ -2095,6 +2104,8 @@ final NotificationPermissionFallbackService
     NotificationPermissionFallbackService();
 final AndroidLocationBackgroundService _androidLocationBackgroundService =
     AndroidLocationBackgroundService();
+final IosSilentKillMitigationService _iosSilentKillMitigationService =
+    IosSilentKillMitigationService();
 
 Future<void> _syncDriverLocationForegroundService({
   required bool shouldRun,
@@ -2113,6 +2124,34 @@ Future<void> _syncDriverLocationForegroundService({
   } catch (_) {
     debugPrint(
       'DriverLocationForegroundService sync failed (shouldRun=$shouldRun).',
+    );
+  }
+}
+
+Future<void> _syncIosSilentKillWatchdog({
+  required bool shouldRun,
+  String? tripId,
+}) async {
+  try {
+    if (!shouldRun) {
+      await _iosSilentKillMitigationService.stopWatchdog();
+      return;
+    }
+    final normalizedTripId = _nullableToken(tripId);
+    if (normalizedTripId == null) {
+      return;
+    }
+    final started = await _iosSilentKillMitigationService.startWatchdog(
+        tripId: normalizedTripId);
+    if (!started) {
+      return;
+    }
+    await _iosSilentKillMitigationService.recordHeartbeat(
+      movingSignal: true,
+    );
+  } catch (_) {
+    debugPrint(
+      'iOS silent-kill watchdog sync failed (shouldRun=$shouldRun, tripId=$tripId).',
     );
   }
 }
@@ -2327,14 +2366,97 @@ class _DriverFinishTripGuard extends StatefulWidget {
   State<_DriverFinishTripGuard> createState() => _DriverFinishTripGuardState();
 }
 
-class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard> {
+class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
+    with WidgetsBindingObserver {
   bool _finishing = false;
   int _screenResetSeed = 0;
+  bool _resumeRecoveryInFlight = false;
+  Timer? _watchdogHeartbeatTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_syncDriverLocationForegroundService(shouldRun: true));
+    unawaited(_startOrRefreshIosWatchdogIfPossible());
+    _startWatchdogHeartbeatTicker();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DriverFinishTripGuard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tripId != oldWidget.tripId) {
+      unawaited(_startOrRefreshIosWatchdogIfPossible());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_handleResumeRecoveryIfNeeded());
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(
+        _iosSilentKillMitigationService.recordHeartbeat(movingSignal: false),
+      );
+    }
+  }
+
+  void _startWatchdogHeartbeatTicker() {
+    _watchdogHeartbeatTimer?.cancel();
+    _watchdogHeartbeatTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+        unawaited(
+          _iosSilentKillMitigationService.recordHeartbeat(movingSignal: true),
+        );
+      },
+    );
+  }
+
+  Future<void> _startOrRefreshIosWatchdogIfPossible() async {
+    final tripId = _nullableToken(widget.tripId);
+    if (tripId == null) {
+      return;
+    }
+    await _syncIosSilentKillWatchdog(
+      shouldRun: true,
+      tripId: tripId,
+    );
+  }
+
+  Future<void> _handleResumeRecoveryIfNeeded() async {
+    if (_resumeRecoveryInFlight) {
+      return;
+    }
+    _resumeRecoveryInFlight = true;
+    try {
+      final shouldRecover =
+          await _iosSilentKillMitigationService.shouldRecoverAfterResume(
+        staleThresholdSeconds: 120,
+      );
+      await _iosSilentKillMitigationService.recordHeartbeat(
+        movingSignal: true,
+      );
+      if (!mounted || !shouldRecover) {
+        return;
+      }
+      await _syncDriverLocationForegroundService(shouldRun: true);
+      if (!mounted) {
+        return;
+      }
+      _showInfo(
+        context,
+        'iOS arka plan kesintisi algilandi; konum yayini toparlaniyor.',
+      );
+    } catch (_) {
+      debugPrint('iOS resume recovery check skipped.');
+    } finally {
+      _resumeRecoveryInFlight = false;
+    }
   }
 
   Future<void> _handleTripFinishConfirmed() async {
@@ -2395,6 +2517,14 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard> {
       _finishing = false;
       _screenResetSeed++;
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _watchdogHeartbeatTimer?.cancel();
+    unawaited(_syncIosSilentKillWatchdog(shouldRun: false));
+    super.dispose();
   }
 
   @override
