@@ -10,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:share/share.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
@@ -1087,7 +1089,11 @@ Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
       return;
     }
     if (shareUrl != null && shareUrl.isNotEmpty) {
-      _showInfo(context, 'Duyuru kuyruga alindi. Link hazir: $shareUrl');
+      await _shareAnnouncementLink(
+        context,
+        routeName: routeContext.routeName,
+        shareUrl: shareUrl,
+      );
       return;
     }
     _showInfo(context, 'Duyuru kuyruga alindi.');
@@ -1176,6 +1182,70 @@ Future<String?> _showDriverAnnouncementDialog(
     );
   } finally {
     textController.dispose();
+  }
+}
+
+Future<void> _shareAnnouncementLink(
+  BuildContext context, {
+  required String routeName,
+  required String shareUrl,
+}) async {
+  final shareText = 'Nerede Servis duyurusu ($routeName): $shareUrl';
+  final whatsappUri = Uri(
+    scheme: 'whatsapp',
+    host: 'send',
+    queryParameters: <String, String>{
+      'text': shareText,
+    },
+  );
+  final whatsappBusinessUri = Uri(
+    scheme: 'whatsapp-business',
+    host: 'send',
+    queryParameters: <String, String>{
+      'text': shareText,
+    },
+  );
+
+  try {
+    final openedWhatsapp = await launchUrl(
+      whatsappUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (openedWhatsapp) {
+      if (context.mounted) {
+        _showInfo(context, 'WhatsApp paylasim ekrani acildi.');
+      }
+      return;
+    }
+
+    final openedWhatsappBusiness = await launchUrl(
+      whatsappBusinessUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (openedWhatsappBusiness) {
+      if (context.mounted) {
+        _showInfo(context, 'WhatsApp Business paylasim ekrani acildi.');
+      }
+      return;
+    }
+  } catch (_) {
+    // Fallback handled below via system share sheet.
+  }
+
+  try {
+    await Share.share(
+      shareText,
+      subject: 'Nerede Servis Duyurusu',
+    );
+    if (context.mounted) {
+      _showInfo(
+          context, 'WhatsApp bulunamadi; sistem paylasim penceresi acildi.');
+    }
+  } catch (_) {
+    if (context.mounted) {
+      _showInfo(
+          context, 'Paylasim baslatilamadi. Lutfen daha sonra tekrar dene.');
+    }
   }
 }
 

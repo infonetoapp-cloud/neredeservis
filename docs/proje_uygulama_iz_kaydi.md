@@ -9408,3 +9408,85 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 319: WhatsApp share intent bagla.
+
+## STEP-319 - WhatsApp Share Intent + Fallback
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 319 kapsaminda duyuru linki paylasiminda once WhatsApp/WhatsApp Business
+  acmak, uygulama yoksa sistem share sheet fallback'i calistirmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `pubspec.yaml`
+   - `url_launcher`, `share` dependency eklendi
+   - Flutter 3.24.5 kilidini korumak icin `url_launcher_*` alt paketleri icin uyumlu `dependency_overrides` eklendi
+2. `flutter pub get` (`pubspec.lock` guncellendi)
+3. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `url_launcher` + `share` importlari eklendi
+   - `_shareAnnouncementLink` helper'i eklendi
+   - sirali deneme: `whatsapp://send` -> `whatsapp-business://send`
+   - iki deneme de basarisizsa `Share.share(...)` fallback eklendi
+   - fallback senaryosunda kullaniciya net bilgi mesaji eklendi
+4. `dart format lib/app/router/app_router.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`319` -> `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`319` -> `[x]`)
+
+### Bulgular
+- Duyuru share linki geldiginde uygulama once WhatsApp intent acmayi deniyor.
+- WhatsApp acilamazsa WhatsApp Business intent deneniyor.
+- Ikisi de yoksa sistem paylasim penceresi aciliyor.
+- Paylasim akisinin hangi fallback'e dustugu kullaniciya snackbar ile bildiriliyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk denemede `share_plus` bagimliligi eklendiginde iki teknik sorun goruldu:
+  - API uyumsuzlugu (`SharePlus/ShareParams` sembolleri bulunamadi)
+  - lock dosyasi SDK tabani Flutter 3.24.5 politikasini bozacak sekilde yukseldi
+- cozum: fallback katmani `share` paketiyle yeniden kuruldu, `url_launcher` alt paketleri
+  Flutter 3.24.5 uyumlu surumlere override edilerek lock zemini geri sabitlendi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `197` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `319` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `319` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 319A: Paylasim linki tiklaninca davranisini netlestir.
+
+## STEP-319A - Paylasim Linki Tiklama Davranisi Karari
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 319A kapsaminda paylasim linkine tiklandiginda uygulama yuklu/
+  yuklu degil senaryolari icin urun davranisini netlestirmek.
+
+### Karar
+- Standart paylasim linki: `https://nerede.servis/r/{srvCode}`.
+- Uygulama yuklu degilse:
+  - web landing'de mini takip karti + Store yonlendirmesi gosterilecek.
+- Uygulama yuklu ise:
+  - landing/universal link katmani app deep link'e yonlendirecek
+    (`/join?role=guest&srvCode={srvCode}` uyumlu rota-preview akisina gecis).
+
+### Not
+- Bu adim davranis/policy netlestirme adimidir; mobil tarafta 319 kapsaminda
+  WhatsApp + fallback share intent teknik olarak zaten baglanmistir.
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `319A` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `319A` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 320: RTDB location stream dinlemeyi bagla.
