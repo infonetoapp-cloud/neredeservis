@@ -669,7 +669,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 320 RTDB location stream dinlemeyi bagla.
 - [x] 321 Location publish service yaz.
 - [x] 321A Replay edilen konum kaydi `now - sampledAt > 60 sn` ise canli RTDB path'ine yazma; sadece history path'ine yaz.
-- [ ] 321B Canli marker akisi icin Kalman smoothing katmanini ekle (ham GPS + filtrelenmis marker ayrimi).
+- [x] 321B Canli marker akisi icin Kalman smoothing katmanini ekle (ham GPS + filtrelenmis marker ayrimi).
 - [ ] 322 Background service Android yapisini bagla.
 - [ ] 322A AndroidManifest'te servis tipini zorunlu tanimla: `foregroundServiceType=\"location\"`.
 - [ ] 322B Android izin setini dogrula: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK` (gereksiz izin yok).

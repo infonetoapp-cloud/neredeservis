@@ -9605,3 +9605,53 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 321B: canli marker akisi icin Kalman smoothing katmanini ekle.
+
+## STEP-321B - Kalman Smoothing Katmani (Ham + Filtrelenmis Marker Ayrimi)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 321B kapsaminda canli marker akisina istemci tarafi Kalman smoothing katmani eklemek.
+- Ham GPS (`raw`) ve filtrelenmis marker (`filtered`) konumunu ayri tutmak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/kalman_location_smoother.dart`
+   - `KalmanSmootherConfig` (varsayilan: processNoise=0.01, measurementNoise=3.0, updateIntervalMs=1000)
+   - `KalmanLocationSmoother`
+   - `SmoothedLocationPoint` (`rawLat/rawLng` + `filteredLat/filteredLng`)
+2. `apply_patch` -> `test/features/location/application/kalman_location_smoother_test.dart`
+   - ilk ornek raw==filtered testi
+   - jitter dizisinde filtered varyasyonun daha dusuk oldugu testi
+   - reset sonrasi ilk update raw'dan yeniden baslama testi
+3. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `_PassengerLocationStreamBuilder` stateful hale getirildi
+   - stream payload'inda `lat/lng/timestamp` parse edilip Kalman katmanindan geciriliyor
+   - `_PassengerLocationSnapshot` ile `raw` ve `filtered` alanlari ayrildi
+   - UI tarafina halen freshness + lastSeen aktarimi korunarak geri uyumluluk saglandi
+4. `dart format lib/app/router/app_router.dart lib/features/location/application/kalman_location_smoother.dart test/features/location/application/kalman_location_smoother_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`321B` -> `[x]`)
+8. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`321B` -> `[x]`)
+
+### Bulgular
+- Marker akisinda ham ve filtrelenmis konum verisi teknik olarak ayrildi.
+- Kalman parametreleri runbook varsayilanlariyla birebir uygulandi.
+- Passenger stream katmani simdi gelecekte map marker render'ina direkt verilecek
+  filtrelenmis koordinati uretiyor; bu adimda UI kontrati bozulmadan altyapi baglandi.
+
+### Hata Kaydi (Silinmez)
+- Ilk `flutter analyze` komutu timeout'a dustu (komut wrapper sure limiti).
+  - cozum: `flutter analyze` daha uzun timeout ile yeniden calistirildi ve temiz gecti.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `216` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `321B` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `321B` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 322: Android background service altyapisini bagla.

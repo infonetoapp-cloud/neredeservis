@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
+import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
@@ -1824,11 +1825,11 @@ Widget _buildPassengerTrackingRoute(
       );
       return _PassengerLocationStreamBuilder(
         routeId: routeId,
-        builder: (freshness, lastSeenAgo) => buildTrackingScreen(
+        builder: (location) => buildTrackingScreen(
           resolvedRouteName: defaultRouteName,
           etaSourceLabel: etaSourceLabel,
-          freshness: freshness,
-          lastSeenAgo: lastSeenAgo,
+          freshness: location.freshness,
+          lastSeenAgo: location.lastSeenAgo,
           onSettingsTap: onSettingsTap,
           onSkipTodayTap: onSkipTodayTap,
           onLeaveRouteTap: onLeaveRouteTap,
@@ -2203,12 +2204,12 @@ class _GuestSessionExpiryGuardState extends State<_GuestSessionExpiryGuard> {
 
         return _PassengerLocationStreamBuilder(
           routeId: routeId,
-          builder: (freshness, lastSeenAgo) => PassengerTrackingScreen(
+          builder: (location) => PassengerTrackingScreen(
             mapboxPublicToken: widget.mapboxPublicToken,
             routeName: routeName,
             etaSourceLabel: widget.initialEtaSourceLabel,
-            freshness: freshness,
-            lastSeenAgo: lastSeenAgo,
+            freshness: location.freshness,
+            lastSeenAgo: location.lastSeenAgo,
           ),
         );
       },
@@ -2216,23 +2217,60 @@ class _GuestSessionExpiryGuardState extends State<_GuestSessionExpiryGuard> {
   }
 }
 
-class _PassengerLocationStreamBuilder extends StatelessWidget {
+class _PassengerLocationSnapshot {
+  const _PassengerLocationSnapshot({
+    required this.freshness,
+    required this.lastSeenAgo,
+    this.rawLat,
+    this.rawLng,
+    this.filteredLat,
+    this.filteredLng,
+    this.sampledAtMs,
+  });
+
+  final LocationFreshness freshness;
+  final String? lastSeenAgo;
+  final double? rawLat;
+  final double? rawLng;
+  final double? filteredLat;
+  final double? filteredLng;
+  final int? sampledAtMs;
+}
+
+class _PassengerLocationStreamBuilder extends StatefulWidget {
   const _PassengerLocationStreamBuilder({
     required this.routeId,
     required this.builder,
   });
 
   final String routeId;
-  final Widget Function(LocationFreshness freshness, String? lastSeenAgo)
-      builder;
+  final Widget Function(_PassengerLocationSnapshot snapshot) builder;
+
+  @override
+  State<_PassengerLocationStreamBuilder> createState() =>
+      _PassengerLocationStreamBuilderState();
+}
+
+class _PassengerLocationStreamBuilderState
+    extends State<_PassengerLocationStreamBuilder> {
+  final KalmanLocationSmoother _smoother = KalmanLocationSmoother(
+    config: const KalmanSmootherConfig(
+      processNoise: 0.01,
+      measurementNoise: 3.0,
+      updateIntervalMs: 1000,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('locations/$routeId').onValue,
+      stream:
+          FirebaseDatabase.instance.ref('locations/${widget.routeId}').onValue,
       builder: (context, snapshot) {
         final rawMap = _mapFromRtdbValue(snapshot.data?.snapshot.value);
         final timestampMs = parseLiveLocationTimestampMs(rawMap?['timestamp']);
+        final rawLat = _parseFiniteDouble(rawMap?['lat']);
+        final rawLng = _parseFiniteDouble(rawMap?['lng']);
         final nowUtc = DateTime.now().toUtc();
         final freshness = _toPassengerLocationFreshness(
           resolveLiveSignalFreshness(
@@ -2245,7 +2283,28 @@ class _PassengerLocationStreamBuilder extends StatelessWidget {
           nowUtc: nowUtc,
           timestampMs: timestampMs,
         );
-        return builder(freshness, lastSeenAgo);
+
+        // 321B: raw GPS ve filtrelenmis marker konumunu ayri tut.
+        SmoothedLocationPoint? smoothedPoint;
+        if (timestampMs != null && rawLat != null && rawLng != null) {
+          smoothedPoint = _smoother.update(
+            lat: rawLat,
+            lng: rawLng,
+            sampledAtMs: timestampMs,
+          );
+        }
+
+        return widget.builder(
+          _PassengerLocationSnapshot(
+            freshness: freshness,
+            lastSeenAgo: lastSeenAgo,
+            rawLat: rawLat,
+            rawLng: rawLng,
+            filteredLat: smoothedPoint?.filteredLat,
+            filteredLng: smoothedPoint?.filteredLng,
+            sampledAtMs: timestampMs,
+          ),
+        );
       },
     );
   }
@@ -2275,6 +2334,21 @@ Map<String, dynamic>? _mapFromRtdbValue(Object? value) {
     output[entry.key.toString()] = entry.value;
   }
   return output;
+}
+
+double? _parseFiniteDouble(Object? value) {
+  if (value is num) {
+    final number = value.toDouble();
+    return number.isFinite ? number : null;
+  }
+  if (value is String) {
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null || !parsed.isFinite) {
+      return null;
+    }
+    return parsed;
+  }
+  return null;
 }
 
 String _resolveDisplayName(User? user) {
