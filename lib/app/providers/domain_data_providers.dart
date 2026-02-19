@@ -7,6 +7,7 @@ import '../../features/domain/data/local_drift_database.dart';
 import '../../features/domain/data/local_queue_repository.dart';
 import '../../features/domain/data/rtdb_domain_repositories.dart';
 import '../../features/location/application/location_publish_service.dart';
+import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../services/repository_interfaces.dart';
 
 final localDriftDatabaseProvider = Provider<LocalDriftDatabase>((ref) {
@@ -35,6 +36,11 @@ final locationPublishServiceProvider = Provider<LocationPublishService>((ref) {
     liveLocationRepository: liveLocationRepository,
     localQueueRepository: localQueueRepository,
   );
+});
+
+final androidLocationBackgroundServiceProvider =
+    Provider<AndroidLocationBackgroundService>((_) {
+  return AndroidLocationBackgroundService();
 });
 
 final transferLocalOwnershipAfterAccountLinkUseCaseProvider =

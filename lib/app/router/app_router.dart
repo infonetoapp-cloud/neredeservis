@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:share/share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_environment.dart';
@@ -19,6 +19,7 @@ import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
+import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
 import '../../ui/screens/active_trip_screen.dart';
@@ -849,6 +850,11 @@ Future<void> _commitStartTrip(
       return;
     }
 
+    await _syncDriverLocationForegroundService(shouldRun: true);
+    if (!context.mounted) {
+      return;
+    }
+
     final activeTripUri = Uri(
       path: AppRoutePath.activeTrip,
       queryParameters: <String, String>{
@@ -961,6 +967,7 @@ Future<bool> _commitFinishTrip(
       ),
       'expectedTransitionVersion': tripContext.transitionVersion,
     });
+    await _syncDriverLocationForegroundService(shouldRun: false);
     if (!context.mounted) {
       return false;
     }
@@ -1911,6 +1918,29 @@ String _buildSkipTodayIdempotencyKey(String dateKey) {
 }
 
 final Random _idempotencyRandom = Random.secure();
+final AndroidLocationBackgroundService _androidLocationBackgroundService =
+    AndroidLocationBackgroundService();
+
+Future<void> _syncDriverLocationForegroundService({
+  required bool shouldRun,
+}) async {
+  try {
+    if (shouldRun) {
+      final running = await _androidLocationBackgroundService
+          .isDriverLocationServiceRunning();
+      if (running) {
+        return;
+      }
+      await _androidLocationBackgroundService.startDriverLocationService();
+      return;
+    }
+    await _androidLocationBackgroundService.stopDriverLocationService();
+  } catch (_) {
+    debugPrint(
+      'DriverLocationForegroundService sync failed (shouldRun=$shouldRun).',
+    );
+  }
+}
 
 Future<_DriverRouteContext?> _resolvePrimaryDriverRouteContext(
     String uid) async {
@@ -2044,6 +2074,12 @@ class _DriverFinishTripGuard extends StatefulWidget {
 class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard> {
   bool _finishing = false;
   int _screenResetSeed = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_syncDriverLocationForegroundService(shouldRun: true));
+  }
 
   Future<void> _handleTripFinishConfirmed() async {
     if (_finishing) {

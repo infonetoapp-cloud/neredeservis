@@ -9655,3 +9655,81 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 322: Android background service altyapisini bagla.
+
+## STEP-322-322A-322B-322C - Android Foreground Location Service Baglantisi
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 322: Android background location service altyapisini uygulamaya baglamak.
+- Faz G / 322A: manifestte `foregroundServiceType="location"` zorunlu tanimini eklemek.
+- Faz G / 322B: izin setini netlestirmek (`FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK`).
+- Faz G / 322C: FGS bildirim metnini policy uyumlu sabitlemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `android/app/src/main/AndroidManifest.xml`
+   - Servis izinleri eklendi.
+   - `.DriverLocationForegroundService` kaydi eklendi.
+   - `android:foregroundServiceType="location"` sabitlendi.
+2. `apply_patch` -> `android/app/src/main/kotlin/com/neredeservis/neredeservis/MainActivity.kt`
+   - MethodChannel: `neredeservis/background_location_service`
+   - Metotlar: `startDriverLocationService`, `stopDriverLocationService`, `isDriverLocationServiceRunning`
+3. `apply_patch` -> `android/app/src/main/kotlin/com/neredeservis/neredeservis/DriverLocationForegroundService.kt`
+   - Android FGS sinifi eklendi.
+   - Ongoing notification + kanal tanimi eklendi.
+   - Bildirim metni sabitlendi: `NeredeServis konumunuzu paylasiyor (aktif sefer)`
+4. `apply_patch` -> `lib/features/location/infrastructure/android_location_background_service.dart`
+   - Dart tarafinda platform channel wrapper eklendi.
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `startTrip` basariyla commit olduktan sonra FGS start senkronizasyonu eklendi.
+   - `finishTrip` basariyla commit olduktan sonra FGS stop senkronizasyonu eklendi.
+   - Aktif sefer ekran guard'inda (initState) FGS running senkronizasyonu eklendi.
+6. `apply_patch` -> `lib/app/providers/domain_data_providers.dart`
+   - `androidLocationBackgroundServiceProvider` eklendi.
+7. `apply_patch` -> `test/features/location/infrastructure/android_location_background_service_test.dart`
+   - Android ve non-Android kanal davranis testleri eklendi.
+8. `apply_patch` -> `pubspec.yaml`, `lib/app/router/app_router.dart`
+   - `share` -> `share_plus` migrasyonu tamamlandi.
+9. `apply_patch` -> `pubspec.yaml`
+   - `url_launcher` surumu `6.3.2` yapildi.
+   - `url_launcher_android` icin AGP 8.3.2 uyumlu override `6.3.15` eklendi.
+10. `apply_patch` -> `android/build.gradle`
+   - Eski `share` plugin namespace workaround'u kaldirildi.
+11. `flutter pub get`
+12. `flutter analyze`
+13. `flutter test`
+14. `flutter build apk --debug --flavor dev -t lib/main.dart`
+15. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`322`, `322A`, `322B`, `322C` -> `[x]`)
+16. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`322`, `322A`, `322B`, `322C` -> `[x]`)
+
+### Bulgular
+- Android foreground location service teknik altyapisi artik native + Dart tarafinda bagli.
+- Servis dogrudan sefer yasam dongusune baglandi:
+  - `startTrip` commit -> FGS start
+  - `finishTrip` commit -> FGS stop
+  - aktif sefer ekrani acilisinda running-state senkronizasyonu
+- Manifest policy gereklilikleri 322A/322B ile uyumlu hale getirildi.
+- 322C bildirim metni native sabit olarak policy formatinda uygulanmis durumda.
+- Build kirigi yaratan eski plugin kombinasyonu temizlendi:
+  - `share` kaldirildi, `share_plus` kullaniliyor.
+  - `url_launcher` zinciri AGP 8.3.2 ile uyumlu konfigurasyona cekildi.
+
+### Hata Kaydi (Silinmez)
+- Ilk Android build denemesinde `share` plugini v1 embedding (`Registrar`) nedeniyle derleme hatasi verdi.
+  - cozum: `share_plus` migrasyonu + eski gradle workaround temizligi.
+- Ikinci build denemesinde `url_launcher_android` en yeni surum AGP 8.9.1 talep ettigi icin metadata check fail oldu.
+  - cozum: `url_launcher_android` override `6.3.15` ile proje AGP 8.3.2 uyumlu hale getirildi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `219` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+  - artifact: `build/app/outputs/flutter-apk/app-dev-debug.apk`
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `322`, `322A`, `322B`, `322C` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `322`, `322A`, `322B`, `322C` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 322D: role-based permission gate (konum izni sadece sofor akisinda) uygulamasi.
