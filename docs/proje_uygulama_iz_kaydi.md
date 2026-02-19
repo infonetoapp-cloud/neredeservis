@@ -10148,3 +10148,117 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 324AA: aktif seferde sade harita katmanini gercek rota/marker verisiyle baglamak.
+
+## STEP-324AA-324AB - Driver Active Trip Schematic Map + Guidance Lite Binding
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 324AA: Sofor aktif sefer ekranina sade harita katmanini baglamak (rota cizgisi + arac marker + siradaki durak marker).
+- 324AB: Driver Guidance Lite bilgisini canli veriden uretmek (`Siradaki Durak`, `Kus ucusu mesafe`, `Kalan durak`).
+
+### Calistirilan Komutlar (Ham)
+1. `git status --short`
+2. `git diff -- lib/ui/screens/active_trip_screen.dart`
+3. `git diff -- lib/app/router/app_router.dart`
+4. `dart format lib/app/router/app_router.dart lib/ui/screens/active_trip_screen.dart`
+5. `flutter analyze`
+6. `flutter test test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart`
+7. `flutter test`
+8. `flutter build apk --debug --flavor dev -t lib/main.dart`
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324AA`, `324AB` -> `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324AA`, `324AB` -> `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- `ActiveTripScreen` sade harita katmani artik veri bagimli calisiyor:
+  - rota cizgisi (`routePathPoints`) ciziliyor,
+  - arac marker'i canli konuma yerlestiriliyor,
+  - siradaki durak marker'i haritada gosteriliyor.
+- Harita gorunumu yoksa/fallback durumda bos ekran yerine placeholder shell + marker fallback korunuyor.
+- `_DriverFinishTripGuard` tarafinda aktif seferde 3 kaynak birlestirildi:
+  - Firestore `routes/{routeId}`
+  - Firestore `routes/{routeId}/stops` (order sirali)
+  - RTDB `locations/{routeId}`
+- Canli guidance verisi artik runtime hesapla geliyor:
+  - `nextStopName`
+  - `crowFlyDistanceMeters` (haversine)
+  - `stopsRemaining`
+  - route path (duraklardan veya start/end fallback)
+
+### Hata Kaydi (Silinmez)
+- Bloklayici hata olusmadi.
+- `flutter build` sirasinda Gradle/AGP/Kotlin surumleri icin "yakinda destek dusurulecek" uyarilari goruldu; non-blocking teknik borc olarak not edildi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart` -> pass (`17` test)
+- `flutter test` -> pass (`256` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324AA`, `324AB` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324AA`, `324AB` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324BA: heartbeat `red` durumunda periferik alarm (flash + ayrik haptic pattern) eklemek.
+
+## STEP-324BA-324BB - Red Alarm Peripheral Pattern + Recovery Feedback
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 324BA: `heartbeatState=red` durumunda periferik alarmi tamamlamak (kirmizi cerceve flash + tekrarlayan ayri haptic pattern).
+- 324BB: red durumundan yellow/green durumuna donuste tek-shot iyilesme geri bildirimi eklemek (haptic + metin).
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+   - red alarm icin tekrarli haptic burst timer'i eklendi.
+   - haptic cagrilari `MissingPluginException` fallback ile guvenli hale getirildi.
+   - recovery durumunda (`red` -> `yellow/green`) snackbar metin geri bildirimi eklendi (post-frame).
+   - red alarm cercevesine test key'i eklendi: `active_trip_red_alarm_border`.
+2. `apply_patch` -> `lib/ui/components/indicators/amber_heartbeat_indicator.dart`
+   - red-state transition haptic'i ekran seviyesindeki 324BA alarmina birakildi.
+   - yellow/green transition haptic cagrilari safe wrapper ile guvenli hale getirildi.
+3. `apply_patch` -> `test/ui/amber_quality_gate_test.dart`
+   - red alarm cercevesi gorunurluk testi eklendi.
+   - red->green recovery mesaj testi eklendi.
+4. `dart format lib/ui/screens/active_trip_screen.dart lib/ui/components/indicators/amber_heartbeat_indicator.dart test/ui/amber_quality_gate_test.dart`
+5. `flutter analyze`
+6. `flutter test test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart`
+7. `flutter test`
+8. `flutter build apk --debug --flavor dev -t lib/main.dart`
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324BA`, `324BB` -> `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324BA`, `324BB` -> `[x]`)
+11. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Red-state alarm artik iki katmanli:
+  - gorsel: cerceve flash animasyonu (mevcut yapi korunarak)
+  - dokunsal: 3 sn periodlu ayri haptic burst paterni
+- Recovery akisi (`red` -> `yellow/green`) tek-shot metin geri bildirimi ile netlestirildi:
+  - green: `Baglanti geri geldi.`
+  - yellow: `Baglanti iyilesiyor.`
+- Snackbar tetigi build-time assertion vermeyecek sekilde post-frame callback'e alindi.
+- Kalite kapisina iki yeni UI kontrat testi eklendi (red alarm frame + recovery mesaji).
+
+### Hata Kaydi (Silinmez)
+- Ilk test denemesinde `showSnackBar()` cagrisi `didUpdateWidget` icinde build sirasinda tetiklendigi icin assertion olustu.
+- Cozum: snackbar cagrisi `WidgetsBinding.instance.addPostFrameCallback` icine tasindi.
+- Sonraki tum dogrulamalar yesil.
+- `flutter build` sirasinda Gradle/AGP/Kotlin "yakinda destek dusurulecek" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/ui/amber_quality_gate_test.dart test/ui/amber_ui_components_test.dart test/features/location/application/driver_heartbeat_policy_test.dart` -> pass (`19` test)
+- `flutter test` -> pass (`258` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324BA`, `324BB` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324BA`, `324BB` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324BF: heartbeat durum degisimlerinde sesli geri bildirim eklemek.

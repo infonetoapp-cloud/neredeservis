@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/components/buttons/amber_buttons.dart';
 import 'package:neredeservis/ui/components/feedback/amber_snackbars.dart';
+import 'package:neredeservis/ui/components/indicators/amber_heartbeat_indicator.dart';
 import 'package:neredeservis/ui/components/layout/amber_screen_scaffold.dart';
 import 'package:neredeservis/ui/screens/active_trip_screen.dart';
 import 'package:neredeservis/ui/screens/join_screen.dart';
@@ -216,6 +217,53 @@ void main() {
       expect(find.text('YAYINDASIN'), findsOneWidget);
       expect(find.text('Siradaki Durak'), findsOneWidget);
       expect(find.text('840 m'), findsOneWidget);
+    });
+
+    testWidgets('driver red heartbeat shows peripheral alarm frame', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AmberTheme.light(),
+          home: const ActiveTripScreen(
+            heartbeatState: HeartbeatState.red,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.byKey(const Key('active_trip_red_alarm_border')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('driver heartbeat recovery shows improvement message', (
+      WidgetTester tester,
+    ) async {
+      var heartbeatState = HeartbeatState.red;
+      late StateSetter updateHeartbeatState;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AmberTheme.light(),
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              updateHeartbeatState = setState;
+              return ActiveTripScreen(heartbeatState: heartbeatState);
+            },
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+
+      updateHeartbeatState(() {
+        heartbeatState = HeartbeatState.green;
+      });
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('Baglanti geri geldi.'), findsOneWidget);
     });
 
     testWidgets('passenger screen keeps single draggable sheet rule', (

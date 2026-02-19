@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -117,16 +119,29 @@ class _AmberHeartbeatIndicatorState extends State<AmberHeartbeatIndicator>
   void _triggerStateTransitionFeedback(HeartbeatState newState) {
     switch (newState) {
       case HeartbeatState.red:
-        // Distinct heavy-impact haptic for connection loss
-        HapticFeedback.heavyImpact();
+        // Red-state repeating alarm haptic is driven by ActiveTripScreen (324BA).
+        return;
       case HeartbeatState.green:
         if (_previousState == HeartbeatState.red ||
             _previousState == HeartbeatState.yellow) {
-          // Recovery: single medium haptic
-          HapticFeedback.mediumImpact();
+          _fireAndForgetHaptic(HapticFeedback.mediumImpact);
         }
+        return;
       case HeartbeatState.yellow:
-        HapticFeedback.lightImpact();
+        _fireAndForgetHaptic(HapticFeedback.lightImpact);
+        return;
+    }
+  }
+
+  void _fireAndForgetHaptic(Future<void> Function() hapticCall) {
+    unawaited(_invokeHaptic(hapticCall));
+  }
+
+  Future<void> _invokeHaptic(Future<void> Function() hapticCall) async {
+    try {
+      await hapticCall();
+    } on MissingPluginException {
+      // Platform channel may be unavailable in tests.
     }
   }
 

@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../components/buttons/amber_slide_to_finish.dart';
+import '../components/feedback/amber_snackbars.dart';
 import '../components/indicators/amber_heartbeat_indicator.dart';
 import '../components/indicators/amber_status_chip.dart';
 import '../components/panels/amber_driver_guidance_bar.dart';
@@ -9,6 +13,16 @@ import '../tokens/elevation_tokens.dart';
 import '../tokens/icon_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 import '../tokens/typography_tokens.dart';
+
+class ActiveTripMapPoint {
+  const ActiveTripMapPoint({
+    required this.lat,
+    required this.lng,
+  });
+
+  final double lat;
+  final double lng;
+}
 
 /// Active trip screen for the driver during a live broadcast.
 ///
@@ -29,6 +43,9 @@ class ActiveTripScreen extends StatefulWidget {
     this.passengersAtNextStop = 3,
     this.heartbeatState = HeartbeatState.green,
     this.lastHeartbeatAgo = '2 sn',
+    this.routePathPoints = const <ActiveTripMapPoint>[],
+    this.vehiclePoint,
+    this.nextStopPoint,
     this.onTripFinished,
     this.onEmergencyTap,
   });
@@ -54,6 +71,15 @@ class ActiveTripScreen extends StatefulWidget {
   /// Human-readable time since last heartbeat, e.g. `5 sn`.
   final String? lastHeartbeatAgo;
 
+  /// Simplified route line points rendered on the driver map shell.
+  final List<ActiveTripMapPoint> routePathPoints;
+
+  /// Current vehicle location point.
+  final ActiveTripMapPoint? vehiclePoint;
+
+  /// Next-stop marker location.
+  final ActiveTripMapPoint? nextStopPoint;
+
   /// Fires when slide-to-finish confirms trip termination.
   final VoidCallback? onTripFinished;
 
@@ -68,6 +94,8 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _alarmController;
   late Animation<double> _alarmOpacity;
+  Timer? _redAlarmHapticTimer;
+  bool _isRedAlarmHapticBurstInFlight = false;
 
   @override
   void initState() {
@@ -81,7 +109,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     );
 
     if (widget.heartbeatState == HeartbeatState.red) {
-      _alarmController.repeat(reverse: true);
+      _startRedAlarmEffects();
     }
   }
 
@@ -90,19 +118,90 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
     super.didUpdateWidget(oldWidget);
     if (widget.heartbeatState == HeartbeatState.red &&
         oldWidget.heartbeatState != HeartbeatState.red) {
-      _alarmController.repeat(reverse: true);
+      _startRedAlarmEffects();
     } else if (widget.heartbeatState != HeartbeatState.red &&
         oldWidget.heartbeatState == HeartbeatState.red) {
-      _alarmController
-        ..stop()
-        ..reset();
+      _stopRedAlarmEffects();
+      _showRecoveryFeedback(widget.heartbeatState);
     }
   }
 
   @override
   void dispose() {
+    _redAlarmHapticTimer?.cancel();
     _alarmController.dispose();
     super.dispose();
+  }
+
+  void _startRedAlarmEffects() {
+    _alarmController.repeat(reverse: true);
+    _redAlarmHapticTimer?.cancel();
+    unawaited(_triggerRedAlarmHapticBurst());
+    _redAlarmHapticTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => unawaited(_triggerRedAlarmHapticBurst()),
+    );
+  }
+
+  void _stopRedAlarmEffects() {
+    _redAlarmHapticTimer?.cancel();
+    _redAlarmHapticTimer = null;
+    _isRedAlarmHapticBurstInFlight = false;
+    _alarmController
+      ..stop()
+      ..reset();
+  }
+
+  Future<void> _triggerRedAlarmHapticBurst() async {
+    if (_isRedAlarmHapticBurstInFlight ||
+        !mounted ||
+        widget.heartbeatState != HeartbeatState.red) {
+      return;
+    }
+
+    _isRedAlarmHapticBurstInFlight = true;
+    try {
+      await _invokeHaptic(HapticFeedback.heavyImpact);
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted || widget.heartbeatState != HeartbeatState.red) {
+        return;
+      }
+      await _invokeHaptic(HapticFeedback.mediumImpact);
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted || widget.heartbeatState != HeartbeatState.red) {
+        return;
+      }
+      await _invokeHaptic(HapticFeedback.heavyImpact);
+    } finally {
+      _isRedAlarmHapticBurstInFlight = false;
+    }
+  }
+
+  Future<void> _invokeHaptic(Future<void> Function() hapticCall) async {
+    try {
+      await hapticCall();
+    } on MissingPluginException {
+      // Platform channel may be unavailable in tests.
+    }
+  }
+
+  void _showRecoveryFeedback(HeartbeatState recoveredState) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final tone = recoveredState == HeartbeatState.green
+          ? AmberSnackbarTone.success
+          : AmberSnackbarTone.warning;
+      final message = recoveredState == HeartbeatState.green
+          ? 'Baglanti geri geldi.'
+          : 'Baglanti iyilesiyor.';
+      AmberSnackbars.show(
+        context,
+        message: message,
+        tone: tone,
+      );
+    });
   }
 
   @override
@@ -118,6 +217,9 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
             child: _MapShell(
               routeName: widget.routeName,
               nextStopName: widget.nextStopName,
+              routePathPoints: widget.routePathPoints,
+              vehiclePoint: widget.vehiclePoint,
+              nextStopPoint: widget.nextStopPoint,
             ),
           ),
 
@@ -158,6 +260,7 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
                   animation: _alarmOpacity,
                   builder: (context, _) {
                     return Container(
+                      key: const Key('active_trip_red_alarm_border'),
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: AmberColorTokens.danger
@@ -181,137 +284,161 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
 /// The map background shell. In V1.0 this renders a styled placeholder;
 /// the actual Mapbox integration plugs in during FAZ G (step 320+).
 class _MapShell extends StatelessWidget {
-  const _MapShell({this.routeName, this.nextStopName});
+  const _MapShell({
+    this.routeName,
+    this.nextStopName,
+    this.routePathPoints = const <ActiveTripMapPoint>[],
+    this.vehiclePoint,
+    this.nextStopPoint,
+  });
 
   final String? routeName;
   final String? nextStopName;
+  final List<ActiveTripMapPoint> routePathPoints;
+  final ActiveTripMapPoint? vehiclePoint;
+  final ActiveTripMapPoint? nextStopPoint;
 
   @override
   Widget build(BuildContext context) {
-    // Placeholder until Mapbox widget lands in FAZ G.
-    // Using a subtle gradient to represent map area without blank screen.
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: <Color>[
-            Color(0xFFE8EDE4), // Muted sage (map-like)
-            Color(0xFFF2F4EF), // Light terrain
-            Color(0xFFE0E5DA), // Slightly darker base
+            Color(0xFFE8EDE4),
+            Color(0xFFF2F4EF),
+            Color(0xFFE0E5DA),
           ],
         ),
       ),
-      child: Stack(
-        children: <Widget>[
-          // Simulated road grid lines
-          ..._buildGridLines(),
-          // Center marker: vehicle position
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AmberColorTokens.amber500,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AmberColorTokens.surface0,
-                      width: 3,
-                    ),
-                    boxShadow: const <BoxShadow>[
-                      BoxShadow(
-                        color: Color(0x40000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    AmberIconTokens.bus,
-                    color: AmberColorTokens.surface0,
-                    size: 24,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final geometry = _projectToScreenGeometry(
+            size: Size(constraints.maxWidth, constraints.maxHeight),
+          );
+          if (geometry == null) {
+            return _buildFallbackShell(context);
+          }
+
+          return Stack(
+            children: <Widget>[
+              ..._buildGridLines(),
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _DriverRoutePainter(
+                    routeScreenPoints: geometry.routeScreenPoints,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AmberColorTokens.ink900.withAlpha(200),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Arac konumu',
-                    style: TextStyle(
-                      fontFamily: AmberTypographyTokens.bodyFamily,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
-                      color: AmberColorTokens.surface0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Next stop marker (offset to top-right as visual cue)
-          if (nextStopName != null)
-            Positioned(
-              top: MediaQuery.of(context).size.height * 0.25,
-              right: MediaQuery.of(context).size.width * 0.18,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AmberColorTokens.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AmberColorTokens.surface0,
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      AmberIconTokens.flag,
-                      color: AmberColorTokens.surface0,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AmberColorTokens.ink900.withAlpha(180),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      nextStopName!,
-                      style: const TextStyle(
-                        fontFamily: AmberTypographyTokens.bodyFamily,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 9,
-                        color: AmberColorTokens.surface0,
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ),
-        ],
+              if (geometry.vehicleScreenPoint != null)
+                Positioned(
+                  left: geometry.vehicleScreenPoint!.dx - 24,
+                  top: geometry.vehicleScreenPoint!.dy - 24,
+                  child: const _VehicleMarker(),
+                ),
+              if (geometry.nextStopScreenPoint != null)
+                Positioned(
+                  left: geometry.nextStopScreenPoint!.dx - 16,
+                  top: geometry.nextStopScreenPoint!.dy - 28,
+                  child: _NextStopMarker(nextStopName: nextStopName),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  /// Subtle horizontal/vertical grid lines simulating a map grid.
+  _ProjectedDriverMapGeometry? _projectToScreenGeometry({required Size size}) {
+    if (size.width <= 0 || size.height <= 0) {
+      return null;
+    }
+
+    final sourcePoints = <ActiveTripMapPoint>[
+      ...routePathPoints,
+      if (vehiclePoint != null) vehiclePoint!,
+      if (nextStopPoint != null) nextStopPoint!,
+    ];
+    if (sourcePoints.isEmpty) {
+      return null;
+    }
+
+    var minLat = sourcePoints.first.lat;
+    var maxLat = sourcePoints.first.lat;
+    var minLng = sourcePoints.first.lng;
+    var maxLng = sourcePoints.first.lng;
+    for (final point in sourcePoints.skip(1)) {
+      if (point.lat < minLat) {
+        minLat = point.lat;
+      }
+      if (point.lat > maxLat) {
+        maxLat = point.lat;
+      }
+      if (point.lng < minLng) {
+        minLng = point.lng;
+      }
+      if (point.lng > maxLng) {
+        maxLng = point.lng;
+      }
+    }
+
+    const minSpan = 0.0008;
+    var latSpan = maxLat - minLat;
+    var lngSpan = maxLng - minLng;
+    if (latSpan < minSpan) {
+      final center = (minLat + maxLat) / 2;
+      minLat = center - (minSpan / 2);
+      maxLat = center + (minSpan / 2);
+      latSpan = minSpan;
+    }
+    if (lngSpan < minSpan) {
+      final center = (minLng + maxLng) / 2;
+      minLng = center - (minSpan / 2);
+      maxLng = center + (minSpan / 2);
+      lngSpan = minSpan;
+    }
+
+    const padding = 28.0;
+    final drawableWidth = (size.width - (padding * 2)).clamp(1.0, size.width);
+    final drawableHeight =
+        (size.height - (padding * 2)).clamp(1.0, size.height);
+
+    Offset project(ActiveTripMapPoint point) {
+      final xNorm = (point.lng - minLng) / lngSpan;
+      final yNorm = (point.lat - minLat) / latSpan;
+      final x = padding + (xNorm * drawableWidth);
+      final y = size.height - padding - (yNorm * drawableHeight);
+      return Offset(x, y);
+    }
+
+    final routeScreenPoints =
+        routePathPoints.map(project).toList(growable: false);
+    return _ProjectedDriverMapGeometry(
+      routeScreenPoints: routeScreenPoints,
+      vehicleScreenPoint: vehiclePoint == null ? null : project(vehiclePoint!),
+      nextStopScreenPoint:
+          nextStopPoint == null ? null : project(nextStopPoint!),
+    );
+  }
+
+  Widget _buildFallbackShell(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        ..._buildGridLines(),
+        const Center(
+          child: _VehicleMarker(),
+        ),
+        if (nextStopName != null)
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.25,
+            right: MediaQuery.of(context).size.width * 0.18,
+            child: _NextStopMarker(nextStopName: nextStopName),
+          ),
+      ],
+    );
+  }
+
   List<Widget> _buildGridLines() {
     return <Widget>[
       for (int i = 1; i <= 6; i++)
@@ -335,6 +462,182 @@ class _MapShell extends StatelessWidget {
           ),
         ),
     ];
+  }
+}
+
+class _ProjectedDriverMapGeometry {
+  const _ProjectedDriverMapGeometry({
+    required this.routeScreenPoints,
+    required this.vehicleScreenPoint,
+    required this.nextStopScreenPoint,
+  });
+
+  final List<Offset> routeScreenPoints;
+  final Offset? vehicleScreenPoint;
+  final Offset? nextStopScreenPoint;
+}
+
+class _DriverRoutePainter extends CustomPainter {
+  const _DriverRoutePainter({
+    required this.routeScreenPoints,
+  });
+
+  final List<Offset> routeScreenPoints;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (routeScreenPoints.length < 2) {
+      return;
+    }
+    final routePaint = Paint()
+      ..color = AmberColorTokens.amber500.withAlpha(180)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+    final glowPaint = Paint()
+      ..color = AmberColorTokens.amber400.withAlpha(120)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 8
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..moveTo(routeScreenPoints.first.dx, routeScreenPoints.first.dy);
+    for (final point in routeScreenPoints.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, glowPaint);
+    canvas.drawPath(path, routePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DriverRoutePainter oldDelegate) {
+    if (identical(oldDelegate.routeScreenPoints, routeScreenPoints)) {
+      return false;
+    }
+    if (oldDelegate.routeScreenPoints.length != routeScreenPoints.length) {
+      return true;
+    }
+    for (var i = 0; i < routeScreenPoints.length; i++) {
+      if (oldDelegate.routeScreenPoints[i] != routeScreenPoints[i]) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+class _VehicleMarker extends StatelessWidget {
+  const _VehicleMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AmberColorTokens.amber500,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AmberColorTokens.surface0,
+              width: 3,
+            ),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x40000000),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            AmberIconTokens.bus,
+            color: AmberColorTokens.surface0,
+            size: 24,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 3,
+          ),
+          decoration: BoxDecoration(
+            color: AmberColorTokens.ink900.withAlpha(200),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Text(
+            'Arac konumu',
+            style: TextStyle(
+              fontFamily: AmberTypographyTokens.bodyFamily,
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
+              color: AmberColorTokens.surface0,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NextStopMarker extends StatelessWidget {
+  const _NextStopMarker({
+    required this.nextStopName,
+  });
+
+  final String? nextStopName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AmberColorTokens.success,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AmberColorTokens.surface0,
+              width: 2,
+            ),
+          ),
+          child: const Icon(
+            AmberIconTokens.flag,
+            color: AmberColorTokens.surface0,
+            size: 16,
+          ),
+        ),
+        if (nextStopName != null) ...<Widget>[
+          const SizedBox(height: 2),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: AmberColorTokens.ink900.withAlpha(180),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              nextStopName!,
+              style: const TextStyle(
+                fontFamily: AmberTypographyTokens.bodyFamily,
+                fontWeight: FontWeight.w600,
+                fontSize: 9,
+                color: AmberColorTokens.surface0,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
 
