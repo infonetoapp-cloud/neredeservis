@@ -674,7 +674,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 322A AndroidManifest'te servis tipini zorunlu tanimla: `foregroundServiceType=\"location\"`.
 - [x] 322B Android izin setini dogrula: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK` (gereksiz izin yok).
 - [x] 322C FGS bildirim metnini policy uyumlu sabitle: `NeredeServis konumunuzu paylasiyor (aktif sefer)`.
-- [ ] 322D Role-based permission gate uygula: konum izni sadece sofor akÄ±ÅŸÄ±nda istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
+- [x] 322D Role-based permission gate uygula: konum izni sadece sofor akÄ±ÅŸÄ±nda istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
 - [ ] 322E Bildirim izni orkestrasyonunu uygula: onboarding'de toplu isteme yok, deger aninda isteme (yolcu katilim/sofor duyuru tetigi).
 - [ ] 322F Bildirim izni red fallback'ini uygula: push kapaliyken in-app banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
 - [ ] 323 iOS background location ayarlarini bagla.

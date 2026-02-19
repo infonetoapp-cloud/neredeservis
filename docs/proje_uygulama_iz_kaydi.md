@@ -9733,3 +9733,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 322D: role-based permission gate (konum izni sadece sofor akisinda) uygulamasi.
+
+## STEP-322D - Role-Based Location Permission Gate
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 322D: konum izni isteminin role bazli policy ile sinirlanmasi.
+- Kural: konum izni diyaloğu sadece sofor akisinda (start trip) acilir; yolcu/misafir icin hic acilmaz.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/permissions/application/location_permission_gate.dart`
+   - `LocationPermissionGate`
+   - `LocationPermissionPromptTrigger` (`startTrip`, `ghostDriveRecording`)
+   - `PermissionScope` tabanli role karar mantigi
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `permission_handler` + role gate importlari eklendi
+   - `_resolveCurrentUserRole(...)` eklendi (`users/{uid}.role`)
+   - `_ensureStartTripLocationPermission(...)` eklendi
+   - `_handleStartTripWithUndo(...)` akisina role-gated konum izni kontrolu baglandi
+   - Android disi platformlarda 322D kapsaminda no-op korundu
+3. `apply_patch` -> `android/app/src/main/AndroidManifest.xml`
+   - `ACCESS_COARSE_LOCATION`
+   - `ACCESS_FINE_LOCATION`
+4. `apply_patch` -> `test/features/permissions/application/location_permission_gate_test.dart`
+   - driver role -> prompt true testleri
+   - passenger/guest/unknown -> prompt false testleri
+5. `apply_patch` -> `pubspec.yaml`
+   - `permission_handler: 11.3.1` eklendi
+6. `flutter pub get`
+7. `flutter analyze`
+8. `flutter test`
+9. `flutter build apk --debug --flavor dev -t lib/main.dart`
+10. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`322D` -> `[x]`)
+11. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`322D` -> `[x]`)
+
+### Bulgular
+- Start trip akisinda role policy aktif:
+  - sofor role -> Android'de konum izni status/request kontrolu calisiyor
+  - yolcu/misafir/unknown -> konum izni diyaloğu acilmiyor
+- Role gate karari izole bir application katmanina alindi; test kapsaminda policy dogrulandi.
+- Android debug APK build'i policy degisikliginden sonra da basarili.
+
+### Hata Kaydi (Silinmez)
+- Ek hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `224` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `322D` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `322D` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 322E: bildirim izni orkestrasyonu (deger aninda isteme) baglantisi.

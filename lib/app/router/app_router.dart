@@ -11,15 +11,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
+import '../../features/auth/domain/user_role.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
+import '../../features/permissions/application/location_permission_gate.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
 import '../../ui/screens/active_trip_screen.dart';
@@ -786,6 +789,15 @@ Future<void> _handleStartTripWithUndo(BuildContext context) async {
     if (context.mounted) {
       _showInfo(context, 'Oturum bulunamadi. Lutfen tekrar giris yap.');
     }
+    return;
+  }
+
+  final locationPermissionReady =
+      await _ensureStartTripLocationPermission(context, user);
+  if (!context.mounted) {
+    return;
+  }
+  if (!locationPermissionReady) {
     return;
   }
 
@@ -1706,6 +1718,77 @@ Future<void> _registerDevice(User user) async {
   });
 }
 
+Future<UserRole> _resolveCurrentUserRole(String uid) async {
+  try {
+    final userSnapshot =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final rawRole = (userSnapshot.data()?['role'] as String?)?.trim();
+    return userRoleFromRaw(rawRole);
+  } catch (_) {
+    return UserRole.unknown;
+  }
+}
+
+Future<bool> _ensureStartTripLocationPermission(
+  BuildContext context,
+  User user,
+) async {
+  final role = await _resolveCurrentUserRole(user.uid);
+  final shouldPrompt = _locationPermissionGate.shouldPromptLocationPermission(
+    role: role,
+    trigger: LocationPermissionPromptTrigger.startTrip,
+  );
+
+  // 322D: yolcu/misafir rolde konum izni diyaloğu hic acilmaz.
+  if (!shouldPrompt) {
+    return true;
+  }
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    return true;
+  }
+
+  PermissionStatus status;
+  try {
+    status = await Permission.locationWhenInUse.status;
+  } catch (_) {
+    if (context.mounted) {
+      _showInfo(
+        context,
+        'Konum izni durumu okunamadi. Lutfen yeniden dene.',
+      );
+    }
+    return false;
+  }
+
+  if (status.isGranted || status.isLimited) {
+    return true;
+  }
+
+  try {
+    status = await Permission.locationWhenInUse.request();
+  } catch (_) {
+    if (context.mounted) {
+      _showInfo(
+        context,
+        'Konum izni istenirken hata olustu. Lutfen yeniden dene.',
+      );
+    }
+    return false;
+  }
+
+  if (status.isGranted || status.isLimited) {
+    return true;
+  }
+
+  if (context.mounted) {
+    _showInfo(
+      context,
+      'Canli takip icin konum izni gerekli. Izin vermeden sefer baslatilamaz.',
+    );
+  }
+  return false;
+}
+
 Future<String> _resolveDriverEntryDestination(User user) async {
   try {
     final snapshot = await FirebaseFirestore.instance
@@ -1918,6 +2001,7 @@ String _buildSkipTodayIdempotencyKey(String dateKey) {
 }
 
 final Random _idempotencyRandom = Random.secure();
+const LocationPermissionGate _locationPermissionGate = LocationPermissionGate();
 final AndroidLocationBackgroundService _androidLocationBackgroundService =
     AndroidLocationBackgroundService();
 
