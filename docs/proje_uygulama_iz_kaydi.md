@@ -9316,3 +9316,54 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 317: Driver `finishTrip` aksiyonunu bagla.
+
+## STEP-317-317C - Driver FinishTrip + Guvenli Finalizasyon
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 317: aktif sefer ekranindaki `Seferi Bitir` aksiyonunu `finishTrip` callable'a baglamak.
+- Faz G / 317A: tek tap yerine guvenli etkilesim olarak `slide-to-finish` guard'ini zorunlu tutmak.
+- Faz G / 317B: haptic+gorsel geri bildirimle birlikte 3 sn geri alma penceresi eklemek; iptal yoksa finalize etmek.
+- Faz G / 317C: secilen guvenli etkileÅŸim modelinin urun karari olarak kayda alinmasi.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `activeTrip` route'u `routeId/tripId/transitionVersion` query paramlarini parse eder hale getirildi
+   - `_DriverFinishTripGuard` stateful wrapper eklendi
+   - slide confirm sonrasi `_showFinishTripUndoWindow` (3 sn + `Iptal`) eklendi
+   - `_resolveActiveTripContextForFinish` ile aktif trip baglami (trip/route/version) dogrulamasi eklendi
+   - `_commitFinishTrip` callable entegrasyonu eklendi (`tripId`, `deviceId`, `idempotencyKey`, `expectedTransitionVersion`)
+   - iptal/hata durumunda active trip ekrani resetlenip slide bileseni tekrar kullanilabilir hale getirildi
+2. `dart format lib/app/router/app_router.dart`
+3. `flutter analyze`
+4. `flutter test`
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`317, 317A, 317B, 317C` -> `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`317, 317A, 317B, 317C` -> `[x]`)
+
+### Bulgular
+- `Seferi Bitir` akisi simdi uc katmanli guvenceyle calisiyor:
+  - `slide-to-finish` guard (tek tap yok)
+  - slider bileseninde haptic+gorsel feedback
+  - 3 sn geri alma penceresi (`Iptal` secilmezse callable finalize)
+- `Iptal` secildiginde `finishTrip` cagrisi hic gitmiyor.
+- 3 sn sonunda iptal yoksa `finishTrip` callable cagriliyor ve basarili sonuc sonrasi driver home'a donuluyor.
+- Cihaz kurali (`startedByDeviceId`) ve transition version mismatch mesajlari istemci tarafinda anlamli sekilde gosteriliyor.
+
+### Karar (317C)
+- Kullanici yonlendirmesi: `en sagliklisi neyse` / `en mantikli sekilde ayarla`.
+- Uygulama urun karari: guvenli etkilesim modeli **slide-to-finish + 3 sn geri alma** olarak sabitlendi.
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `197` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `317, 317A, 317B, 317C` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `317, 317A, 317B, 317C` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 318: Announcement gonderme akisini bagla.

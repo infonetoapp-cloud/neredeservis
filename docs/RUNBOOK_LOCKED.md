@@ -651,10 +651,10 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 316A `Seferi Baslat` aksiyonunda 10 sn yerel bekleme penceresi ekle (`undo` butonu gorunur, server cagrisi gecikmeli).
 - [x] 316B 10 sn dolmadan `Iptal` secilirse start istegini tamamen dusur, push ve trip olusmasin.
 - [x] 316C 10 sn sonunda otomatik commit et ve `startTrip` callable cagir.
-- [ ] 317 Driver finish trip aksiyonunu bagla.
-- [ ] 317A `Seferi Bitir` aksiyonunu guvenli hale getir (`slide-to-finish` veya `uzun bas`, tek tap yok).
-- [ ] 317B `Seferi Bitir` guvenli aksiyonu icin haptic+gorsel geri bildirim ekle; 3 sn icinde geri alma yoksa finalize et.
-- [ ] 317C KULLANICIDAN ONAY ISTE: "`Seferi Bitir` icin secilen guvenli etkileÅŸim (slide/uzun bas) kabul mu?".
+- [x] 317 Driver finish trip aksiyonunu bagla.
+- [x] 317A `Seferi Bitir` aksiyonunu guvenli hale getir (`slide-to-finish` veya `uzun bas`, tek tap yok).
+- [x] 317B `Seferi Bitir` guvenli aksiyonu icin haptic+gorsel geri bildirim ekle; 3 sn icinde geri alma yoksa finalize et.
+- [x] 317C KULLANICIDAN ONAY ISTE: "`Seferi Bitir` icin secilen guvenli etkileÅŸim (slide/uzun bas) kabul mu?".
 - [ ] 318 Announcement gonderme akisini bagla.
 - [ ] 319 WhatsApp share intent bagla (WhatsApp/WhatsApp Business dene; app yoksa sistem share sheet fallback + hata mesaji).
 - [ ] 319A Paylasim linki tiklaninca davranisi netlestir: app yÃ¼klÃ¼ degilse landing page mini takip karti + store; yÃ¼klÃ¼yse deep link ile route preview.

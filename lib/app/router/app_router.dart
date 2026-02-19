@@ -146,8 +146,17 @@ GoRouter buildAppRouter({
           final routeName =
               _nullableParam(state.uri.queryParameters['routeName']) ??
                   'Darica -> GOSB';
-          return ActiveTripScreen(
+          final routeId = _nullableParam(state.uri.queryParameters['routeId']);
+          final tripId = _nullableParam(state.uri.queryParameters['tripId']);
+          final transitionVersion = int.tryParse(
+            _nullableParam(state.uri.queryParameters['transitionVersion']) ??
+                '',
+          );
+          return _DriverFinishTripGuard(
+            routeId: routeId,
+            tripId: tripId,
             routeName: routeName,
+            initialTransitionVersion: transitionVersion,
           );
         },
       ),
@@ -894,6 +903,140 @@ Future<bool> _showStartTripUndoWindow(
     completer.complete(reason != SnackBarClosedReason.action);
   });
   return completer.future;
+}
+
+Future<bool> _showFinishTripUndoWindow(BuildContext context) async {
+  final completer = Completer<bool>();
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  final controller = messenger.showSnackBar(
+    SnackBar(
+      duration: const Duration(seconds: 3),
+      content: const Text(
+        'Sefer 3 sn icinde sonlandirilacak. Iptal etmek icin simdi dokun.',
+      ),
+      action: SnackBarAction(
+        label: 'Iptal',
+        onPressed: () {
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
+        },
+      ),
+    ),
+  );
+  controller.closed.then((reason) {
+    if (completer.isCompleted) {
+      return;
+    }
+    completer.complete(reason != SnackBarClosedReason.action);
+  });
+  return completer.future;
+}
+
+Future<bool> _commitFinishTrip(
+  BuildContext context,
+  User user,
+  _DriverActiveTripContext tripContext,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('finishTrip');
+    final uidPrefix =
+        user.uid.length <= 8 ? user.uid : user.uid.substring(0, 8);
+    final deviceId = '${_devicePlatformKey()}_$uidPrefix';
+    await callable.call(<String, dynamic>{
+      'tripId': tripContext.tripId,
+      'deviceId': deviceId,
+      'idempotencyKey': _buildTripActionIdempotencyKey(
+        action: 'finish_trip',
+        subject: tripContext.tripId,
+      ),
+      'expectedTransitionVersion': tripContext.transitionVersion,
+    });
+    if (!context.mounted) {
+      return false;
+    }
+    _showInfo(context, 'Sefer sonlandirildi.');
+    return true;
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return false;
+    }
+    final transitionMismatch =
+        (error.message ?? '').contains('TRANSITION_VERSION_MISMATCH');
+    final message = switch (error.code) {
+      'permission-denied' =>
+        'Bu cihazdan sefer sonlandirma yetkin yok (baslatan cihaz gerekli).',
+      'not-found' => 'Aktif trip bulunamadi.',
+      'failed-precondition' => transitionMismatch
+          ? 'Sefer durumu degisti. Lutfen tekrar dene.'
+          : 'Sefer su an sonlandirilamiyor.',
+      _ => 'Sefer sonlandirma basarisiz (${error.code}).',
+    };
+    _showInfo(context, message);
+    return false;
+  }
+}
+
+Future<_DriverActiveTripContext?> _resolveActiveTripContextForFinish(
+  User user, {
+  required String? tripId,
+  required String? routeId,
+  required int? initialTransitionVersion,
+}) async {
+  final tripsCollection = FirebaseFirestore.instance.collection('trips');
+  if (tripId != null) {
+    final tripSnapshot = await tripsCollection.doc(tripId).get();
+    final tripData = tripSnapshot.data();
+    if (tripData != null) {
+      final status = (tripData['status'] as String?)?.trim();
+      final driverId = (tripData['driverId'] as String?)?.trim();
+      final resolvedRouteId =
+          (tripData['routeId'] as String?)?.trim() ?? routeId ?? '';
+      final transitionVersion =
+          (tripData['transitionVersion'] as num?)?.toInt() ??
+              initialTransitionVersion ??
+              0;
+      if (status == 'active' &&
+          driverId == user.uid &&
+          resolvedRouteId.isNotEmpty) {
+        return _DriverActiveTripContext(
+          routeId: resolvedRouteId,
+          tripId: tripSnapshot.id,
+          transitionVersion: transitionVersion,
+        );
+      }
+    }
+  }
+
+  if (routeId == null || routeId.isEmpty) {
+    return null;
+  }
+
+  final activeTripSnapshot = await tripsCollection
+      .where('routeId', isEqualTo: routeId)
+      .where('status', isEqualTo: 'active')
+      .limit(1)
+      .get();
+  if (activeTripSnapshot.docs.isEmpty) {
+    return null;
+  }
+  final activeTripDoc = activeTripSnapshot.docs.first;
+  final tripData = activeTripDoc.data();
+  final driverId = (tripData['driverId'] as String?)?.trim();
+  if (driverId != user.uid) {
+    return null;
+  }
+  final transitionVersion = (tripData['transitionVersion'] as num?)?.toInt() ??
+      initialTransitionVersion ??
+      0;
+  return _DriverActiveTripContext(
+    routeId: routeId,
+    tripId: activeTripDoc.id,
+    transitionVersion: transitionVersion,
+  );
 }
 
 Future<void> _handleJoinBySrvCode(
@@ -1658,6 +1801,99 @@ String _randomIdempotencyToken(int length) {
   return buffer.toString();
 }
 
+class _DriverFinishTripGuard extends StatefulWidget {
+  const _DriverFinishTripGuard({
+    required this.routeName,
+    this.routeId,
+    this.tripId,
+    this.initialTransitionVersion,
+  });
+
+  final String routeName;
+  final String? routeId;
+  final String? tripId;
+  final int? initialTransitionVersion;
+
+  @override
+  State<_DriverFinishTripGuard> createState() => _DriverFinishTripGuardState();
+}
+
+class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard> {
+  bool _finishing = false;
+  int _screenResetSeed = 0;
+
+  Future<void> _handleTripFinishConfirmed() async {
+    if (_finishing) {
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showInfo(context, 'Oturum bulunamadi. Lutfen tekrar giris yap.');
+      return;
+    }
+
+    setState(() {
+      _finishing = true;
+    });
+
+    final shouldCommit = await _showFinishTripUndoWindow(context);
+    if (!mounted) {
+      return;
+    }
+    if (!shouldCommit) {
+      setState(() {
+        _finishing = false;
+        _screenResetSeed++;
+      });
+      _showInfo(context, 'Sefer bitirme iptal edildi.');
+      return;
+    }
+
+    final activeTripContext = await _resolveActiveTripContextForFinish(
+      user,
+      tripId: widget.tripId,
+      routeId: widget.routeId,
+      initialTransitionVersion: widget.initialTransitionVersion,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (activeTripContext == null) {
+      setState(() {
+        _finishing = false;
+        _screenResetSeed++;
+      });
+      _showInfo(context, 'Aktif sefer baglami bulunamadi.');
+      return;
+    }
+
+    final completed = await _commitFinishTrip(context, user, activeTripContext);
+    if (!mounted) {
+      return;
+    }
+    if (completed) {
+      context.go(AppRoutePath.driverHome);
+      return;
+    }
+
+    setState(() {
+      _finishing = false;
+      _screenResetSeed++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ActiveTripScreen(
+      key: ValueKey<String>(
+        'active_trip_${widget.routeId ?? 'none'}_${widget.tripId ?? 'none'}_$_screenResetSeed',
+      ),
+      routeName: widget.routeName,
+      onTripFinished: _finishing ? null : _handleTripFinishConfirmed,
+    );
+  }
+}
+
 class _GuestSessionExpiryGuard extends StatefulWidget {
   const _GuestSessionExpiryGuard({
     required this.sessionId,
@@ -1877,6 +2113,18 @@ class _DriverRouteContext {
   final String routeName;
   final DateTime updatedAtUtc;
   final bool isOwnedByCurrentDriver;
+}
+
+class _DriverActiveTripContext {
+  const _DriverActiveTripContext({
+    required this.routeId,
+    required this.tripId,
+    required this.transitionVersion,
+  });
+
+  final String routeId;
+  final String tripId;
+  final int transitionVersion;
 }
 
 class _EmailAuthInput {
