@@ -9180,3 +9180,32 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 312C: KULLANICIDAN ONAY ISTE - "Sanal Durak secimi katilimda zorunlu mu, opsiyonel mi?"
+
+## STEP-312C - Sanal Durak Politika Karari
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 312C kapsaminda `Sanal Durak` seciminin katilimda zorunlu mu, opsiyonel mi olacagini netlestirmek.
+
+### Karar
+- Kullanici yonlendirmesi: `en mantikli sekilde ayarla`.
+- Uygulama urun karari: **Sanal Durak opsiyonel**.
+
+### Gerekce
+- Katilim friction'i dusuk kalir (ilk kullanimda zorunlu ekstra adim yok).
+- Isteyen yolcu icin koordinat bazli daha dogru ETA yine aktif kalir.
+- Fallback zinciri korunur: `Sanal Durak` > `Binis Alani` > `Rota baslangici`.
+
+### Dogrulama
+- Mevcut uygulama davranisi bu kararla uyumlu:
+  - join ekraninda sanal durak default kapali/opsiyonel
+  - passenger settings ekraninda sanal durak opsiyonel toggle
+  - ETA source etiketi fallback kuralina gore seciliyor
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; onceki kayitlardan satir silinmedi.
+
+### Sonraki Adim
+- Faz G / 313: `submitSkipToday` aksiyonunu bagla.
