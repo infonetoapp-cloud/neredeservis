@@ -19,6 +19,7 @@ import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
 import '../../features/auth/domain/user_role.dart';
+import '../../features/domain/application/background_queue_flush_scheduler.dart';
 import '../../features/domain/application/queue_flush_orchestrator.dart';
 import '../../features/domain/application/trip_action_sync_service.dart';
 import '../../features/domain/data/local_drift_database.dart';
@@ -1252,9 +1253,13 @@ Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
       case TripActionSyncState.pendingSync:
         _showInfo(context, 'Duyuru kuyruga alindi. Buluta yaziliyor...');
         unawaited(
-          _queueFlushOrchestrator.flushAll(ownerUid: user.uid).catchError((_) {
+          _queueFlushOrchestrator
+              .flushAll(ownerUid: user.uid)
+              .then<void>((_) {})
+              .catchError((_) {
             debugPrint(
-                'Announcement queue flush skipped due to transient failure.');
+              'Announcement queue flush skipped due to transient failure.',
+            );
           }),
         );
         return;
@@ -2251,6 +2256,8 @@ final QueueFlushOrchestrator _queueFlushOrchestrator = QueueFlushOrchestrator(
   tripActionSyncService: _tripActionSyncService,
   locationPublishService: _locationPublishService,
 );
+final BackgroundQueueFlushScheduler _backgroundQueueFlushScheduler =
+    BackgroundQueueFlushScheduler();
 
 Future<void> _syncDriverLocationForegroundService({
   required bool shouldRun,
@@ -2532,6 +2539,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_syncDriverLocationForegroundService(shouldRun: true));
+    unawaited(_configureTerminatedQueueFlushStrategy());
     unawaited(_startOrRefreshIosWatchdogIfPossible());
     unawaited(_bootstrapBatteryOptimizationPolicy());
     unawaited(_localQueueRepository.resumePendingOwnershipMigrationIfNeeded());
@@ -2555,6 +2563,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     if (state == AppLifecycleState.resumed) {
       unawaited(_handleAndroidKillSignalAndBatteryPolicy());
       unawaited(_handleResumeRecoveryIfNeeded());
+      unawaited(_configureTerminatedQueueFlushStrategy());
       unawaited(_refreshQueueSyncState());
       unawaited(_flushQueuedOpsSilently());
       return;
@@ -2598,6 +2607,16 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     _queueFlushTicker = Timer.periodic(
       const Duration(minutes: 15),
       (_) => unawaited(_flushQueuedOpsSilently()),
+    );
+  }
+
+  Future<void> _configureTerminatedQueueFlushStrategy() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+    await _backgroundQueueFlushScheduler.configureForOwner(
+      ownerUid: user.uid,
     );
   }
 

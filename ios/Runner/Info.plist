@@ -55,11 +55,14 @@
 	<string>Aktif seferde arka plan toparlanmasi icin hareket sinyali kullanilir.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
+		<string>com.neredeservis.driver.queue.flush</string>
 		<string>com.neredeservis.driver.watchdog</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>fetch</string>
 		<string>location</string>
+		<string>processing</string>
 	</array>
 </dict>
 </plist>

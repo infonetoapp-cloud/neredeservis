@@ -2,11 +2,13 @@ import BackgroundTasks
 import CoreMotion
 import Flutter
 import UIKit
+import workmanager
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let watchdogChannelName = "neredeservis/ios_background_watchdog"
   private let watchdogTaskIdentifier = "com.neredeservis.driver.watchdog"
+  private let queueFlushTaskIdentifier = "com.neredeservis.driver.queue.flush"
 
   private let watchdogEnabledKey = "ios_watchdog.enabled"
   private let watchdogTripIdKey = "ios_watchdog.trip_id"
@@ -21,6 +23,14 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    WorkmanagerPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
+    WorkmanagerPlugin.registerPeriodicTask(
+      withIdentifier: queueFlushTaskIdentifier,
+      frequency: NSNumber(value: 15 * 60)
+    )
+    UIApplication.shared.setMinimumBackgroundFetchInterval(15 * 60)
 
     if #available(iOS 13.0, *) {
       registerBackgroundWatchdogTask()

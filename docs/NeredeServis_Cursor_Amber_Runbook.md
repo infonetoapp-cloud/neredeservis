@@ -700,7 +700,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 324BE Burn-in korumasi performans testi yap (shift animasyonu jank/pil etkisi olusturuyor mu).
 - [ ] 324C DOGRULAMA: Sofor aktif seferde sade harita + heartbeat ile durum takibini dikkat dagitmadan yapabiliyor mu?
 - [x] 325 Drift location queue flush mekanizmasini bagla (bounded queue + retry limit + stale replay live skip).
-- [ ] 325A Terminated app senaryosu icin background flush stratejisini bagla (Android WorkManager + iOS Background Fetch/BGTask).
+- [x] 325A Terminated app senaryosu icin background flush stratejisini bagla (Android WorkManager + iOS Background Fetch/BGTask).
 - [x] 325B 15 dk periyodik "pending queue var mi" kontrolu yap; uygun ag bulunca sessiz flush dene.
 - [x] 325C DOGRULAMA: sofor internetsiz `finishTrip` yaptiktan sonra app kapali olsa da sonraki baglantida queue bosaliyor mu?
 - [x] 326 Drift trip action queue replay mekanizmasini bagla (idempotency key zorunlu).

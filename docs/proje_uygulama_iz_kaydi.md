@@ -10447,3 +10447,71 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 325A: terminated app icin native background flush stratejisini (Android WorkManager + iOS BGTask/Background Fetch) platform seviyesinde tamamlamak.
+
+## STEP-325A - Terminated Queue Flush Stratejisi (Android WorkManager + iOS BGTask/Background Fetch)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 325A: uygulama terminate olsa bile queue replay mekanizmasini arka planda tekrar tetiklenebilir hale getirmek.
+- Android tarafinda WorkManager periodic task, iOS tarafinda BGTask (BGAppRefresh) + Background Fetch fallback konfigurasyonunu baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `flutter pub add workmanager`
+2. `flutter pub add workmanager:0.5.2`
+3. `flutter pub add workmanager:0.6.0`
+4. `apply_patch` -> `lib/features/domain/application/background_queue_flush_scheduler.dart`
+   - Workmanager runtime adapter + background dispatcher + queue flush callback + ownerUid persistence eklendi.
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `_DriverFinishTripGuard` icinde terminated flush scheduler baglandi (`initState` + `resumed`).
+6. `apply_patch` -> `ios/Runner/AppDelegate.swift`
+   - Workmanager plugin registrant callback eklendi.
+   - `registerPeriodicTask` ile iOS queue flush BG task id kaydi eklendi.
+   - minimum background fetch interval (15 dk) eklendi.
+7. `apply_patch` -> `ios/Runner/Info.plist`
+   - `BGTaskSchedulerPermittedIdentifiers` altina queue flush task id eklendi.
+   - `UIBackgroundModes` icine `fetch` + `processing` eklendi (`location` korunarak).
+8. `apply_patch` -> `test/features/domain/application/background_queue_flush_scheduler_test.dart`
+   - Android/iOS schedule ve disable cleanup testleri eklendi.
+9. `dart format lib/features/domain/application/background_queue_flush_scheduler.dart lib/app/router/app_router.dart test/features/domain/application/background_queue_flush_scheduler_test.dart`
+10. `flutter analyze`
+11. `flutter test test/features/domain/application/background_queue_flush_scheduler_test.dart`
+12. `flutter test`
+13. `flutter build apk --debug --flavor dev -t lib/main.dart`
+14. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`325A` -> `[x]`)
+15. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`325A` -> `[x]`)
+16. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- Yeni `BackgroundQueueFlushScheduler` katmani eklendi:
+  - Workmanager callback dispatcher ile background isolate'ta queue flush calisiyor.
+  - Owner UID `SharedPreferences` uzerinden saklaniyor; iOS callback tarafinda inputData olmasa da owner bulunabiliyor.
+  - Flush akisi mevcut `QueueFlushOrchestrator` uzerinden calisiyor (trip action once korunuyor).
+- Android:
+  - `neredeservis.queue.flush.periodic` unique isimli periodic task (15 dk) scheduler'a baglandi.
+- iOS:
+  - `com.neredeservis.driver.queue.flush` BG periodic task kimligi AppDelegate + Info.plist ile kaydedildi.
+  - Plugin registrant callback baglanarak background isolate'ta Flutter plugin erisimi garantiye alindi.
+  - Background fetch interval 15 dk olarak ayarlandi.
+- Aktif sefer guard:
+  - Scheduler, mevcut kullanici UID'si ile `initState` ve `resumed` aninda otomatik konfigure ediliyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk denemede `workmanager 0.9.x` kullanildi; Flutter `>=3.32` gereksinimi nedeniyle proje lock'u (`3.24.5`) ile uyumsuz oldugu tespit edildi.
+- Ikinci denemede `workmanager 0.5.2` denendi; Android derlemede `shim/PluginRegistry` referanslari nedeniyle Kotlin derleme hatasi verdi.
+- Cozum: `workmanager 0.6.0`'a gecildi; Flutter 3.24.x ile uyumlu build dogrulamasi alindi.
+- `flutter build` sirasinda Gradle/AGP/Kotlin "yakinda destek dusurulecek" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/domain/application/background_queue_flush_scheduler_test.dart` -> pass (`3` test)
+- `flutter test` -> pass (`273` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md`: `325A` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`: `325A` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 328: stale data state management (4 seviye stale bandi) baglamak.
