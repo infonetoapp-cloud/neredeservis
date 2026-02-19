@@ -40,6 +40,8 @@ void main() {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Koda Katil'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Koda Katil'));
     await tester.pumpAndSettle();
 
@@ -70,6 +72,8 @@ void main() {
     await tester.enterText(find.byType(TextField).at(0), 'SRV-8K2Q7M');
     await tester.enterText(find.byType(TextField).at(1), 'Ali Yilmaz');
     await tester.enterText(find.byType(TextField).at(3), 'Darica Merkez');
+    await tester.ensureVisible(find.text('Koda Katil'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Koda Katil'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('QR Tara'));

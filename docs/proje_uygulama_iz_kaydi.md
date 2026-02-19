@@ -9127,3 +9127,56 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 312: Passenger ayarlarini callable'a bagla.
+
+## STEP-312-312B - Passenger Ayarlari Callable + Sanal Durak + ETA Kaynagi
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 312: `updatePassengerSettings` callable'ini mobil ayar ekranina baglamak.
+- Faz G / 312A: Yolcu katilim/ayar ekranina opsiyonel `Sanal Durak` secimi eklemek.
+- Faz G / 312B: ETA kaynak etiketini `Sanal Durak` > `Binis Alani` > `Rota baslangici` sirasina gore kisisellestirmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/passenger_settings_screen.dart` (yeni ekran + form validasyon + payload modeli)
+2. `apply_patch` -> `lib/ui/screens/join_screen.dart` (katilim ekranina opsiyonel sanal durak alanlari)
+3. `apply_patch` -> `lib/ui/screens/passenger_tracking_screen.dart` (yolcu ayarlari aksiyonu)
+4. `apply_patch` -> `lib/app/router/app_route_paths.dart` (`/passenger/settings`)
+5. `apply_patch` -> `lib/app/router/app_router.dart`
+   - passenger tracking route builder merkezi hale getirildi
+   - `updatePassengerSettings` handler eklendi
+   - join sonrasi opsiyonel sanal durak guncellemesi eklendi
+   - ETA source label kurali eklendi (`Sanal Durak`/`Binis Alani`/`Rota baslangici`)
+6. `apply_patch` -> `test/ui/passenger_settings_screen_test.dart` (yeni testler)
+7. `apply_patch` -> `test/ui/passenger_tracking_screen_test.dart` (yolcu ayarlari aksiyonu testi)
+8. `apply_patch` -> `test/ui/join_screen_test.dart` (uzun form icin viewport test duzeltmeleri)
+9. `dart format ...`
+10. `flutter test test/ui/join_screen_test.dart test/ui/passenger_tracking_screen_test.dart test/ui/passenger_settings_screen_test.dart test/ui/amber_quality_gate_test.dart`
+11. `flutter analyze`
+12. `flutter test`
+13. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`312, 312A, 312B` -> `[x]`)
+14. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`312, 312A, 312B` -> `[x]`)
+
+### Bulgular
+- Yolcu ayarlari artik UI'dan `updatePassengerSettings` callable'ina bagli.
+- Join akisinda sanal durak secimi opsiyonel:
+  - secilirse join sonrasi settings callable ile profile yaziliyor
+  - secilmezse `Binis Alani` ile devam ediyor
+- Passenger tracking ekraninda ETA source etiketi kisisellesti:
+  - `Sanal Durak` varsa onu bazliyor
+  - yoksa `Binis Alani`
+  - ikisi de yoksa `Rota baslangici`
+
+### Hata Kaydi (Silinmez)
+- Join ekrani uzadigi icin testte viewport disi tap warning'leri olustu.
+  - cozum: test adimlarina `ensureVisible` eklendi.
+- SERH (silinmez): Iz kaydi append-only tutuldu, mevcut kayitlardan satir silinmedi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `195` test)
+- Hedefli widget test seti -> pass
+
+### Sonraki Adim
+- Faz G / 312C: KULLANICIDAN ONAY ISTE - "Sanal Durak secimi katilimda zorunlu mu, opsiyonel mi?"

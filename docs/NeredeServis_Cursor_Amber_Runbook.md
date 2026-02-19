@@ -648,9 +648,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 309 Stop CRUD ekranlarini callable'a bagla.
 - [x] 310 SRV katilim ekranini callable'a bagla.
 - [x] 311 `leaveRoute` aksiyonunu bagla.
-- [ ] 312 Passenger ayarlarini callable'a bagla.
-- [ ] 312A Yolcu katilim/ayar ekranina `Sanal Durak` secimini ekle (haritadan nokta sec veya mevcut `boardingArea` metniyle devam).
-- [ ] 312B ETA kaynagini kisisellestir: varsa `Sanal Durak`, yoksa `boardingArea`/route baslangici.
+- [x] 312 Passenger ayarlarini callable'a bagla.
+- [x] 312A Yolcu katilim/ayar ekranina `Sanal Durak` secimini ekle (haritadan nokta sec veya mevcut `boardingArea` metniyle devam).
+- [x] 312B ETA kaynagini kisisellestir: varsa `Sanal Durak`, yoksa `boardingArea`/route baslangici.
 - [ ] 312C KULLANICIDAN ONAY ISTE: "Sanal Durak secimi katilimda zorunlu mu, opsiyonel mi?".
 - [ ] 313 `submitSkipToday` aksiyonunu bagla.
 - [ ] 314 Guest session olusturma akisini bagla.

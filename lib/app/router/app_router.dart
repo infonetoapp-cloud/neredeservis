@@ -18,6 +18,7 @@ import '../../ui/screens/driver_home_screen.dart';
 import '../../ui/screens/driver_profile_setup_screen.dart';
 import '../../ui/screens/driver_route_management_screen.dart';
 import '../../ui/screens/join_screen.dart';
+import '../../ui/screens/passenger_settings_screen.dart';
 import '../../ui/screens/passenger_tracking_screen.dart';
 import '../../ui/screens/paywall_screen.dart';
 import '../../ui/screens/profile_edit_screen.dart';
@@ -142,29 +143,24 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutePath.passengerHome,
-        builder: (context, state) {
-          final routeId = state.uri.queryParameters['routeId'];
-          final routeName = state.uri.queryParameters['routeName'];
-          return PassengerTrackingScreen(
-            mapboxPublicToken: environment.mapboxPublicToken,
-            routeName: routeName ?? 'Darica -> GOSB',
-            onLeaveRouteTap: routeId == null || routeId.trim().isEmpty
-                ? null
-                : () => _handleLeaveRoute(context, routeId),
-          );
-        },
+        builder: (context, state) =>
+            _buildPassengerTrackingRoute(context, state, environment),
       ),
       GoRoute(
         path: AppRoutePath.passengerTracking,
+        builder: (context, state) =>
+            _buildPassengerTrackingRoute(context, state, environment),
+      ),
+      GoRoute(
+        path: AppRoutePath.passengerSettings,
         builder: (context, state) {
-          final routeId = state.uri.queryParameters['routeId'];
-          final routeName = state.uri.queryParameters['routeName'];
-          return PassengerTrackingScreen(
-            mapboxPublicToken: environment.mapboxPublicToken,
-            routeName: routeName ?? 'Darica -> GOSB',
-            onLeaveRouteTap: routeId == null || routeId.trim().isEmpty
-                ? null
-                : () => _handleLeaveRoute(context, routeId),
+          final routeId = _nullableParam(state.uri.queryParameters['routeId']);
+          final routeName =
+              _nullableParam(state.uri.queryParameters['routeName']);
+          return PassengerSettingsScreen(
+            routeId: routeId ?? '',
+            routeName: routeName,
+            onSave: (input) => _handleUpdatePassengerSettings(context, input),
           );
         },
       ),
@@ -776,13 +772,53 @@ Future<void> _handleJoinBySrvCode(
       return;
     }
 
+    if (input.virtualStop != null || input.virtualStopLabel != null) {
+      try {
+        final updateSettingsCallable =
+            FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+                .httpsCallable('updatePassengerSettings');
+        await updateSettingsCallable.call(<String, dynamic>{
+          'routeId': routeId,
+          'showPhoneToDriver': input.showPhoneToDriver,
+          if (input.phone != null && input.phone!.isNotEmpty)
+            'phone': input.phone,
+          'boardingArea': input.boardingArea,
+          'notificationTime': input.notificationTime,
+          if (input.virtualStop != null)
+            'virtualStop': <String, dynamic>{
+              'lat': input.virtualStop!.lat,
+              'lng': input.virtualStop!.lng,
+            },
+          if (input.virtualStopLabel != null &&
+              input.virtualStopLabel!.trim().isNotEmpty)
+            'virtualStopLabel': input.virtualStopLabel!.trim(),
+        });
+      } on FirebaseFunctionsException catch (error) {
+        if (context.mounted) {
+          _showInfo(
+            context,
+            'Servise katildin, fakat sanal durak kaydedilemedi (${error.code}).',
+          );
+        }
+      }
+    }
+
+    final etaSourceLabel = _buildEtaSourceLabel(
+      hasVirtualStop: input.virtualStop != null,
+      virtualStopLabel: input.virtualStopLabel,
+      boardingArea: input.boardingArea,
+    );
     final trackingUri = Uri(
       path: AppRoutePath.passengerTracking,
       queryParameters: <String, String>{
         'routeId': routeId,
         if (routeName.trim().isNotEmpty) 'routeName': routeName.trim(),
+        'etaSourceLabel': etaSourceLabel,
       },
     );
+    if (!context.mounted) {
+      return;
+    }
     _showInfo(context, 'Servise katilim basarili.');
     context.go(trackingUri.toString());
   } on FirebaseFunctionsException catch (error) {
@@ -798,6 +834,58 @@ Future<void> _handleJoinBySrvCode(
       _ => 'Servise katilim basarisiz (${error.code}).',
     };
     _showInfo(context, message);
+  }
+}
+
+Future<void> _handleUpdatePassengerSettings(
+  BuildContext context,
+  PassengerSettingsFormInput input,
+) async {
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('updatePassengerSettings');
+    await callable.call(<String, dynamic>{
+      'routeId': input.routeId,
+      'showPhoneToDriver': input.showPhoneToDriver,
+      if (input.phone != null && input.phone!.isNotEmpty) 'phone': input.phone,
+      'boardingArea': input.boardingArea,
+      'notificationTime': input.notificationTime,
+      if (input.virtualStop != null)
+        'virtualStop': <String, dynamic>{
+          'lat': input.virtualStop!.lat,
+          'lng': input.virtualStop!.lng,
+        },
+      if (input.virtualStopLabel != null &&
+          input.virtualStopLabel!.trim().isNotEmpty)
+        'virtualStopLabel': input.virtualStopLabel!.trim(),
+    });
+
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Yolcu ayarlari kaydedildi.');
+
+    final etaSourceLabel = _buildEtaSourceLabel(
+      hasVirtualStop: input.virtualStop != null,
+      virtualStopLabel: input.virtualStopLabel,
+      boardingArea: input.boardingArea,
+    );
+    final trackingUri = Uri(
+      path: AppRoutePath.passengerTracking,
+      queryParameters: <String, String>{
+        'routeId': input.routeId,
+        if (input.routeName != null && input.routeName!.trim().isNotEmpty)
+          'routeName': input.routeName!.trim(),
+        'etaSourceLabel': etaSourceLabel,
+      },
+    );
+    context.go(trackingUri.toString());
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Yolcu ayarlari kaydedilemedi (${error.code}).');
   }
 }
 
@@ -1022,6 +1110,124 @@ bool _hasReadyDriverProfile(Map<String, dynamic>? data) {
   final phone = (data['phone'] as String? ?? '').trim();
   final plate = (data['plate'] as String? ?? '').trim();
   return name.length >= 2 && phone.length >= 7 && plate.length >= 3;
+}
+
+Widget _buildPassengerTrackingRoute(
+  BuildContext context,
+  GoRouterState state,
+  AppEnvironment environment,
+) {
+  final routeId = _nullableParam(state.uri.queryParameters['routeId']);
+  final routeName = _nullableParam(state.uri.queryParameters['routeName']);
+  final etaSourceFromQuery =
+      _nullableParam(state.uri.queryParameters['etaSourceLabel']);
+  final user = FirebaseAuth.instance.currentUser;
+
+  VoidCallback? onLeaveRouteTap;
+  VoidCallback? onSettingsTap;
+  if (routeId != null) {
+    onLeaveRouteTap = () => _handleLeaveRoute(context, routeId);
+    onSettingsTap = () {
+      final settingsUri = Uri(
+        path: AppRoutePath.passengerSettings,
+        queryParameters: <String, String>{
+          'routeId': routeId,
+          if (routeName != null) 'routeName': routeName,
+        },
+      );
+      context.go(settingsUri.toString());
+    };
+  }
+
+  PassengerTrackingScreen buildTrackingScreen(String etaSourceLabel) {
+    return PassengerTrackingScreen(
+      mapboxPublicToken: environment.mapboxPublicToken,
+      routeName: routeName ?? 'Darica -> GOSB',
+      etaSourceLabel: etaSourceLabel,
+      onSettingsTap: onSettingsTap,
+      onLeaveRouteTap: onLeaveRouteTap,
+    );
+  }
+
+  if (etaSourceFromQuery != null) {
+    return buildTrackingScreen(etaSourceFromQuery);
+  }
+  if (routeId == null || user == null) {
+    return buildTrackingScreen('Rota baslangici tahmini');
+  }
+
+  return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+    stream: FirebaseFirestore.instance
+        .collection('routes')
+        .doc(routeId)
+        .collection('passengers')
+        .doc(user.uid)
+        .snapshots(),
+    builder: (context, snapshot) {
+      final passengerData = snapshot.data?.data();
+      final etaSourceLabel = _resolveEtaSourceLabelFromPassengerData(
+        passengerData,
+      );
+      return buildTrackingScreen(etaSourceLabel);
+    },
+  );
+}
+
+String _resolveEtaSourceLabelFromPassengerData(Map<String, dynamic>? data) {
+  if (data != null) {
+    final virtualStopRaw = data['virtualStop'];
+    if (virtualStopRaw is Map) {
+      final virtualStop = Map<String, dynamic>.from(virtualStopRaw);
+      final lat = (virtualStop['lat'] as num?)?.toDouble();
+      final lng = (virtualStop['lng'] as num?)?.toDouble();
+      if (lat != null && lng != null) {
+        final label = (data['virtualStopLabel'] as String?)?.trim();
+        return _buildEtaSourceLabel(
+          hasVirtualStop: true,
+          virtualStopLabel: label,
+          boardingArea: null,
+        );
+      }
+    }
+    final boardingArea = (data['boardingArea'] as String?)?.trim();
+    return _buildEtaSourceLabel(
+      hasVirtualStop: false,
+      virtualStopLabel: null,
+      boardingArea: boardingArea,
+    );
+  }
+  return _buildEtaSourceLabel(
+    hasVirtualStop: false,
+    virtualStopLabel: null,
+    boardingArea: null,
+  );
+}
+
+String _buildEtaSourceLabel({
+  required bool hasVirtualStop,
+  required String? virtualStopLabel,
+  required String? boardingArea,
+}) {
+  if (hasVirtualStop) {
+    final label = _nullableParam(virtualStopLabel);
+    if (label != null) {
+      return 'Sanal Durak: $label';
+    }
+    return 'Sanal Durak tahmini';
+  }
+  final normalizedBoardingArea = _nullableParam(boardingArea);
+  if (normalizedBoardingArea != null) {
+    return 'Binis Alani: $normalizedBoardingArea';
+  }
+  return 'Rota baslangici tahmini';
+}
+
+String? _nullableParam(String? value) {
+  final normalized = value?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return normalized;
 }
 
 String _resolveDisplayName(User? user) {

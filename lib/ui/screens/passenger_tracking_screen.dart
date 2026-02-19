@@ -33,6 +33,7 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.driverName,
     this.mapboxPublicToken,
     this.onLeaveRouteTap,
+    this.onSettingsTap,
   });
 
   /// Route display name.
@@ -71,6 +72,9 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Optional leave action for joined passengers.
   final VoidCallback? onLeaveRouteTap;
 
+  /// Optional settings action for passenger route preferences.
+  final VoidCallback? onSettingsTap;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,6 +95,7 @@ class PassengerTrackingScreen extends StatelessWidget {
             child: _TopBar(
               routeName: routeName,
               freshness: freshness,
+              onSettingsTap: onSettingsTap,
               onLeaveRouteTap: onLeaveRouteTap,
             ),
           ),
@@ -338,11 +343,13 @@ class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.routeName,
     required this.freshness,
+    this.onSettingsTap,
     this.onLeaveRouteTap,
   });
 
   final String routeName;
   final LocationFreshness freshness;
+  final VoidCallback? onSettingsTap;
   final VoidCallback? onLeaveRouteTap;
 
   @override
@@ -384,6 +391,14 @@ class _TopBar extends StatelessWidget {
             tone: _freshnessTone(freshness),
             compact: true,
           ),
+          if (onSettingsTap != null) ...<Widget>[
+            const SizedBox(width: AmberSpacingTokens.space8),
+            IconButton(
+              tooltip: 'Yolcu Ayarlari',
+              onPressed: onSettingsTap,
+              icon: const Icon(AmberIconTokens.settings),
+            ),
+          ],
           if (onLeaveRouteTap != null) ...<Widget>[
             const SizedBox(width: AmberSpacingTokens.space8),
             IconButton(

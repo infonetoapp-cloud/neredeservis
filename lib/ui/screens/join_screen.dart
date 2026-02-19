@@ -55,8 +55,15 @@ class _JoinScreenState extends State<JoinScreen> {
   final TextEditingController _boardingAreaController = TextEditingController();
   final TextEditingController _notificationTimeController =
       TextEditingController(text: '07:00');
+  final TextEditingController _virtualStopLabelController =
+      TextEditingController();
+  final TextEditingController _virtualStopLatController =
+      TextEditingController();
+  final TextEditingController _virtualStopLngController =
+      TextEditingController();
 
   bool _showPhoneToDriver = false;
+  bool _useVirtualStop = false;
   bool _submitting = false;
   String? _formError;
 
@@ -67,6 +74,9 @@ class _JoinScreenState extends State<JoinScreen> {
     _phoneController.dispose();
     _boardingAreaController.dispose();
     _notificationTimeController.dispose();
+    _virtualStopLabelController.dispose();
+    _virtualStopLatController.dispose();
+    _virtualStopLngController.dispose();
     super.dispose();
   }
 
@@ -77,6 +87,8 @@ class _JoinScreenState extends State<JoinScreen> {
     final phone = phoneRaw.isEmpty ? null : phoneRaw;
     final boardingArea = _boardingAreaController.text.trim();
     final notificationTime = _notificationTimeController.text.trim();
+    JoinVirtualStopInput? virtualStop;
+    String? virtualStopLabel;
 
     if (normalizedCode.isEmpty) {
       _setError('SRV kodu gir.');
@@ -102,6 +114,26 @@ class _JoinScreenState extends State<JoinScreen> {
       _setError('Bildirim saati HH:mm formatinda olmali.');
       return;
     }
+    if (_useVirtualStop) {
+      final virtualStopLat =
+          double.tryParse(_virtualStopLatController.text.trim());
+      final virtualStopLng =
+          double.tryParse(_virtualStopLngController.text.trim());
+      if (virtualStopLat == null || virtualStopLng == null) {
+        _setError('Sanal durak koordinatlari sayisal olmali.');
+        return;
+      }
+      if (!_isWithinLatLng(virtualStopLat, virtualStopLng)) {
+        _setError('Sanal durak koordinatlari gecerli aralikta olmali.');
+        return;
+      }
+      virtualStop = JoinVirtualStopInput(
+        lat: virtualStopLat,
+        lng: virtualStopLng,
+      );
+      final labelRaw = _virtualStopLabelController.text.trim();
+      virtualStopLabel = labelRaw.isEmpty ? null : labelRaw;
+    }
 
     final input = JoinBySrvFormInput(
       srvCode: normalizedCode,
@@ -110,6 +142,8 @@ class _JoinScreenState extends State<JoinScreen> {
       showPhoneToDriver: _showPhoneToDriver,
       boardingArea: boardingArea,
       notificationTime: notificationTime,
+      virtualStop: virtualStop,
+      virtualStopLabel: virtualStopLabel,
     );
 
     setState(() {
@@ -139,6 +173,10 @@ class _JoinScreenState extends State<JoinScreen> {
 
   bool _isValidTime(String value) {
     return RegExp(r'^([01]\d|2[0-3]):[0-5]\d$').hasMatch(value);
+  }
+
+  bool _isWithinLatLng(double lat, double lng) {
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
   }
 
   String _normalizeSrvCode(String raw) {
@@ -262,6 +300,67 @@ class _JoinScreenState extends State<JoinScreen> {
                           const SizedBox(height: AmberSpacingTokens.space8),
                           SwitchListTile.adaptive(
                             contentPadding: EdgeInsets.zero,
+                            value: _useVirtualStop,
+                            onChanged: _submitting
+                                ? null
+                                : (value) {
+                                    setState(() {
+                                      _useVirtualStop = value;
+                                    });
+                                  },
+                            title: const Text('Sanal Durak kullan (opsiyonel)'),
+                            subtitle: const Text(
+                              'Sanal durak yoksa Binis Alani ile devam edilir.',
+                            ),
+                          ),
+                          if (_useVirtualStop) ...<Widget>[
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            TextField(
+                              controller: _virtualStopLabelController,
+                              enabled: !_submitting,
+                              decoration: const InputDecoration(
+                                labelText: 'Sanal Durak Etiketi (opsiyonel)',
+                              ),
+                            ),
+                            const SizedBox(height: AmberSpacingTokens.space8),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: TextField(
+                                    controller: _virtualStopLatController,
+                                    enabled: !_submitting,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                      signed: true,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Sanal Durak Lat',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                    width: AmberSpacingTokens.space8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _virtualStopLngController,
+                                    enabled: !_submitting,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                      signed: true,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Sanal Durak Lng',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: AmberSpacingTokens.space8),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
                             value: _showPhoneToDriver,
                             onChanged: _submitting
                                 ? null
@@ -342,6 +441,8 @@ class JoinBySrvFormInput {
     required this.boardingArea,
     required this.notificationTime,
     this.phone,
+    this.virtualStop,
+    this.virtualStopLabel,
   });
 
   final String srvCode;
@@ -350,6 +451,18 @@ class JoinBySrvFormInput {
   final bool showPhoneToDriver;
   final String boardingArea;
   final String notificationTime;
+  final JoinVirtualStopInput? virtualStop;
+  final String? virtualStopLabel;
+}
+
+class JoinVirtualStopInput {
+  const JoinVirtualStopInput({
+    required this.lat,
+    required this.lng,
+  });
+
+  final double lat;
+  final double lng;
 }
 
 class _RoleBadge extends StatelessWidget {

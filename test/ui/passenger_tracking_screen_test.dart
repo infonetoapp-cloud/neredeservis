@@ -25,6 +25,7 @@ void main() {
     bool isLate = false,
     String? scheduledTime,
     List<PassengerStopInfo> stops = const <PassengerStopInfo>[],
+    VoidCallback? onSettingsTap,
     VoidCallback? onLeaveRouteTap,
   }) {
     return MaterialApp(
@@ -37,6 +38,7 @@ void main() {
         isLate: isLate,
         scheduledTime: scheduledTime,
         stops: stops,
+        onSettingsTap: onSettingsTap,
         onLeaveRouteTap: onLeaveRouteTap,
       ),
     );
@@ -173,6 +175,26 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(leaveTapped, isTrue);
+    });
+
+    testWidgets('shows settings action when callback is provided',
+        (WidgetTester tester) async {
+      var settingsTapped = false;
+      await tester.pumpWidget(
+        buildTestApp(
+          onSettingsTap: () {
+            settingsTapped = true;
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final settingsButton = find.byTooltip('Yolcu Ayarlari');
+      expect(settingsButton, findsOneWidget);
+      await tester.tap(settingsButton);
+      await tester.pumpAndSettle();
+
+      expect(settingsTapped, isTrue);
     });
   });
 }
