@@ -36,5 +36,6 @@ void main() {
     expect(find.text('NeredeServis Dev'), findsOneWidget);
     expect(find.text('Giris Yap'), findsOneWidget);
     expect(find.text('Google ile Giris'), findsOneWidget);
+    expect(find.text('Teste Gir (Misafir)'), findsOneWidget);
   });
 }

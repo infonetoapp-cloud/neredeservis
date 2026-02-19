@@ -104,4 +104,27 @@ void main() {
     final footerRect = tester.getRect(find.text('Hesabin yok mu? Uye ol'));
     expect(footerRect.bottom <= logicalSize.height, isTrue);
   });
+
+  testWidgets('auth hero renders optional test guest CTA when provided', (
+    WidgetTester tester,
+  ) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AuthHeroLoginScreen(
+          appName: 'NeredeServis',
+          onTestGuestTap: () {
+            tapped = true;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Teste Gir (Misafir)'), findsOneWidget);
+    await tester.tap(find.text('Teste Gir (Misafir)'));
+    await tester.pumpAndSettle();
+    expect(tapped, isTrue);
+  });
 }

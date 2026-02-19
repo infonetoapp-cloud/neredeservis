@@ -10747,3 +10747,49 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 329C (saha kaniti): ayni cihazda iki acilis olcumu alip `MapboxCacheProbe[...] repeat delta` logunu kanit olarak iz kaydina yazmak.
+
+## STEP-TEST-AUTH-ENTRY-001 - Dev/Stg Test Icin Misafir Hizli Giris
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Uye olma akisi tamamlanana kadar test ekibinin uygulamaya hizli sekilde girebilmesini saglamak.
+- Auth ekranina non-prod ortamlarda dogrudan misafir giris CTA'si eklemek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/ui/screens/auth_hero_login_screen.dart`
+   - Opsiyonel `onTestGuestTap` callback'i eklendi.
+   - callback varsa `Teste Gir (Misafir)` CTA'si render ediliyor.
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `auth` ve `splash` route'larinda:
+     - `prod`: CTA kapali (`null`)
+     - `dev/stg`: CTA acik (`_handleContinueAsGuest`)
+3. `apply_patch` -> `test/ui/auth_hero_login_screen_test.dart`
+   - opsiyonel test CTA render + callback tetik testi eklendi.
+4. `apply_patch` -> `test/widget_test.dart`
+   - `dev` app shell icin `Teste Gir (Misafir)` gorunurlugu dogrulandi.
+5. `dart format lib/ui/screens/auth_hero_login_screen.dart lib/app/router/app_router.dart test/ui/auth_hero_login_screen_test.dart test/widget_test.dart`
+6. `flutter test test/ui/auth_hero_login_screen_test.dart test/widget_test.dart`
+7. `flutter run -d 99TSTCV4YTOJYXC6 --flavor dev -t lib/main_dev.dart --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev --no-resident`
+8. `adb ... uiautomator dump` ile auth ekranda CTA varligi dogrulandi.
+
+### Bulgular
+- Auth ekranda artik non-prod ortamda su CTA gorunuyor:
+  - `Teste Gir (Misafir)`
+- Bu CTA mevcut `_handleContinueAsGuest` akisini kullaniyor:
+  - anonim sign-in
+  - profile bootstrap
+  - guest join ekranina gecis
+- `prod` ortami etkilenmedi; test CTA'si prod'da kapali.
+
+### Hata Kaydi (Silinmez)
+- Bu cihazda `adb shell input tap ...` komutu `INJECT_EVENTS` izni olmadigi icin reddedildi.
+- Bu nedenle CTA tiklama otomasyonu yerine UI dump ile CTA varligi kaniti alindi.
+- `flutter` komutlari sirasinda "newer incompatible versions available" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter test test/ui/auth_hero_login_screen_test.dart test/widget_test.dart` -> pass (`6` test)
+- Telefon deploy: `com.neredeservis.app.dev` basarili kurulum ve acilis.
+- UI dump: auth ekranda `Giris Yap`, `Google ile Giris`, `Hesabin yok mu? Uye ol`, `Teste Gir (Misafir)` gorundu.

@@ -79,6 +79,9 @@ GoRouter buildAppRouter({
           onSignInTap: () => _handleEmailSignIn(context),
           onGoogleSignInTap: () => _handleGoogleSignIn(context),
           onRegisterTap: () => _handleEmailRegister(context),
+          onTestGuestTap: environment.isProduction
+              ? null
+              : () => _handleContinueAsGuest(context),
         ),
       ),
       GoRoute(
@@ -88,6 +91,9 @@ GoRouter buildAppRouter({
           onSignInTap: () => _handleEmailSignIn(context),
           onGoogleSignInTap: () => _handleGoogleSignIn(context),
           onRegisterTap: () => _handleEmailRegister(context),
+          onTestGuestTap: environment.isProduction
+              ? null
+              : () => _handleContinueAsGuest(context),
         ),
       ),
       GoRoute(

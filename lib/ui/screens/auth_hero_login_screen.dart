@@ -13,6 +13,7 @@ class AuthHeroLoginScreen extends StatelessWidget {
     this.onGoogleSignInTap,
     this.onSignInTap,
     this.onRegisterTap,
+    this.onTestGuestTap,
   });
 
   final String appName;
@@ -20,6 +21,7 @@ class AuthHeroLoginScreen extends StatelessWidget {
   final VoidCallback? onGoogleSignInTap;
   final VoidCallback? onSignInTap;
   final VoidCallback? onRegisterTap;
+  final VoidCallback? onTestGuestTap;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +130,17 @@ class AuthHeroLoginScreen extends StatelessWidget {
                                 onPressed: onRegisterTap,
                                 child: const Text('Hesabin yok mu? Uye ol'),
                               ),
+                              if (onTestGuestTap != null) ...<Widget>[
+                                const SizedBox(
+                                  height: AmberSpacingTokens.space8,
+                                ),
+                                TextButton(
+                                  onPressed: onTestGuestTap,
+                                  child: const Text(
+                                    'Teste Gir (Misafir)',
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
