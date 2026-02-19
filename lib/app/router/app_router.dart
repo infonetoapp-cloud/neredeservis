@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
+import '../../features/location/application/location_freshness.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
+import '../../ui/components/sheets/passenger_map_sheet.dart';
 import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
 import '../../ui/screens/driver_home_screen.dart';
@@ -1739,6 +1742,8 @@ Widget _buildPassengerTrackingRoute(
   PassengerTrackingScreen buildTrackingScreen({
     required String resolvedRouteName,
     required String etaSourceLabel,
+    LocationFreshness freshness = LocationFreshness.live,
+    String? lastSeenAgo,
     VoidCallback? onSettingsTap,
     VoidCallback? onSkipTodayTap,
     VoidCallback? onLeaveRouteTap,
@@ -1747,6 +1752,8 @@ Widget _buildPassengerTrackingRoute(
       mapboxPublicToken: environment.mapboxPublicToken,
       routeName: resolvedRouteName,
       etaSourceLabel: etaSourceLabel,
+      freshness: freshness,
+      lastSeenAgo: lastSeenAgo,
       onSettingsTap: onSettingsTap,
       onSkipTodayTap: onSkipTodayTap,
       onLeaveRouteTap: onLeaveRouteTap,
@@ -1815,12 +1822,17 @@ Widget _buildPassengerTrackingRoute(
       final etaSourceLabel = _resolveEtaSourceLabelFromPassengerData(
         passengerData,
       );
-      return buildTrackingScreen(
-        resolvedRouteName: defaultRouteName,
-        etaSourceLabel: etaSourceLabel,
-        onSettingsTap: onSettingsTap,
-        onSkipTodayTap: onSkipTodayTap,
-        onLeaveRouteTap: onLeaveRouteTap,
+      return _PassengerLocationStreamBuilder(
+        routeId: routeId,
+        builder: (freshness, lastSeenAgo) => buildTrackingScreen(
+          resolvedRouteName: defaultRouteName,
+          etaSourceLabel: etaSourceLabel,
+          freshness: freshness,
+          lastSeenAgo: lastSeenAgo,
+          onSettingsTap: onSettingsTap,
+          onSkipTodayTap: onSkipTodayTap,
+          onLeaveRouteTap: onLeaveRouteTap,
+        ),
       );
     },
   );
@@ -2153,6 +2165,11 @@ class _GuestSessionExpiryGuardState extends State<_GuestSessionExpiryGuard> {
       builder: (context, snapshot) {
         final data = snapshot.data?.data();
         final status = _nullableParam(data?['status'] as String?);
+        final routeId = _nullableParam(data?['routeId'] as String?) ??
+            _nullableParam(widget.initialRouteId);
+        final routeName = _nullableParam(data?['routeName'] as String?) ??
+            _nullableParam(widget.initialRouteName) ??
+            'Misafir Takip';
         final expiresAtRaw = _nullableParam(data?['expiresAt'] as String?) ??
             _nullableParam(widget.initialExpiresAt);
         final expiresAt = expiresAtRaw == null
@@ -2176,14 +2193,88 @@ class _GuestSessionExpiryGuardState extends State<_GuestSessionExpiryGuard> {
           );
         }
 
-        return PassengerTrackingScreen(
-          mapboxPublicToken: widget.mapboxPublicToken,
-          routeName: widget.initialRouteName ?? 'Misafir Takip',
-          etaSourceLabel: widget.initialEtaSourceLabel,
+        if (routeId == null) {
+          return PassengerTrackingScreen(
+            mapboxPublicToken: widget.mapboxPublicToken,
+            routeName: routeName,
+            etaSourceLabel: widget.initialEtaSourceLabel,
+          );
+        }
+
+        return _PassengerLocationStreamBuilder(
+          routeId: routeId,
+          builder: (freshness, lastSeenAgo) => PassengerTrackingScreen(
+            mapboxPublicToken: widget.mapboxPublicToken,
+            routeName: routeName,
+            etaSourceLabel: widget.initialEtaSourceLabel,
+            freshness: freshness,
+            lastSeenAgo: lastSeenAgo,
+          ),
         );
       },
     );
   }
+}
+
+class _PassengerLocationStreamBuilder extends StatelessWidget {
+  const _PassengerLocationStreamBuilder({
+    required this.routeId,
+    required this.builder,
+  });
+
+  final String routeId;
+  final Widget Function(LocationFreshness freshness, String? lastSeenAgo)
+      builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DatabaseEvent>(
+      stream: FirebaseDatabase.instance.ref('locations/$routeId').onValue,
+      builder: (context, snapshot) {
+        final rawMap = _mapFromRtdbValue(snapshot.data?.snapshot.value);
+        final timestampMs = parseLiveLocationTimestampMs(rawMap?['timestamp']);
+        final nowUtc = DateTime.now().toUtc();
+        final freshness = _toPassengerLocationFreshness(
+          resolveLiveSignalFreshness(
+            nowUtc: nowUtc,
+            timestampMs: timestampMs,
+            treatMissingAsLive: true,
+          ),
+        );
+        final lastSeenAgo = formatLastSeenAgo(
+          nowUtc: nowUtc,
+          timestampMs: timestampMs,
+        );
+        return builder(freshness, lastSeenAgo);
+      },
+    );
+  }
+}
+
+LocationFreshness _toPassengerLocationFreshness(
+  LiveSignalFreshness freshness,
+) {
+  return switch (freshness) {
+    LiveSignalFreshness.live => LocationFreshness.live,
+    LiveSignalFreshness.mild => LocationFreshness.mild,
+    LiveSignalFreshness.stale => LocationFreshness.stale,
+    LiveSignalFreshness.lost => LocationFreshness.lost,
+  };
+}
+
+Map<String, dynamic>? _mapFromRtdbValue(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is! Map<Object?, Object?>) {
+    return null;
+  }
+
+  final output = <String, dynamic>{};
+  for (final entry in value.entries) {
+    output[entry.key.toString()] = entry.value;
+  }
+  return output;
 }
 
 String _resolveDisplayName(User? user) {

@@ -9490,3 +9490,60 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 320: RTDB location stream dinlemeyi bagla.
+
+## STEP-320 - RTDB Location Stream Listener (Passenger + Guest)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 320 kapsaminda yolcu/misafir takip ekraninda `locations/{routeId}` RTDB canli konum akisinin dinlenmesini baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/location/application/location_freshness.dart`
+   - `resolveLiveSignalFreshness` (0-30 / 31-120 / 121-300 / 300+ sn)
+   - `formatLastSeenAgo`
+   - `parseLiveLocationTimestampMs`
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `firebase_database` importu eklendi
+   - `_buildPassengerTrackingRoute` icinde RTDB stream builder baglandi
+   - `_PassengerLocationStreamBuilder` eklendi (`locations/{routeId}` dinleme)
+   - guest takip guard'ina (`_GuestSessionExpiryGuard`) routeId varsa RTDB stream baglandi
+   - tazelik seviyesi + son gorulme etiketi `PassengerTrackingScreen` props'una aktarildi
+3. `apply_patch` -> `test/features/location/application/location_freshness_test.dart`
+   - freshness esik testleri
+   - last-seen format testleri
+   - timestamp parse testleri
+4. `dart format lib/app/router/app_router.dart lib/features/location/application/location_freshness.dart test/features/location/application/location_freshness_test.dart`
+5. `flutter analyze`
+6. `flutter test`
+7. `powershell replace` -> `docs/RUNBOOK_LOCKED.md` (`320` -> `[x]`)
+8. `powershell replace` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`320` -> `[x]`)
+
+### Bulgular
+- Passenger tracking route artik Firestore yolcu ayar stream'ine ek olarak RTDB live location stream'i dinliyor.
+- Guest tracking guard, session aktif oldugu surece route baglamini alip ayni RTDB stream uzerinden canli sinyali UI'a yansitiyor.
+- Freshness bandlari:
+  - `0-30 sn` -> `live`
+  - `31-120 sn` -> `mild`
+  - `121-300 sn` -> `stale`
+  - `300+ sn` -> `lost`
+- `lastSeenAgo` etiketi saniye/dakika/saat formunda uretiliyor.
+- Timestamp parse katmani sayisal ve ISO timestamp formatlarini destekliyor.
+
+### Hata Kaydi (Silinmez)
+- Ilk analiz turunda `LocationFreshness` type importu eksikti.
+  - cozum: `passenger_map_sheet.dart` importu eklendi.
+- Sonraki analiz turunda `directives_ordering` lint'i geldi.
+  - cozum: import bloklari alfabetik siraya alindi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `208` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `320` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `320` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 321: Location publish service yaz.
