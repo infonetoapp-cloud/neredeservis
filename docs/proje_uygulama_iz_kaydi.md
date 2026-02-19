@@ -10038,3 +10038,61 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 324: OEM battery optimization yonlendirmesi (ve 324D/324E degradasyon akislari).
+
+## STEP-324-324D-324E - Android Battery Optimization Guidance + Degrade Mode
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 324: Android pil optimizasyonu istisnasi yonlendirmesini aktif sefer akisina baglamak.
+- 324D: istisna ekranini sadece ihtiyac aninda gostermek (ilk aktif sefer veya OEM kill sinyali).
+- 324E: kullanici red/vermezse degrade izleme moduna gecip stale/kesinti riskini teknik olarak yukseltmek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/permissions/application/android_battery_optimization_orchestrator.dart`
+   - `Permission.ignoreBatteryOptimizations` status/request orkestratoru eklendi.
+   - outcome enum'u eklendi: `granted`, `denied`, `notApplicable`, `error`.
+2. `apply_patch` -> `lib/features/permissions/application/battery_optimization_fallback_service.dart`
+   - first-need-moment state'i ve degrade mode flag'i icin `SharedPreferences` store eklendi.
+3. `apply_patch` -> `lib/app/router/app_router.dart`
+   - aktif sefer guard'ina Android pil optimizasyon policy akisi baglandi.
+   - need-moment prompt: ilk aktif sefer / OEM kill sinyali.
+   - red veya atlama durumunda degrade mode (`_batteryDegradeMode`) aktif.
+   - degrade mode aktifken heartbeat seviyesi `yellow`a yukseltildi + risk banner eklendi.
+   - resume'da Android background service kapandiysa re-sync + need-moment prompt tekrar tetigi eklendi.
+4. `apply_patch` -> `android/app/src/main/AndroidManifest.xml`
+   - `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` izni eklendi.
+5. `apply_patch` -> `test/features/permissions/application/android_battery_optimization_orchestrator_test.dart`
+   - notApplicable, granted, denied, error senaryolari eklendi.
+6. `apply_patch` -> `test/features/permissions/application/battery_optimization_fallback_service_test.dart`
+   - first-prompt, OEM kill force prompt, degrade flag persistence testleri eklendi.
+7. `dart format lib/app/router/app_router.dart lib/features/permissions/application/android_battery_optimization_orchestrator.dart lib/features/permissions/application/battery_optimization_fallback_service.dart test/features/permissions/application/android_battery_optimization_orchestrator_test.dart test/features/permissions/application/battery_optimization_fallback_service_test.dart`
+8. `flutter analyze`
+9. `flutter test test/features/permissions/application/android_battery_optimization_orchestrator_test.dart test/features/permissions/application/battery_optimization_fallback_service_test.dart`
+10. `flutter test`
+11. `flutter build apk --debug --flavor dev -t lib/main.dart`
+12. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`324`, `324D`, `324E` -> `[x]`)
+13. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`324`, `324D`, `324E` -> `[x]`)
+
+### Bulgular
+- Android pil optimizasyonu yonlendirmesi artik aktif seferde otomatik policy ile calisiyor.
+- ilk aktif seferden sonra tek seferlik need-moment prompt var; OEM kill sinyalinde tekrar prompt tetikleniyor.
+- kullanici istisnayi vermezse degrade mode aciliyor ve heartbeat state `yellow`a cekiliyor.
+- degrade mode metni/banner ile sahada arka plan kesinti riski acikca bildiriliyor.
+
+### Hata Kaydi (Silinmez)
+- Ek runtime hata olusmadi; `flutter analyze` temiz.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/permissions/application/android_battery_optimization_orchestrator_test.dart test/features/permissions/application/battery_optimization_fallback_service_test.dart` -> pass (`7` test)
+- `flutter test` -> pass (`252` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `324`, `324D`, `324E` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `324`, `324D`, `324E` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 324A: driver aktif sefer ekraninda connection heartbeat katmanini canli veriyle baglamak.

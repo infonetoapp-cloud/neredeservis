@@ -683,9 +683,9 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 323C `while-in-use` red durumunda aktif seferi hard-block et; sofore neden/aksiyon metni goster (`Canli takip icin konum izni gerekli`).
 - [x] 323D `background/always` red durumunda foreground-only moda gec; sofora stale riski ve `Ayarlar'dan Ac` CTA goster.
 - [x] 323E iOS silent-kill mitigasyonunu bagla: Activity Recognition sinyali + BGTask watchdog ile askidan donus toparlanmasi.
-- [ ] 324 OEM battery optimization yonlendirmesini bagla.
-- [ ] 324D Pil optimizasyonu istisnasi ekranini sadece ihtiyac aninda ac (ilk aktif seferden sonra veya OEM kill sinyali alindiginda).
-- [ ] 324E Pil optimizasyonu red durumunda degrade izleme modunu aktif et (arka planda kesinti riski metni + heartbeat uyari seviyesini yukselt).
+- [x] 324 OEM battery optimization yonlendirmesini bagla.
+- [x] 324D Pil optimizasyonu istisnasi ekranini sadece ihtiyac aninda ac (ilk aktif seferden sonra veya OEM kill sinyali alindiginda).
+- [x] 324E Pil optimizasyonu red durumunda degrade izleme modunu aktif et (arka planda kesinti riski metni + heartbeat uyari seviyesini yukselt).
 - [ ] 324A NS-391: Sofor aktif sefer ekranina "Connection Heartbeat" ekle (`YAYINDASIN` + pulse halka).
 - [ ] 324AA Sofor aktif sefer ekranina sade harita ekle (rota cizgisi + arac marker + siradaki durak markeri).
 - [ ] 324AB Driver Guidance Lite bilgisi bagla: `Siradaki Durak: {stopName}` + `Kus ucusu {distanceM} m`.

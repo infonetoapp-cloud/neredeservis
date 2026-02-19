@@ -23,11 +23,14 @@ import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/location/infrastructure/ios_silent_kill_mitigation_service.dart';
+import '../../features/permissions/application/android_battery_optimization_orchestrator.dart';
+import '../../features/permissions/application/battery_optimization_fallback_service.dart';
 import '../../features/permissions/application/ios_location_permission_orchestrator.dart';
 import '../../features/permissions/application/location_permission_gate.dart';
 import '../../features/permissions/application/notification_permission_fallback_service.dart';
 import '../../features/permissions/application/notification_permission_orchestrator.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
+import '../../ui/components/indicators/amber_heartbeat_indicator.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
 import '../../ui/screens/active_trip_screen.dart';
 import '../../ui/screens/auth_hero_login_screen.dart';
@@ -2104,6 +2107,11 @@ final NotificationPermissionFallbackService
     NotificationPermissionFallbackService();
 final AndroidLocationBackgroundService _androidLocationBackgroundService =
     AndroidLocationBackgroundService();
+final AndroidBatteryOptimizationOrchestrator
+    _androidBatteryOptimizationOrchestrator =
+    AndroidBatteryOptimizationOrchestrator();
+final BatteryOptimizationFallbackService _batteryOptimizationFallbackService =
+    BatteryOptimizationFallbackService();
 final IosSilentKillMitigationService _iosSilentKillMitigationService =
     IosSilentKillMitigationService();
 
@@ -2370,6 +2378,8 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     with WidgetsBindingObserver {
   bool _finishing = false;
   int _screenResetSeed = 0;
+  bool _batteryDegradeMode = false;
+  bool _batteryPromptInFlight = false;
   bool _resumeRecoveryInFlight = false;
   Timer? _watchdogHeartbeatTimer;
 
@@ -2379,6 +2389,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     WidgetsBinding.instance.addObserver(this);
     unawaited(_syncDriverLocationForegroundService(shouldRun: true));
     unawaited(_startOrRefreshIosWatchdogIfPossible());
+    unawaited(_bootstrapBatteryOptimizationPolicy());
     _startWatchdogHeartbeatTicker();
   }
 
@@ -2393,6 +2404,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(_handleAndroidKillSignalAndBatteryPolicy());
       unawaited(_handleResumeRecoveryIfNeeded());
       return;
     }
@@ -2457,6 +2469,198 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     } finally {
       _resumeRecoveryInFlight = false;
     }
+  }
+
+  Future<void> _bootstrapBatteryOptimizationPolicy() async {
+    final degraded =
+        await _batteryOptimizationFallbackService.isDegradeModeEnabled();
+    if (mounted) {
+      setState(() {
+        _batteryDegradeMode = degraded;
+      });
+    }
+    await _handleBatteryOptimizationNeedMoment(
+      oemKillSignalDetected: false,
+    );
+  }
+
+  Future<void> _handleAndroidKillSignalAndBatteryPolicy() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    final running = await _androidLocationBackgroundService
+        .isDriverLocationServiceRunning();
+    if (!running) {
+      await _syncDriverLocationForegroundService(shouldRun: true);
+      if (!mounted) {
+        return;
+      }
+      _showInfo(
+        context,
+        'Arka plan servis kesildi; konum yayini tekrar baslatildi.',
+      );
+      await _handleBatteryOptimizationNeedMoment(
+        oemKillSignalDetected: true,
+      );
+      return;
+    }
+    await _handleBatteryOptimizationNeedMoment(
+      oemKillSignalDetected: false,
+    );
+  }
+
+  Future<void> _handleBatteryOptimizationNeedMoment({
+    required bool oemKillSignalDetected,
+  }) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+    if (_batteryPromptInFlight) {
+      return;
+    }
+
+    final bypassEnabled =
+        await _androidBatteryOptimizationOrchestrator.isBypassEnabled();
+    if (bypassEnabled) {
+      await _batteryOptimizationFallbackService.setDegradeModeEnabled(false);
+      if (mounted && _batteryDegradeMode) {
+        setState(() {
+          _batteryDegradeMode = false;
+        });
+      }
+      return;
+    }
+
+    final shouldPrompt =
+        await _batteryOptimizationFallbackService.shouldPromptAtNeedMoment(
+      oemKillSignalDetected: oemKillSignalDetected,
+    );
+    if (!shouldPrompt) {
+      await _batteryOptimizationFallbackService.setDegradeModeEnabled(true);
+      if (mounted && !_batteryDegradeMode) {
+        setState(() {
+          _batteryDegradeMode = true;
+        });
+      }
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+
+    _batteryPromptInFlight = true;
+    try {
+      final openSettings = await _showBatteryOptimizationPromptDialog(
+        context,
+        oemKillSignalDetected: oemKillSignalDetected,
+      );
+      await _batteryOptimizationFallbackService.markNeedMomentHandled();
+      if (openSettings != true) {
+        await _batteryOptimizationFallbackService.setDegradeModeEnabled(true);
+        if (mounted) {
+          setState(() {
+            _batteryDegradeMode = true;
+          });
+          _showBatteryOptimizationDegradeBanner();
+        }
+        return;
+      }
+
+      final outcome = await _androidBatteryOptimizationOrchestrator
+          .requestBypassAtNeedMoment();
+      if (outcome == AndroidBatteryOptimizationOutcome.granted) {
+        await _batteryOptimizationFallbackService.setDegradeModeEnabled(false);
+        if (mounted) {
+          setState(() {
+            _batteryDegradeMode = false;
+          });
+          _showInfo(context, 'Pil optimizasyonu istisnasi aktif.');
+        }
+        return;
+      }
+
+      await _batteryOptimizationFallbackService.setDegradeModeEnabled(true);
+      if (mounted) {
+        setState(() {
+          _batteryDegradeMode = true;
+        });
+        _showBatteryOptimizationDegradeBanner();
+      }
+    } finally {
+      _batteryPromptInFlight = false;
+    }
+  }
+
+  Future<bool?> _showBatteryOptimizationPromptDialog(
+    BuildContext context, {
+    required bool oemKillSignalDetected,
+  }) {
+    final message = oemKillSignalDetected
+        ? 'Cihaz arka planda konum servisini kapatti. Kesinti riskini azaltmak icin pil optimizasyon istisnasini ac.'
+        : 'Aktif seferde arka plan kesintilerini azaltmak icin pil optimizasyon istisnasini ac.';
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Pil Optimizasyonu'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Simdi Degil'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Ayarlar\'dan Ac'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showBatteryOptimizationDegradeBanner() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentMaterialBanner();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        content: const Text(
+          'Pil optimizasyonu acik kaldigi icin degrade izleme modu aktif. Arka planda konum akisi kesilebilir.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async {
+              messenger.hideCurrentMaterialBanner();
+              final outcome = await _androidBatteryOptimizationOrchestrator
+                  .requestBypassAtNeedMoment();
+              if (outcome == AndroidBatteryOptimizationOutcome.granted) {
+                await _batteryOptimizationFallbackService
+                    .setDegradeModeEnabled(false);
+                if (!mounted) {
+                  return;
+                }
+                setState(() {
+                  _batteryDegradeMode = false;
+                });
+                _showInfo(context, 'Pil optimizasyonu istisnasi aktif.');
+                return;
+              }
+              if (mounted) {
+                _showInfo(
+                  context,
+                  'Pil optimizasyonu istisnasi kapali kaldi; degrade mod devam ediyor.',
+                );
+              }
+            },
+            child: const Text('Ayarlar\'dan Ac'),
+          ),
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleTripFinishConfirmed() async {
@@ -2534,6 +2738,9 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
         'active_trip_${widget.routeId ?? 'none'}_${widget.tripId ?? 'none'}_$_screenResetSeed',
       ),
       routeName: widget.routeName,
+      heartbeatState:
+          _batteryDegradeMode ? HeartbeatState.yellow : HeartbeatState.green,
+      lastHeartbeatAgo: _batteryDegradeMode ? 'Pil riski var' : '2 sn',
       onTripFinished: _finishing ? null : _handleTripFinishConfirmed,
     );
   }
