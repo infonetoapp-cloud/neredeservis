@@ -9845,3 +9845,57 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 322F: bildirim izni red fallback (in-app banner + Ayarlar CTA + 24 saat cooldown).
+
+## STEP-322F - Notification Denied Fallback (Banner + Settings CTA + 24h Cooldown)
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 322F: push izni kapali oldugunda kullaniciya in-app fallback gostermek.
+- Gereksinim: banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/permissions/application/notification_permission_fallback_service.dart`
+   - cooldown store (`shared_preferences`) eklendi
+   - `shouldShowDeniedBanner(...)`
+   - `markDeniedBannerShown(...)`
+   - varsayilan cooldown: `24 saat`
+2. `apply_patch` -> `lib/app/router/app_router.dart`
+   - notification permission helper'i `BuildContext` alacak sekilde guncellendi
+   - permission sonucu `denied` ise fallback service ile cooldown kontrolu baglandi
+   - `ScaffoldMessenger.showMaterialBanner(...)` ile in-app banner eklendi
+   - action: `Ayarlar'dan Ac` -> `openAppSettings()`
+   - ikincil action: `Kapat`
+3. `apply_patch` -> `test/features/permissions/application/notification_permission_fallback_service_test.dart`
+   - ilk durumda banner gosterim testi
+   - cooldown icinde suppress testi
+   - 24 saat sonrasi tekrar gosterim testi
+4. `apply_patch` -> `pubspec.yaml`
+   - `shared_preferences: 2.3.3` eklendi
+5. `flutter pub get`
+6. `flutter analyze`
+7. `flutter test`
+8. `flutter build apk --debug --flavor dev -t lib/main.dart`
+9. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`322F` -> `[x]`)
+10. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`322F` -> `[x]`)
+
+### Bulgular
+- Notification permission `denied` oldugunda app icinde policy uyumlu fallback banner artik gorunuyor.
+- Banner 24 saat cooldown ile throttle ediliyor; tekrar eylemde ayni banner spam olusmuyor.
+- `Ayarlar'dan Ac` CTA dogrudan sistem ayarlarina yonlendiriyor.
+
+### Hata Kaydi (Silinmez)
+- Ek hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `231` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `322F` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `322F` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 323: iOS background location izin stratejisi baglantisi.

@@ -23,6 +23,7 @@ import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/permissions/application/location_permission_gate.dart';
+import '../../features/permissions/application/notification_permission_fallback_service.dart';
 import '../../features/permissions/application/notification_permission_orchestrator.dart';
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
@@ -1095,6 +1096,7 @@ Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
   }
 
   await _orchestrateNotificationPermissionAtValueMoment(
+    context,
     NotificationPermissionTrigger.driverAnnouncement,
   );
   if (!context.mounted) {
@@ -1286,6 +1288,7 @@ Future<void> _handleJoinBySrvCode(
 ) async {
   try {
     await _orchestrateNotificationPermissionAtValueMoment(
+      context,
       NotificationPermissionTrigger.passengerJoin,
     );
     if (!context.mounted) {
@@ -2019,6 +2022,9 @@ final Random _idempotencyRandom = Random.secure();
 const LocationPermissionGate _locationPermissionGate = LocationPermissionGate();
 final NotificationPermissionOrchestrator _notificationPermissionOrchestrator =
     NotificationPermissionOrchestrator();
+final NotificationPermissionFallbackService
+    _notificationPermissionFallbackService =
+    NotificationPermissionFallbackService();
 final AndroidLocationBackgroundService _androidLocationBackgroundService =
     AndroidLocationBackgroundService();
 
@@ -2044,10 +2050,50 @@ Future<void> _syncDriverLocationForegroundService({
 }
 
 Future<void> _orchestrateNotificationPermissionAtValueMoment(
+  BuildContext context,
   NotificationPermissionTrigger trigger,
 ) async {
   try {
-    await _notificationPermissionOrchestrator.requestAtValueMoment(trigger);
+    final outcome =
+        await _notificationPermissionOrchestrator.requestAtValueMoment(trigger);
+    if (outcome != NotificationPermissionOutcome.denied) {
+      return;
+    }
+    final shouldShowBanner =
+        await _notificationPermissionFallbackService.shouldShowDeniedBanner(
+      trigger,
+    );
+    if (!shouldShowBanner || !context.mounted) {
+      return;
+    }
+
+    await _notificationPermissionFallbackService.markDeniedBannerShown(trigger);
+    if (!context.mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentMaterialBanner();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        content: const Text(
+          'Bildirimler kapali. Anlik duyurulari almak icin Ayarlar\'dan Ac.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () async {
+              messenger.hideCurrentMaterialBanner();
+              await openAppSettings();
+            },
+            child: const Text('Ayarlar\'dan Ac'),
+          ),
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: const Text('Kapat'),
+          ),
+        ],
+      ),
+    );
   } catch (_) {
     debugPrint(
       'Notification permission orchestration skipped (trigger=$trigger).',

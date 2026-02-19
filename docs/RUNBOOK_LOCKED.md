@@ -668,7 +668,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 322C FGS bildirim metnini policy uyumlu sabitle: `NeredeServis konumunuzu paylasiyor (aktif sefer)`.
 - [x] 322D Role-based permission gate uygula: konum izni sadece sofor akÄ±ÅŸÄ±nda istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
 - [x] 322E Bildirim izni orkestrasyonunu uygula: onboarding'de toplu isteme yok, deger aninda isteme (yolcu katilim/sofor duyuru tetigi).
-- [ ] 322F Bildirim izni red fallback'ini uygula: push kapaliyken in-app banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
+- [x] 322F Bildirim izni red fallback'ini uygula: push kapaliyken in-app banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
 - [ ] 323 iOS background location ayarlarini bagla.
 - [ ] 323A `while-in-use` konum iznini sadece `Seferi Baslat` veya `Ghost Drive kaydi baslat` aninda iste.
 - [ ] 323B `background/always` iznini sadece `while-in-use` verildikten sonra, aktif sefer commit adiminda iste.
