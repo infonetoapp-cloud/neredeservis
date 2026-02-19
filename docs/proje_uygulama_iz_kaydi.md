@@ -9899,3 +9899,79 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 323: iOS background location izin stratejisi baglantisi.
+
+## STEP-323-323A-323B-323C-323D - iOS Background Location Permission Orchestration
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 323: iOS background location ayarlarini uygulamaya baglamak.
+- 323A: `while-in-use` izin istemini sadece `Seferi Baslat` ve `Ghost Drive kaydi baslat` anlarina baglamak.
+- 323B: `locationAlways` istemini sadece `while-in-use` verildikten sonra, aktif sefer commit adiminda istemek.
+- 323C: `while-in-use` red durumunda sefer baslatmayi hard-block etmek.
+- 323D: `locationAlways` red durumunda foreground-only moda dusup stale risk + `Ayarlar'dan Ac` CTA gostermek.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/permissions/application/ios_location_permission_orchestrator.dart`
+   - iOS izin orkestratoru eklendi:
+     - `ensureWhileInUseAtValueMoment()`
+     - `ensureAlwaysAtActiveTripCommit()`
+   - sonuc enumlari eklendi:
+     - `IosWhileInUsePermissionResult`
+     - `IosBackgroundLocationPermissionResult`
+2. `apply_patch` -> `test/features/permissions/application/ios_location_permission_orchestrator_test.dart`
+   - iOS/non-iOS sonuclari
+   - while-in-use granted/denied akislari
+   - always granted/foreground-only fallback akislari
+3. `apply_patch` -> `lib/ui/screens/route_create_screen.dart`
+   - `onGhostDriveCaptureStart` callback'i eklendi
+   - `Kaydi Baslat` aksiyonunda izin callback'i basarisizsa kayit baslatilmiyor
+4. `apply_patch` -> `lib/app/router/app_router.dart`
+   - route create ekranina `onGhostDriveCaptureStart` baglandi
+   - `_handleGhostDriveCaptureStart` eklendi
+   - start trip izin kontrolu generic role+platform helper'a tasindi (`_ensureDriverLocationPermissionForTrigger`)
+   - iOS `while-in-use` istemi (startTrip + ghostDrive)
+   - `startTrip` commit sonrasina iOS `locationAlways` orkestrasyonu eklendi
+   - `locationAlways` red durumunda `MaterialBanner` fallback eklendi:
+     - stale risk metni
+     - `Ayarlar'dan Ac` -> `openAppSettings()`
+5. `apply_patch` -> `ios/Runner/Info.plist`
+   - `NSLocationWhenInUseUsageDescription`
+   - `NSLocationAlwaysAndWhenInUseUsageDescription`
+   - `NSLocationAlwaysUsageDescription`
+   - `UIBackgroundModes -> location`
+6. `apply_patch` -> `ios/Podfile`
+   - permission_handler iOS macro'lari eklendi:
+     - `PERMISSION_LOCATION=1`
+     - `PERMISSION_LOCATION_WHENINUSE=0`
+7. `dart format lib/app/router/app_router.dart lib/ui/screens/route_create_screen.dart lib/features/permissions/application/ios_location_permission_orchestrator.dart test/features/permissions/application/ios_location_permission_orchestrator_test.dart`
+8. `flutter analyze`
+9. `flutter test`
+10. `flutter build apk --debug --flavor dev -t lib/main.dart`
+11. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`323`, `323A`, `323B`, `323C`, `323D` -> `[x]`)
+12. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`323`, `323A`, `323B`, `323C`, `323D` -> `[x]`)
+
+### Bulgular
+- iOS konum izin akisi artik policy'ye uygun sekansta ilerliyor:
+  - trip start/ghost capture baslangicinda while-in-use
+  - commit sonrasinda always
+- while-in-use red durumunda sefer baslatma bloklaniyor (hard-block).
+- always red durumunda sefer devam ediyor ama foreground-only fallback devreye giriyor.
+- fallback banner stale riskini acikca belirtiyor ve direkt ayarlar CTA sunuyor.
+- iOS tarafinda gerekli Info.plist + Pod macro konfiguruasyonlari eklendi.
+
+### Hata Kaydi (Silinmez)
+- Ek hata olusmadi.
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `239` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `323`, `323A`, `323B`, `323C`, `323D` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `323`, `323A`, `323B`, `323C`, `323D` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 323E: iOS silent-kill mitigasyonu (Activity Recognition + BGTask watchdog).

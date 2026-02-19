@@ -22,6 +22,7 @@ import '../../features/auth/domain/user_role.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
+import '../../features/permissions/application/ios_location_permission_orchestrator.dart';
 import '../../features/permissions/application/location_permission_gate.dart';
 import '../../features/permissions/application/notification_permission_fallback_service.dart';
 import '../../features/permissions/application/notification_permission_orchestrator.dart';
@@ -126,6 +127,8 @@ GoRouter buildAppRouter({
           onCreate: (input) => _handleCreateRoute(context, input),
           onCreateFromGhostDrive: (input) =>
               _handleCreateRouteFromGhostDrive(context, input),
+          onGhostDriveCaptureStart: () =>
+              _handleGhostDriveCaptureStart(context),
         ),
       ),
       GoRoute(
@@ -682,6 +685,26 @@ Future<void> _handleCreateRouteFromGhostDrive(
   }
 }
 
+Future<bool> _handleGhostDriveCaptureStart(BuildContext context) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    if (context.mounted) {
+      _showInfo(context, 'Oturum bulunamadi. Lutfen tekrar giris yap.');
+    }
+    return false;
+  }
+
+  return _ensureDriverLocationPermissionForTrigger(
+    context,
+    user,
+    trigger: LocationPermissionPromptTrigger.ghostDriveRecording,
+    deniedMessage: 'Ghost Drive kaydi icin konum izni gerekli.',
+    readFailureMessage: 'Konum izni durumu okunamadi. Lutfen yeniden dene.',
+    requestFailureMessage:
+        'Konum izni istenirken hata olustu. Lutfen yeniden dene.',
+  );
+}
+
 Future<void> _handleUpdateRoute(
   BuildContext context,
   RouteUpdateFormInput input,
@@ -867,6 +890,16 @@ Future<void> _commitStartTrip(
     await _syncDriverLocationForegroundService(shouldRun: true);
     if (!context.mounted) {
       return;
+    }
+
+    final iosBackgroundPermission = await _iosLocationPermissionOrchestrator
+        .ensureAlwaysAtActiveTripCommit();
+    if (!context.mounted) {
+      return;
+    }
+    if (iosBackgroundPermission ==
+        IosBackgroundLocationPermissionResult.foregroundOnly) {
+      _showIosForegroundOnlyLocationFallback(context);
     }
 
     final activeTripUri = Uri(
@@ -1751,17 +1784,59 @@ Future<bool> _ensureStartTripLocationPermission(
   BuildContext context,
   User user,
 ) async {
+  return _ensureDriverLocationPermissionForTrigger(
+    context,
+    user,
+    trigger: LocationPermissionPromptTrigger.startTrip,
+    deniedMessage:
+        'Canli takip icin konum izni gerekli. Izin vermeden sefer baslatilamaz.',
+    readFailureMessage: 'Konum izni durumu okunamadi. Lutfen yeniden dene.',
+    requestFailureMessage:
+        'Konum izni istenirken hata olustu. Lutfen yeniden dene.',
+  );
+}
+
+Future<bool> _ensureDriverLocationPermissionForTrigger(
+  BuildContext context,
+  User user, {
+  required LocationPermissionPromptTrigger trigger,
+  required String deniedMessage,
+  required String readFailureMessage,
+  required String requestFailureMessage,
+}) async {
   final role = await _resolveCurrentUserRole(user.uid);
   final shouldPrompt = _locationPermissionGate.shouldPromptLocationPermission(
     role: role,
-    trigger: LocationPermissionPromptTrigger.startTrip,
+    trigger: trigger,
   );
 
-  // 322D: yolcu/misafir rolde konum izni diyaloğu hic acilmaz.
-  if (!shouldPrompt) {
+  // 322D: yolcu/misafir rolde konum izni diyalogu hic acilmaz.
+  if (!shouldPrompt || kIsWeb) {
     return true;
   }
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    try {
+      final result = await _iosLocationPermissionOrchestrator
+          .ensureWhileInUseAtValueMoment();
+      if (result == IosWhileInUsePermissionResult.granted ||
+          result == IosWhileInUsePermissionResult.notApplicable) {
+        return true;
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _showInfo(context, requestFailureMessage);
+      }
+      return false;
+    }
+
+    if (context.mounted) {
+      _showInfo(context, deniedMessage);
+    }
+    return false;
+  }
+
+  if (defaultTargetPlatform != TargetPlatform.android) {
     return true;
   }
 
@@ -1770,10 +1845,7 @@ Future<bool> _ensureStartTripLocationPermission(
     status = await Permission.locationWhenInUse.status;
   } catch (_) {
     if (context.mounted) {
-      _showInfo(
-        context,
-        'Konum izni durumu okunamadi. Lutfen yeniden dene.',
-      );
+      _showInfo(context, readFailureMessage);
     }
     return false;
   }
@@ -1786,10 +1858,7 @@ Future<bool> _ensureStartTripLocationPermission(
     status = await Permission.locationWhenInUse.request();
   } catch (_) {
     if (context.mounted) {
-      _showInfo(
-        context,
-        'Konum izni istenirken hata olustu. Lutfen yeniden dene.',
-      );
+      _showInfo(context, requestFailureMessage);
     }
     return false;
   }
@@ -1799,10 +1868,7 @@ Future<bool> _ensureStartTripLocationPermission(
   }
 
   if (context.mounted) {
-    _showInfo(
-      context,
-      'Canli takip icin konum izni gerekli. Izin vermeden sefer baslatilamaz.',
-    );
+    _showInfo(context, deniedMessage);
   }
   return false;
 }
@@ -2020,6 +2086,8 @@ String _buildSkipTodayIdempotencyKey(String dateKey) {
 
 final Random _idempotencyRandom = Random.secure();
 const LocationPermissionGate _locationPermissionGate = LocationPermissionGate();
+final IosLocationPermissionOrchestrator _iosLocationPermissionOrchestrator =
+    IosLocationPermissionOrchestrator();
 final NotificationPermissionOrchestrator _notificationPermissionOrchestrator =
     NotificationPermissionOrchestrator();
 final NotificationPermissionFallbackService
@@ -2047,6 +2115,35 @@ Future<void> _syncDriverLocationForegroundService({
       'DriverLocationForegroundService sync failed (shouldRun=$shouldRun).',
     );
   }
+}
+
+void _showIosForegroundOnlyLocationFallback(BuildContext context) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
+    return;
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.hideCurrentMaterialBanner();
+  messenger.showMaterialBanner(
+    MaterialBanner(
+      content: const Text(
+        'Arka plan konum izni kapali. Uygulama arka planda kalirsa konum guncellemesi gecikebilir (stale riski).',
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () async {
+            messenger.hideCurrentMaterialBanner();
+            await openAppSettings();
+          },
+          child: const Text('Ayarlar\'dan Ac'),
+        ),
+        TextButton(
+          onPressed: messenger.hideCurrentMaterialBanner,
+          child: const Text('Kapat'),
+        ),
+      ],
+    ),
+  );
 }
 
 Future<void> _orchestrateNotificationPermissionAtValueMoment(

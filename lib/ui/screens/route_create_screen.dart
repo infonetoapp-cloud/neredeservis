@@ -9,11 +9,13 @@ class RouteCreateScreen extends StatefulWidget {
     super.key,
     this.onCreate,
     this.onCreateFromGhostDrive,
+    this.onGhostDriveCaptureStart,
   });
 
   final Future<void> Function(RouteCreateFormInput input)? onCreate;
   final Future<void> Function(RouteCreateGhostFormInput input)?
       onCreateFromGhostDrive;
+  final Future<bool> Function()? onGhostDriveCaptureStart;
 
   @override
   State<RouteCreateScreen> createState() => _RouteCreateScreenState();
@@ -182,9 +184,15 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     );
   }
 
-  void _startGhostCapture() {
+  Future<void> _startGhostCapture() async {
     if (_isGhostRecording) {
       return;
+    }
+    if (widget.onGhostDriveCaptureStart != null) {
+      final canStart = await widget.onGhostDriveCaptureStart!.call();
+      if (!mounted || !canStart) {
+        return;
+      }
     }
     final startLat = _parseOrDefault(_startLatController.text, 40.7700);
     final startLng = _parseOrDefault(_startLngController.text, 29.4000);
@@ -527,7 +535,9 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       const SizedBox(height: AmberSpacingTokens.space12),
       AmberSecondaryButton(
         label: _isGhostRecording ? 'Kayit Suruyor' : 'Kaydi Baslat',
-        onPressed: _submitting || _isGhostRecording ? null : _startGhostCapture,
+        onPressed: _submitting || _isGhostRecording
+            ? null
+            : () => _startGhostCapture(),
       ),
       const SizedBox(height: AmberSpacingTokens.space8),
       AmberSecondaryButton(

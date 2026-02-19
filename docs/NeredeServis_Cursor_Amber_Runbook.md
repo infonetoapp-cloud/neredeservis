@@ -677,11 +677,11 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 322D Role-based permission gate uygula: konum izni sadece sofor akÄ±ÅŸÄ±nda istenir; yolcu/guest rolde konum izni dialogu hic acilmaz.
 - [x] 322E Bildirim izni orkestrasyonunu uygula: onboarding'de toplu isteme yok, deger aninda isteme (yolcu katilim/sofor duyuru tetigi).
 - [x] 322F Bildirim izni red fallback'ini uygula: push kapaliyken in-app banner + `Ayarlar'dan Ac` CTA + 24 saat cooldown.
-- [ ] 323 iOS background location ayarlarini bagla.
-- [ ] 323A `while-in-use` konum iznini sadece `Seferi Baslat` veya `Ghost Drive kaydi baslat` aninda iste.
-- [ ] 323B `background/always` iznini sadece `while-in-use` verildikten sonra, aktif sefer commit adiminda iste.
-- [ ] 323C `while-in-use` red durumunda aktif seferi hard-block et; sofore neden/aksiyon metni goster (`Canli takip icin konum izni gerekli`).
-- [ ] 323D `background/always` red durumunda foreground-only moda gec; sofora stale riski ve `Ayarlar'dan Ac` CTA goster.
+- [x] 323 iOS background location ayarlarini bagla.
+- [x] 323A `while-in-use` konum iznini sadece `Seferi Baslat` veya `Ghost Drive kaydi baslat` aninda iste.
+- [x] 323B `background/always` iznini sadece `while-in-use` verildikten sonra, aktif sefer commit adiminda iste.
+- [x] 323C `while-in-use` red durumunda aktif seferi hard-block et; sofore neden/aksiyon metni goster (`Canli takip icin konum izni gerekli`).
+- [x] 323D `background/always` red durumunda foreground-only moda gec; sofora stale riski ve `Ayarlar'dan Ac` CTA goster.
 - [ ] 323E iOS silent-kill mitigasyonunu bagla: Activity Recognition sinyali + BGTask watchdog ile askidan donus toparlanmasi.
 - [ ] 324 OEM battery optimization yonlendirmesini bagla.
 - [ ] 324D Pil optimizasyonu istisnasi ekranini sadece ihtiyac aninda ac (ilk aktif seferden sonra veya OEM kill sinyali alindiginda).

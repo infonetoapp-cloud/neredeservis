@@ -45,5 +45,15 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sofor seferdeyken yolcularin canli takibi icin konumunu kullaniriz.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aktif seferde uygulama arka plandayken de konum paylasimi sursun.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Aktif seferde arka planda konum yayini icin izin gerekir.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>
