@@ -48,6 +48,8 @@ class ActiveTripScreen extends StatefulWidget {
     this.routePathPoints = const <ActiveTripMapPoint>[],
     this.vehiclePoint,
     this.nextStopPoint,
+    this.syncStateLabel,
+    this.manualInterventionMessage,
     this.onTripFinished,
     this.onEmergencyTap,
   });
@@ -81,6 +83,12 @@ class ActiveTripScreen extends StatefulWidget {
 
   /// Next-stop marker location.
   final ActiveTripMapPoint? nextStopPoint;
+
+  /// Optional sync-state label for optimistic actions (e.g. finishTrip pending).
+  final String? syncStateLabel;
+
+  /// Optional manual-intervention warning for permanent sync failures.
+  final String? manualInterventionMessage;
 
   /// Fires when slide-to-finish confirms trip termination.
   final VoidCallback? onTripFinished;
@@ -293,6 +301,8 @@ class _ActiveTripScreenState extends State<ActiveTripScreen>
               nextStopName: widget.nextStopName,
               crowFlyDistanceMeters: widget.crowFlyDistanceMeters,
               passengersAtNextStop: widget.passengersAtNextStop,
+              syncStateLabel: widget.syncStateLabel,
+              manualInterventionMessage: widget.manualInterventionMessage,
               onTripFinished: widget.onTripFinished == null
                   ? null
                   : _handleTripFinishConfirmedWithFeedback,
@@ -800,6 +810,8 @@ class _BottomControlPanel extends StatelessWidget {
     this.nextStopName,
     this.crowFlyDistanceMeters,
     this.passengersAtNextStop,
+    this.syncStateLabel,
+    this.manualInterventionMessage,
     this.onTripFinished,
     required this.isCompactDevice,
   });
@@ -809,6 +821,8 @@ class _BottomControlPanel extends StatelessWidget {
   final String? nextStopName;
   final int? crowFlyDistanceMeters;
   final int? passengersAtNextStop;
+  final String? syncStateLabel;
+  final String? manualInterventionMessage;
   final VoidCallback? onTripFinished;
   final bool isCompactDevice;
 
@@ -857,6 +871,60 @@ class _BottomControlPanel extends StatelessWidget {
             crowFlyDistanceMeters: crowFlyDistanceMeters,
             passengersAtNextStop: passengersAtNextStop,
           ),
+          if (syncStateLabel != null ||
+              manualInterventionMessage != null) ...<Widget>[
+            SizedBox(height: isCompactDevice ? 10.0 : 12.0),
+            if (syncStateLabel != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AmberSpacingTokens.space12,
+                  vertical: AmberSpacingTokens.space8,
+                ),
+                decoration: BoxDecoration(
+                  color: AmberColorTokens.amber100,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AmberColorTokens.amber400.withAlpha(70),
+                  ),
+                ),
+                child: Text(
+                  syncStateLabel!,
+                  style: const TextStyle(
+                    fontFamily: AmberTypographyTokens.bodyFamily,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: AmberColorTokens.ink900,
+                  ),
+                ),
+              ),
+            if (manualInterventionMessage != null) ...<Widget>[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AmberSpacingTokens.space12,
+                  vertical: AmberSpacingTokens.space8,
+                ),
+                decoration: BoxDecoration(
+                  color: AmberColorTokens.dangerStrong.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AmberColorTokens.danger.withAlpha(80),
+                  ),
+                ),
+                child: Text(
+                  manualInterventionMessage!,
+                  style: const TextStyle(
+                    fontFamily: AmberTypographyTokens.bodyFamily,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: AmberColorTokens.dangerStrong,
+                  ),
+                ),
+              ),
+            ],
+          ],
           SizedBox(height: isCompactDevice ? 12.0 : 16.0),
 
           // Slide-to-finish (destructive action guard)

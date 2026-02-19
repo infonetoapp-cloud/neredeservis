@@ -19,9 +19,15 @@ import '../../config/app_environment.dart';
 import '../../config/app_flavor.dart';
 import '../../config/firebase_regions.dart';
 import '../../features/auth/domain/user_role.dart';
+import '../../features/domain/application/queue_flush_orchestrator.dart';
+import '../../features/domain/application/trip_action_sync_service.dart';
+import '../../features/domain/data/local_drift_database.dart';
+import '../../features/domain/data/local_queue_repository.dart';
+import '../../features/domain/data/rtdb_domain_repositories.dart';
 import '../../features/location/application/driver_heartbeat_policy.dart';
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
+import '../../features/location/application/location_publish_service.dart';
 import '../../features/location/application/voice_feedback_settings_service.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../features/location/infrastructure/ios_silent_kill_mitigation_service.dart';
@@ -1018,51 +1024,98 @@ Future<bool> _showFinishTripUndoWindow(BuildContext context) async {
   return completer.future;
 }
 
-Future<bool> _commitFinishTrip(
+enum _FinishTripCommitOutcome {
+  synced,
+  pendingSync,
+  failed,
+}
+
+Future<_FinishTripCommitOutcome> _commitFinishTrip(
   BuildContext context,
   User user,
   _DriverActiveTripContext tripContext,
 ) async {
+  final uidPrefix = user.uid.length <= 8 ? user.uid : user.uid.substring(0, 8);
+  final deviceId = '${_devicePlatformKey()}_$uidPrefix';
+  final idempotencyKey = _buildTripActionIdempotencyKey(
+    action: 'finish_trip',
+    subject: tripContext.tripId,
+  );
+  TripActionExecutionResult execution;
   try {
-    final callable =
-        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-            .httpsCallable('finishTrip');
-    final uidPrefix =
-        user.uid.length <= 8 ? user.uid : user.uid.substring(0, 8);
-    final deviceId = '${_devicePlatformKey()}_$uidPrefix';
-    await callable.call(<String, dynamic>{
-      'tripId': tripContext.tripId,
-      'deviceId': deviceId,
-      'idempotencyKey': _buildTripActionIdempotencyKey(
-        action: 'finish_trip',
-        subject: tripContext.tripId,
-      ),
-      'expectedTransitionVersion': tripContext.transitionVersion,
-    });
-    await _syncDriverLocationForegroundService(shouldRun: false);
-    await _syncIosSilentKillWatchdog(shouldRun: false);
-    if (!context.mounted) {
-      return false;
+    execution = await _tripActionSyncService.executeOrQueue(
+      ownerUid: user.uid,
+      actionType: TripQueuedActionType.finishTrip,
+      callableName: 'finishTrip',
+      payload: <String, dynamic>{
+        'tripId': tripContext.tripId,
+        'deviceId': deviceId,
+        'idempotencyKey': idempotencyKey,
+        'expectedTransitionVersion': tripContext.transitionVersion,
+      },
+      idempotencyKey: idempotencyKey,
+    );
+  } catch (_) {
+    if (context.mounted) {
+      _showInfo(context, 'Sefer sonlandirma kuyruga alinamadi. Tekrar dene.');
     }
-    _showInfo(context, 'Sefer sonlandirildi.');
-    return true;
-  } on FirebaseFunctionsException catch (error) {
-    if (!context.mounted) {
-      return false;
-    }
-    final transitionMismatch =
-        (error.message ?? '').contains('TRANSITION_VERSION_MISMATCH');
-    final message = switch (error.code) {
-      'permission-denied' =>
-        'Bu cihazdan sefer sonlandirma yetkin yok (baslatan cihaz gerekli).',
-      'not-found' => 'Aktif trip bulunamadi.',
-      'failed-precondition' => transitionMismatch
-          ? 'Sefer durumu degisti. Lutfen tekrar dene.'
-          : 'Sefer su an sonlandirilamiyor.',
-      _ => 'Sefer sonlandirma basarisiz (${error.code}).',
-    };
-    _showInfo(context, message);
-    return false;
+    return _FinishTripCommitOutcome.failed;
+  }
+  switch (execution.state) {
+    case TripActionSyncState.synced:
+      await _syncDriverLocationForegroundService(shouldRun: false);
+      await _syncIosSilentKillWatchdog(shouldRun: false);
+      if (!context.mounted) {
+        return _FinishTripCommitOutcome.failed;
+      }
+      _showInfo(context, 'Sefer sonlandirildi.');
+      return _FinishTripCommitOutcome.synced;
+    case TripActionSyncState.pendingSync:
+      await _syncDriverLocationForegroundService(shouldRun: false);
+      await _syncIosSilentKillWatchdog(shouldRun: false);
+      if (!context.mounted) {
+        return _FinishTripCommitOutcome.pendingSync;
+      }
+      _showInfo(
+        context,
+        'Sefer lokalde sonlandirildi. Buluta yaziliyor...',
+      );
+      return _FinishTripCommitOutcome.pendingSync;
+    case TripActionSyncState.failed:
+      if (!context.mounted) {
+        return _FinishTripCommitOutcome.failed;
+      }
+      _showInfo(
+        context,
+        _mapFinishTripErrorMessage(
+          errorCode: execution.errorCode,
+          errorMessage: execution.errorMessage,
+        ),
+      );
+      return _FinishTripCommitOutcome.failed;
+  }
+}
+
+String _mapFinishTripErrorMessage({
+  required String? errorCode,
+  required String? errorMessage,
+}) {
+  final transitionMismatch =
+      (errorMessage ?? '').contains('TRANSITION_VERSION_MISMATCH');
+  switch (errorCode) {
+    case 'permission-denied':
+      return 'Bu cihazdan sefer sonlandirma yetkin yok (baslatan cihaz gerekli).';
+    case 'not-found':
+      return 'Aktif trip bulunamadi.';
+    case 'failed-precondition':
+      if (transitionMismatch) {
+        return 'Sefer durumu degisti. Lutfen tekrar dene.';
+      }
+      return 'Sefer su an sonlandirilamiyor.';
+    default:
+      final suffix =
+          (errorCode == null || errorCode.isEmpty) ? '' : ' ($errorCode)';
+      return 'Sefer sonlandirma basarisiz$suffix.';
   }
 }
 
@@ -1162,45 +1215,77 @@ Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
     return;
   }
 
+  final idempotencyKey = _buildTripActionIdempotencyKey(
+    action: 'announcement',
+    subject: routeContext.routeId,
+  );
   try {
-    final callable =
-        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-            .httpsCallable('sendDriverAnnouncement');
-    final response = await callable.call(<String, dynamic>{
-      'routeId': routeContext.routeId,
-      'templateKey': 'custom_text',
-      'customText': announcementText.trim(),
-      'idempotencyKey': _buildTripActionIdempotencyKey(
-        action: 'announcement',
-        subject: routeContext.routeId,
-      ),
-    });
-    final payload = _extractCallableData(response.data);
-    final shareUrl = (payload['shareUrl'] as String?)?.trim();
+    final execution = await _tripActionSyncService.executeOrQueue(
+      ownerUid: user.uid,
+      actionType: TripQueuedActionType.announcement,
+      callableName: 'sendDriverAnnouncement',
+      payload: <String, dynamic>{
+        'routeId': routeContext.routeId,
+        'templateKey': 'custom_text',
+        'customText': announcementText.trim(),
+        'idempotencyKey': idempotencyKey,
+      },
+      idempotencyKey: idempotencyKey,
+    );
     if (!context.mounted) {
       return;
     }
-    if (shareUrl != null && shareUrl.isNotEmpty) {
-      await _shareAnnouncementLink(
-        context,
-        routeName: routeContext.routeName,
-        shareUrl: shareUrl,
-      );
-      return;
+    switch (execution.state) {
+      case TripActionSyncState.synced:
+        final shareUrl =
+            (execution.responseData?['shareUrl'] as String?)?.trim();
+        if (shareUrl != null && shareUrl.isNotEmpty) {
+          await _shareAnnouncementLink(
+            context,
+            routeName: routeContext.routeName,
+            shareUrl: shareUrl,
+          );
+          return;
+        }
+        _showInfo(context, 'Duyuru gonderildi.');
+        return;
+      case TripActionSyncState.pendingSync:
+        _showInfo(context, 'Duyuru kuyruga alindi. Buluta yaziliyor...');
+        unawaited(
+          _queueFlushOrchestrator.flushAll(ownerUid: user.uid).catchError((_) {
+            debugPrint(
+                'Announcement queue flush skipped due to transient failure.');
+          }),
+        );
+        return;
+      case TripActionSyncState.failed:
+        _showInfo(
+          context,
+          _mapAnnouncementErrorMessage(errorCode: execution.errorCode),
+        );
+        return;
     }
-    _showInfo(context, 'Duyuru kuyruga alindi.');
-  } on FirebaseFunctionsException catch (error) {
-    if (!context.mounted) {
-      return;
+  } catch (_) {
+    if (context.mounted) {
+      _showInfo(context, 'Duyuru kuyruga alinamadi. Lutfen tekrar dene.');
     }
-    final message = switch (error.code) {
-      'permission-denied' =>
-        'Duyuru gonderimi premium yetki gerektiriyor veya route yetkin yok.',
-      'not-found' => 'Route bulunamadi.',
-      'failed-precondition' => 'Bu route icin duyuru su an gonderilemiyor.',
-      _ => 'Duyuru gonderimi basarisiz (${error.code}).',
-    };
-    _showInfo(context, message);
+  }
+}
+
+String _mapAnnouncementErrorMessage({
+  required String? errorCode,
+}) {
+  switch (errorCode) {
+    case 'permission-denied':
+      return 'Duyuru gonderimi premium yetki gerektiriyor veya route yetkin yok.';
+    case 'not-found':
+      return 'Route bulunamadi.';
+    case 'failed-precondition':
+      return 'Bu route icin duyuru su an gonderilemiyor.';
+    default:
+      final suffix =
+          (errorCode == null || errorCode.isEmpty) ? '' : ' ($errorCode)';
+      return 'Duyuru gonderimi basarisiz$suffix.';
   }
 }
 
@@ -2150,6 +2235,22 @@ final BatteryOptimizationFallbackService _batteryOptimizationFallbackService =
     BatteryOptimizationFallbackService();
 final IosSilentKillMitigationService _iosSilentKillMitigationService =
     IosSilentKillMitigationService();
+final LocalDriftDatabase _offlineQueueDatabase = LocalDriftDatabase();
+final LocalQueueRepository _localQueueRepository = LocalQueueRepository(
+  database: _offlineQueueDatabase,
+);
+final LocationPublishService _locationPublishService = LocationPublishService(
+  liveLocationRepository: RtdbLiveLocationRepository(),
+  localQueueRepository: _localQueueRepository,
+);
+final TripActionSyncService _tripActionSyncService = TripActionSyncService(
+  localQueueRepository: _localQueueRepository,
+);
+final QueueFlushOrchestrator _queueFlushOrchestrator = QueueFlushOrchestrator(
+  localQueueRepository: _localQueueRepository,
+  tripActionSyncService: _tripActionSyncService,
+  locationPublishService: _locationPublishService,
+);
 
 Future<void> _syncDriverLocationForegroundService({
   required bool shouldRun,
@@ -2413,12 +2514,18 @@ class _DriverFinishTripGuard extends StatefulWidget {
 class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     with WidgetsBindingObserver {
   bool _finishing = false;
+  bool _queueFlushInFlight = false;
+  bool _finishTripSyncPending = false;
+  bool _hasPendingCriticalSync = false;
+  bool _hasManualInterventionSync = false;
+  bool _manualInterventionInfoShown = false;
   int _screenResetSeed = 0;
   bool _batteryDegradeMode = false;
   bool _batteryPromptInFlight = false;
   bool _resumeRecoveryInFlight = false;
   Timer? _heartbeatUiTicker;
   Timer? _watchdogHeartbeatTimer;
+  Timer? _queueFlushTicker;
 
   @override
   void initState() {
@@ -2427,8 +2534,12 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     unawaited(_syncDriverLocationForegroundService(shouldRun: true));
     unawaited(_startOrRefreshIosWatchdogIfPossible());
     unawaited(_bootstrapBatteryOptimizationPolicy());
+    unawaited(_localQueueRepository.resumePendingOwnershipMigrationIfNeeded());
+    unawaited(_refreshQueueSyncState());
+    unawaited(_flushQueuedOpsSilently());
     _startHeartbeatUiTicker();
     _startWatchdogHeartbeatTicker();
+    _startQueueFlushTicker();
   }
 
   @override
@@ -2444,6 +2555,8 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     if (state == AppLifecycleState.resumed) {
       unawaited(_handleAndroidKillSignalAndBatteryPolicy());
       unawaited(_handleResumeRecoveryIfNeeded());
+      unawaited(_refreshQueueSyncState());
+      unawaited(_flushQueuedOpsSilently());
       return;
     }
     if (state == AppLifecycleState.inactive ||
@@ -2476,6 +2589,118 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
           return;
         }
         setState(() {});
+      },
+    );
+  }
+
+  void _startQueueFlushTicker() {
+    _queueFlushTicker?.cancel();
+    _queueFlushTicker = Timer.periodic(
+      const Duration(minutes: 15),
+      (_) => unawaited(_flushQueuedOpsSilently()),
+    );
+  }
+
+  Future<void> _refreshQueueSyncState() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasPendingCriticalSync = false;
+        _hasManualInterventionSync = false;
+      });
+      return;
+    }
+
+    final pendingCritical =
+        await _queueFlushOrchestrator.hasPendingCriticalTripActions(
+      ownerUid: user.uid,
+    );
+    final manualIntervention =
+        await _queueFlushOrchestrator.hasManualInterventionRequirement(
+      ownerUid: user.uid,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _hasPendingCriticalSync = pendingCritical;
+      _hasManualInterventionSync = manualIntervention;
+      if (!pendingCritical) {
+        _finishTripSyncPending = false;
+      }
+    });
+  }
+
+  Future<void> _flushQueuedOpsSilently() async {
+    if (_queueFlushInFlight) {
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final hasPending = await _queueFlushOrchestrator.hasPendingQueue(
+      ownerUid: user.uid,
+    );
+    if (!hasPending) {
+      await _refreshQueueSyncState();
+      return;
+    }
+
+    _queueFlushInFlight = true;
+    try {
+      final summary = await _queueFlushOrchestrator.flushAll(
+        ownerUid: user.uid,
+      );
+      await _refreshQueueSyncState();
+      if (!mounted) {
+        return;
+      }
+
+      if (summary.hasManualIntervention && !_manualInterventionInfoShown) {
+        _manualInterventionInfoShown = true;
+        _showInfo(
+          context,
+          'Bazi islemler esik deneme sinirina ulasti. Manuel mudahale gerekir.',
+        );
+      }
+      if (!summary.hasManualIntervention) {
+        _manualInterventionInfoShown = false;
+      }
+    } catch (_) {
+      debugPrint('Driver queue flush skipped due to transient failure.');
+    } finally {
+      _queueFlushInFlight = false;
+    }
+  }
+
+  Future<void> _showPendingSyncExitWarning() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Senkronizasyon Bekleniyor'),
+          content: const Text(
+            'Veriler henuz buluta gonderilmedi. Cikarsaniz islem arka planda tekrar denenecek.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Geri Don'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Navigator.of(context).maybePop();
+              },
+              child: const Text('Beklemeden Cik'),
+            ),
+          ],
+        );
       },
     );
   }
@@ -2759,12 +2984,22 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
       return;
     }
 
-    final completed = await _commitFinishTrip(context, user, activeTripContext);
+    final outcome = await _commitFinishTrip(context, user, activeTripContext);
     if (!mounted) {
       return;
     }
-    if (completed) {
+    if (outcome == _FinishTripCommitOutcome.synced) {
       context.go(AppRoutePath.driverHome);
+      return;
+    }
+    if (outcome == _FinishTripCommitOutcome.pendingSync) {
+      setState(() {
+        _finishing = false;
+        _finishTripSyncPending = true;
+        _screenResetSeed++;
+      });
+      unawaited(_refreshQueueSyncState());
+      unawaited(_flushQueuedOpsSilently());
       return;
     }
 
@@ -2779,6 +3014,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     WidgetsBinding.instance.removeObserver(this);
     _heartbeatUiTicker?.cancel();
     _watchdogHeartbeatTimer?.cancel();
+    _queueFlushTicker?.cancel();
     unawaited(_syncIosSilentKillWatchdog(shouldRun: false));
     super.dispose();
   }
@@ -2888,7 +3124,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     );
   }
 
-  ActiveTripScreen _buildActiveTripScreen({
+  Widget _buildActiveTripScreen({
     required HeartbeatState heartbeatState,
     required String lastHeartbeatAgo,
     required List<ActiveTripMapPoint> routePathPoints,
@@ -2898,7 +3134,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
     required int? crowFlyDistanceMeters,
     required int? stopsRemaining,
   }) {
-    return ActiveTripScreen(
+    final screen = ActiveTripScreen(
       key: ValueKey<String>(
         'active_trip_${widget.routeId ?? 'none'}_${widget.tripId ?? 'none'}_$_screenResetSeed',
       ),
@@ -2911,7 +3147,21 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
       routePathPoints: routePathPoints,
       vehiclePoint: vehiclePoint,
       nextStopPoint: nextStopPoint,
+      syncStateLabel: _finishTripSyncPending ? 'Buluta yaziliyor...' : null,
+      manualInterventionMessage: _hasManualInterventionSync
+          ? 'Senkronizasyon deneme limiti asildi. Manuel mudahale gerekir.'
+          : null,
       onTripFinished: _finishing ? null : _handleTripFinishConfirmed,
+    );
+    return PopScope(
+      canPop: !_hasPendingCriticalSync,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || !_hasPendingCriticalSync) {
+          return;
+        }
+        unawaited(_showPendingSyncExitWarning());
+      },
+      child: screen,
     );
   }
 

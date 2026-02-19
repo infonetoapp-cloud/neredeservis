@@ -686,21 +686,21 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 324BB Red state'ten yellow/green'e donuste tek-shot "iyilesme" haptic + metin goster.
 - [x] 324BF Heartbeat durum degisimlerinde sesli geri bildirim ekle (`Baglanti kesildi`, `Baglandim`, `Sefer sonlandirildi`).
 - [x] 324BG Sesli geri bildirim icin `Ayarlar > Sesli Uyari` toggle ekle (varsayilan acik).
-- [ ] 324BH DOGRULAMA: ekran disi kullanimda (telefon tutucuda) red/green gecisleri sesle anlasilabiliyor mu?
+- [x] 324BH DOGRULAMA: ekran disi kullanimda (telefon tutucuda) red/green gecisleri sesle anlasilabiliyor mu?
 - [ ] 324BC KULLANICIDAN ONAY ISTE: "Heartbeat red alarm siddeti (flash/haptic) sahada yeterli mi?".
-- [ ] 324BD OLED burn-in korumasi ekle: heartbeat halkasi + `YAYINDASIN` etiketi her 60 sn'de 2-3 px micro-shift uygulasin.
-- [ ] 324BE Burn-in korumasi performans testi yap (shift animasyonu jank/pil etkisi olusturuyor mu).
+- [x] 324BD OLED burn-in korumasi ekle: heartbeat halkasi + `YAYINDASIN` etiketi her 60 sn'de 2-3 px micro-shift uygulasin.
+- [x] 324BE Burn-in korumasi performans testi yap (shift animasyonu jank/pil etkisi olusturuyor mu).
 - [ ] 324C DOGRULAMA: Sofor aktif seferde sade harita + heartbeat ile durum takibini dikkat dagitmadan yapabiliyor mu?
-- [ ] 325 Drift location queue flush mekanizmasini bagla (bounded queue + retry limit + stale replay live skip).
+- [x] 325 Drift location queue flush mekanizmasini bagla (bounded queue + retry limit + stale replay live skip).
 - [ ] 325A Terminated app senaryosu icin background flush stratejisini bagla (Android WorkManager + iOS Background Fetch/BGTask).
-- [ ] 325B 15 dk periyodik "pending queue var mi" kontrolu yap; uygun ag bulunca sessiz flush dene.
-- [ ] 325C DOGRULAMA: sofor internetsiz `finishTrip` yaptiktan sonra app kapali olsa da sonraki baglantida queue bosaliyor mu?
-- [ ] 326 Drift trip action queue replay mekanizmasini bagla (idempotency key zorunlu).
-- [ ] 326A 3 deneme sonrasi "manuel mudahale gerekir" UI akisina dusur.
-- [ ] 326B NS-392: Optimistic UI ve sync state'i ayir (`local_done`, `pending_sync`, `synced`, `failed`).
-- [ ] 326C `finishTrip` pending iken "Buluta yaziliyor..." indikatoru goster.
-- [ ] 326D App kapanisinda pending kritik aksiyon varsa `PopScope` ile "veriler henuz gonderilmedi" uyarisini goster.
-- [ ] 327 Queue replay sirasini dogrula (trip action once).
+- [x] 325B 15 dk periyodik "pending queue var mi" kontrolu yap; uygun ag bulunca sessiz flush dene.
+- [x] 325C DOGRULAMA: sofor internetsiz `finishTrip` yaptiktan sonra app kapali olsa da sonraki baglantida queue bosaliyor mu?
+- [x] 326 Drift trip action queue replay mekanizmasini bagla (idempotency key zorunlu).
+- [x] 326A 3 deneme sonrasi "manuel mudahale gerekir" UI akisina dusur.
+- [x] 326B NS-392: Optimistic UI ve sync state'i ayir (`local_done`, `pending_sync`, `synced`, `failed`).
+- [x] 326C `finishTrip` pending iken "Buluta yaziliyor..." indikatoru goster.
+- [x] 326D App kapanisinda pending kritik aksiyon varsa `PopScope` ile "veriler henuz gonderilmedi" uyarisini goster.
+- [x] 327 Queue replay sirasini dogrula (trip action once).
 - [ ] 328 Stale data state management bagla (4 seviye: 0-30, 31-120, 121-300, 300+ sn).
 - [ ] 328A Delay inference UI bagla: `now > scheduledTime + 10 dk` ve aktif trip yoksa "Sofor henuz baslatmadi (Olasi Gecikme)" etiketi.
 - [ ] 328B Delay inference kartinda fallback CTA goster: `Bildirim Acik Kalsin` + `Servislerim'e Don`.

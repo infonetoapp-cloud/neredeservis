@@ -38,6 +38,9 @@ class AmberHeartbeatIndicator extends StatefulWidget {
     this.lastHeartbeatAgo,
   });
 
+  static const Duration burnInShiftDuration = Duration(seconds: 60);
+  static const Offset burnInShiftOffset = Offset(2.5, 1.5);
+
   /// Current heartbeat / connection state.
   final HeartbeatState state;
 
@@ -75,11 +78,11 @@ class _AmberHeartbeatIndicatorState extends State<AmberHeartbeatIndicator>
     // OLED burn-in micro-shift: 2-3 px movement every 60 s
     _burnInController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 60),
+      duration: AmberHeartbeatIndicator.burnInShiftDuration,
     )..repeat(reverse: true);
     _microShift = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(2.5, 1.5),
+      end: AmberHeartbeatIndicator.burnInShiftOffset,
     ).animate(
       CurvedAnimation(parent: _burnInController, curve: Curves.easeInOut),
     );
@@ -154,6 +157,7 @@ class _AmberHeartbeatIndicatorState extends State<AmberHeartbeatIndicator>
       animation: _microShift,
       builder: (context, child) {
         return Transform.translate(
+          key: const Key('heartbeat_micro_shift_transform'),
           offset: _microShift.value,
           child: child,
         );

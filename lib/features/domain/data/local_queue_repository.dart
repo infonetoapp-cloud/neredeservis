@@ -157,6 +157,22 @@ class LocalQueueRepository {
     return query.get();
   }
 
+  Future<List<TripActionQueueTableData>> loadPendingTripActions({
+    required String ownerUid,
+    int limit = 100,
+  }) {
+    final query = _database.select(_database.tripActionQueueTable)
+      ..where((TripActionQueueTable tbl) => tbl.ownerUid.equals(ownerUid))
+      ..orderBy(
+        <OrderingTerm Function(TripActionQueueTable)>[
+          (TripActionQueueTable tbl) => OrderingTerm.asc(tbl.createdAt),
+          (TripActionQueueTable tbl) => OrderingTerm.asc(tbl.id),
+        ],
+      )
+      ..limit(limit);
+    return query.get();
+  }
+
   Future<List<LocationQueueTableData>> loadLocationSamplesOfflineFirst({
     required String ownerUid,
     int limit = 100,
@@ -182,6 +198,51 @@ class LocalQueueRepository {
     }
     final locationCount = await _countLocationSamplesForOwner(ownerUid);
     return locationCount > 0;
+  }
+
+  Future<bool> hasPendingCriticalTripActions({
+    required String ownerUid,
+  }) async {
+    final table = _database.tripActionQueueTable;
+    final countExp = table.id.count();
+    final query = _database.selectOnly(table)
+      ..addColumns(<Expression<Object>>[countExp])
+      ..where(
+        table.ownerUid.equals(ownerUid) &
+            table.actionType.isIn(
+              <String>[
+                TripQueuedActionTypeCodec.toRaw(TripQueuedActionType.startTrip),
+                TripQueuedActionTypeCodec.toRaw(
+                    TripQueuedActionType.finishTrip),
+              ],
+            ) &
+            table.status.isNotValue(TripActionQueueStatusCodec.failedPermanent),
+      );
+    final row = await query.getSingle();
+    final count = row.read(countExp) ?? 0;
+    return count > 0;
+  }
+
+  Future<int> countManualInterventionTripActions({
+    required String ownerUid,
+  }) async {
+    final table = _database.tripActionQueueTable;
+    final countExp = table.id.count();
+    final query = _database.selectOnly(table)
+      ..addColumns(<Expression<Object>>[countExp])
+      ..where(
+        table.ownerUid.equals(ownerUid) &
+            table.actionType.isIn(
+              <String>[
+                TripQueuedActionTypeCodec.toRaw(TripQueuedActionType.startTrip),
+                TripQueuedActionTypeCodec.toRaw(
+                    TripQueuedActionType.finishTrip),
+              ],
+            ) &
+            table.status.equals(TripActionQueueStatusCodec.failedPermanent),
+      );
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
   }
 
   Future<int> enqueueTripAction({
@@ -443,11 +504,15 @@ class LocalQueueRepository {
 
   Future<List<TripActionQueueTableData>> getDeadLetterTripActions({
     int limit = 50,
+    String? ownerUid,
   }) {
     final query = _database.select(_database.tripActionQueueTable)
       ..where(
         (TripActionQueueTable tbl) =>
-            tbl.status.equals(TripActionQueueStatusCodec.failedPermanent),
+            tbl.status.equals(TripActionQueueStatusCodec.failedPermanent) &
+            (ownerUid == null
+                ? const Constant<bool>(true)
+                : tbl.ownerUid.equals(ownerUid)),
       )
       ..orderBy(
         <OrderingTerm Function(TripActionQueueTable)>[
@@ -566,6 +631,10 @@ class LocalQueueRepository {
       ..where((LocationQueueTable tbl) => tbl.id.equals(id))
       ..limit(1);
     return query.getSingleOrNull();
+  }
+
+  Future<TripActionQueueTableData?> getTripActionById(int id) {
+    return _getTripActionById(id);
   }
 
   Future<void> _upsertLocalMeta({

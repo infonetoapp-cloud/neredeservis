@@ -219,6 +219,63 @@ void main() {
       expect(find.text('840 m'), findsOneWidget);
     });
 
+    testWidgets('heartbeat burn-in micro-shift stays within 3px envelope', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AmberTheme.light(),
+          home: const Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: AmberHeartbeatIndicator(state: HeartbeatState.green),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final labelFinder = find.text('YAYINDASIN');
+      final initialOffset = tester.getTopLeft(labelFinder);
+
+      await tester.pump(AmberHeartbeatIndicator.burnInShiftDuration);
+      final shiftedOffset = tester.getTopLeft(labelFinder);
+
+      expect(shiftedOffset.dx - initialOffset.dx, inInclusiveRange(1.0, 3.0));
+      expect(shiftedOffset.dy - initialOffset.dy, inInclusiveRange(1.0, 3.0));
+
+      await tester.pump(AmberHeartbeatIndicator.burnInShiftDuration);
+      final cycleOffset = tester.getTopLeft(labelFinder);
+      expect((cycleOffset.dx - initialOffset.dx).abs(), lessThanOrEqualTo(0.5));
+      expect((cycleOffset.dy - initialOffset.dy).abs(), lessThanOrEqualTo(0.5));
+    });
+
+    testWidgets('heartbeat burn-in micro-shift long-run remains stable', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AmberTheme.light(),
+          home: const Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: AmberHeartbeatIndicator(state: HeartbeatState.green),
+            ),
+          ),
+        ),
+      );
+
+      final labelFinder = find.text('YAYINDASIN');
+      final initialOffset = tester.getTopLeft(labelFinder);
+      for (var second = 0; second < 180; second++) {
+        await tester.pump(const Duration(seconds: 1));
+        final offset = tester.getTopLeft(labelFinder);
+        expect(offset.dx - initialOffset.dx, inInclusiveRange(0.0, 3.0));
+        expect(offset.dy - initialOffset.dy, inInclusiveRange(0.0, 3.0));
+        expect(tester.takeException(), isNull);
+      }
+    });
+
     testWidgets('driver red heartbeat shows peripheral alarm frame', (
       WidgetTester tester,
     ) async {

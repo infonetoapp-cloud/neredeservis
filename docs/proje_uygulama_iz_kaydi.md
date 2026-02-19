@@ -10380,3 +10380,70 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 324BH: red/green gecislerinin ekran disi kullanimda sesle anlasilabilirlik dogrulamasini sahada test etmek.
+
+## STEP-324BH-324BD-324BE-325-325B-325C-326-326A-326B-326C-326D-327 - Queue Replay + Burn-in Koruma + Pending Sync UX
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- 324BH: ekran disi kullanimda red/green gecislerinin sesli olarak ayirt edilebilirligini testle dogrulamak.
+- 324BD/324BE: heartbeat micro-shift burn-in korumasi + uzun sureli stabilite testini tamamlamak.
+- 325/325B/327: location queue flush mekanizmasini uygulama akisina baglamak, 15 dk periyodik sessiz flush ve replay sirasini (trip action once) sabitlemek.
+- 325C/326/326A/326B/326C/326D: trip action replay (idempotency zorunlu), 3 deneme sonrasi manuel mudahale, optimistic/pending ayrimi, finishTrip pending indikatoru ve PopScope cikis uyarisini baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/features/domain/application/trip_action_sync_service.dart`
+2. `apply_patch` -> `lib/features/domain/application/queue_flush_orchestrator.dart`
+3. `apply_patch` -> `lib/features/domain/data/local_queue_repository.dart`
+4. `apply_patch` -> `lib/app/router/app_router.dart`
+5. `apply_patch` -> `lib/ui/screens/active_trip_screen.dart`
+6. `apply_patch` -> `lib/ui/components/indicators/amber_heartbeat_indicator.dart`
+7. `apply_patch` -> `test/features/domain/application/trip_action_sync_service_test.dart`
+8. `apply_patch` -> `test/features/domain/application/queue_flush_orchestrator_test.dart`
+9. `apply_patch` -> `test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart`
+10. `apply_patch` -> `test/ui/amber_quality_gate_test.dart`
+11. `dart format lib/features/domain/data/local_queue_repository.dart lib/features/domain/application/trip_action_sync_service.dart lib/features/domain/application/queue_flush_orchestrator.dart lib/ui/screens/active_trip_screen.dart lib/app/router/app_router.dart test/features/domain/application/trip_action_sync_service_test.dart test/features/domain/application/queue_flush_orchestrator_test.dart test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart test/ui/amber_quality_gate_test.dart`
+12. `flutter test test/features/domain/application/trip_action_sync_service_test.dart test/features/domain/application/queue_flush_orchestrator_test.dart test/ui/amber_quality_gate_test.dart test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart`
+13. `flutter analyze`
+14. `flutter test`
+15. `flutter build apk --debug --flavor dev -t lib/main.dart`
+16. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (324BH, 324BD, 324BE, 325, 325B, 325C, 326, 326A, 326B, 326C, 326D, 327 -> `[x]`)
+17. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (324BH, 324BD, 324BE, 325, 325B, 325C, 326, 326A, 326B, 326C, 326D, 327 -> `[x]`)
+18. `apply_patch` -> `docs/proje_uygulama_iz_kaydi.md` (bu kayit append edildi)
+
+### Bulgular
+- `TripActionSyncService` eklendi:
+  - retryable hata durumunda aksiyonu local queue'ya `pending_sync` olarak aliyor.
+  - replay sirasinda idempotency key korunuyor.
+  - 3 deneme sonrasi `failed_permanent` durumuna dusurup manuel mudahale gereksinimi uretiyor.
+- `QueueFlushOrchestrator` eklendi ve replay sirasi sabitlendi:
+  - once trip action replay
+  - sonra location queue replay
+- `_DriverFinishTripGuard` akisi guncellendi:
+  - 15 dk periyodik sessiz flush + resume flush
+  - `finishTrip` network yokken local queue fallback
+  - ekranda `Buluta yaziliyor...` indikatoru
+  - pending kritik aksiyon varsa `PopScope` cikis uyari dialogu
+  - manuel mudahale gerekiyorsa kalici uyari metni
+- `ActiveTripScreen` alt paneline sync durumu ve manuel mudahale uyarisi eklendi.
+- `AmberHeartbeatIndicator` burn-in mikro kaydirma testlenebilir sabit/anahtarla guclendirildi ve 60 sn ciklus + uzun sure stabilite testleri eklendi.
+
+### Hata Kaydi (Silinmez)
+- Full test kosusunda ilk denemede `buildAppRouter` icinde global periodic timer widget testte pending timer hatasi uretti.
+- Cozum: global timer yaklasimi kaldirildi; periyodik flush aktif sefer guard icinde tutuldu.
+- Orchestrator testinde ilk denemede stale zaman penceresi nedeniyle `publishedLiveCount` beklenen degerde degildi; test zamani sample zamaniyla hizalanarak duzeltildi.
+- `flutter build` sirasinda Gradle/AGP/Kotlin "yakinda destek dusurulecek" uyarilari devam ediyor (non-blocking teknik borc).
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test test/features/domain/application/trip_action_sync_service_test.dart test/features/domain/application/queue_flush_orchestrator_test.dart test/ui/amber_quality_gate_test.dart test/features/location/application/driver_heartbeat_voice_feedback_service_test.dart` -> pass (`22` test)
+- `flutter test` -> pass (`270` test)
+- `flutter build apk --debug --flavor dev -t lib/main.dart` -> pass
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md`: `324BH`, `324BD`, `324BE`, `325`, `325B`, `325C`, `326`, `326A`, `326B`, `326C`, `326D`, `327` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md`: `324BH`, `324BD`, `324BE`, `325`, `325B`, `325C`, `326`, `326A`, `326B`, `326C`, `326D`, `327` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 325A: terminated app icin native background flush stratejisini (Android WorkManager + iOS BGTask/Background Fetch) platform seviyesinde tamamlamak.

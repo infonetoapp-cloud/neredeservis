@@ -65,6 +65,28 @@ void main() {
       expect(fakeEngine.stopCount, 0);
       expect(fakeEngine.spokenMessages, isEmpty);
     });
+
+    test('off-screen usage can distinguish red and recovery transitions',
+        () async {
+      final fakeEngine = _FakeDriverVoiceEngine();
+      var nowUtc = DateTime.utc(2026, 2, 19, 11, 0, 0);
+      final service = DriverHeartbeatVoiceFeedbackService(
+        engine: fakeEngine,
+        nowUtc: () => nowUtc,
+      );
+
+      await service.announce(DriverHeartbeatVoiceEvent.connectionLost);
+      nowUtc = nowUtc.add(const Duration(seconds: 4));
+      await service.announce(DriverHeartbeatVoiceEvent.connected);
+
+      expect(
+        fakeEngine.spokenMessages,
+        <String>[
+          'Baglanti kesildi',
+          'Baglandim',
+        ],
+      );
+    });
   });
 }
 
