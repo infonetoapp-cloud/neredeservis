@@ -96,7 +96,7 @@ GoRouter buildAppRouter({
           appName: flavorConfig.appName,
           onStartTripTap: () => _handleStartTripWithUndo(context),
           onManageRouteTap: () => context.go(AppRoutePath.driverRoutesManage),
-          onAnnouncementTap: () => context.go(AppRoutePath.settings),
+          onAnnouncementTap: () => _handleSendDriverAnnouncement(context),
           onSettingsTap: () => context.go(AppRoutePath.settings),
         ),
       ),
@@ -1037,6 +1037,146 @@ Future<_DriverActiveTripContext?> _resolveActiveTripContextForFinish(
     tripId: activeTripDoc.id,
     transitionVersion: transitionVersion,
   );
+}
+
+Future<void> _handleSendDriverAnnouncement(BuildContext context) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    if (context.mounted) {
+      _showInfo(context, 'Oturum bulunamadi. Lutfen tekrar giris yap.');
+    }
+    return;
+  }
+
+  final routeContext = await _resolvePrimaryDriverRouteContext(user.uid);
+  if (!context.mounted) {
+    return;
+  }
+  if (routeContext == null) {
+    _showInfo(context, 'Duyuru gondermek icin uygun rota bulunamadi.');
+    return;
+  }
+
+  final announcementText = await _showDriverAnnouncementDialog(
+    context,
+    routeName: routeContext.routeName,
+  );
+  if (!context.mounted) {
+    return;
+  }
+  if (announcementText == null || announcementText.trim().isEmpty) {
+    return;
+  }
+
+  try {
+    final callable =
+        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
+            .httpsCallable('sendDriverAnnouncement');
+    final response = await callable.call(<String, dynamic>{
+      'routeId': routeContext.routeId,
+      'templateKey': 'custom_text',
+      'customText': announcementText.trim(),
+      'idempotencyKey': _buildTripActionIdempotencyKey(
+        action: 'announcement',
+        subject: routeContext.routeId,
+      ),
+    });
+    final payload = _extractCallableData(response.data);
+    final shareUrl = (payload['shareUrl'] as String?)?.trim();
+    if (!context.mounted) {
+      return;
+    }
+    if (shareUrl != null && shareUrl.isNotEmpty) {
+      _showInfo(context, 'Duyuru kuyruga alindi. Link hazir: $shareUrl');
+      return;
+    }
+    _showInfo(context, 'Duyuru kuyruga alindi.');
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (error.code) {
+      'permission-denied' =>
+        'Duyuru gonderimi premium yetki gerektiriyor veya route yetkin yok.',
+      'not-found' => 'Route bulunamadi.',
+      'failed-precondition' => 'Bu route icin duyuru su an gonderilemiyor.',
+      _ => 'Duyuru gonderimi basarisiz (${error.code}).',
+    };
+    _showInfo(context, message);
+  }
+}
+
+Future<String?> _showDriverAnnouncementDialog(
+  BuildContext context, {
+  required String routeName,
+}) async {
+  final textController = TextEditingController();
+  String? inlineError;
+
+  try {
+    return await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            void submit() {
+              final message = textController.text.trim();
+              if (message.length < 3) {
+                setDialogState(() {
+                  inlineError = 'Duyuru metni en az 3 karakter olmali.';
+                });
+                return;
+              }
+              Navigator.of(dialogContext).pop(message);
+            }
+
+            return AlertDialog(
+              title: const Text('Duyuru Gonder'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Rota: $routeName'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: textController,
+                    autofocus: true,
+                    minLines: 2,
+                    maxLines: 4,
+                    maxLength: 240,
+                    decoration: InputDecoration(
+                      labelText: 'Duyuru metni',
+                      errorText: inlineError,
+                    ),
+                    onChanged: (_) {
+                      if (inlineError == null) {
+                        return;
+                      }
+                      setDialogState(() {
+                        inlineError = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Iptal'),
+                ),
+                FilledButton(
+                  onPressed: submit,
+                  child: const Text('Gonder'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } finally {
+    textController.dispose();
+  }
 }
 
 Future<void> _handleJoinBySrvCode(

@@ -9367,3 +9367,44 @@ Etiket: codex
 
 ### Sonraki Adim
 - Faz G / 318: Announcement gonderme akisini bagla.
+
+## STEP-318 - Driver Announcement Akisi
+Tarih: 2026-02-19
+Durum: Tamamlandi
+Etiket: codex
+
+### Amac
+- Faz G / 318 kapsaminda sofor tarafinda duyuru gonderme akisini
+  `sendDriverAnnouncement` callable ile baglamak.
+
+### Calistirilan Komutlar (Ham)
+1. `apply_patch` -> `lib/app/router/app_router.dart`
+   - `driverHome` icindeki `onAnnouncementTap` callback'i callable akisina baglandi
+   - `_handleSendDriverAnnouncement` handler eklendi
+   - duyuru metni toplamak icin `_showDriverAnnouncementDialog` eklendi
+   - payload: `routeId`, `templateKey`, `customText`, `idempotencyKey`
+2. `dart format lib/app/router/app_router.dart`
+3. `flutter analyze`
+4. `flutter test`
+5. `apply_patch` -> `docs/RUNBOOK_LOCKED.md` (`318` -> `[x]`)
+6. `apply_patch` -> `docs/NeredeServis_Cursor_Amber_Runbook.md` (`318` -> `[x]`)
+
+### Bulgular
+- Sofor `Duyuru gonder` aksiyonuna bastiginda metin dialogu aciliyor.
+- Duyuru gonderimi oncesi aktif/uygun rota baglami seciliyor.
+- `sendDriverAnnouncement` callable cagrisi basarili olursa kuyruk bilgisi
+  ve varsa `shareUrl` kullanıcıya bilgi mesaji olarak gosteriliyor.
+- Premium/izin/route hatalari kod bazli anlamli mesajlara maplendi.
+
+### Hata Kaydi (Silinmez)
+- SERH (silinmez): Iz kaydi append-only tutuldu; once raporlanan kayip bolumler (131-154F) icin ek silinme olusturulmadi.
+
+### Dogrulama
+- `flutter analyze` -> pass (No issues found)
+- `flutter test` -> pass (tum testler green, `197` test)
+- Runbook checklist:
+  - `docs/RUNBOOK_LOCKED.md` `318` -> `[x]`
+  - `docs/NeredeServis_Cursor_Amber_Runbook.md` `318` -> `[x]`
+
+### Sonraki Adim
+- Faz G / 319: WhatsApp share intent bagla.

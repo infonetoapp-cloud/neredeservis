@@ -655,7 +655,7 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 317A `Seferi Bitir` aksiyonunu guvenli hale getir (`slide-to-finish` veya `uzun bas`, tek tap yok).
 - [x] 317B `Seferi Bitir` guvenli aksiyonu icin haptic+gorsel geri bildirim ekle; 3 sn icinde geri alma yoksa finalize et.
 - [x] 317C KULLANICIDAN ONAY ISTE: "`Seferi Bitir` icin secilen guvenli etkileÅŸim (slide/uzun bas) kabul mu?".
-- [ ] 318 Announcement gonderme akisini bagla.
+- [x] 318 Announcement gonderme akisini bagla.
 - [ ] 319 WhatsApp share intent bagla (WhatsApp/WhatsApp Business dene; app yoksa sistem share sheet fallback + hata mesaji).
 - [ ] 319A Paylasim linki tiklaninca davranisi netlestir: app yÃ¼klÃ¼ degilse landing page mini takip karti + store; yÃ¼klÃ¼yse deep link ile route preview.
 - [ ] 320 RTDB location stream dinlemeyi bagla.
