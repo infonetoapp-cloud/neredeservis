@@ -8,14 +8,20 @@ class UpdateUserProfileInput {
   const UpdateUserProfileInput({
     required this.displayName,
     this.phone,
+    this.photoUrl,
+    this.photoPath,
   });
 
   final String displayName;
   final String? phone;
+  final String? photoUrl;
+  final String? photoPath;
 
   Map<String, dynamic> toJson() => {
         'displayName': displayName,
         if (phone != null && phone!.isNotEmpty) 'phone': phone,
+        if (photoUrl != null && photoUrl!.isNotEmpty) 'photoUrl': photoUrl,
+        if (photoPath != null && photoPath!.isNotEmpty) 'photoPath': photoPath,
       };
 }
 
@@ -39,9 +45,8 @@ class UpdateUserProfileClient {
   FirebaseFunctions? _functions;
   final CallableInvoker? _invoker;
 
-  FirebaseFunctions get _resolvedFunctions =>
-      _functions ??=
-          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
+  FirebaseFunctions get _resolvedFunctions => _functions ??=
+      FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
 
   Future<UpdateUserProfileResult> update(
     UpdateUserProfileInput input,

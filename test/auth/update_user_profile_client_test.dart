@@ -43,5 +43,34 @@ void main() {
         ),
       );
     });
+
+    test('forwards optional photo fields when present', () async {
+      String? callableName;
+      Map<String, dynamic>? payload;
+      final client = UpdateUserProfileClient(
+        invoker: (name, input) async {
+          callableName = name;
+          payload = Map<String, dynamic>.from(input);
+          return <String, dynamic>{'uid': 'u-1', 'updatedAt': 'ts'};
+        },
+      );
+
+      await client.update(
+        const UpdateUserProfileInput(
+          displayName: 'Name',
+          phone: '555',
+          photoUrl: 'https://example.com/p.jpg',
+          photoPath: 'users/u-1/p.jpg',
+        ),
+      );
+
+      expect(callableName, 'updateUserProfile');
+      expect(payload, <String, dynamic>{
+        'displayName': 'Name',
+        'phone': '555',
+        'photoUrl': 'https://example.com/p.jpg',
+        'photoPath': 'users/u-1/p.jpg',
+      });
+    });
   });
 }

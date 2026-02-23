@@ -141,5 +141,8 @@ class _FakeAuthGateway implements AuthGateway {
 
 class _FakeUserRoleRepository implements UserRoleRepository {
   @override
+  Future<UserRole> readRole(String uid) async => UserRole.unknown;
+
+  @override
   Stream<UserRole?> watchRole(String uid) => const Stream<UserRole?>.empty();
 }

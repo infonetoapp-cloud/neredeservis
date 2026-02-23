@@ -1,6 +1,7 @@
 abstract final class AppRoutePath {
   static const String splash = '/splash';
   static const String auth = '/auth';
+  static const String authEmail = '/auth/email';
   static const String roleSelect = '/role/select';
   static const String driverHome = '/driver/home';
   static const String driverProfileSetup = '/driver/profile/setup';
@@ -8,12 +9,22 @@ abstract final class AppRoutePath {
   static const String driverRouteCreate = '/driver/routes/create';
   static const String driverRouteUpdate = '/driver/routes/update';
   static const String driverRouteStops = '/driver/routes/stops';
+  static const String driverMyTrips = '/driver/trips';
+  static const String driverTripDetail = '/driver/trips/detail';
+  static const String driverSettings = '/driver/settings';
   static const String paywall = '/driver/paywall';
   static const String activeTrip = '/driver/active-trip';
+  static const String driverTripCompleted = '/driver/trip/completed';
+  static const String driverTripHistory = '/driver/trip/history';
   static const String passengerHome = '/passenger/home';
   static const String passengerSettings = '/passenger/settings';
   static const String passengerTracking = '/passenger/tracking';
+  static const String passengerTripHistory = '/passenger/trip/history';
+  static const String tripChat = '/trip/chat';
   static const String join = '/join';
+  static const String joinQr = '/join/qr';
+  static const String joinSuccess = '/join/success';
+  static const String joinError = '/join/error';
   static const String settings = '/settings';
   static const String profileEdit = '/settings/profile';
 }

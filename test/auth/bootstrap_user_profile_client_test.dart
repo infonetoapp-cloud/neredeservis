@@ -65,12 +65,14 @@ void main() {
         const BootstrapUserProfileInput(
           displayName: 'Name',
           phone: '+905551112233',
+          preferredRole: 'driver',
         ),
       );
 
       expect(callableName, 'bootstrapUserProfile');
       expect(forwardedInput['displayName'], 'Name');
       expect(forwardedInput['phone'], '+905551112233');
+      expect(forwardedInput['preferredRole'], 'driver');
     });
 
     test('maps callable errors to ProfileCallableException', () async {

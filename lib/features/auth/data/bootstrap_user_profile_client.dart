@@ -13,14 +13,18 @@ class BootstrapUserProfileInput {
   const BootstrapUserProfileInput({
     required this.displayName,
     this.phone,
+    this.preferredRole,
   });
 
   final String displayName;
   final String? phone;
+  final String? preferredRole;
 
   Map<String, dynamic> toJson() => {
         'displayName': displayName,
         if (phone != null && phone!.isNotEmpty) 'phone': phone,
+        if (preferredRole != null && preferredRole!.isNotEmpty)
+          'preferredRole': preferredRole,
       };
 }
 
@@ -46,9 +50,8 @@ class BootstrapUserProfileClient {
   FirebaseFunctions? _functions;
   final CallableInvoker? _invoker;
 
-  FirebaseFunctions get _resolvedFunctions =>
-      _functions ??=
-          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
+  FirebaseFunctions get _resolvedFunctions => _functions ??=
+      FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
 
   Future<BootstrapUserProfileResult> bootstrap(
     BootstrapUserProfileInput input,

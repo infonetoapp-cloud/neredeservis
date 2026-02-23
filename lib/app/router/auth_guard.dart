@@ -10,8 +10,12 @@ class AuthGuard {
   static const Set<String> _publicRoutes = <String>{
     AppRoutePath.splash,
     AppRoutePath.auth,
+    AppRoutePath.authEmail,
     AppRoutePath.roleSelect,
     AppRoutePath.join,
+    AppRoutePath.joinQr,
+    AppRoutePath.joinSuccess,
+    AppRoutePath.joinError,
   };
 
   String? redirect(String location) {

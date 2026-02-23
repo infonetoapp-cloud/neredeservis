@@ -1,26 +1,19 @@
 import '../../features/auth/domain/user_role.dart';
-import 'app_route_paths.dart';
+import 'role_corridor_coordinator.dart';
 
 class RoleGuard {
   const RoleGuard({
     required this.currentRole,
-  });
+    RoleCorridorCoordinator? coordinator,
+  }) : _coordinator = coordinator ?? const RoleCorridorCoordinator();
 
   final UserRole currentRole;
+  final RoleCorridorCoordinator _coordinator;
 
   String? redirect(String location) {
-    if (currentRole == UserRole.unknown) {
-      return null;
-    }
-
-    if (location.startsWith('/driver/') && currentRole != UserRole.driver) {
-      return AppRoutePath.passengerHome;
-    }
-
-    if (location.startsWith('/passenger/') && currentRole == UserRole.driver) {
-      return AppRoutePath.driverHome;
-    }
-
-    return null;
+    return _coordinator.redirectForCurrentRole(
+      currentRole: currentRole,
+      location: location,
+    );
   }
 }

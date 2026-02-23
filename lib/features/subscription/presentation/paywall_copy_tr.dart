@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart' show TargetPlatform;
 
+import '../../../l10n/tr_localization_keys.dart';
+import '../../../l10n/tr_localizations.dart';
+
 /// Single source for V1.0 payment/paywall copy.
 /// Source doc: docs/NeredeServis_Paywall_Copy_TR.md
 enum SubscriptionUiStatus {
@@ -12,39 +15,124 @@ enum SubscriptionUiStatus {
 class PaywallCopyTr {
   const PaywallCopyTr._();
 
-  static const String settingsCardTitle = 'Abonelik';
+  static const String settingsCardTitleKey =
+      TrLocalizationKeys.paywallSettingsCardTitle;
+  static const String settingsCardTitle =
+      TrLocalizations.paywallSettingsCardTitle;
+  static const String settingsCardDescriptionTrialActiveKey =
+      TrLocalizationKeys.paywallSettingsCardDescriptionTrialActive;
   static const String settingsCardDescriptionTrialActive =
-      'Deneme suren devam ediyor';
-  static const String settingsCardDescriptionActive = 'Premium aktif';
+      TrLocalizations.paywallSettingsCardDescriptionTrialActive;
+  static const String settingsCardDescriptionActiveKey =
+      TrLocalizationKeys.paywallSettingsCardDescriptionActive;
+  static const String settingsCardDescriptionActive =
+      TrLocalizations.paywallSettingsCardDescriptionActive;
+  static const String settingsCardDescriptionExpiredKey =
+      TrLocalizationKeys.paywallSettingsCardDescriptionExpired;
   static const String settingsCardDescriptionExpired =
-      'Deneme bitti, canli mod kisitli';
+      TrLocalizations.paywallSettingsCardDescriptionExpired;
 
-  static const String paywallTitle = 'Servisi gecikmeden goster';
-  static const String paywallSubtitle =
-      'Premium ile konum ve bildirimler daha hizli, daha tutarli calisir.';
+  static const String paywallTitleKey = TrLocalizationKeys.paywallTitle;
+  static const String paywallTitle = TrLocalizations.paywallTitle;
+  static const String paywallSubtitleKey = TrLocalizationKeys.paywallSubtitle;
+  static const String paywallSubtitle = TrLocalizations.paywallSubtitle;
+  static const String paywallSubtitleTrialExpiredKey =
+      TrLocalizationKeys.paywallSubtitleTrialExpired;
   static const String paywallSubtitleTrialExpired =
-      "Deneme bitti. Veri kaybetmeden Premium'a gecebilirsin.";
+      TrLocalizations.paywallSubtitleTrialExpired;
 
-  static const String paywallFeatureLive =
-      'Daha sik guncelleme ile canli takip';
+  static const String paywallFeatureLiveKey =
+      TrLocalizationKeys.paywallFeatureLive;
+  static const String paywallFeatureLive = TrLocalizations.paywallFeatureLive;
+  static const String paywallFeaturePriorityKey =
+      TrLocalizationKeys.paywallFeaturePriority;
   static const String paywallFeaturePriority =
-      'Duyuru ve bildirim akisinda oncelik';
+      TrLocalizations.paywallFeaturePriority;
+  static const String paywallFeatureResyncKey =
+      TrLocalizationKeys.paywallFeatureResync;
   static const String paywallFeatureResync =
-      'Kesintide daha guclu senkron geri donusu';
+      TrLocalizations.paywallFeatureResync;
 
-  static const String monthlyPlanTitle = 'Aylik Plan';
-  static const String yearlyPlanTitle = 'Yillik Plan';
-  static const String monthlyPlanDescription = 'Esnek odeme';
-  static const String yearlyPlanDescription = 'Uzun donem daha dusuk maliyet';
-  static const String yearlyPlanBadge = 'En avantajli';
+  static const String monthlyPlanTitleKey =
+      TrLocalizationKeys.paywallMonthlyPlanTitle;
+  static const String monthlyPlanTitle =
+      TrLocalizations.paywallMonthlyPlanTitle;
+  static const String yearlyPlanTitleKey =
+      TrLocalizationKeys.paywallYearlyPlanTitle;
+  static const String yearlyPlanTitle = TrLocalizations.paywallYearlyPlanTitle;
+  static const String monthlyPlanDescriptionKey =
+      TrLocalizationKeys.paywallMonthlyPlanDescription;
+  static const String monthlyPlanDescription =
+      TrLocalizations.paywallMonthlyPlanDescription;
+  static const String yearlyPlanDescriptionKey =
+      TrLocalizationKeys.paywallYearlyPlanDescription;
+  static const String yearlyPlanDescription =
+      TrLocalizations.paywallYearlyPlanDescription;
+  static const String yearlyPlanBadgeKey =
+      TrLocalizationKeys.paywallYearlyPlanBadge;
+  static const String yearlyPlanBadge = TrLocalizations.paywallYearlyPlanBadge;
 
-  static const String primaryCta = "Premium'u Ac";
-  static const String secondaryCta = 'Simdilik Sonra';
-  static const String manageSubscription = 'Manage Subscription';
+  static const String primaryCtaKey = TrLocalizationKeys.paywallPrimaryCta;
+  static const String primaryCta = TrLocalizations.paywallPrimaryCta;
+  static const String secondaryCtaKey = TrLocalizationKeys.paywallSecondaryCta;
+  static const String secondaryCta = TrLocalizations.paywallSecondaryCta;
+  static const String manageSubscriptionKey = TrLocalizationKeys.paywallManage;
+  static const String manageSubscription = TrLocalizations.paywallManage;
 
-  static const String legalLine =
-      'Abonelik otomatik yenilenir. Istedigin zaman store ayarlarindan '
-      'iptal edebilirsin.';
+  static const String legalLineKey = TrLocalizationKeys.paywallLegalLine;
+  static const String legalLine = TrLocalizations.paywallLegalLine;
+  static const String premiumInterceptTitleKey =
+      TrLocalizationKeys.paywallPremiumInterceptTitle;
+  static const String premiumInterceptTitle =
+      TrLocalizations.paywallPremiumInterceptTitle;
+  static const String premiumInterceptBodyKey =
+      TrLocalizationKeys.paywallPremiumInterceptBody;
+  static const String premiumInterceptBody =
+      TrLocalizations.paywallPremiumInterceptBody;
+  static const String premiumInterceptCtaKey =
+      TrLocalizationKeys.paywallPremiumInterceptCta;
+  static const String premiumInterceptCta =
+      TrLocalizations.paywallPremiumInterceptCta;
+  static const String deleteInterceptorTitleKey =
+      TrLocalizationKeys.paywallDeleteInterceptorTitle;
+  static const String deleteInterceptorTitle =
+      TrLocalizations.paywallDeleteInterceptorTitle;
+  static const String deleteInterceptorBodyKey =
+      TrLocalizationKeys.paywallDeleteInterceptorBody;
+  static const String deleteInterceptorBody =
+      TrLocalizations.paywallDeleteInterceptorBody;
+  static const String deleteInterceptorCtaManageKey =
+      TrLocalizationKeys.paywallDeleteInterceptorCtaManage;
+  static const String deleteInterceptorCtaManage =
+      TrLocalizations.paywallDeleteInterceptorCtaManage;
+  static const String deleteInterceptorCtaCancelKey =
+      TrLocalizationKeys.paywallDeleteInterceptorCtaCancel;
+  static const String deleteInterceptorCtaCancel =
+      TrLocalizations.paywallDeleteInterceptorCtaCancel;
+  static const String purchaseSuccessKey =
+      TrLocalizationKeys.paywallPurchaseSuccess;
+  static const String purchaseSuccess = TrLocalizations.paywallPurchaseSuccess;
+  static const String purchaseCancelledKey =
+      TrLocalizationKeys.paywallPurchaseCancelled;
+  static const String purchaseCancelled =
+      TrLocalizations.paywallPurchaseCancelled;
+  static const String purchaseErrorNetworkKey =
+      TrLocalizationKeys.paywallPurchaseErrorNetwork;
+  static const String purchaseErrorNetwork =
+      TrLocalizations.paywallPurchaseErrorNetwork;
+  static const String restoreSuccessKey =
+      TrLocalizationKeys.paywallRestoreSuccess;
+  static const String restoreSuccess = TrLocalizations.paywallRestoreSuccess;
+  static const String restoreEmptyKey = TrLocalizationKeys.paywallRestoreEmpty;
+  static const String restoreEmpty = TrLocalizations.paywallRestoreEmpty;
+  static const String restoreErrorKey = TrLocalizationKeys.paywallRestoreError;
+  static const String restoreError = TrLocalizations.paywallRestoreError;
+  static const String softlockHintKey = TrLocalizationKeys.paywallSoftlockHint;
+  static const String softlockHint = TrLocalizations.paywallSoftlockHint;
+  static const String manageRedirectNoticeKey =
+      TrLocalizationKeys.paywallManageRedirectNotice;
+  static const String manageRedirectNotice =
+      TrLocalizations.paywallManageRedirectNotice;
 
   static String settingsCardDescriptionForStatus(SubscriptionUiStatus status) {
     return switch (status) {
@@ -61,20 +149,22 @@ class PaywallCopyTr {
     required int trialDaysLeft,
   }) {
     return switch (status) {
-      SubscriptionUiStatus.trialActive =>
-        'Deneme suresi: $trialDaysLeft gun kaldi',
+      SubscriptionUiStatus.trialActive => TrLocalizations.text(
+          TrLocalizationKeys.paywallTrialBannerActive,
+          params: <String, String>{'days_left': '$trialDaysLeft'},
+        ),
       SubscriptionUiStatus.trialExpired =>
-        'Denemen bitti. Canli modu acmak icin abonelik sec.',
+        TrLocalizations.text(TrLocalizationKeys.paywallTrialBannerExpired),
       SubscriptionUiStatus.active => settingsCardDescriptionActive,
       SubscriptionUiStatus.mock =>
-        'V1.0 mock/read-only mod: gercek tahsilat kapali.',
+        TrLocalizations.text(TrLocalizationKeys.paywallTrialBannerMock),
     };
   }
 
   static String restoreLabelForPlatform(TargetPlatform platform) {
     if (platform == TargetPlatform.iOS) {
-      return 'Restore Purchases';
+      return TrLocalizations.text(TrLocalizationKeys.paywallRestoreIos);
     }
-    return 'Satin Alimlari Geri Yukle';
+    return TrLocalizations.text(TrLocalizationKeys.paywallRestoreAndroid);
   }
 }

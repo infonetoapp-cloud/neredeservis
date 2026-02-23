@@ -11,7 +11,8 @@ import 'package:neredeservis/features/auth/domain/user_role.dart';
 
 void main() {
   group('AuthRoleBootstrapService integration', () {
-    test('ensureAnonymousSession returns existing session without extra sign-in',
+    test(
+        'ensureAnonymousSession returns existing session without extra sign-in',
         () async {
       final authGateway = FakeAuthGateway(
         initialSession: const AuthSession(
@@ -128,7 +129,8 @@ void main() {
 }
 
 class FakeAuthGateway implements AuthGateway {
-  FakeAuthGateway({required AuthSession? initialSession}) : _session = initialSession {
+  FakeAuthGateway({required AuthSession? initialSession})
+      : _session = initialSession {
     _controller = StreamController<AuthSession?>.broadcast(
       onListen: () {
         _controller.add(_session);
@@ -174,6 +176,11 @@ class FakeAuthGateway implements AuthGateway {
 class FakeUserRoleRepository implements UserRoleRepository {
   final Map<String, StreamController<UserRole?>> _controllers = {};
   final Map<String, UserRole?> _latestRoles = {};
+
+  @override
+  Future<UserRole> readRole(String uid) async {
+    return _latestRoles[uid] ?? UserRole.unknown;
+  }
 
   @override
   Stream<UserRole?> watchRole(String uid) {
