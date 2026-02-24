@@ -29,11 +29,15 @@ Not:
 
 ### D-002 - Frontend hosting
 
-Durum: Alindi
+Durum: Revize edildi
 
 Karar:
-- Azure Static Web Apps (frontend)
+- Vercel (frontend; dev/internal test baslangici)
 - Firebase backend korunacak
+
+Not:
+- Azure Student subscription policy'sindeki izinli regionler ile Azure SWA desteklenen regionler cakismadigi icin SWA dev kurulumu bloklandi
+- Ilk asamada Vercel Hobby ile dev/internal test; ilk dis demo/pilot oncesi plan seviyesi/go-live host karari yeniden gozden gecirilecek
 
 ### D-003 - DNS/WAF
 
@@ -91,6 +95,18 @@ Karar:
 
 Not:
 - `15_engineering_standards_and_code_health.md` revize edildi (UI vs logic ayrimi)
+
+### D-027 - Azure SWA Student region policy blokaji (execution)
+
+Durum: Alindi
+
+Karar:
+- Azure Student subscription'da uygulanan region policy nedeniyle Azure SWA dev resource olusturulamadi
+- Faz 1 delivery hizini korumak icin frontend dev hosting Vercel'e alindi
+- Azure plani dokumanlarda referans/future option olarak kalabilir ama aktif Faz 1 yolu degil
+
+Not:
+- Teknik kanit: SWA desteklenen regionler (`westus2`, `centralus`, `eastus2`, `westeurope`, `eastasia`) ile policy izinli regionler (`swedencentral`, `norwayeast`, `spaincentral`, `switzerlandnorth`, `uaenorth`) kesismedi
 
 ### D-009 - Web auth provider seti
 

@@ -1,11 +1,15 @@
 ﻿# Azure Static Web Apps Creation Steps (Faz 1 Hazirlik, MVP-Cut)
 
 Tarih: 2026-02-24
-Durum: Uygulama checklist (koddan once)
+Durum: Referans checklist (Azure SWA) - Azure Student region policy nedeniyle Faz 1 dev yolunda bloklu
 
 ## 1. Amac
 
 Azure SWA kaynagini plansiz kurmayip standard adimlarla olusturmak.
+
+Not (2026-02-25 execution revizyonu):
+- Mevcut Azure Student subscription policy'sinde izinli regionler ile Azure SWA desteklenen regionler cakismadigi icin (`westeurope` izinli degil; izinli regionlerde SWA yok), Faz 1 dev deploy yolu Vercel'e alinmistir.
+- Bu dokuman silinmez; future PayG / farkli subscription durumunda referans olarak kalir.
 
 MVP kapsami (revize):
 - tek SWA (`web`) 

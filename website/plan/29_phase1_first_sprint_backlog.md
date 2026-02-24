@@ -25,8 +25,9 @@ Progress notu (guncel):
 - `P0-5` auth UI shell + trigger iskeleti tamam (email/google login trigger, sign-out action, auth session smoke karti, basic password reset email trigger)
 - `P0-6` session bootstrap placeholder + dashboard auth gate skeleton tamam
 - `P0-7` mode selector placeholder (hard-coded) tamam
-- `P0-3` Azure SWA dev deploy smoke, Azure/generated domain authorized domains ekleri ile Google auth smoke
-- SWA tarafi icin `staticwebapp.config.json` baseline stub eklendi (headers; routing smoke deploy gunu dogrulanacak)
+- `P0-3` revize edildi: Azure SWA dev deploy smoke yerine Vercel dev deploy smoke (Azure Student region policy blokaji nedeniyle)
+- Vercel generated domain + Firebase authorized domains ekleri ile Google auth smoke yapilacak
+- Azure SWA baseline denemesi dokumante edildi; aktif Faz 1 yolu degil
 
 ## 3. Sprint Itemlari (onerilen sirayla)
 
@@ -48,14 +49,14 @@ Acceptance:
 - PR pipeline minimum gates yesil
 - package manager secimi karar logunda kapatildi
 
-### P0-3 Azure SWA Dev Resources + Deploy Wiring
-- tek web SWA dev
+### P0-3 Vercel Dev Deploy Wiring
+- tek web Vercel project (root dir: `website/apps/web`)
 - generated domain smoke
-- App Router route refresh/catch-all smoke (SWA fallback/cakisma kontrolu)
+- App Router route refresh/deep-link smoke
 - ilk deploy gununde routing smoke sonucu notlanir
 
 Acceptance:
-- tek web app Azure dev URL'de aciliyor (landing + panel route'lari calisiyor)
+- tek web app Vercel dev URL'de aciliyor (landing + panel route'lari calisiyor)
 - refresh/deep-link senaryolarinda routing bozulmuyor (basic smoke)
 
 ### P0-4 Panel Env Wiring (Firebase dev)
@@ -110,14 +111,14 @@ Acceptance:
 ## 5. Sprint Riskleri
 
 - tool secimi uzarsa bootstrap gecikir
-- Azure deploy config karmasasi ilk sprinti uzatir
+- hosting/deploy provider setup karmasasi ilk sprinti uzatir
 - auth provider setup (Google) konfigurasyon detayi bloklayabilir
 - Next.js App Router server/client boundary + Firebase SDK import karisimi build hatalari uretir
 - placeholder ekranlara erken gercek query baglanirsa scope creep olur
 
 ## 6. Sprint Exit Criteria
 
-- Panel auth shell Azure dev'de gorunur
+- Panel auth shell dev hostta (Vercel generated domain) gorunur
 - CI temel gate calisir
 - Env karisiklgi yok
 - Faz 2/Faz 3 backlog baslamaya hazir
