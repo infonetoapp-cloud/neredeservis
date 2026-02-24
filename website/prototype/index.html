@@ -1,0 +1,667 @@
+﻿<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neredeservis Web Prototype V2</title>
+  <meta name="description" content="Neredeservis web sitesi ve paneli icin premium prototip onizleme v2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-a" aria-hidden="true"></div>
+  <div class="bg-orb orb-b" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <header class="proto-header">
+    <div class="proto-brand">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <div>
+        <p class="eyebrow">Neredeservis</p>
+        <strong>Web Prototype Preview</strong>
+      </div>
+      <span class="version-pill">v2</span>
+    </div>
+
+    <nav class="screen-switcher" aria-label="Prototip ekran secimi">
+      <button class="switch-btn is-active" type="button" data-screen="landing">Landing</button>
+      <button class="switch-btn" type="button" data-screen="auth">Login + Mode</button>
+      <button class="switch-btn" type="button" data-screen="panel">Panel Shell</button>
+    </nav>
+  </header>
+
+  <main class="prototype-stage">
+    <section class="screen is-active" data-view="landing">
+      <div class="frame landing-frame">
+        <header class="landing-topbar glass-pane">
+          <div class="logo-pill">
+            <span class="brand-dot small"></span>
+            neredeservis.app
+          </div>
+
+          <nav class="landing-links" aria-label="Landing menu">
+            <a href="#">Urun</a>
+            <a href="#">Canli Operasyon</a>
+            <a href="#">Kurumsal Yetki</a>
+            <a href="#">Fiyatlandirma</a>
+            <a href="#">Guvenlik</a>
+          </nav>
+
+          <div class="landing-actions">
+            <button class="btn btn-ghost" type="button">Giris Yap</button>
+            <button class="btn btn-primary" type="button">Demo Talep Et</button>
+          </div>
+        </header>
+
+        <section class="hero-grid">
+          <div class="hero-copy glass-pane elevated">
+            <p class="eyebrow">Firma + Bireysel Sofor Web Platformu</p>
+            <h1>
+              Servis operasyonunu <span>tek merkezden</span>
+              yonet, izle, optimize et.
+            </h1>
+            <p class="hero-subtext">
+              Firmalar icin tam yetkili operasyon paneli, bireysel soforler icin sade gunluk akislar.
+              Sofor, arac, rota, durak ve canli takip deneyimi ayni SaaS omurgasinda.
+            </p>
+
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-lg" type="button">Paneli Kesfet</button>
+              <button class="btn btn-secondary btn-lg" type="button">Canli Demo Akisi</button>
+            </div>
+
+            <div class="hero-proof-grid">
+              <article class="proof-card">
+                <p class="proof-label">Canli Takip</p>
+                <p class="proof-value">RTDB + Mapbox</p>
+                <p class="proof-note">Marker odakli operasyon gorunumu</p>
+              </article>
+              <article class="proof-card">
+                <p class="proof-label">Firma Yetkileri</p>
+                <p class="proof-value">RBAC</p>
+                <p class="proof-note">owner / admin / dispatcher / viewer</p>
+              </article>
+              <article class="proof-card">
+                <p class="proof-label">Maliyet Yaklasimi</p>
+                <p class="proof-value">Mapbox-first</p>
+                <p class="proof-note">kontrollu directions / cache stratejisi</p>
+              </article>
+            </div>
+
+            <div class="trust-row" aria-label="Positioning badges">
+              <span class="chip">TR-first</span>
+              <span class="chip chip-soft">Google Login</span>
+              <span class="chip chip-soft">Azure SWA + Firebase</span>
+              <span class="chip chip-soft">SaaS-ready tenant model</span>
+            </div>
+          </div>
+
+          <div class="hero-visual-stack">
+            <article class="visual-card glass-pane elevated fleet-card">
+              <div class="card-headline">
+                <div>
+                  <p class="eyebrow">Canli Operasyon Ozeti</p>
+                  <h2>Filo Durumu</h2>
+                </div>
+                <span class="status-badge ok">Canli</span>
+              </div>
+              <div class="fleet-kpis">
+                <div><span>Aktif Sefer</span><strong>42</strong><small class="ok-text">+8 bugun</small></div>
+                <div><span>Online Sofor</span><strong>118</strong><small>143 toplam</small></div>
+                <div><span>Uyari</span><strong>6</strong><small class="warn-text">3 kritik</small></div>
+              </div>
+              <div class="fleet-sparkline" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </article>
+
+            <article class="visual-card glass-pane map-preview-card">
+              <div class="map-preview-surface">
+                <div class="map-grid-lines"></div>
+                <div class="map-path path-a"></div>
+                <div class="map-path path-b"></div>
+                <div class="map-path path-c"></div>
+                <span class="map-marker m-a"></span>
+                <span class="map-marker m-b"></span>
+                <span class="map-marker m-c"></span>
+                <span class="map-marker m-d"></span>
+                <div class="route-progress-pill">
+                  <span class="route-progress-fill"></span>
+                  <small>Rota ilerleme %68</small>
+                </div>
+                <div class="map-mini-legend">
+                  <span><i class="dot-mini ok"></i> Canli</span>
+                  <span><i class="dot-mini warn"></i> Gecikme</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="visual-card glass-pane trip-feed-card">
+              <div class="feed-head">
+                <div>
+                  <p class="eyebrow">Operasyon Akisi</p>
+                  <h3>Son olaylar</h3>
+                </div>
+                <button class="pill-action" type="button">Tumunu Gor</button>
+              </div>
+              <ul class="event-feed">
+                <li>
+                  <span class="signal ok"></span>
+                  <div>
+                    <p>34 S 1087 canli rota devam ediyor</p>
+                    <small>Maslak Sabah Hatti • 2 dk once</small>
+                  </div>
+                  <span class="mini-tag">Canli</span>
+                </li>
+                <li>
+                  <span class="signal warn"></span>
+                  <div>
+                    <p>34 T 5521 durak gecikmesi</p>
+                    <small>Durak #4 • +4 dk</small>
+                  </div>
+                  <span class="mini-tag warn">Uyari</span>
+                </li>
+                <li>
+                  <span class="signal ok"></span>
+                  <div>
+                    <p>Yeni sofor yetkilendirme tamamlandi</p>
+                    <small>Dispatcher islem kaydi</small>
+                  </div>
+                  <span class="mini-tag soft">Audit</span>
+                </li>
+              </ul>
+            </article>
+          </div>
+        </section>
+        <section class="landing-sections-grid">
+          <article class="feature-panel glass-pane">
+            <p class="eyebrow">Firmalar icin</p>
+            <h3>Tam yetkili operasyon merkezi</h3>
+            <p class="muted">Sofor, arac, rota ve canli operasyonu RBAC ile yoneten dispatcher odakli panel.</p>
+            <ul class="bullet-list">
+              <li>Rol bazli yetki matrisi</li>
+              <li>Canli sefer ve filo takibi</li>
+              <li>Rota / durak editor workflow</li>
+            </ul>
+          </article>
+          <article class="feature-panel glass-pane">
+            <p class="eyebrow">Bireysel soforler icin</p>
+            <h3>Sade gunluk panel deneyimi</h3>
+            <p class="muted">Kendi rota ve sefer akislarini karmasa olmadan yoneten modern web arayuzu.</p>
+            <ul class="bullet-list">
+              <li>Gunluk rota ozeti</li>
+              <li>Durak listesi</li>
+              <li>Hizli sefer aksiyonlari</li>
+            </ul>
+          </article>
+          <article class="feature-panel glass-pane">
+            <p class="eyebrow">Operasyon + maliyet</p>
+            <h3>Harita kullaniminda kontrollu strateji</h3>
+            <p class="muted">Mapbox-first, cache ve projection odakli tasarim ile daha verimli canli operasyon deneyimi.</p>
+            <ul class="bullet-list">
+              <li>Map load optimizasyonu</li>
+              <li>Directions cagri kontrolu</li>
+              <li>Realtime stream kapsam yonetimi</li>
+            </ul>
+          </article>
+          <article class="feature-panel glass-pane pricing-preview">
+            <p class="eyebrow">Fiyatlandirma (placeholder)</p>
+            <h3>Kurumsal ve bireysel paketler</h3>
+            <p class="muted">Billing paneli sonra gelecek, ancak landing tarafinda paket yapisi profesyonel sunulacak.</p>
+            <div class="pricing-bands">
+              <span>Starter</span>
+              <span>Growth</span>
+              <span>Enterprise</span>
+            </div>
+          </article>
+        </section>
+      </div>
+    </section>
+
+    <section class="screen" data-view="auth">
+      <div class="frame auth-frame">
+        <div class="auth-main-column">
+          <div class="auth-toggle glass-pane compact">
+            <button class="tab-btn is-active" type="button" data-auth="login">Login</button>
+            <button class="tab-btn" type="button" data-auth="mode">Mode Selector</button>
+          </div>
+
+          <section class="auth-card glass-pane is-active" data-auth-view="login">
+            <div class="auth-card-head">
+              <div>
+                <p class="eyebrow">Hesabina baglan</p>
+                <h2>Operasyonu ac</h2>
+                <p class="muted">Firma paneli veya bireysel sofor paneline tek hesapla gir.</p>
+              </div>
+              <span class="status-badge soft">Web Auth</span>
+            </div>
+
+            <div class="auth-method-strip">
+              <button class="method-pill active" type="button">Email + Sifre</button>
+              <button class="method-pill" type="button">Google</button>
+            </div>
+
+            <form class="auth-form" action="#" method="post" onsubmit="return false;">
+              <label class="field">
+                <span>E-posta</span>
+                <input type="email" value="info@firma.com" />
+              </label>
+              <label class="field">
+                <span>Sifre</span>
+                <input type="password" value="12345678" />
+              </label>
+
+              <div class="field-row">
+                <label class="checkline">
+                  <input type="checkbox" checked />
+                  <span>Beni hatirla</span>
+                </label>
+                <a href="#">Sifremi unuttum</a>
+              </div>
+
+              <button class="btn btn-primary btn-block" type="submit">Giris Yap</button>
+              <button class="btn btn-google btn-block" type="button">
+                <span class="google-g" aria-hidden="true">G</span>
+                Google ile giris yap
+              </button>
+            </form>
+
+            <div class="login-support-row">
+              <div class="support-chip">
+                <span class="signal ok"></span>
+                <span>Email/Password</span>
+              </div>
+              <div class="support-chip">
+                <span class="signal ok"></span>
+                <span>Google Login</span>
+              </div>
+              <div class="support-chip">
+                <span class="signal soft"></span>
+                <span>2FA (Faz 2)</span>
+              </div>
+            </div>
+
+            <div class="status-band">
+              <div>
+                <small>Durum</small>
+                <p>Hazir: Email/Password + Google Sign-In</p>
+              </div>
+              <span class="chip chip-soft">TR-first</span>
+            </div>
+          </section>
+
+          <section class="auth-card glass-pane" data-auth-view="mode">
+            <div class="auth-card-head">
+              <div>
+                <p class="eyebrow">Mode secimi</p>
+                <h2>Nasil devam etmek istersin?</h2>
+                <p class="muted">Ayni kullanici hesabiyla farkli operasyon modlari.</p>
+              </div>
+              <span class="status-badge ok">Son Kullanilan: Firma</span>
+            </div>
+
+            <div class="mode-selector-grid">
+              <article class="mode-card selected">
+                <div class="mode-card-top">
+                  <p>Company Mode</p>
+                  <span class="chip">Onerilen</span>
+                </div>
+                <h3>Firma Operasyon Paneli</h3>
+                <p class="muted">Dispatcher, admin ve owner rolleri icin canli operasyon + yonetim ekranlari.</p>
+                <ul class="bullet-list compact-list">
+                  <li>Canli filo ekrani</li>
+                  <li>Rota / durak editoru</li>
+                  <li>Sofor / arac yonetimi</li>
+                </ul>
+                <div class="mode-mini-visual">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <button class="btn btn-primary btn-block" type="button">Firma Moduna Gec</button>
+              </article>
+
+              <article class="mode-card">
+                <div class="mode-card-top">
+                  <p>Individual Driver</p>
+                  <span class="chip chip-soft">Bireysel</span>
+                </div>
+                <h3>Kendi rota ve seferlerini yonet</h3>
+                <p class="muted">Daha sade panel, hizli gunluk akislar ve kendine ait rota/durak ekranlari.</p>
+                <ul class="bullet-list compact-list">
+                  <li>Bugun ozeti</li>
+                  <li>Kendi rota listesi</li>
+                  <li>Baslat / bitir akislar</li>
+                </ul>
+                <div class="mode-mini-visual alt">
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <button class="btn btn-secondary btn-block" type="button">Bireysel Modu Ac</button>
+              </article>
+            </div>
+          </section>
+        </div>
+        <aside class="auth-showcase-column">
+          <div class="showcase-shell glass-pane elevated">
+            <div class="showcase-head">
+              <p class="eyebrow">Preview Kompozisyonu</p>
+              <h3>Premium auth + operasyon dili</h3>
+            </div>
+            <div class="showcase-layout">
+              <div class="showcase-pane left">
+                <div class="mini-surface">
+                  <div class="mini-title-row"><span class="line-dot"></span><strong>Giris Durumu</strong></div>
+                  <div class="mini-bars"><span></span><span></span><span></span></div>
+                </div>
+                <div class="mini-surface tall">
+                  <div class="mini-grid"></div>
+                  <span class="mini-pin a"></span>
+                  <span class="mini-pin b"></span>
+                  <span class="mini-pin c"></span>
+                  <div class="mini-path"></div>
+                </div>
+              </div>
+              <div class="showcase-pane right">
+                <div class="mini-surface">
+                  <p class="mini-label">Canli Olaylar</p>
+                  <ul class="mini-event-list">
+                    <li><i class="signal ok"></i><span>Yetki degisikligi kaydi</span></li>
+                    <li><i class="signal warn"></i><span>Rota gecikme uyarisi</span></li>
+                    <li><i class="signal ok"></i><span>Sofor online oldu</span></li>
+                  </ul>
+                </div>
+                <div class="mini-surface gradient">
+                  <p class="mini-label">System Health</p>
+                  <strong>%99.2</strong>
+                  <small>Prototype visual only</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="showcase-lower-grid">
+            <article class="glass-pane compact-card">
+              <p class="eyebrow">Google Login</p>
+              <h4>Modern ama guvenilir</h4>
+              <p class="muted">Default template hissi yerine premium auth kompozisyonu.</p>
+            </article>
+            <article class="glass-pane compact-card">
+              <p class="eyebrow">Mode Selector</p>
+              <h4>3 saniyede karar UX'i</h4>
+              <p class="muted">Iki secim karti net hiyerarsi ile ayrisir.</p>
+            </article>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" data-view="panel">
+      <div class="frame panel-frame">
+        <aside class="sidebar-shell glass-pane">
+          <div class="sidebar-brand-box">
+            <div class="brand-mark">
+              <span class="brand-dot"></span>
+              <div>
+                <p class="eyebrow">Neredeservis</p>
+                <strong>Company Panel</strong>
+              </div>
+            </div>
+            <button class="icon-pill" type="button" aria-label="Collapse sidebar">≡</button>
+          </div>
+
+          <div class="sidebar-group">
+            <p class="sidebar-group-title">Ana Ekranlar</p>
+            <nav class="sidebar-nav" aria-label="Panel navigation">
+              <button class="nav-item is-active" type="button"><span class="nav-bullet"></span>Dashboard</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Canli Operasyon</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Rotalar</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Duraklar</button>
+            </nav>
+          </div>
+
+          <div class="sidebar-group">
+            <p class="sidebar-group-title">Yonetim</p>
+            <nav class="sidebar-nav" aria-label="Management navigation">
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Soforler</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Araclar</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Uyeler</button>
+              <button class="nav-item" type="button"><span class="nav-bullet"></span>Audit Log</button>
+            </nav>
+          </div>
+
+          <div class="tenant-card glass-subtle">
+            <div class="tenant-row"><span class="signal ok"></span><strong>ABC Servis A.S.</strong></div>
+            <small>Dispatcher preview shell</small>
+            <div class="tenant-meta">
+              <span class="chip chip-soft">stg</span>
+              <span class="chip chip-soft">TR-first</span>
+            </div>
+          </div>
+        </aside>
+
+        <div class="panel-main-shell">
+          <header class="toolbar glass-pane compact">
+            <div class="toolbar-left">
+              <label class="search-box" role="search">
+                <span aria-hidden="true">⌕</span>
+                <input type="search" placeholder="Sofor, arac, rota ara..." />
+              </label>
+              <button class="command-pill" type="button">Kisalollar / Komutlar</button>
+            </div>
+            <div class="toolbar-right">
+              <span class="env-pill">stg</span>
+              <button class="icon-pill" type="button" aria-label="Notifications">!</button>
+              <button class="icon-pill" type="button" aria-label="Quick create">+</button>
+              <button class="profile-pill" type="button">
+                <span class="avatar-pill">SE</span>
+                <span>Sinan Erdem</span>
+              </button>
+            </div>
+          </header>
+
+          <section class="page-header-card glass-pane">
+            <div class="page-header-content">
+              <div>
+                <p class="eyebrow">Dashboard</p>
+                <h2>Bugunku operasyon ozeti</h2>
+                <p class="muted">Aktif seferler, canli konumlar, uyari olaylari ve dispatch kuyrugu tek panelde.</p>
+              </div>
+              <div class="header-meta-row">
+                <span class="chip">24 Subat 2026</span>
+                <span class="chip chip-soft">Dispatcher</span>
+              </div>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" type="button">Rota Olustur</button>
+              <button class="btn btn-primary" type="button">Canli Operasyonu Ac</button>
+            </div>
+          </section>
+
+          <section class="quick-filter-row">
+            <button class="filter-pill active" type="button">Tum Filo</button>
+            <button class="filter-pill" type="button">Canli Seferler</button>
+            <button class="filter-pill" type="button">Gecikmeler</button>
+            <button class="filter-pill" type="button">Yetki Olaylari</button>
+          </section>
+          <section class="kpi-grid">
+            <article class="kpi-card glass-pane">
+              <p class="metric-label">Aktif Sefer</p>
+              <p class="metric-value">42</p>
+              <p class="metric-note ok-text">+8 dunden</p>
+              <div class="spark-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            </article>
+            <article class="kpi-card glass-pane">
+              <p class="metric-label">Online Sofor</p>
+              <p class="metric-value">118</p>
+              <p class="metric-note">Toplam 143 kayitli</p>
+              <div class="spark-bars calm"><span></span><span></span><span></span><span></span><span></span></div>
+            </article>
+            <article class="kpi-card glass-pane">
+              <p class="metric-label">Gecikme Uyarisi</p>
+              <p class="metric-value warn-text">6</p>
+              <p class="metric-note warn-text">3 rota kritik esik</p>
+              <div class="spark-bars warn"><span></span><span></span><span></span><span></span><span></span></div>
+            </article>
+            <article class="kpi-card glass-pane">
+              <p class="metric-label">Tamamlanan Sefer</p>
+              <p class="metric-value">87</p>
+              <p class="metric-note ok-text">%96 zamaninda</p>
+              <div class="spark-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            </article>
+          </section>
+
+          <section class="panel-content-grid">
+            <article class="live-ops-card glass-pane">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Canli Operasyon</p>
+                  <h3>Filo gorunumu</h3>
+                </div>
+                <div class="head-actions">
+                  <span class="chip chip-soft">Aktif 42</span>
+                  <button class="btn btn-ghost" type="button">Tam ekran</button>
+                </div>
+              </div>
+
+              <div class="live-ops-shell">
+                <div class="trip-column">
+                  <div class="trip-column-head">
+                    <button class="mini-filter active" type="button">Tum</button>
+                    <button class="mini-filter" type="button">Canli</button>
+                    <button class="mini-filter" type="button">Geciken</button>
+                  </div>
+
+                  <button class="trip-item is-active" type="button" data-trip="0" data-status="Canli" data-driver="Ahmet K." data-route="Maslak Sabah Servisi" data-next="ITU Giris" data-delay="0 dk" data-plate="34 S 1087">
+                    <div>
+                      <p>34 S 1087</p>
+                      <small>Maslak Sabah Servisi</small>
+                    </div>
+                    <span class="trip-badge live">Canli</span>
+                  </button>
+                  <button class="trip-item" type="button" data-trip="1" data-status="Gecikme" data-driver="Mehmet T." data-route="Beylikduzu Fabrika Hatti" data-next="Hadimkoy Durak 4" data-delay="+4 dk" data-plate="34 T 5521">
+                    <div>
+                      <p>34 T 5521</p>
+                      <small>Beylikduzu Fabrika Hatti</small>
+                    </div>
+                    <span class="trip-badge late">+4 dk</span>
+                  </button>
+                  <button class="trip-item" type="button" data-trip="2" data-status="Bekleme" data-driver="Can Y." data-route="Sariyer Aksam Hatti" data-next="Sariyer Merkez" data-delay="0 dk" data-plate="34 AEA 902">
+                    <div>
+                      <p>34 AEA 902</p>
+                      <small>Sariyer Aksam Hatti</small>
+                    </div>
+                    <span class="trip-badge idle">Bekleme</span>
+                  </button>
+                  <button class="trip-item" type="button" data-trip="3" data-status="Canli" data-driver="Eren G." data-route="Levent Sabah Hatti" data-next="Metrocity" data-delay="0 dk" data-plate="34 S 2210">
+                    <div>
+                      <p>34 S 2210</p>
+                      <small>Levent Sabah Hatti</small>
+                    </div>
+                    <span class="trip-badge live">Canli</span>
+                  </button>
+                </div>
+
+                <div class="map-column" id="liveMapBox">
+                  <div class="map-grid-lines"></div>
+                  <div class="map-path path-a"></div>
+                  <div class="map-path path-b"></div>
+                  <div class="map-path path-c"></div>
+                  <span class="map-marker m-a"></span>
+                  <span class="map-marker m-b"></span>
+                  <span class="map-marker m-c"></span>
+                  <span class="map-marker m-d"></span>
+                  <div class="live-progress-track">
+                    <div class="live-progress-fill" id="liveProgressFill"></div>
+                    <small id="liveProgressText">Maslak Sabah Servisi • %68 ilerleme</small>
+                  </div>
+                  <div class="map-overlays">
+                    <span class="overlay-pill"><i class="dot-mini ok"></i> Canli konum akisi</span>
+                    <span class="overlay-pill"><i class="dot-mini warn"></i> Gecikme uyarisi</span>
+                  </div>
+                  <small class="map-timestamp" id="mapTimestamp">Son guncelleme: --:--:--</small>
+                </div>
+
+                <aside class="drawer-column glass-subtle">
+                  <div class="drawer-head">
+                    <p class="eyebrow">Secili Sefer</p>
+                    <h4 id="drawerPlate">34 S 1087</h4>
+                    <span class="status-badge ok" id="drawerStatus">Canli</span>
+                  </div>
+                  <ul class="drawer-meta">
+                    <li><span>Sofor</span><strong id="drawerDriver">Ahmet K.</strong></li>
+                    <li><span>Rota</span><strong id="drawerRoute">Maslak Sabah Servisi</strong></li>
+                    <li><span>Sonraki Durak</span><strong id="drawerNext">ITU Giris</strong></li>
+                    <li><span>Gecikme</span><strong id="drawerDelay">0 dk</strong></li>
+                  </ul>
+                  <div class="stop-timeline">
+                    <div class="stop-row done"><span></span><p>Maslak Baslangic</p></div>
+                    <div class="stop-row active"><span></span><p>ITU Giris</p></div>
+                    <div class="stop-row"><span></span><p>Teknokent</p></div>
+                    <div class="stop-row"><span></span><p>Levent Son Durak</p></div>
+                  </div>
+                  <div class="drawer-actions">
+                    <button class="btn btn-secondary btn-block" type="button">Rota Detayi</button>
+                    <button class="btn btn-ghost btn-block" type="button">Sofor Profili</button>
+                  </div>
+                </aside>
+              </div>
+            </article>
+
+            <div class="side-stack">
+              <article class="glass-pane side-card">
+                <div class="section-head tight">
+                  <div>
+                    <p class="eyebrow">Uyarisal Olaylar</p>
+                    <h3>Son 30 dakika</h3>
+                  </div>
+                  <span class="chip chip-warn">6 aktif</span>
+                </div>
+                <ul class="alert-list">
+                  <li><span class="signal warn"></span><div><p>34 T 5521 rota gecikmesi</p><small>Durak #4 • +4 dk</small></div></li>
+                  <li><span class="signal ok"></span><div><p>Yeni sofor yetkisi olustu</p><small>Dispatcher islem kaydi</small></div></li>
+                  <li><span class="signal danger"></span><div><p>Konum akisi kesildi</p><small>34 S 2210 • 5 dk veri yok</small></div></li>
+                </ul>
+              </article>
+
+              <article class="glass-pane side-card">
+                <div class="section-head tight">
+                  <div>
+                    <p class="eyebrow">Dispatch Kuyrugu</p>
+                    <h3>Bekleyen islemler</h3>
+                  </div>
+                  <button class="pill-action" type="button">Tumunu Gor</button>
+                </div>
+                <div class="queue-list">
+                  <div class="queue-item">
+                    <div>
+                      <p>Yeni rota olusturma onayi</p>
+                      <small>Maslak Aksam Hatti • Admin onayi bekliyor</small>
+                    </div>
+                    <span class="chip chip-soft">Onay</span>
+                  </div>
+                  <div class="queue-item">
+                    <div>
+                      <p>Arac atama degisikligi</p>
+                      <small>34 AEA 902 -> 34 S 2210</small>
+                    </div>
+                    <span class="chip chip-soft">Planlama</span>
+                  </div>
+                  <div class="queue-item">
+                    <div>
+                      <p>Sofor yetki revizyonu</p>
+                      <small>Route permission update</small>
+                    </div>
+                    <span class="chip chip-soft">RBAC</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
