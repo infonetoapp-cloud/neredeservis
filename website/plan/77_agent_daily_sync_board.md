@@ -3,6 +3,15 @@
 Tarih: 2026-02-25  
 Durum: Active Board
 
+Base branch: `orchestrator/phase3-main`  
+Worktree roots:
+- `C:\Users\sinan\Desktop\wt-a1`
+- `C:\Users\sinan\Desktop\wt-a2`
+- `C:\Users\sinan\Desktop\wt-a3`
+- `C:\Users\sinan\Desktop\wt-a4`
+- `C:\Users\sinan\Desktop\wt-a5`
+- `C:\Users\sinan\Desktop\wt-a6`
+
 ## 1) Daily Status
 
 | Agent | Branch | Scope | Status | Blocker | Next PR |
