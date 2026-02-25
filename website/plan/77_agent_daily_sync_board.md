@@ -7,12 +7,12 @@ Durum: Active Board
 
 | Agent | Branch | Scope | Status | Blocker | Next PR |
 |---|---|---|---|---|---|
-| A1 | - | Contract/RBAC | pending | - | - |
-| A2 | - | Dashboard UI | pending | - | - |
-| A3 | - | Functions endpoints | pending | - | - |
-| A4 | - | Live ops/RTDB | pending | - | - |
-| A5 | - | QA/CI | pending | - | - |
-| A6 | - | Admin/docs | pending | - | - |
+| A1 | `a1/phase3-contract` | Contract/RBAC | ready | none | RBAC contract hardening |
+| A2 | `a2/phase3-dashboard-ui` | Dashboard UI | ready | none | drivers/routes/vehicles phase3 UX pass |
+| A3 | `a3/phase3-functions` | Functions endpoints | ready | none | membership + permission endpoint hardening |
+| A4 | `a4/phase3-live-ops` | Live ops/RTDB | ready | none | live ops role visibility guard pass |
+| A5 | `a5/phase3-qa-ci` | QA/CI | ready | none | phase3 smoke + required checks validation |
+| A6 | `a6/phase3-admin-docs` | Admin/docs | ready | none | `/admin` shell v1 + plan/app-impact sync |
 
 ## 2) Contract Requests
 
@@ -60,4 +60,3 @@ Durum: Active Board
 - Yapilan:
 - Risk:
 - Sonraki:
-
