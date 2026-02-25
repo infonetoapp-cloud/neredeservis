@@ -1,0 +1,53 @@
+name: Functions CI
+
+on:
+  pull_request:
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "database.rules.json"
+      - ".github/workflows/functions-ci.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "database.rules.json"
+      - ".github/workflows/functions-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  functions-lint-build-rules:
+    name: functions-lint-build-rules
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Rules tests
+        run: npm run test:rules:unit
