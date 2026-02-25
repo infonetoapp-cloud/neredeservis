@@ -1,25 +1,11 @@
-name: Functions CI
+﻿name: Functions CI
 
 on:
   pull_request:
-    paths:
-      - "functions/**"
-      - "firebase.json"
-      - "firestore.rules"
-      - "firestore.indexes.json"
-      - "database.rules.json"
-      - ".github/workflows/functions-ci.yml"
   push:
     branches:
       - main
       - master
-    paths:
-      - "functions/**"
-      - "firebase.json"
-      - "firestore.rules"
-      - "firestore.indexes.json"
-      - "database.rules.json"
-      - ".github/workflows/functions-ci.yml"
   workflow_dispatch:
 
 jobs:
@@ -33,7 +19,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect functions/rules changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            functions_scope:
+              - 'functions/**'
+              - 'firebase.json'
+              - 'firestore.rules'
+              - 'firestore.indexes.json'
+              - 'database.rules.json'
+
+      - name: Skip (docs-only or out-of-scope changes)
+        if: github.event_name != 'workflow_dispatch' && steps.filter.outputs.functions_scope != 'true'
+        run: echo "No functions/rules changes detected. Skipping lint/build/tests."
+        working-directory: .
+
+      - name: Setup Java 17 (Rules emulators)
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Setup Node.js
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -41,13 +52,17 @@ jobs:
           cache-dependency-path: functions/package-lock.json
 
       - name: Install dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
         run: npm ci
 
       - name: Lint
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
         run: npm run lint
 
       - name: Build
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
         run: npm run build
 
-      - name: Rules tests
-        run: npm run test:rules:unit
+      - name: Rules tests (with emulators)
+        if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
+        run: npx firebase emulators:exec --only firestore,database "npm run test:rules:unit"
