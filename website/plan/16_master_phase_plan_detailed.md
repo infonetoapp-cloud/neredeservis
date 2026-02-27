@@ -825,3 +825,4 @@ Detay kanit kaydi:
 - Faz 10 otuz ucuncu dilim tamamlandi (prune sonrasi website commit paketi tekrar uretildi: npm run pack:phase10:website-commit; latest kapsam listesi yenilendi).
 - Faz 10 otuz dorduncu dilim tamamlandi (Faz 9 closeout zincirinde dosya-kilidi toleransi sertlestirildi: write-retry Attempts 8->30, DelayMs 250->600; scriptler: handoff/progress-delta/readiness/closeout; dogrulama: npm run closeout:phase9 PASS).
 - Faz 10 otuz besinci dilim tamamlandi (script hardening sonrasi website commit paketi tekrar alindi: npm run pack:phase10:website-commit; latest 134 raporu guncellendi).
+- Faz 11 birinci dilim tamamlandi (Faz 10 PASS cikisi ustune execution bootstrap dosyasi acildi: website/plan/136_phase11_execution_bootstrap_2026_02_28.md; sonraki 4 adim ve kapsam kilidi sabitlendi).
