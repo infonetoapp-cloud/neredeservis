@@ -1,12 +1,12 @@
 # Phase 9 APP-SPRINT-1 Execution Runbook
 
-Generated At: 2026-02-27 22:11:44
+Generated At: 2026-02-27 23:54:35
 Source: website/app-impact/12_phase9_app_sprint_packages_latest.json
 Package: APP-SPRINT-1
 
 ## Scope
 - W2A: W2A-004, W2A-006, W2A-007, W2A-008, W2A-009, W2A-010, W2A-011, W2A-012
-- Open Items: 9/9
+- Open Items: 0/9
 - Goal: Company context + vehicle/route base parser closure.
 
 ## Step-by-Step
@@ -18,15 +18,15 @@ Package: APP-SPRINT-1
 6. Her alt adimdan sonra ilgili checklist satirini `07_*` icinde `[x]` yap.
 
 ## Tasks
-- [ ] `createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)
-- [ ] `listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)
-- [ ] `listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)
-- [ ] Active company resolver (login -> mode -> company fallback)
-- [ ] `listCompanyVehicles` parser
-- [ ] `createVehicle` parser
-- [ ] `updateVehicle` parser
-- [ ] `createCompanyRoute` parser (`routeId`, `srvCode`)
-- [ ] `updateCompanyRoute` parser + `lastKnownUpdateToken` parity
+- [x] `createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)
+- [x] `listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)
+- [x] `listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)
+- [x] Active company resolver (login -> mode -> company fallback)
+- [x] `listCompanyVehicles` parser
+- [x] `createVehicle` parser
+- [x] `updateVehicle` parser
+- [x] `createCompanyRoute` parser (`routeId`, `srvCode`)
+- [x] `updateCompanyRoute` parser + `lastKnownUpdateToken` parity
 
 ## Acceptance
 - Company secimi login sonrasi deterministic fallback ile aciliyor.

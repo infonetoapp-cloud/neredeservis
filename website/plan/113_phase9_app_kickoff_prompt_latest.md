@@ -1,8 +1,8 @@
 # Phase 9 App Kickoff Prompt
 
-Generated At: 2026-02-27 22:11:44
+Generated At: 2026-02-27 23:54:35
 Source: website/app-impact/12_phase9_app_sprint_packages_latest.json
-Status: PARTIAL
+Status: PASS
 
 ## Objective
 - Close app parser/mapping backlog without changing web contracts.
@@ -17,18 +17,18 @@ Status: PARTIAL
 
 ## APP-SPRINT-1 - Company Context + Vehicle + Route Base Parser
 - Priority: P0
-- Open: 9/9
+- Open: 0/9
 - W2A Scope: W2A-004, W2A-006, W2A-007, W2A-008, W2A-009, W2A-010, W2A-011, W2A-012
 - Tasks:
-  - [ ] `createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)
-  - [ ] `listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)
-  - [ ] `listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)
-  - [ ] Active company resolver (login -> mode -> company fallback)
-  - [ ] `listCompanyVehicles` parser
-  - [ ] `createVehicle` parser
-  - [ ] `updateVehicle` parser
-  - [ ] `createCompanyRoute` parser (`routeId`, `srvCode`)
-  - [ ] `updateCompanyRoute` parser + `lastKnownUpdateToken` parity
+  - [x] `createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)
+  - [x] `listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)
+  - [x] `listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)
+  - [x] Active company resolver (login -> mode -> company fallback)
+  - [x] `listCompanyVehicles` parser
+  - [x] `createVehicle` parser
+  - [x] `updateVehicle` parser
+  - [x] `createCompanyRoute` parser (`routeId`, `srvCode`)
+  - [x] `updateCompanyRoute` parser + `lastKnownUpdateToken` parity
 - Acceptance:
   - Company secimi login sonrasi deterministic fallback ile aciliyor.
   - Vehicle/Route create-update parser katmaninda crash olmadan isleniyor.
@@ -36,22 +36,22 @@ Status: PARTIAL
 
 ## APP-SPRINT-2 - Route Stops + Live Ops + Critical Error Mapping
 - Priority: P0
-- Open: 13/13
+- Open: 0/13
 - W2A Scope: W2A-001, W2A-002, W2A-003, W2A-013, W2A-014, W2A-015, W2A-016, W2A-017
 - Tasks:
-  - [ ] `listCompanyRouteStops` parser
-  - [ ] `upsertCompanyRouteStop` parser
-  - [ ] `deleteCompanyRouteStop` parser
-  - [ ] `reorderCompanyRouteStops` parser (`changed`, `updatedAt`)
-  - [ ] `listActiveTripsByCompany` parser
-  - [ ] `liveState` (`online|stale`) UI mapping
-  - [ ] `live.source` (`rtdb|trip_doc`) fallback mapping
-  - [ ] RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)
-  - [ ] `426 Upgrade Required`
-  - [ ] `UPDATE_TOKEN_MISMATCH`
-  - [ ] `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`
-  - [ ] `ROUTE_STOP_INVALID_STATE`
-  - [ ] `ROUTE_STOP_REORDER_STATE_INVALID`
+  - [x] `listCompanyRouteStops` parser
+  - [x] `upsertCompanyRouteStop` parser
+  - [x] `deleteCompanyRouteStop` parser
+  - [x] `reorderCompanyRouteStops` parser (`changed`, `updatedAt`)
+  - [x] `listActiveTripsByCompany` parser
+  - [x] `liveState` (`online|stale`) UI mapping
+  - [x] `live.source` (`rtdb|trip_doc`) fallback mapping
+  - [x] RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)
+  - [x] `426 Upgrade Required`
+  - [x] `UPDATE_TOKEN_MISMATCH`
+  - [x] `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`
+  - [x] `ROUTE_STOP_INVALID_STATE`
+  - [x] `ROUTE_STOP_REORDER_STATE_INVALID`
 - Acceptance:
   - Durak ekle/sil/sirala akislarinda soft-lock senaryolari dogru reason-code ile geri donuyor.
   - RTDB stream kopma/yeniden baglanma sonrasi fallback semantigi korunuyor.
@@ -59,23 +59,23 @@ Status: PARTIAL
 
 ## APP-SPRINT-3 - Membership/Permission Parser + Guard Error Mapping
 - Priority: P1
-- Open: 14/14
+- Open: 0/14
 - W2A Scope: W2A-100, W2A-101, W2A-102, W2A-103, W2A-104, W2A-105, W2A-106
 - Tasks:
-  - [ ] `updateCompanyMember` parser + guard copy mapping
-  - [ ] `inviteCompanyMember` parser + pending state mapping
-  - [ ] `acceptCompanyInvite` parser + invited->active transition
-  - [ ] `declineCompanyInvite` parser + invited->suspended transition
-  - [ ] `removeCompanyMember` parser + owner/self deny mapping
-  - [ ] `grantDriverRoutePermissions` parser
-  - [ ] `revokeDriverRoutePermissions` parser
-  - [ ] `listRouteDriverPermissions` parser
-  - [ ] `OWNER_MEMBER_IMMUTABLE`
-  - [ ] `SELF_MEMBER_REMOVE_FORBIDDEN`
-  - [ ] `INVITE_EMAIL_NOT_FOUND`
-  - [ ] `INVITE_NOT_ACCEPTABLE`
-  - [ ] `INVITE_NOT_DECLINABLE`
-  - [ ] `ROUTE_PRIMARY_DRIVER_IMMUTABLE`
+  - [x] `updateCompanyMember` parser + guard copy mapping
+  - [x] `inviteCompanyMember` parser + pending state mapping
+  - [x] `acceptCompanyInvite` parser + invited->active transition
+  - [x] `declineCompanyInvite` parser + invited->suspended transition
+  - [x] `removeCompanyMember` parser + owner/self deny mapping
+  - [x] `grantDriverRoutePermissions` parser
+  - [x] `revokeDriverRoutePermissions` parser
+  - [x] `listRouteDriverPermissions` parser
+  - [x] `OWNER_MEMBER_IMMUTABLE`
+  - [x] `SELF_MEMBER_REMOVE_FORBIDDEN`
+  - [x] `INVITE_EMAIL_NOT_FOUND`
+  - [x] `INVITE_NOT_ACCEPTABLE`
+  - [x] `INVITE_NOT_DECLINABLE`
+  - [x] `ROUTE_PRIMARY_DRIVER_IMMUTABLE`
 - Acceptance:
   - Invite accept/decline ve member update/remove akislari parser seviyesinde deterministik.
   - Owner/self guard reason-code'lari dogru UI mesajina mapleniyor.
@@ -83,14 +83,14 @@ Status: PARTIAL
 
 ## APP-SPRINT-4 - Acceptance Smoke + Cutover Checklist Closure
 - Priority: P0
-- Open: 5/12
+- Open: 0/12
 - W2A Scope: W2A-001, W2A-002, W2A-003, W2A-004
 - Tasks:
-  - [ ] Parser crash-free smoke (all listed callables)
-  - [ ] Error message mapping smoke (all listed codes)
-  - [ ] Company context recoverability (logout/login + mode switch)
-  - [ ] Route/stop conflict recovery (token mismatch -> reload -> retry)
-  - [ ] Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)
+  - [x] Parser crash-free smoke (all listed callables)
+  - [x] Error message mapping smoke (all listed codes)
+  - [x] Company context recoverability (logout/login + mode switch)
+  - [x] Route/stop conflict recovery (token mismatch -> reload -> retry)
+  - [x] Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)
   - [x] `00_web_to_app_change_register.md` icindeki `P0` kayitlar triaged/planned
   - [x] `contract` kategorisindeki kayitlar icin app error mapping karari net
   - [x] force update / `426` fallback davranisi app tarafinda tanimli (`website/app-impact/19_app_runtime_behavior_alignment_contract_2026_02_27.md`)

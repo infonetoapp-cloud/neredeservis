@@ -1,10 +1,10 @@
 {
-    "generatedAt":  "2026-02-27 22:11:44",
-    "status":  "PARTIAL",
+    "generatedAt":  "2026-02-27 23:54:34",
+    "status":  "PASS",
     "stats":  {
                   "total":  41,
-                  "done":  0,
-                  "open":  41
+                  "done":  41,
+                  "open":  0
               },
     "source":  "website/app-impact/07_app_parser_mapping_checklist_2026_02_27.md",
     "sections":  [
@@ -17,23 +17,23 @@
                                      "W2A-007"
                                  ],
                          "total":  4,
-                         "done":  0,
-                         "open":  4,
+                         "done":  4,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Active company resolver (login -\u003e mode -\u003e company fallback)"
                                        }
                                    ]
@@ -50,31 +50,31 @@
                                      "W2A-015"
                                  ],
                          "total":  6,
-                         "done":  0,
-                         "open":  6,
+                         "done":  6,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`createCompanyRoute` parser (`routeId`, `srvCode`)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`updateCompanyRoute` parser + `lastKnownUpdateToken` parity"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listCompanyRouteStops` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`upsertCompanyRouteStop` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`deleteCompanyRouteStop` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`reorderCompanyRouteStops` parser (`changed`, `updatedAt`)"
                                        }
                                    ]
@@ -87,19 +87,19 @@
                                      "W2A-010"
                                  ],
                          "total":  3,
-                         "done":  0,
-                         "open":  3,
+                         "done":  3,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listCompanyVehicles` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`createVehicle` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`updateVehicle` parser"
                                        }
                                    ]
@@ -114,23 +114,23 @@
                                      "W2A-017"
                                  ],
                          "total":  4,
-                         "done":  0,
-                         "open":  4,
+                         "done":  4,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listActiveTripsByCompany` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`liveState` (`online|stale`) UI mapping"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`live.source` (`rtdb|trip_doc`) fallback mapping"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)"
                                        }
                                    ]
@@ -148,39 +148,39 @@
                                      "W2A-106"
                                  ],
                          "total":  8,
-                         "done":  0,
-                         "open":  8,
+                         "done":  8,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`updateCompanyMember` parser + guard copy mapping"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`inviteCompanyMember` parser + pending state mapping"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`acceptCompanyInvite` parser + invited-\u003eactive transition"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`declineCompanyInvite` parser + invited-\u003esuspended transition"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`removeCompanyMember` parser + owner/self deny mapping"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`grantDriverRoutePermissions` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`revokeDriverRoutePermissions` parser"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`listRouteDriverPermissions` parser"
                                        }
                                    ]
@@ -193,51 +193,51 @@
                                      "W2A-003"
                                  ],
                          "total":  11,
-                         "done":  0,
-                         "open":  11,
+                         "done":  11,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`426 Upgrade Required`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`UPDATE_TOKEN_MISMATCH`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`ROUTE_STOP_INVALID_STATE`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`ROUTE_STOP_REORDER_STATE_INVALID`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`OWNER_MEMBER_IMMUTABLE`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`SELF_MEMBER_REMOVE_FORBIDDEN`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`INVITE_EMAIL_NOT_FOUND`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`INVITE_NOT_ACCEPTABLE`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`INVITE_NOT_DECLINABLE`"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "`ROUTE_PRIMARY_DRIVER_IMMUTABLE`"
                                        }
                                    ]
@@ -252,27 +252,27 @@
                                      "W2A-004"
                                  ],
                          "total":  5,
-                         "done":  0,
-                         "open":  5,
+                         "done":  5,
+                         "open":  0,
                          "items":  [
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Parser crash-free smoke (all listed callables)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Error message mapping smoke (all listed codes)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Company context recoverability (logout/login + mode switch)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Route/stop conflict recovery (token mismatch -\u003e reload -\u003e retry)"
                                        },
                                        {
-                                           "done":  false,
+                                           "done":  true,
                                            "text":  "Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)"
                                        }
                                    ]

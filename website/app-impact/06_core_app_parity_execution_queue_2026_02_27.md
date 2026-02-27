@@ -52,7 +52,7 @@ Durum: Active
 
 ### Blok D - Opsiyonel Auth Provider Parity (P2)
 
-- `W2A-005` Microsoft sign-in app parity (web tamam, app pending)
+- `W2A-005` Microsoft sign-in app parity (web tamam, app deferred - cutover disi)
 
 ## 3) Bu Hafta Uygulama Kurali
 
@@ -77,23 +77,26 @@ Durum: Active
 
 ## 5) Son Durum Snapshot (2026-02-27)
 
-- `W2A-001`: **web_done_app_pending**  
+- `W2A-001`: **web_done_app_done**  
   Web tarafinda `UPGRADE_REQUIRED/FORCE_UPDATE_REQUIRED/426` user-facing hata semantigi eklendi ve web closure tamamlandi.  
-  App force-update/cutoff UX hala bloklayici.
-- `W2A-002`: **web_done_app_pending**  
-  Web live-ops stale/offline/lag/mismatch + reconnect/backoff semantigi aktif.
-- `W2A-003`: **web_done_app_pending**  
-  Web route/stop conflict + soft-lock hata semantigi tamam.
-- `W2A-004`: **web_done_app_pending**  
-  Web dashboard company context auto-reconcile eklendi (single active auto-select + invalid clear).
-- `W2A-006..009`: **web_done_app_pending**  
-  Company bootstrap + members + routes + vehicles read kontratlarinda web callable response-shape runtime guardlari aktif edildi (`CONTRACT_MISMATCH` sinyali).
-- `W2A-010..016`: **web_done_app_pending**  
-  Vehicle/route/stop/live-ops callable response-shape runtime guardlari aktif edildi (`CONTRACT_MISMATCH` sinyali).
-- `W2A-100..106`: **web_done_app_pending**  
-  Membership/permission mutasyon-read kontratlarinda web callable response-shape runtime guardlari aktif edildi (`CONTRACT_MISMATCH` sinyali).
+  App tarafinda `/force-update` hard-block koridoru + `426/UPGRADE_REQUIRED` mutasyon yakalama eklendi; startup min-version gate (`MIN_REQUIRED_APP_VERSION`) aktiflestirildi.
+- `W2A-002`: **web_done_app_done**  
+  Live state/source/stream-state mapper + fallback smoke testleri PASS.
+- `W2A-003`: **web_done_app_done**  
+  Route/stop reason-code feedback mappingi ve conflict-recovery smoke PASS.
+- `W2A-004`: **web_done_app_done**  
+  Active company resolver + logout/login fallback smoke PASS.
+- `W2A-006..007`: **web_done_app_done**  
+  `createCompany`, `listMyCompanies`, `listCompanyMembers` app typed parser + callable client ile kapandi.
+- `W2A-008`: **web_done_app_done**  
+  `listCompanyRoutes` app typed parser + callable client ile kapandi.
+- `W2A-009..017`: **web_done_app_done**  
+  `listCompanyVehicles`, vehicle mutasyonlari, route/stop mutasyonlari, `listActiveTripsByCompany` ve `W2A-017` stream fallback semantigi smoke PASS ile kapandi.
+- `W2A-100..106`: **web_done_app_done**  
+  Membership/permission mutasyon-read kontratlari app typed parser + callable client ile kapandi (`updateCompanyMember`, `invite/accept/decline`, `removeCompanyMember`, `grant/revoke/listRouteDriverPermissions`).
   Detay matrix: `website/app-impact/09_block_b_membership_permission_alignment_matrix_2026_02_27.md`.
 - `W2A-465`: **web_done_app_n/a**  
   Share + admin read/mutation callables icin runtime response-shape guardlari aktif edildi; app davranis/kontrat etkisi yok.
 - `API-DIFF-025..027`: **web_runtime_validated_app_n/a**  
   Admin/share kontratlari webde fail-fast (`CONTRACT_MISMATCH`) korumasi altinda; app tarafinda bu dongude aksiyon gerekmez.
+- Test altyapisi notu (2026-02-27): pub solve blokaji drift/build_runner upgrade ile kapandi; hedef app parity test seti PASS aldi. Secim 7 acceptance maddeleri unit smoke ile kapatildi.

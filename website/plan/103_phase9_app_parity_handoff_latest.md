@@ -1,15 +1,15 @@
 # Faz 9 App Parity Handoff Report
 
-Tarih: 2026-02-27 22:11:43
-Durum: PARTIAL
+Tarih: 2026-02-27 23:54:33
+Durum: PASS
 
 | Kaynak | Acik/Pending |
 | --- | --- |
-| Queue app_pending satirlari (06_*) | 7 |
-| Parser checklist acik maddeler (07_*) | 41 |
-| Blok A app pending satirlari (08_*) | 15 |
-| Blok B app pending satirlari (09_*) | 7 |
-| Toplam acik kalem | 70 |
+| Queue app acik satirlari (pending/partial/blocked) (06_*) | 0 |
+| Parser checklist acik maddeler (07_*) | 0 |
+| Blok A app acik satirlari (pending/partial/blocked) (08_*) | 0 |
+| Blok B app acik satirlari (pending/partial/blocked) (09_*) | 0 |
+| Toplam acik kalem | 0 |
 
 ## Handoff Notlari
 - Bu rapor app parser/mapping kapanisina giden backlog miktarini otomatik verir.

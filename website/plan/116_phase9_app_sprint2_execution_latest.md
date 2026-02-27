@@ -1,12 +1,12 @@
 # Phase 9 APP-SPRINT-2 Execution Runbook
 
-Generated At: 2026-02-27 22:11:44
+Generated At: 2026-02-27 23:54:35
 Source: website/app-impact/12_phase9_app_sprint_packages_latest.json
 Package: APP-SPRINT-2
 
 ## Scope
 - W2A: W2A-001, W2A-002, W2A-003, W2A-013, W2A-014, W2A-015, W2A-016, W2A-017
-- Open Items: 13/13
+- Open Items: 0/13
 - Goal: Route stop parser + live ops state + critical error mapping closure.
 
 ## Step-by-Step
@@ -17,19 +17,19 @@ Package: APP-SPRINT-2
 5. Smoke template sonucunu `pass|fail|blocked` olarak doldur.
 
 ## Tasks
-- [ ] `listCompanyRouteStops` parser
-- [ ] `upsertCompanyRouteStop` parser
-- [ ] `deleteCompanyRouteStop` parser
-- [ ] `reorderCompanyRouteStops` parser (`changed`, `updatedAt`)
-- [ ] `listActiveTripsByCompany` parser
-- [ ] `liveState` (`online|stale`) UI mapping
-- [ ] `live.source` (`rtdb|trip_doc`) fallback mapping
-- [ ] RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)
-- [ ] `426 Upgrade Required`
-- [ ] `UPDATE_TOKEN_MISMATCH`
-- [ ] `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`
-- [ ] `ROUTE_STOP_INVALID_STATE`
-- [ ] `ROUTE_STOP_REORDER_STATE_INVALID`
+- [x] `listCompanyRouteStops` parser
+- [x] `upsertCompanyRouteStop` parser
+- [x] `deleteCompanyRouteStop` parser
+- [x] `reorderCompanyRouteStops` parser (`changed`, `updatedAt`)
+- [x] `listActiveTripsByCompany` parser
+- [x] `liveState` (`online|stale`) UI mapping
+- [x] `live.source` (`rtdb|trip_doc`) fallback mapping
+- [x] RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)
+- [x] `426 Upgrade Required`
+- [x] `UPDATE_TOKEN_MISMATCH`
+- [x] `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`
+- [x] `ROUTE_STOP_INVALID_STATE`
+- [x] `ROUTE_STOP_REORDER_STATE_INVALID`
 
 ## Acceptance
 - Durak ekle/sil/sirala akislarinda soft-lock senaryolari dogru reason-code ile geri donuyor.

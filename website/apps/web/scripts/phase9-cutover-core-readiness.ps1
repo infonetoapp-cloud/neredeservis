@@ -58,8 +58,16 @@ foreach ($line in $queueContent) {
   }
 }
 
-$blockAPending = @($blockAContent | Where-Object { $_ -match "^\| W2A-" -and $_ -match "\|\s*pending\s*\|" }).Count
-$blockBPending = @($blockBContent | Where-Object { $_ -match "^\| W2A-" -and $_ -match "\|\s*pending\s*\|" }).Count
+$blockAPending = @(
+  $blockAContent | Where-Object {
+    $_ -match "^\| W2A-" -and $_ -match "\|\s*(pending|partial|blocked)\s*\|"
+  }
+).Count
+$blockBPending = @(
+  $blockBContent | Where-Object {
+    $_ -match "^\| W2A-" -and $_ -match "\|\s*(pending|partial|blocked)\s*\|"
+  }
+).Count
 
 $parserOpen = 0
 $inParserSection = $false
@@ -130,14 +138,33 @@ $lines.Add("- `W2A-001` durum: **" + $w2a001Status + "**") | Out-Null
 $lines.Add("- `W2A-001` kapanmadan final cutover onayi verilmez.") | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("## Sonraki 4 Adim") | Out-Null
-$lines.Add("1. App parser/mapping closure: 07 dosyasinda secim 1-5 maddelerini tek tek kapat.") | Out-Null
-$lines.Add("2. Error-code mapping closure: 07 secim 6 kodlarini UI copy'ye bagla.") | Out-Null
-$step3 = if ($cutoverOpen -eq 0) {
-  "3. Acceptance smoke closure: 07 secim 7 maddelerini PASS'e cek (03 checklist kapali)."
+$step1 = if ($w2a001Status -match "pending|partial|blocked") {
+  "1. W2A-001 closure: app tarafinda hard-block force-update ekrani + min version gate runtime implementasyonunu tamamla."
 } else {
-  "3. Acceptance smoke closure: 07 secim 7 + 03 checklist maddelerini PASS'e cek."
+  "1. W2A-001 kapali; force-update davranisini regression testte sabit tut."
+}
+$lines.Add($step1) | Out-Null
+
+$step2 = if ($parserOpen -gt 0) {
+  "2. App parser/mapping closure: 07 dosyasinda secim 1-5 maddelerini tek tek kapat."
+} else {
+  "2. Parser/mapping secim 1-5 PASS; yeni kontrat driftleri icin `company_contract_parser` smoke testlerini koru."
+}
+$lines.Add($step2) | Out-Null
+
+$step3 = if ($errorMapOpen -gt 0) {
+  "3. Error-code mapping closure: 07 secim 6 kodlarini UI copy'ye bagla."
+} elseif ($acceptanceOpen -gt 0 -or $cutoverOpen -gt 0) {
+  if ($cutoverOpen -eq 0) {
+    "3. Acceptance smoke closure: 07 secim 7 maddelerini PASS'e cek (03 checklist kapali)."
+  } else {
+    "3. Acceptance smoke closure: 07 secim 7 + 03 checklist maddelerini PASS'e cek."
+  }
+} else {
+  "3. Error mapping + acceptance PASS; kalan blokaj yoksa final cutover onayina gec."
 }
 $lines.Add($step3) | Out-Null
+
 $lines.Add("4. npm run handoff:app-parity tekrar kos ve toplam pending'i tekrar olc.") | Out-Null
 
 Write-FileWithRetry -Path $latestReportPath -Value $lines

@@ -46,11 +46,21 @@ $checklistContent = Get-Content -Path $checklistPath
 $blockAContent = Get-Content -Path $blockAPath
 $blockBContent = Get-Content -Path $blockBPath
 
-$queuePending = @($queueContent | Where-Object { $_ -match "app_pending" }).Count
+$queuePending = @(
+  $queueContent | Where-Object { $_ -match "app_(pending|partial|blocked)" }
+).Count
 $checklistOpen = @($checklistContent | Where-Object { $_ -match "^- \[ \]" }).Count
-$blockAPending = @($blockAContent | Where-Object { $_ -match "^\| W2A-" -and $_ -match "\|\s*pending\s*\|" }).Count
-$blockBPending = @($blockBContent | Where-Object { $_ -match "^\| W2A-" -and $_ -match "\|\s*pending\s*\|" }).Count
-$totalPending = $queuePending + $checklistOpen + $blockAPending + $blockBPending
+$blockAPending = @(
+  $blockAContent | Where-Object {
+    $_ -match "^\| W2A-" -and $_ -match "\|\s*(pending|partial|blocked)\s*\|"
+  }
+).Count
+$blockBPending = @(
+  $blockBContent | Where-Object {
+    $_ -match "^\| W2A-" -and $_ -match "\|\s*(pending|partial|blocked)\s*\|"
+  }
+).Count
+$totalPending = $checklistOpen + $blockAPending + $blockBPending
 
 $status = if ($totalPending -eq 0) { "PASS" } else { "PARTIAL" }
 
@@ -62,10 +72,10 @@ $lines.Add("Durum: " + $status) | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("| Kaynak | Acik/Pending |") | Out-Null
 $lines.Add("| --- | --- |") | Out-Null
-$lines.Add("| Queue app_pending satirlari (06_*) | " + $queuePending + " |") | Out-Null
+$lines.Add("| Queue app acik satirlari (pending/partial/blocked) (06_*) | " + $queuePending + " |") | Out-Null
 $lines.Add("| Parser checklist acik maddeler (07_*) | " + $checklistOpen + " |") | Out-Null
-$lines.Add("| Blok A app pending satirlari (08_*) | " + $blockAPending + " |") | Out-Null
-$lines.Add("| Blok B app pending satirlari (09_*) | " + $blockBPending + " |") | Out-Null
+$lines.Add("| Blok A app acik satirlari (pending/partial/blocked) (08_*) | " + $blockAPending + " |") | Out-Null
+$lines.Add("| Blok B app acik satirlari (pending/partial/blocked) (09_*) | " + $blockBPending + " |") | Out-Null
 $lines.Add("| Toplam acik kalem | " + $totalPending + " |") | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("## Handoff Notlari") | Out-Null

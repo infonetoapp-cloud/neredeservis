@@ -76,6 +76,23 @@ if ($totalTotal -gt 0) {
 
 $status = if ($openTotal -eq 0) { "PASS" } else { "PARTIAL" }
 
+$next4 = @()
+if ($openTotal -eq 0) {
+  $next4 = @(
+    "phase9_closed_keep_regression_green",
+    "run_manual_acceptance_before_release_window",
+    "monitor_contract_drift_for_new_endpoints",
+    "kickoff_next_phase_scope_with_no_admin_expansion"
+  )
+} else {
+  $next4 = @(
+    "close_app_sprint_1_parser_core",
+    "close_app_sprint_2_route_liveops_parser",
+    "close_app_sprint_4_acceptance_smokes",
+    "rerun_phase9_closeout_and_measure"
+  )
+}
+
 $topOpenItems = New-Object System.Collections.Generic.List[string]
 foreach ($pkg in $packagesPayload.packages | Where-Object { $_.priority -eq "P0" }) {
   foreach ($item in $pkg.items | Where-Object { -not $_.done }) {
@@ -117,10 +134,11 @@ if ($topOpenItems.Count -eq 0) {
 }
 $lines.Add("") | Out-Null
 $lines.Add("## Sonraki 4 Adim") | Out-Null
-$lines.Add('1. APP-SPRINT-1 parser cekirdegini kapat (`create/list company`, `vehicle`, `create/update route`).') | Out-Null
-$lines.Add("2. APP-SPRINT-2 route-stop + live-ops parser ve soft-lock/error mapping paketini kapat.") | Out-Null
-$lines.Add("3. APP-SPRINT-4 acceptance smoke uc kritik akisla kapat: company recoverability, conflict retry, live fallback.") | Out-Null
-$lines.Add('4. `npm run closeout:phase9` tekrar kos ve 03 + 07 checklist aciklarini yeniden olc.') | Out-Null
+$stepIndex = 1
+foreach ($step in $next4) {
+  $lines.Add([string]$stepIndex + ". " + [string]$step) | Out-Null
+  $stepIndex++
+}
 $lines.Add("") | Out-Null
 $lines.Add("## Kural") | Out-Null
 $lines.Add("- Web tarafi kapali olsa bile app parser/mapping closure bitmeden final cutover onayi verilmez.") | Out-Null
@@ -138,12 +156,7 @@ $jsonPayload = [ordered]@{
     workcardsOpen = [int]$workcardsPayload.stats.open
   }
   packages = $packageRows
-  next4 = @(
-    "close_app_sprint_1_parser_core",
-    "close_app_sprint_2_route_liveops_parser",
-    "close_app_sprint_4_acceptance_smokes",
-    "rerun_phase9_closeout_and_measure"
-  )
+  next4 = $next4
 }
 $jsonText = ($jsonPayload | ConvertTo-Json -Depth 8)
 

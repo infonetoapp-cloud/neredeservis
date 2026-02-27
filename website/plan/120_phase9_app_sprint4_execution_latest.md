@@ -1,12 +1,12 @@
 # Phase 9 APP-SPRINT-4 Execution Runbook
 
-Generated At: 2026-02-27 22:11:45
+Generated At: 2026-02-27 23:54:35
 Source: website/app-impact/12_phase9_app_sprint_packages_latest.json
 Package: APP-SPRINT-4
 
 ## Scope
 - W2A: W2A-001, W2A-002, W2A-003, W2A-004
-- Open Items: 5/12
+- Open Items: 0/12
 - Goal: Acceptance smoke + cutover checklist closure.
 
 ## Step-by-Step
@@ -17,11 +17,11 @@ Package: APP-SPRINT-4
 5. Smoke template sonucunu `pass|fail|blocked` olarak doldur ve bloklari raporla.
 
 ## Tasks
-- [ ] Parser crash-free smoke (all listed callables)
-- [ ] Error message mapping smoke (all listed codes)
-- [ ] Company context recoverability (logout/login + mode switch)
-- [ ] Route/stop conflict recovery (token mismatch -> reload -> retry)
-- [ ] Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)
+- [x] Parser crash-free smoke (all listed callables)
+- [x] Error message mapping smoke (all listed codes)
+- [x] Company context recoverability (logout/login + mode switch)
+- [x] Route/stop conflict recovery (token mismatch -> reload -> retry)
+- [x] Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)
 - [x] `00_web_to_app_change_register.md` icindeki `P0` kayitlar triaged/planned
 - [x] `contract` kategorisindeki kayitlar icin app error mapping karari net
 - [x] force update / `426` fallback davranisi app tarafinda tanimli (`website/app-impact/19_app_runtime_behavior_alignment_contract_2026_02_27.md`)

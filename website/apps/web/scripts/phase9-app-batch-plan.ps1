@@ -84,7 +84,7 @@ for ($i = 0; $i -lt $sorted.Count; $i += $BatchSize) {
   }) | Out-Null
 }
 
-$status = if ($sorted.Count -gt 0) { "PASS" } else { "PARTIAL" }
+$status = if ($sorted.Count -eq 0) { "PASS" } else { "PARTIAL" }
 
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add("# Faz 9 App Batch Plan") | Out-Null
@@ -100,6 +100,9 @@ $lines.Add("") | Out-Null
 $lines.Add("## Ilk 4 Batch (Uygulama Sirasi)") | Out-Null
 
 $limit = [Math]::Min(4, $batches.Count)
+if ($limit -eq 0) {
+  $lines.Add("- Yok (acik item kalmadi).") | Out-Null
+}
 for ($b = 0; $b -lt $limit; $b++) {
   $batch = $batches[$b]
   $lines.Add("") | Out-Null
@@ -110,7 +113,7 @@ for ($b = 0; $b -lt $limit; $b++) {
     $lines.Add("   " + $ix + ". [" + [string]$it.sprint + "][" + [string]$it.priority + "] " + [string]$it.text) | Out-Null
     $ix++
   }
-  $lines.Add("2. Kapanis kosulu: ilgili itemler `07` checklist'te [x] olmalı.") | Out-Null
+  $lines.Add("2. Kapanis kosulu: ilgili itemler `07` checklist'te [x] olmali.") | Out-Null
   $lines.Add("3. Rapor: degisen dosyalar + test komutlari + acik kalan itemler.") | Out-Null
   $lines.Add("4. Sonra: `npm run closeout:phase9` kos ve deltayi kaydet.") | Out-Null
 }

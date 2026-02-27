@@ -35,6 +35,9 @@ function Invoke-HttpProbe {
   try {
     $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0
     $status = [string]$response.StatusCode
+    if ($response.Headers["Location"]) {
+      $location = [string]$response.Headers["Location"]
+    }
     $content = $response.Content
   } catch {
     if ($_.Exception.Response) {
@@ -101,9 +104,13 @@ function Run-Scope {
     -Detail ("HTTP=" + $loginProbe.Status + "; note=" + $loginProbe.Note)
 
   $girisProbe = Invoke-HttpProbe -Url ($BaseUrl + "/giris")
+  $girisPass = ($girisProbe.Status -eq "200") -or (
+    ($girisProbe.Status -eq "307" -or $girisProbe.Status -eq "308") -and
+    ($girisProbe.Location -like "*/login*" -or $girisProbe.Location -like "*/giris*")
+  )
   Add-CheckResult -Rows $rows -Scope $Scope -Check "giris page reachable" `
-    -Passed ($girisProbe.Status -eq "200") `
-    -Detail ("HTTP=" + $girisProbe.Status + "; note=" + $girisProbe.Note)
+    -Passed $girisPass `
+    -Detail ("HTTP=" + $girisProbe.Status + "; location=" + $girisProbe.Location + "; note=" + $girisProbe.Note)
 
   $badge = Detect-EnvBadge -Html $loginProbe.Content
   Add-CheckResult -Rows $rows -Scope $Scope -Check "env badge match" `

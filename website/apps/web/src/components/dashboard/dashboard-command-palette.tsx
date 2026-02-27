@@ -28,6 +28,7 @@ import { useCompanyMembers } from "@/features/company/use-company-members";
 import { useCompanyRoutes } from "@/features/company/use-company-routes";
 import { useCompanyVehicles } from "@/features/company/use-company-vehicles";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
+import { isAdminSurfaceEnabled } from "@/lib/env/public-env";
 
 export function DashboardCommandPalette() {
   const router = useRouter();
@@ -113,6 +114,7 @@ export function DashboardCommandPalette() {
   }, [vehiclesQuery.items, vehiclesQuery.status]);
 
   const canOpenAdminAction =
+    isAdminSurfaceEnabled() &&
     membership.status === "success" &&
     membership.memberStatus === "active" &&
     (membership.role === "owner" || membership.role === "admin");

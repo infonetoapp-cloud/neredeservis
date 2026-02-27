@@ -14,6 +14,9 @@ const devFastLoginPassword = (
   process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_PASSWORD ?? ""
 ).trim();
 const publicMapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
+const adminSurfaceFlag = (process.env.NEXT_PUBLIC_ENABLE_ADMIN_SURFACE ?? "false")
+  .trim()
+  .toLowerCase();
 
 export function getPublicAppEnv(): string {
   return appEnv;
@@ -56,4 +59,8 @@ export function getDevFastLoginCredentials():
 
 export function getPublicMapboxToken(): string | null {
   return publicMapboxToken.length > 0 ? publicMapboxToken : null;
+}
+
+export function isAdminSurfaceEnabled(): boolean {
+  return adminSurfaceFlag === "true";
 }

@@ -1,19 +1,44 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { FirebaseClientBootstrapProbe } from "@/components/auth/firebase-client-bootstrap-probe";
 import { LoginForm } from "@/components/auth/login-form";
 import { ConfigValidationBanner } from "@/components/shared/config-validation-banner";
 import { EnvBadge } from "@/components/shared/env-badge";
+import { getPublicAppEnv } from "@/lib/env/public-env";
 
 type LoginPageShellProps = {
   title?: string;
   description?: string;
 };
 
-export function LoginPageShell({
+function resolveLoginShellEnv(hostname: string): string {
+  const normalizedHost = hostname.trim().toLowerCase();
+
+  if (
+    normalizedHost === "neredeservis.app" ||
+    normalizedHost === "www.neredeservis.app" ||
+    normalizedHost === "app.neredeservis.app"
+  ) {
+    return "prod";
+  }
+
+  if (normalizedHost === "stg-app.neredeservis.app") {
+    return "stg";
+  }
+
+  return getPublicAppEnv();
+}
+
+export async function LoginPageShell({
   title = "Firma operasyonu ve bireysel sofor paneli",
   description = "Google, Microsoft ve e-posta/sifre giris akislari bu panelden baslatilir.",
 }: LoginPageShellProps) {
+  const requestHeaders = await headers();
+  const rawHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const hostname = rawHost.split(",")[0]?.trim().split(":")[0] ?? "";
+  const resolvedEnv = resolveLoginShellEnv(hostname);
+
   return (
     <main className="min-h-screen bg-background px-6 py-8 text-foreground">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
@@ -21,7 +46,7 @@ export function LoginPageShell({
           <div className="rounded-3xl border border-line bg-surface p-8 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <span className="text-sm font-semibold tracking-tight">Neredeservis Web</span>
-              <EnvBadge />
+              <EnvBadge env={resolvedEnv} />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950">{title}</h1>
             <p className="mt-4 max-w-md text-sm leading-6 text-muted">{description}</p>
@@ -45,7 +70,7 @@ export function LoginPageShell({
         <section className="rounded-3xl border border-line bg-surface p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-900">Giris Yap</span>
-            <EnvBadge />
+            <EnvBadge env={resolvedEnv} />
           </div>
 
           <ConfigValidationBanner scopeLabel="Login Shell" />

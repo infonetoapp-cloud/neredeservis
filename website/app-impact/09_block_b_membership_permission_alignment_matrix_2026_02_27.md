@@ -15,13 +15,13 @@ tek tabloda gostermek.
 
 | W2A | Kapsam | Kontrat Kaynagi | Web Durumu | App Durumu |
 | --- | --- | --- | --- | --- |
-| W2A-100 | updateCompanyMember | `API-DIFF-017` | done (runtime guard) | pending |
-| W2A-101 | inviteCompanyMember | `API-DIFF-018` | done (runtime guard) | pending |
-| W2A-102 | acceptCompanyInvite | `API-DIFF-019` | done (runtime guard) | pending |
-| W2A-103 | declineCompanyInvite | `API-DIFF-020` | done (runtime guard) | pending |
-| W2A-104 | removeCompanyMember | `API-DIFF-021` | done (runtime guard) | pending |
-| W2A-105 | grant/revoke route permissions | `API-DIFF-022..023` | done (runtime guard) | pending |
-| W2A-106 | listRouteDriverPermissions | `API-DIFF-024` | done (runtime guard) | pending |
+| W2A-100 | updateCompanyMember | `API-DIFF-017` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-101 | inviteCompanyMember | `API-DIFF-018` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-102 | acceptCompanyInvite | `API-DIFF-019` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-103 | declineCompanyInvite | `API-DIFF-020` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-104 | removeCompanyMember | `API-DIFF-021` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-105 | grant/revoke route permissions | `API-DIFF-022..023` | done (runtime guard) | done (typed parser + callable client) |
+| W2A-106 | listRouteDriverPermissions | `API-DIFF-024` | done (runtime guard) | done (typed parser + callable client) |
 
 ## 3) Hemen Uygulanacak App Parser Paketleri
 

@@ -6,8 +6,12 @@ const toneMap: Record<string, string> = {
   prod: "bg-emerald-100 text-emerald-900 border-emerald-200",
 };
 
-export function EnvBadge() {
-  const env = getPublicAppEnv();
+type EnvBadgeProps = {
+  env?: string;
+};
+
+export function EnvBadge({ env: envOverride }: EnvBadgeProps = {}) {
+  const env = (envOverride ?? getPublicAppEnv()).trim().toLowerCase();
   const tone = toneMap[env] ?? "bg-slate-100 text-slate-800 border-slate-200";
 
   return (

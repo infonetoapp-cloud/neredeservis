@@ -7,6 +7,7 @@ import { ActiveCompanySidebarCard } from "@/components/dashboard/active-company-
 import { EnvBadge } from "@/components/shared/env-badge";
 import { canAccessAdminSurface } from "@/features/company/company-rbac";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
+import { isAdminSurfaceEnabled } from "@/lib/env/public-env";
 
 type NavItem = {
   label: string;
@@ -93,7 +94,8 @@ function SidebarNavSection({
 export function DashboardShellSidebar() {
   const pathname = usePathname() ?? "/dashboard";
   const membership = useActiveCompanyMembership();
-  const allowAdmin = canAccessAdminSurface(membership.role, membership.memberStatus);
+  const allowAdmin =
+    isAdminSurfaceEnabled() && canAccessAdminSurface(membership.role, membership.memberStatus);
 
   const coreItems = NAV_ITEMS.filter((item) =>
     item.section === "core" && (item.href !== "/admin" || allowAdmin || pathname.startsWith("/admin")),

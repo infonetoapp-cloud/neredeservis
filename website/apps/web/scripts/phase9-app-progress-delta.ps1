@@ -56,25 +56,35 @@ $batchCount = [int]$batch.batchCount
 
 $goNoGo = if ($p0Open -eq 0 -and $workcardsOpen -eq 0) { "GO" } else { "NO-GO" }
 $riskLevel = if ($p0Open -ge 20) { "YUKSEK" } elseif ($p0Open -ge 8) { "ORTA" } else { "DUSUK" }
+$status = if ($openTotal -eq 0 -and $workcardsOpen -eq 0) { "PASS" } else { "PARTIAL" }
 
 $next4 = @()
 if ($execution.next4) {
   $next4 = @($execution.next4 | Select-Object -First 4)
 }
 if ($next4.Count -eq 0) {
-  $next4 = @(
-    "close_app_sprint_1_parser_core",
-    "close_app_sprint_2_route_liveops_parser",
-    "close_app_sprint_4_acceptance_smokes",
-    "rerun_phase9_closeout_and_measure"
-  )
+  if ($status -eq "PASS") {
+    $next4 = @(
+      "phase9_closed_keep_regression_green",
+      "run_manual_acceptance_before_release_window",
+      "monitor_contract_drift_and_update_register",
+      "kickoff_next_phase_scope_with_no_admin_expansion"
+    )
+  } else {
+    $next4 = @(
+      "close_app_sprint_1_parser_core",
+      "close_app_sprint_2_route_liveops_parser",
+      "close_app_sprint_4_acceptance_smokes",
+      "rerun_phase9_closeout_and_measure"
+    )
+  }
 }
 
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add("# Faz 9 App Progress Delta") | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("Tarih: " + $timestamp.ToString("yyyy-MM-dd HH:mm:ss")) | Out-Null
-$lines.Add("Durum: PASS") | Out-Null
+$lines.Add("Durum: " + $status) | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("## Ozet") | Out-Null
 $lines.Add("| Metrik | Deger |") | Out-Null

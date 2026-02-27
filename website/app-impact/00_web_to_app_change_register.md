@@ -91,7 +91,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: 2026-02-27: Dashboard shell'de aktif company context otomatik senkronizasyonu eklendi (tek aktif uyelikte auto-select, invalid/suspended uyelikte clear, isim degisimi reconcile). App tarafi mode/company resolver parity sprinti pending.
 
 ### W2A-005
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_deferred`
 - `Priority`: `P2`
 - `Kategori`: `auth`
 - `Web Trigger`: Web login shell'e Microsoft Sign-In (`microsoft.com`) provider akisinin feature-flag kontrollu eklenmesi
@@ -103,7 +103,7 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `none`
 - `Ilgili Web Docs`: `plan/22_web_auth_provider_decision.md`, `plan/20_decision_log_and_open_questions.md`
 - `Ilgili App Dosyalari`: auth/login ekranlari ve provider error mapping katmani (gelecek app auth refresh sprinti)
-- `Notlar`: Web tarafi tamamlandi (`NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN` + popup akisi). App tarafi parity ve provider mapping isi cutover oncesi planlanacak.
+- `Notlar`: Web tarafi tamamlandi (`NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN` + popup akisi). App tarafi parity isi opsiyonel auth refresh sprintine ertelendi; cutover bloklayici degil.
 
 ### W2A-006
 - `Status`: `web_done_app_pending`
@@ -6367,3 +6367,203 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - App Impact: none
 - Action for App Team: no_action_required
 - Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir. Degisiklik dokuman kalitesi ve script cikti tutarliligi iyilestirmesidir.
+
+## W2A-540
+- Date: 2026-02-27
+- Web Trigger: App parity blok A icin typed callable client + parser katmani eklendi; route/stop mutasyon komutlari company-scoped callable akisina baglandi ve reason-code tabanli route mutation feedback mapping'i sertlestirildi.
+- App Impact: contract_and_behavior_change
+- Action for App Team: parser checklist (`07_*`) secim 1/2/3/4(kismi) + error mapping secim 6(kismi) maddelerini done/partial olarak kapat; membership/permission (W2A-100..106), live-source UI mapping ve acceptance smoke adimlarini sonraki sprintte tamamla.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. Etki eden callables: `createCompany`, `listMyCompanies`, `listCompanyMembers`, `listCompanyVehicles`, `createVehicle`, `updateVehicle`, `createCompanyRoute`, `updateCompanyRoute`, `listCompanyRouteStops`, `upsertCompanyRouteStop`, `deleteCompanyRouteStop`, `reorderCompanyRouteStops`, `listActiveTripsByCompany`; hata semantikleri: `426`, `UPDATE_TOKEN_MISMATCH`, `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`, `ROUTE_STOP_INVALID_STATE`, `ROUTE_STOP_REORDER_STATE_INVALID`.
+
+## W2A-541
+- Date: 2026-02-27
+- Web Trigger: Blok B parser closure adimi tamamlandi; app callable client'a `updateCompanyMember`, `inviteCompanyMember`, `acceptCompanyInvite`, `declineCompanyInvite`, `removeCompanyMember`, `grantDriverRoutePermissions`, `revokeDriverRoutePermissions`, `listRouteDriverPermissions` eklendi. Ayrica `listCompanyRoutes` parser/methodu eklendi.
+- App Impact: contract_change
+- Action for App Team: Blok B matrix (`09_*`) satirlarini `done` seviyesine cek; kalan odagi force-update/live-ops mapping/acceptance smoke uzerine kaydir.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. Etki yeni callable response parserlari uzerindedir; mevcut web kontratlariyla birebir typed mapping saglandi.
+
+## W2A-542
+- Date: 2026-02-27
+- Web Trigger: App parity icin canli operasyon ve guard reason-code mapping use-case katmani eklendi (`MapCompanyLiveOpsStateUseCase`, `ResolveCompanyContractErrorMessageUseCase`) ve testleri yazildi.
+- App Impact: behavior_and_copy_alignment
+- Action for App Team: Live ops UI katmaninda mapper sonucunu dogrudan kullanarak acceptance smoke maddelerini (`07` secim 7) kapat.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. `liveState/live.source/stream-state` ve `OWNER_MEMBER_IMMUTABLE/SELF_MEMBER_REMOVE_FORBIDDEN/INVITE_*/ROUTE_PRIMARY_DRIVER_IMMUTABLE` kodlari icin standart copy semantigi tek noktada toplandi.
+
+## W2A-543
+- Date: 2026-02-27
+- Web Trigger: App test altyapi blokaji kapatildi; pubspec dev tooling versiyonlari guncellendi (`drift 2.29.0`, `drift_dev 2.29.0`, `build_runner 2.6.1`) ve hedef app parity test seti PASS aldi.
+- App Impact: tooling_runtime_stability
+- Action for App Team: Secim 7 acceptance maddelerini manuel/runtime smoke ile kapat; parser/error-code closure artik testlenebilir durumda.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet (tooling/runtime). `flutter test` artik calisiyor; onceki pub solve ve `build/unit_test_assets` kilidi temizlendi.
+
+## W2A-544
+- Date: 2026-02-28
+- Web Trigger: App parity acceptance closure icin smoke test paketi eklendi (`company_contract_parser_smoke_test`, `company_phase9_acceptance_smoke_test`) ve ilgili company/driver smoke setleri birlikte PASS aldi.
+- App Impact: behavior_and_validation_closure
+- Action for App Team: `07_*` secim 7 ve `13_*` smoke checklist satirlarini PASS seviyesinde koru; kalan tek bloklayici `W2A-001` hard-block force-update UX/mode gate implementasyonudur.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. Company context recoverability, route conflict copy/retry ve live fallback semantigi testle kanitlandi.
+
+## W2A-545
+- Date: 2026-02-28
+- Web Trigger: Blok A durum matrisi ve execution queue snapshot guncellendi; `W2A-002/003/004/017` app durumu `done` seviyesine cekildi, `W2A-001` tek bloklayici olarak ayrildi.
+- App Impact: planning_alignment_update
+- Action for App Team: Force-update hard-block ekrani + min version gate runtime kapanisina odaklan; sonrasi `handoff:app-parity` PASS hedeflenir.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet (durum/aksiyon onceligi). Kalan isler net olarak tek kaleme indirildi.
+
+## W2A-546
+- Date: 2026-02-28
+- Web Trigger: App router'a hard-block force-update koridoru eklendi (`/force-update` route, `ForceUpdateRequiredScreen`, auth/consent exempt). Route/stop mutasyon failure helper'lari `UPGRADE_REQUIRED/FORCE_UPDATE_REQUIRED/426` sinyali aldiginda ekrana yonleniyor.
+- App Impact: behavior_change
+- Action for App Team: Min version gate runtime (proaktif) adimini tamamla; sonrasi W2A-001'i `done` seviyesine cek.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. Legacy write-path reject durumunda app akisi artik hard-block update CTA'ya zorlanir.
+
+## W2A-547
+- Date: 2026-02-28
+- Web Trigger: Startup min-version gate eklendi (`lib/app/router/force_update_version_gate.dart` + `NeredeServisApp` entegrasyonu). `MIN_REQUIRED_APP_VERSION` tanimliysa app acilisinda surum kontrolu yapilip gerekirse `/force-update` rotasina zorlanir.
+- App Impact: behavior_and_config_change
+- Action for App Team: DEV/STG/PROD build pipeline'larinda `MIN_REQUIRED_APP_VERSION` dart-define degerini ortama gore set et; release checkliste bu adimi sabitle.
+- Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet. W2A-001 parity kapanisi icin proaktif gate + reaktif 426 hard-block birlikte calisir hale geldi.
+
+### W2A-548
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 no-admin readiness bootstrap (`readiness:phase10:no-admin`)
+- `App Impact (ozet)`: Yok; sadece web release-gate ve dokuman senkronizasyonu.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/128_phase10_no_admin_scope_bootstrap_2026_02_27.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-27: Faz 10 bootstrap adimi app runtime davranisi/kontrat/mesaj semantigini degistirmez.
+
+### W2A-549
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 manual release window automation (`pack:phase10:manual-release-window`)
+- `App Impact (ozet)`: Yok; sadece web release-window denetimi ve raporlama.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/130_phase10_manual_release_window_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: app davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-550
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 no-admin closeout orchestration (`closeout:phase10:no-admin`)
+- `App Impact (ozet)`: Yok; web closeout zinciri.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/131_phase10_no_admin_closeout_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: app runtime degisimi yok.
+
+### W2A-551
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Manual smoke probe semantik guncellemesi (`/giris` 307/308->/login PASS)
+- `App Impact (ozet)`: Yok; sadece web operasyon smoke script dogrulama kriteri.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/87_phase5_manual_smoke_probe_*.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: app davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-552
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `migration`
+- `Web Trigger`: Vercel NEXT_PUBLIC_APP_ENV ortam hizalama ve alias yonetimi (prod/stg)
+- `App Impact (ozet)`: Yok; deployment/env operasyon ayari.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/130_phase10_manual_release_window_latest.md`, `plan/131_phase10_no_admin_closeout_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Production env badge PASS'e cekildi; STG tarafinda env badge hala DEV gorunuyor, preview env resolve davranisi icin operasyonel takip acik.
+
+### W2A-553
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `ui_ux`
+- `Web Trigger`: Login shell env badge host-aware resolve (`stg-app.neredeservis.app` => `stg`, apex/app => `prod`)
+- `App Impact (ozet)`: Yok; sadece web login shell SSR env rozet gorunurlugu duzeltmesi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/129_phase10_no_admin_readiness_latest.md`, `plan/130_phase10_manual_release_window_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi. Duzenleme sadece web SSR env rozetinin STG/PROD hosta gore deterministik render edilmesi.
+
+### W2A-554
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `migration`
+- `Web Trigger`: Tek preview deploy + `stg-app` alias rebind ile Faz 10 smoke/closeout PASS kapanisi
+- `App Impact (ozet)`: Yok; deployment ve domain routing operasyonu.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/87_phase5_manual_smoke_probe_2026_02_28_0037.md`, `plan/130_phase10_manual_release_window_latest.md`, `plan/131_phase10_no_admin_closeout_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi. STG env badge PASS canli probe ile dogrulandi.
+
+### W2A-555
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 post-release observe otomasyonu (`phase10-post-release-observe.ps1`)
+- `App Impact (ozet)`: Yok; sadece web release-sonrasi gozlem/izlenebilirlik raporu.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/132_phase10_post_release_observe_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-556
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `ui_ux`
+- `Web Trigger`: Admin yuzeyinin env flag ile default kapatilmasi (`NEXT_PUBLIC_ENABLE_ADMIN_SURFACE=false`)
+- `App Impact (ozet)`: Yok; degisiklik web panel navigasyonu/route guard seviyesiyle sinirli.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/16_master_phase_plan_detailed.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: `/admin` route kapaliysa `/dashboard` redirect olur; sidebar/komut paleti admin linkini gizler. App davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-557
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 stabilization pack otomasyonu (`phase10-stabilization-pack.ps1`)
+- `App Impact (ozet)`: Yok; web release operasyon zinciri (closeout + observe) tek komutta birlestirildi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/133_phase10_stabilization_pack_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-558
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Website-only commit pack otomasyonu (`phase10-website-commit-pack.ps1`)
+- `App Impact (ozet)`: Yok; sadece website degisikliklerini ayiklayan release-ops yardimci raporudur.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/134_phase10_website_commit_pack_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-559
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 10 rapor prune otomasyonu (`phase10-report-prune.ps1`) ve eski timestamp raporlarinin temizligi
+- `App Impact (ozet)`: Yok; sadece web plan rapor artefact sayisini kontrol etmek icin housekeeping adimi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/135_phase10_report_prune_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.

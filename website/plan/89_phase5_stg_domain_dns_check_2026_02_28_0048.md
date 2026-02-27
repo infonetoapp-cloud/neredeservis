@@ -1,6 +1,6 @@
 # Faz 5 STG Domain DNS Check Report
 
-Tarih: 2026-02-27 15:32:50
+Tarih: 2026-02-28 00:48:16
 Durum: PASS
 
 | Check | Status | Detail |
@@ -10,7 +10,7 @@ Durum: PASS
 
 ## Raw Output (first 60 lines)
 - Fetching Domain stg-app.neredeservis.app under infonetoapp-clouds-projects
-- > Domain stg-app.neredeservis.app found under infonetoapp-clouds-projects [3s]
+- > Domain stg-app.neredeservis.app found under infonetoapp-clouds-projects [2s]
 - 
 -   General
 - 
@@ -28,3 +28,8 @@ Durum: PASS
 -     ns1.vercel-dns.com      diva.ns.cloudflare.com    ?    
 -     ns2.vercel-dns.com      remy.ns.cloudflare.com    ?    
 - 
+-   Projects
+-    
+-     Project            Domains                     
+-     nsv-web-dev        stg-app.neredeservis.app    
+-    

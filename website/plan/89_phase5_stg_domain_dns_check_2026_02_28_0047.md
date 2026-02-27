@@ -1,6 +1,6 @@
 # Faz 5 STG Domain DNS Check Report
 
-Tarih: 2026-02-27 16:13:11
+Tarih: 2026-02-28 00:47:17
 Durum: PASS
 
 | Check | Status | Detail |
@@ -28,3 +28,8 @@ Durum: PASS
 -     ns1.vercel-dns.com      diva.ns.cloudflare.com    ?    
 -     ns2.vercel-dns.com      remy.ns.cloudflare.com    ?    
 - 
+-   Projects
+-    
+-     Project            Domains                     
+-     nsv-web-dev        stg-app.neredeservis.app    
+-    

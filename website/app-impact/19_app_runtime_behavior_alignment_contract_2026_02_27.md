@@ -1,11 +1,11 @@
 # App Runtime Behavior Alignment Contract (Phase 9)
 
 Tarih: 2026-02-27  
-Durum: Defined (implementation app tarafinda tamamlanacak)
+Durum: Implemented (env-bound min-version gate + hard-block update route)
 
 ## 1) Force Update + `426` Fallback Davranisi
 
-Amaç:
+Amac:
 - Eski app surumlerinin web-first kontratlarla veri bozmasini engellemek.
 
 Kurallar:
@@ -17,7 +17,7 @@ Kurallar:
 
 ## 2) Live Ops Stale/Offline Semantigi (App + Web Tutarliligi)
 
-Amaç:
+Amac:
 - Operator ve sofor tarafinda ayni "durum dili"ni kullanmak.
 
 Semantik:
@@ -32,7 +32,7 @@ UI Davranisi:
 
 ## 3) Route/Trip Mutasyon Lock Reason-Code Davranisi
 
-Amaç:
+Amac:
 - Soft-lock ve conflict durumlarinda operatorun yanlis aksiyonla devam etmesini engellemek.
 
 Zorunlu reason-code map:
