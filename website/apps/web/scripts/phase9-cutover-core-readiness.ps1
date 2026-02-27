@@ -26,8 +26,8 @@ function Write-FileWithRetry {
     [string]$Path,
     [object]$Value,
     [string]$Encoding = "ascii",
-    [int]$Attempts = 8,
-    [int]$DelayMs = 250
+    [int]$Attempts = 30,
+    [int]$DelayMs = 600
   )
   for ($i = 1; $i -le $Attempts; $i++) {
     try {

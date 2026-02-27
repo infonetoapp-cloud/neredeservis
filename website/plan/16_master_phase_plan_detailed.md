@@ -823,3 +823,5 @@ Detay kanit kaydi:
 - Faz 10 otuz birinci dilim tamamlandi (no-admin readiness + website commit-pack latest raporlari tekrar yenilendi: npm run readiness:phase10:no-admin, npm run pack:phase10:website-commit).
 - Faz 10 otuz ikinci dilim tamamlandi (rapor sisme kontrolu tekrar uygulandi: npm run prune:phase10:reports:apply; 13 aday artefact prune edildi, kanit: 135_phase10_report_prune_latest.md).
 - Faz 10 otuz ucuncu dilim tamamlandi (prune sonrasi website commit paketi tekrar uretildi: npm run pack:phase10:website-commit; latest kapsam listesi yenilendi).
+- Faz 10 otuz dorduncu dilim tamamlandi (Faz 9 closeout zincirinde dosya-kilidi toleransi sertlestirildi: write-retry Attempts 8->30, DelayMs 250->600; scriptler: handoff/progress-delta/readiness/closeout; dogrulama: npm run closeout:phase9 PASS).
+- Faz 10 otuz besinci dilim tamamlandi (script hardening sonrasi website commit paketi tekrar alindi: npm run pack:phase10:website-commit; latest 134 raporu guncellendi).

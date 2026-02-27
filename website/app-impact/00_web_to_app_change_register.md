@@ -6630,3 +6630,15 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - `Ilgili Web Docs`: `plan/103_phase9_app_parity_handoff_latest.md`, `plan/104_phase9_cutover_core_readiness_latest.md`, `plan/106_phase9_closeout_latest.md`, `plan/127_phase9_app_progress_delta_latest.md`
 - `Ilgili App Dosyalari`: none
 - `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-565
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Phase9 script write-retry sertlestirmesi (`phase9-app-parity-handoff`, `phase9-app-progress-delta`, `phase9-cutover-core-readiness`, `phase9-closeout`).
+- `App Impact (ozet)`: Yok; yalnizca web tarafi operasyon scriptlerinin dosya-kilidi toleransi artirildi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/16_master_phase_plan_detailed.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
