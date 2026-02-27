@@ -38,9 +38,9 @@ Not:
 - `listMyCompanies`
 - `inviteCompanyMember`
 - `acceptCompanyInvite`
+- `declineCompanyInvite`
 - `listCompanyMembers`
-- `setCompanyMemberRole`
-- `suspendCompanyMember`
+- `updateCompanyMember` (role/memberStatus patch)
 - `removeCompanyMember`
 
 ### 3.2 Driver Management (Company)
@@ -69,6 +69,7 @@ Not:
 - `getCompanyRouteDetail`
 - `upsertCompanyRouteStop`
 - `deleteCompanyRouteStop`
+- `listRouteDriverPermissions`
 - `grantDriverRoutePermissions`
 - `revokeDriverRoutePermissions`
 
@@ -78,7 +79,8 @@ Not:
 - `forceFinishTrip` (owner/admin/dispatcher policy ile)
 
 ### 3.6 Audit / Logs
-- `listAuditLogs`
+- `listCompanyAuditLogs` (implemented, Faz 3)
+- `getCompanyAdminTenantState` (implemented, Faz 3)
 - `getAuditLogDetail` (opsiyonel)
 
 ## 4. Faz 2 Endpointler (Gelistirme)
@@ -134,7 +136,7 @@ P0 (kod baslangici oncesi tasarim):
 
 P1 (ilk panel kullanilabilirlik):
 - active trips list
-- audit log list
+- company audit log list (`listCompanyAuditLogs` tamamlandi)
 
 P2 (iyilestirme):
 - live ops snapshot endpoint

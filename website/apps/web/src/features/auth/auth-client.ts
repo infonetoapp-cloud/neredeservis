@@ -2,6 +2,7 @@
 
 import {
   GoogleAuthProvider,
+  OAuthProvider,
   type User,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -41,6 +42,17 @@ export async function signInWithGooglePopup(): Promise<void> {
   }
 
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  await signInWithPopup(auth, provider);
+}
+
+export async function signInWithMicrosoftPopup(): Promise<void> {
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const provider = new OAuthProvider("microsoft.com");
   provider.setCustomParameters({ prompt: "select_account" });
   await signInWithPopup(auth, provider);
 }

@@ -3,6 +3,11 @@
 Tarih: 2026-02-24
 Durum: Plan / uygulama checklist
 
+Guncel execution notu (2026-02-25):
+- Azure SWA primary yol, Azure Student bolge kisitlari nedeniyle Faz 1 execution'da bloklandi
+- Aktif execution host'u: `Vercel` (tek Next.js app)
+- DNS/Firebase auth domain checklist mantigi korunur; Azure referanslari plan/fallback olarak tutulur
+
 Not:
 - Domain registrar: `name.com`
 - DNS yonetimi: `Cloudflare` (bagli)
@@ -26,14 +31,15 @@ Opsiyonel/faz sonrasi:
 - [ ] Always Use HTTPS = on
 - [ ] Automatic HTTPS Rewrites = on
 
-### 2.2 DNS kayit plani (MVP, tek SWA)
-- [ ] `@` (apex/root) -> Azure SWA custom domain yonlendirme talimatina gore
-- [ ] `www` -> root'a redirect (Cloudflare rule)
-- [ ] `app` -> ayni Azure SWA custom domain kaydi (panel host alias)
+### 2.2 DNS kayit plani (MVP, tek web app)
+- [x] `@` (apex/root) -> aktif host (Vercel) (`A 76.76.21.21`, DNS only)
+- [x] `www` -> aktif host (Vercel) (`A 76.76.21.21`, DNS only)
+- [x] `app` -> panel host alias (Vercel) (`A 76.76.21.21`, DNS only)
 
 Not:
-- Azure SWA dogrulama icin TXT/CNAME isteyebilir; Azure ekranindaki degerler esas alinacak.
-- Hem `@` hem `app` ayni SWA'ya baglanabilir; route/auth davranisi uygulama icinde yonetilir.
+- Aktif host Vercel oldugu surece `A ... 76.76.21.21` kaydi kullanilir.
+- Hem `@` hem `app` ayni Next.js app'e baglidir; route/auth davranisi uygulama (middleware) icinde yonetilir.
+- `*` wildcard kaydi bilerek Vercel'e verilmedi; `api/r/stg-app` gibi future subdomainler icin korunur.
 
 ### 2.3 Cloudflare guvenlik (MVP)
 - [ ] WAF managed rules (basic)

@@ -246,13 +246,16 @@ Yeni endpoint adaylari (MVP):
 - `createCompany`
 - `inviteCompanyMember`
 - `acceptCompanyInvite`
-- `setCompanyMemberRole`
-- `suspendCompanyMember`
+- `declineCompanyInvite`
+- `updateCompanyMember` (role ve memberStatus patch)
+- `removeCompanyMember`
 - `createVehicle`
 - `updateVehicle`
 - `assignDriverToCompany`
 - `bindOperationalVehicleToCompanyDriver` (post-pilot aday, ihtiyaca gore)
+- `listRouteDriverPermissions`
 - `grantDriverRoutePermissions`
+- `revokeDriverRoutePermissions`
 - `createCompanyRoute`
 - `updateCompanyRoute`
 - `upsertCompanyRouteStop`

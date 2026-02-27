@@ -37,6 +37,31 @@ Ozellikle live ops / auth / version enforcement tarafinda ortak dil kullanmak.
   - Web UI: session/role/tenant kaynakli acik mesaj
   - App UI: stale/offline ile karistirilmaz
 
+- `rtdb_stream_connecting`
+  - Anlam: RTDB stream subscribe edildi ama gecerli payload/koordinat henuz gelmedi
+  - Web UI: "RTDB Stream Baglaniyor"
+  - App UI: `stale/offline` yerine ayri "stream hazirlaniyor" semantigi
+
+- `rtdb_stream_mismatch`
+  - Anlam: RTDB payload geldi ama `tripId` secili seferle eslesmiyor (ayni rota uzerinde baska aktif sefer veya stale payload)
+  - Web UI: "RTDB Payload Baska Sefer" + read-side koordinat fallback
+  - App UI: stream hata gibi degil; fallback/read-side davranisiyla ayri semantik
+
+- `rtdb_connection_online`
+  - Anlam: RTDB `.info/connected` bagli (socket seviyesinde baglanti var)
+  - Web UI: "RTDB Bagli" chip
+  - App UI: stream status'ten ayri baglanti semantigi olarak gosterilir
+
+- `rtdb_connection_offline`
+  - Anlam: RTDB `.info/connected` bagli degil (baglanti yok / kopuk)
+  - Web UI: "RTDB Baglanti Yok" chip
+  - App UI: `stale` (veri gecikmesi) ile karistirilmaz
+
+- `rtdb_access_denied`
+  - Anlam: RTDB stream subscribe hata verdi ve hata semantigi `permission_denied` / `permission denied`
+  - Web UI: stream hata copy'si `access_denied` tonu ile ayrilir (offline/stale degil)
+  - App UI: role/tenant/policy kaynakli read deny copy'si olarak ayrica ele alinir
+
 ### Version / Cutoff
 - `upgrade_required`
   - Anlam: Client version min supported altinda, islem devam edemez
@@ -47,6 +72,15 @@ Ozellikle live ops / auth / version enforcement tarafinda ortak dil kullanmak.
   - Anlam: Eski client veri okuyabilir ama mutasyon yapamaz
   - Teknik: write path `426`, read path izinli
 
+### Auth Provider Copy
+- `google_sign_in`
+  - UI copy: `Google ile Giris`
+  - Not: Provider adi copy'de markali yazilir
+
+- `microsoft_sign_in`
+  - UI copy: `Microsoft ile Giris`
+  - Not: "Outlook ile Giris" denmez; provider semantigi `microsoft.com` olarak kalir
+
 ### Route / Trip Mutation
 - `active_trip_route_locked`
   - Anlam: Aktif sefer sirasinda rota yapisal degisiklik (stop delete/reorder) yasak
@@ -56,4 +90,3 @@ Ozellikle live ops / auth / version enforcement tarafinda ortak dil kullanmak.
 
 - Web/app stale threshold gosterim copy'si pilotta sadeleştirilebilir
 - Billing state copy'leri app tarafinda gerekecek mi (simdilik belirsiz)
-

@@ -25,6 +25,13 @@ Kural:
 - Public marketing route'lari panel app icine tasinmaz (MVP'de ayrik deploy)
 - Panel auth route'lari landing app'e gomulmez (gerekirse landing sadece CTA -> panel login)
 
+Guncel execution notu (Faz 1):
+- Teknik deploy modeli MVP'de tek Next.js app + tek Vercel project olarak ilerliyor
+- Domain ayrimi uygulama `proxy` (Next.js 16; eski middleware) yonlendirmesi ile korunuyor:
+  - `www` -> apex redirect
+  - panel/auth route'lari apex'ten `app.neredeservis.app` host'una yonlendirilir
+  - `app` host root (`/`) -> `/login`
+
 ## 3. Landing IA (MVP -> Faz 8)
 
 ### Faz 1 (skeleton)

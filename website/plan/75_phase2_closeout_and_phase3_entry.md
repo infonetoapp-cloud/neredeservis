@@ -59,3 +59,1074 @@ Faz 3 baslamadan once su kosullar zorunlu:
 
 Bu kalemler Faz 7 kapsaminda kalir.
 
+## 7) Progress Update (2026-02-26)
+
+- Faz 3 first slice kapandi:
+  - Company RBAC hardening pass tamam.
+  - `/admin` shell + role gate tamam.
+  - Minimal audit visibility baseline tamam (`listCompanyAuditLogs` + admin read-only liste).
+- Tenant suspension/lock read-only baseline tamamlandi (`getCompanyAdminTenantState` endpoint + admin kartlari).
+- Faz 3 yedinci dilim tamamlandi:
+  - Admin risk triage listesinde tenant-state riskleri sirali ve birlesik modelle gosterilir (false-negative bos risk durumu kapatildi).
+  - Audit read-side bolumune status ozet KPI kartlari ve sayili filtre etiketleri eklendi.
+  - Yeni endpoint acilmadi; read-only kontrat korunarak sadece web admin UX sertlestirildi.
+- Faz 3 sekizinci dilim tamamlandi:
+  - Admin audit triage event/target/search filtreleri ile genisletildi; filtre ozeti ve gorunen zaman araligi etiketi eklendi.
+  - Dosya sisme riskini azaltmak icin audit bolumu ayri bilesene tasindi (`admin-audit-panel.tsx`), ana admin feature dosyasi satir limiti altina cekildi.
+  - Yeni endpoint acilmadi; read-only kontrat korunarak sadece web admin UX ve maintainability sertlestirildi.
+- Faz 3 dokuzuncu dilim tamamlandi:
+  - Admin audit paneline "Ozeti Kopyala" aksiyonu eklendi; secili filtre baglami + status dagilimi + son olay bilgisi operasyonel paylasim icin panoya alinabilir hale geldi.
+  - Yeni endpoint acilmadi; read-only kontrat korunarak sadece web admin triage operasyon hizi iyilestirildi.
+- Faz 3 onuncu dilim tamamlandi:
+  - Command palette hizli aksiyon listesinde `Admin` maddesi role/status gate ile korundu (`owner|admin` + `active`).
+  - Yeni endpoint acilmadi; yalnizca web tarafi RBAC UX parity sertlestirildi.
+- Faz 3 on birinci dilim tamamlandi:
+  - Admin audit paneli deep-link preset query paramlarini (`auditStatus/auditEvent/auditTarget/auditQ`) ilk yuklemede okuyacak sekilde sertlestirildi.
+  - Admin side paneline `Denied Audit` hizli gecis aksiyonu eklendi (`/admin?auditStatus=denied`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage navigasyon hizi iyilestirildi.
+- Faz 3 on ikinci dilim tamamlandi:
+  - Admin audit listesi buyuk veri setleri icin adimli yukleme modeline cekildi (8'erli artan gorunum + `Gosterilen X/Y` ozeti).
+  - Filtre degisikliginde liste gorunum sayaci resetlenerek triage tutarliligi korundu.
+  - Yeni endpoint acilmadi; yalnizca web admin read-side UX hizlandirildi.
+- Faz 3 on ucuncu dilim tamamlandi:
+  - Admin audit deep-link presetleri query degisiminde de tutarli calisacak sekilde sertlestirildi (local override yoksa preset takip edilir, varsa kullanici secimi korunur).
+  - Yeni endpoint acilmadi; yalnizca web admin triage filter state parity duzeltildi.
+- Faz 3 on dorduncu dilim tamamlandi:
+  - Dashboard header aksiyonlarina role-gated `Admin` kisayolu eklendi (`owner|admin` + `active` + company context).
+  - Yeni endpoint acilmadi; yalnizca web navigasyon ergonomisi iyilestirildi.
+- Faz 3 on besinci dilim tamamlandi:
+  - Admin risk triage listesine audit `denied` ve `error` sinyalleri eklendi (`/admin?auditStatus=...` deep-link ile).
+  - Yeni endpoint acilmadi; yalnizca web admin read-side risk onceliklendirmesi genisletildi.
+- Faz 3 on altinci dilim tamamlandi:
+  - Admin audit panelinde secili filtreleri URL olarak paylasma aksiyonu acildi (`Filtre Linki Kopyala`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage paylasim ergonomisi iyilestirildi.
+- Faz 3 on yedinci dilim tamamlandi:
+  - Admin audit satirlarina hedefe dogrudan gecis aksiyonu eklendi (`member/route/vehicle/trip` tiplerinde deep-link).
+  - Yeni endpoint acilmadi; yalnizca web admin triage -> operasyon gecis hizi iyilestirildi.
+- Faz 3 on sekizinci dilim tamamlandi:
+  - Admin audit panelinde siralama modlari acildi (`newest/oldest/status_priority`).
+  - Secili siralama filtre ozeti ve filtre-link paylasim modeline dahil edildi (`auditSort` query).
+  - Yeni endpoint acilmadi; yalnizca web admin triage okuma hizi iyilestirildi.
+- Faz 3 on dokuzuncu dilim tamamlandi:
+  - Admin audit panel helperlari ayri modula tasinarak dosya boyutu limiti sertlestirildi (`admin-audit-panel.tsx` 427 satir).
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yirminci dilim tamamlandi:
+  - Admin audit paneline filtrelenmis/siralanmis kayit setini disa aktaran `CSV Indir` aksiyonu eklendi.
+  - Yeni endpoint acilmadi; yalnizca web admin read-side operasyon/disa-aktarma ergonomisi iyilestirildi.
+- Faz 3 yirmi birinci dilim tamamlandi:
+  - Admin audit panelinde local override sonrasi URL query presetine geri donus (`URL Presetine Don`) aksiyonu eklendi.
+  - Yeni endpoint acilmadi; yalnizca web admin deep-link parity/tutarlilik ergonomisi iyilestirildi.
+- Faz 3 yirmi ikinci dilim tamamlandi:
+  - Admin audit event label sozlugu gercek event tiplerini kapsayacak sekilde genisletildi (route stop, permission, mapbox preview, account support vb.).
+  - Yeni endpoint acilmadi; yalnizca web admin okunurluk/copy ergonomisi iyilestirildi.
+- Faz 3 yirmi ucuncu dilim tamamlandi:
+  - Admin audit `Hedefe Git` deep-link kurallari `company` ve `route_driver_permission` target tiplerini kapsayacak sekilde genisletildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage -> operasyon gecis ergonomisi iyilestirildi.
+- Faz 3 yirmi dorduncu dilim tamamlandi:
+  - Admin audit satirlarinda targetType gorunumu operasyonel etiketlere cevrildi (`Firma/Uye/Rota Yetkisi` vb.).
+  - Yeni endpoint acilmadi; yalnizca web admin okunurluk/copy ergonomisi iyilestirildi.
+- Faz 3 yirmi besinci dilim tamamlandi:
+  - Admin hizli operasyon gecis listesine `Hata Audit` kisa yolu eklendi (`/admin?auditStatus=error`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage navigasyon hizi iyilestirildi.
+- Faz 3 yirmi altinci dilim tamamlandi:
+  - Admin audit panelindeki ozet/link metni uretim mantigi helper katmanina tasinarak ana panel dosya boyutu azaltildi.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yirmi yedinci dilim tamamlandi:
+  - Admin operations ekranindaki sabit/gorsel helperlar ayri helper moduline tasinarak ana feature dosyasi satir baskisi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yirmi sekizinci dilim tamamlandi:
+  - Admin audit paneline `Aksiyonlanabilir` filtresi eklendi ve bu durum filtre-link query modeline (`auditActionable=1`) baglandi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage odak ergonomisi iyilestirildi.
+- Faz 3 yirmi dokuzuncu dilim tamamlandi:
+  - Admin audit satir render blogu ayri bilesene tasinarak ana panel dosyasinin satir baskisi dusuruldu.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 otuzuncu dilim tamamlandi:
+  - Admin hizli operasyon gecis listesine `Aksiyonlanabilir Audit` kisa yolu eklendi (`/admin?auditActionable=1`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage navigasyon hizi iyilestirildi.
+- Faz 3 otuz birinci dilim tamamlandi:
+  - Admin audit panelindeki `Aksiyonlanabilir` filtre aksiyonuna sayisal olay hacmi (`X`) eklendi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage gorunurlugu iyilestirildi.
+- Faz 3 otuz ikinci dilim tamamlandi:
+  - Admin risk listesine `Aksiyonlanabilir audit kayitlari` sinyali eklendi (`/admin?auditActionable=1`).
+  - Yeni endpoint acilmadi; yalnizca web admin risk triage gorunurlugu iyilestirildi.
+- Faz 3 otuz ucuncu dilim tamamlandi:
+  - Admin risk paneline severity dagilim ozet ciplari eklendi (`Warning/Attention/Info`).
+  - Yeni endpoint acilmadi; yalnizca web admin risk okunurlugu iyilestirildi.
+- Faz 3 otuz dorduncu dilim tamamlandi:
+  - Admin audit liste basligina aktif filtre modu etiketi eklendi (`Mod: Aksiyonlanabilir`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage baglam gorunurlugu iyilestirildi.
+- Faz 3 otuz besinci dilim tamamlandi:
+  - Admin risk ozet ciplari interaktif filtreye cevrildi (`warning/attention/info` tikla-filtrele).
+  - Yeni endpoint acilmadi; yalnizca web admin risk triage odagi iyilestirildi.
+- Faz 3 otuz altinci dilim tamamlandi:
+  - Risk ozet ciplari ayri bilesene tasinip ana admin feature dosyasi satir baskisi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 otuz yedinci dilim tamamlandi:
+  - Risk severity filtresi seciliyken tek tikla temizleme aksiyonu eklendi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre kullanilabilirligi iyilestirildi.
+- Faz 3 otuz sekizinci dilim tamamlandi:
+  - Severity temizleme aksiyonu risk chip bilesenine tasinip ana dosya satir baskisi tekrar limitle hizalandi.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 otuz dokuzuncu dilim tamamlandi:
+  - Admin audit panelinde `Aksiyonlanabilir` filtre acikken bos durum mesaji baglama gore ozellestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage geri bildirimi iyilestirildi.
+- Faz 3 kirkincÄ± dilim tamamlandi:
+  - Risk ozet ciplari sifir sayim durumunda pasiflestirildi (`disabled`).
+  - Yeni endpoint acilmadi; yalnizca web admin filtre hatasi riski azaltildi.
+- Faz 3 kirk birinci dilim tamamlandi:
+  - Risk chip bileseninde secili severity etiketi gorunur hale getirildi (`Aktif filtre: ...`).
+  - Yeni endpoint acilmadi; yalnizca web admin filtre baglam gorunurlugu iyilestirildi.
+- Faz 3 otuz besinci dilim tamamlandi:
+  - Admin risk ozet ciplari interaktif filtreye cevrildi (`warning/attention/info` tikla-filtrele).
+  - Yeni endpoint acilmadi; yalnizca web admin risk triage odagi iyilestirildi.
+- Faz 3 otuz altinci dilim tamamlandi:
+  - Risk ozet ciplari ayri bilesene tasinip ana admin feature dosyasi satir baskisi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 kirk ikinci dilim tamamlandi:
+  - `/admin` risk filtrelemesi query preset parity ile guclendirildi (`riskSeverity=warning|attention|info`) ve local override acikken `URL Presetine Don` aksiyonu eklendi.
+  - Hizli gecis listesine `Kritik Riskler` (`/admin?riskSeverity=warning`) karti eklendi; warning risk odak acilisi hizlandi.
+  - Dosya sisme limiti icin risk filtre baglam blogu ayri bilesene tasindi (`admin-risk-filter-meta.tsx`), `admin-operations-feature.tsx` satir sayisi `509 -> 492` seviyesine indirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage parity + maintainability iyilestirildi.
+- Faz 3 kirk ucuncu dilim tamamlandi:
+  - Admin risk filtre baglamina `Filtre Linki Kopyala` aksiyonu eklendi.
+  - Secili `riskSeverity` ve mevcut query baglami tek URL ile paylasilabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web admin risk triage paylasim ergonomisi iyilestirildi.
+- Faz 3 kirk dorduncu dilim tamamlandi:
+  - Admin risk paneline `Gorunen risk: X / Y | Mod: ...` ozet satiri eklendi.
+  - Severity filtresi etkisi sayisal olarak gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin risk triage gozlenebilirligi iyilestirildi.
+- Faz 3 kirk besinci dilim tamamlandi:
+  - Admin audit filtre seceneklerinde ham event/target kodlari yerine operasyonel etiket gosterimi aktif edildi.
+  - Filtre value kontrati korunarak triage okunurlugu arttirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin okunurluk/copy ergonomisi iyilestirildi.
+- Faz 3 kirk altinci dilim tamamlandi:
+  - Admin audit filtre secenekleri etiket metnine gore siralanir hale getirildi.
+  - Event/target dropdown bulunabilirligi iyilesti; filtre value kontrati degismedi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre ergonomisi iyilestirildi.
+- Faz 3 kirk yedinci dilim tamamlandi:
+  - Admin audit KPI ozetine `Aksiyonlanabilir` karti eklendi.
+  - Karttan tek tikla `Aksiyonlanabilir` filtre moduna gecis acildi.
+  - Yeni endpoint acilmadi; yalnizca web admin audit triage erken gorunurlugu iyilestirildi.
+- Faz 3 kirk sekizinci dilim tamamlandi:
+  - Admin hizli gecis kartlari dinamik sayaclarla guclendirildi (`Denied`, `Hata`, `Aksiyonlanabilir`, `Kritik Riskler`).
+  - Hizli gecis render blogu ayri bilesene tasinarak dosya boyutu limiti korundu (`admin-quick-action-list.tsx`).
+  - Yeni endpoint acilmadi; yalnizca web admin triage gorunurlugu + maintainability iyilestirildi.
+- Faz 3 kirk dokuzuncu dilim tamamlandi:
+  - Admin audit satirlarina `Audit ID Kopyala` aksiyonu eklendi.
+  - Tekil audit kaydi kimligi support/triage icin hizli paylasilabilir hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin operasyon ergonomisi iyilestirildi.
+- Faz 3 ellinci dilim tamamlandi:
+  - Admin audit satirinda `auditId` gorunurlugu eklendi (kisaltilmis gosterim + tam deger tooltip).
+  - `Audit ID Kopyala` aksiyonuyla birlikte kayit dogrulama ve destek iletisim hizi artti.
+  - Yeni endpoint acilmadi; yalnizca web admin support ergonomisi iyilestirildi.
+- Faz 3 elli birinci dilim tamamlandi:
+  - Admin hizli operasyon kartlarinda sayaci sifir olan triage kisayollari pasif gorunume cekildi.
+  - `aria-disabled`, muted badge ve `su an kayit yok` copy'si ile bos link tiklamalari azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage kullanilabilirligi iyilestirildi.
+- Faz 3 elli ikinci dilim tamamlandi:
+  - Admin audit satirlarinda status rozet metinleri operasyonel etikete cevrildi (`Basarili`, `Denied`, `Hata`).
+  - Durum rengi ve filtre kontrati korunarak okunurluk arttirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin copy/okunurluk ergonomisi iyilestirildi.
+- Faz 3 elli ucuncu dilim tamamlandi:
+  - Admin sag panel blogu ayri bilesene tasindi (`admin-side-panel.tsx`).
+  - `admin-operations-feature.tsx` satir sayisi `498 -> 464` seviyesine indirildi.
+  - Davranis/kontrat degismedi; yalnizca maintainability + dosya limiti guvencesi iyilestirildi.
+- Faz 3 elli dorduncu dilim tamamlandi:
+  - Admin audit satirlarinda uzun `reason` metinleri kisaltilmis onizleme + tooltip ile gosterildi.
+  - Liste okunurlugu korunurken tam hata nedeni metni ulasilabilir tutuldu.
+  - Yeni endpoint acilmadi; yalnizca web admin audit okunurlugu iyilestirildi.
+- Faz 3 elli besinci dilim tamamlandi:
+  - Admin risk filtre copy'si operasyonel Turkce etiketlere hizalandi (`Kritik`, `Uyari`, `Bilgi`, `Tum seviyeler`).
+  - Risk ciplari + aktif filtre etiketi + ozet satiri dil tutarliligi saglandi.
+  - Yeni endpoint acilmadi; yalnizca web admin copy/okunurluk kalitesi iyilestirildi.
+- Faz 3 elli altinci dilim tamamlandi:
+  - Admin audit panelinde `status=error` icin baglama duyarlý hata banneringi eklendi.
+  - Bos liste durumunda servis erisim hatasi copy'si ayrica netlestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin read-side guvenilirlik geri bildirimi iyilestirildi.
+- Faz 3 elli yedinci dilim tamamlandi:
+  - Admin audit satirlarinda mutlak zamana ek goreli zaman etiketi eklendi (`az once`, `N dk once`, `N saat once`).
+  - Olay tazeligi triage akisinda daha hizli okunur hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web admin okunurluk/triage hizi iyilestirildi.
+- Faz 3 elli sekizinci dilim tamamlandi:
+  - Admin audit status filtre ciplari sayaci `0` oldugunda pasif gorunume cekildi.
+  - `success/denied/error` filtrelerinde bos tiklamalar engellendi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre kullanilabilirligi iyilestirildi.
+- Faz 3 elli dokuzuncu dilim tamamlandi:
+  - Admin side panel `Veri Durumu` rozet metinleri Turkce operasyon etiketlerine cevrildi.
+  - Renk semantigi korunup durum okunurlugu iyilestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin copy/okunurluk kalitesi iyilestirildi.
+- Faz 3 altmisinci dilim tamamlandi:
+  - Pasif hizli aksiyon kartlarina neden belirten tooltip eklendi.
+  - `Neden tiklanmiyor?` belirsizligi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage geri bildirimi iyilestirildi.
+- Faz 3 altmis birinci dilim tamamlandi:
+  - Admin audit status filtre ciplari ayri bilesene tasindi (`admin-audit-status-filters.tsx`).
+  - `admin-audit-panel.tsx` satir baskisi `493 -> 469` seviyesine dusuruldu.
+  - Davranis/kontrat degismedi; yalnizca maintainability + dosya limiti guvencesi iyilestirildi.
+- Faz 3 altmis ikinci dilim tamamlandi:
+  - Admin audit KPI kartlari ayri bilesene tasindi (`admin-audit-kpi-cards.tsx`).
+  - KPI kartlarindan dogrudan filtreleme aksiyonlari netlestirildi (`Tumunu Ac`, `Filtrele`).
+  - `admin-audit-panel.tsx` satir baskisi `469 -> 451` seviyesine indirildi.
+  - Yeni endpoint acilmadi; davranis/kontrat korunarak maintainability + triage hizi iyilestirildi.
+- Faz 3 altmis ucuncu dilim tamamlandi:
+  - Admin audit status ciplari sifir kayitta tooltip ile pasiflik nedenini aciklar hale getirildi.
+  - Filtre davranisi korunarak kullanici geri bildirimi netlestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre ergonomisi iyilestirildi.
+- Faz 3 altmis dorduncu dilim tamamlandi:
+  - Admin audit status filtrelerinde `Aksiyonlanabilir` cipi sifir kayitta (aktif degilse) pasif gorunume cekildi.
+  - Tooltip ile pasiflik nedeni netlestirildi; aktif modda kapanis yolu korunarak UX kilidi engellendi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre ergonomisi iyilestirildi.
+- Faz 3 altmis besinci dilim tamamlandi:
+  - Admin audit KPI kartlarinda pasif `Filtrele` butonlarina neden tooltip'i eklendi.
+  - Status ve actionable kartlari arasinda geri bildirim dili tutarlastirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage ergonomisi iyilestirildi.
+- Faz 3 altmis altinci dilim tamamlandi:
+  - Admin audit filtre ozetindeki siralama metni operasyonel etikete cevrildi.
+  - Teknik `sort` kodu yerine insan-okur `siralama` etiketi gosterildi.
+  - Yeni endpoint acilmadi; yalnizca web admin copy/okunurluk ergonomisi iyilestirildi.
+- Faz 3 altmis yedinci dilim tamamlandi:
+  - Admin audit filtre ozetinde teknik `status/event/target` kodlari operasyonel etiketlere cevrildi.
+  - `durum/event/hedef` semantigi ile okunurluk iyilestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin copy/okunurluk ergonomisi iyilestirildi.
+- Faz 3 altmis sekizinci dilim tamamlandi:
+  - Admin risk cipi ust bilgisinde aktif filtreye adet bilgisi eklendi.
+  - Odakli risk hacmi tek satirda gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage gorunurlugu iyilestirildi.
+- Faz 3 altmis dokuzuncu dilim tamamlandi:
+  - Admin audit panelde yukleme durumunda mevcut kayit listesi korunur hale getirildi.
+  - Ustte yukleniyor bandi ile stale liste ayni anda gosterilerek triage akis kesintisi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin read-side UX guvenilirligi iyilestirildi.
+- Faz 3 yetmisinci dilim tamamlandi:
+  - Admin audit satirlarina `Evente Gore Filtrele` ve `Hedefe Gore Filtrele` aksiyonlari eklendi.
+  - Benzer olaylari hizli kumeleme/inceleme akis hizi iyilestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage navigasyon ergonomisi iyilestirildi.
+- Faz 3 yetmis birinci dilim tamamlandi:
+  - Admin risk ozet ciplari sifir kayitta neden tooltip'i gosterir hale getirildi.
+  - Audit ve risk filtre ciplari arasinda pasif-geri-bildirim dili tutarlastirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage geri bildirimi iyilestirildi.
+- Faz 3 yetmis ikinci dilim tamamlandi:
+  - Audit satirindaki `Evente/Hedefe Gore Filtrele` aksiyonlari tam yonlendirme ile calisir hale getirildi.
+  - Local override state kalintisi nedeniyle filtre atlanma riski azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-guvenilirlik davranisi iyilestirildi.
+- Faz 3 yetmis ucuncu dilim tamamlandi:
+  - Admin audit satirindaki event/target filtre aksiyonlari mevcut query baglamini koruyacak sekilde guncellendi.
+  - Mevcut filtrelerin sifirlanmadan benzer olay kumeleme akisina gecis saglandi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage guvenilirligi iyilestirildi.
+- Faz 3 yetmis dorduncu dilim tamamlandi:
+  - Admin audit paneline `URL Filtrelerini Temizle` aksiyonu eklendi.
+  - Query'den gelen audit presetlerinden varsayilan gorunume donus hizi iyilestirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-yasam-dongusu ergonomisi iyilestirildi.
+- Faz 3 yetmis besinci dilim tamamlandi:
+  - Admin risk filtre paneline URL Risk Filtresini Temizle aksiyonu query-preset parity ile eklendi.
+  - riskSeverity query parametresi tek tikla temizlenip varsayilan gorunume donus hizlandi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-yasam-dongusu ergonomisi iyilestirildi.
+- Faz 3 yetmis altinci dilim tamamlandi:
+  - Admin hizli aksiyon listesindeki /admin query gecisleri tam yonlendirme davranisina cekildi.
+  - Local override state kalintisi nedeniyle query preset atlanma riski azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-guvenilirlik davranisi iyilestirildi.
+- Faz 3 yetmis yedinci dilim tamamlandi:
+  - Tenant durum karti ayri bilesene tasindi (admin-tenant-state-panel.tsx).
+  - Admin ana feature dosyasinda satir baskisi azaltilip bakim okunurlugu guclendirildi.
+  - Davranis ve endpoint kontrati degismedi; yalnizca maintainability iyilestirildi.
+- Faz 3 yetmis sekizinci dilim tamamlandi:
+  - Risk oncelik listesindeki /admin query hedefli kartlar tam yonlendirme davranisina cekildi.
+  - Local override state kalintisi nedeniyle query preset atlanma riski azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-guvenilirlik davranisi iyilestirildi.
+- Faz 3 yetmis dokuzuncu dilim tamamlandi:
+  - Audit panel toolbar bolumu ayri bilesene tasindi (admin-audit-toolbar.tsx).
+  - Audit panel ana dosyasinda satir baskisi azaltildi ve bakim okunurlugu guclendi.
+  - Davranis ve endpoint kontrati degismedi; yalnizca maintainability iyilestirildi.
+- Faz 3 sekseninci dilim tamamlandi:
+  - Risk oncelik liste render blogu ayri bilesene tasindi (admin-risk-priority-list.tsx).
+  - Admin ana feature dosyasinda satir baskisi azaltildi ve kod okunurlugu guclendirildi.
+  - Davranis ve endpoint kontrati degismedi; yalnizca maintainability iyilestirildi.
+- Faz 3 seksen birinci dilim tamamlandi:
+  - Audit satirlarina detay ac/kapat aksiyonu eklendi (Detayi Ac / Detayi Gizle).
+  - Raw event/target/status/actor/zaman ve full reason ayni satirda incelenebilir hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage inceleme hizini iyilestiren UX genislemesi yapildi.
+- Faz 3 seksen ikinci dilim tamamlandi:
+  - Audit detay paneline ham kaydi kopyalama aksiyonu eklendi (Ham Kaydi Kopyala).
+  - Olay kaydi JSON olarak tek tikla paylasilabilir hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage/support akisi iyilestirildi.
+- Faz 3 seksen ucuncu dilim tamamlandi:
+  - Audit satirlarina kayit-link kopyalama aksiyonu eklendi (Kayit Linki Kopyala).
+  - auditId query parametresi ile hedef kayit listede otomatik gorunur/genisletilmis hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage paylasim ve derin-link ergonomisi iyilestirildi.
+- Faz 3 seksen dorduncu dilim tamamlandi:
+  - Risk oncelik paneline metin arama alani eklendi (baslik/aciklama/cta bazli filtre).
+  - Risk tarama hizi artarken endpoint ve kontrat davranisi korunmustur.
+  - Yeni endpoint acilmadi; yalnizca web admin triage UX'i iyilestirildi.
+- Faz 3 seksen besinci dilim tamamlandi:
+  - Risk arama alanina tek tik temizleme aksiyonu eklendi (Risk Aramasini Temizle).
+  - Triage akisinda filtre geri donusu hizlandi ve arama UX'i tamamlandi.
+  - Yeni endpoint acilmadi; yalnizca web admin UX iyilestirildi.
+- Faz 3 seksen altinci dilim tamamlandi:
+  - Audit toolbar'a Kayit Vurgusunu Kaldir aksiyonu eklendi (auditId query temizleme).
+  - Filtreleri koruyarak yalnizca hedef kayit pin'ini temizleme akisi saglandi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage UX'i iyilestirildi.
+- Faz 3 seksen yedinci dilim tamamlandi:
+  - Risk filtresine query parity eklendi (riskQ), filtre linki severity+arama baglamini birlikte tasir hale getirildi.
+  - URL presetine donus ve URL filtre temizleme akisinda riskQ temizligi de kapsama alindi.
+  - Yeni endpoint acilmadi; yalnizca web admin filtre-paylasim davranisi iyilestirildi.
+- Faz 3 seksen sekizinci dilim tamamlandi:
+  - Risk filtre meta satirina arama ozeti eklendi (Arama: ...).
+  - Severity + arama baglami ayni satirda gorunur hale getirilerek filtre okunurlugu guclendirildi.
+  - Yeni endpoint acilmadi; yalnizca web admin UX iyilestirildi.
+- Faz 3 seksen dokuzuncu dilim tamamlandi:
+  - Audit panelde pinli auditId filtrede gorunmediginde acik uyari banner'i eklendi.
+  - Operatore filtre-vurgu uyumsuzlugunu aninda gosteren ve tek tik temizleme sunan akis saglandi.
+  - Yeni endpoint acilmadi; yalnizca web admin triage acikligi iyilestirildi.
+- Faz 3 doksaninci dilim tamamlandi:
+  - Admin KPI kart grid'i ayri bilesene tasindi (admin-kpi-grid.tsx).
+  - Admin ana feature dosya baskisi azaltildi ve bakim okunurlugu guclendirildi.
+  - Davranis/kontrat degismedi; yeni endpoint acilmadi.
+- Faz 3 doksan birinci dilim tamamlandi:
+  - Audit filtre kontrol blogu ayri bilesene tasindi (admin-audit-filter-controls.tsx).
+  - Audit panel ana dosyasi sadeleesti, davranis korunarak bakim kolayligi arttirildi.
+  - Davranis/kontrat degismedi; yeni endpoint acilmadi.
+- Faz 3 doksan ikinci dilim tamamlandi:
+  - Operasyon durum karti ayri bilesene tasindi (admin-operations-status-card.tsx).
+  - Admin ana feature dosya baskisi azaltildi ve okunurluk guclendirildi.
+  - Davranis/kontrat degismedi; yeni endpoint acilmadi.
+- Faz 3 doksan ucuncu dilim tamamlandi:
+  - Audit panelde pinli kayit uyari blogu ayri bilesene tasindi (admin-audit-pinned-warning.tsx).
+  - Audit panel ana dosyasi daha sade hale getirildi, davranis korunmustur.
+  - Davranis/kontrat degismedi; yeni endpoint acilmadi.
+- Faz 3 doksan dorduncu dilim tamamlandi:
+  - Risk arama kontrol blogu ayri bilesene tasindi (admin-risk-search-control.tsx).
+  - Admin ana feature dosyasi sadeleesti, dosya sisme riski azaltildi.
+  - Davranis/kontrat degismedi; yeni endpoint acilmadi.
+- Faz 3 doksan besinci dilim tamamlandi:
+  - Audit filtre arama alanina tek tik temizleme aksiyonu eklendi (Aramayi Temizle).
+  - Triage akisinda metin filtre geri donusu hizlandi.
+  - Yeni endpoint acilmadi; yalnizca web admin UX iyilestirildi.
+- Faz 3 doksan altinci dilim tamamlandi:
+  - /routes ana feature dosyasinda dosya sisme riskini azaltmak icin workspace blogu `routes-workspace-pane.tsx` ve query guard hook'u `use-routes-query-guards.ts` ayristirildi.
+  - `routes-company-routes-feature.tsx` satir sayisi `462 -> 381` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 doksan yedinci dilim tamamlandi:
+  - `/admin` audit liste render/empty-state blogu `admin-audit-list-section.tsx` bilesenine tasindi.
+  - `admin-audit-panel.tsx` satir sayisi `433 -> 403` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 doksan sekizinci dilim tamamlandi:
+  - `/admin` risk bolumu `admin-risk-section.tsx` bilesenine tasindi.
+  - `admin-operations-feature.tsx` satir sayisi `402 -> 385` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 doksan dokuzuncu dilim tamamlandi:
+  - `/admin` audit toolbar aksiyon/state blogu `use-admin-audit-toolbar-state.ts` hook'una tasindi.
+  - `admin-audit-panel.tsx` satir sayisi `403 -> 352` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuzuncu dilim tamamlandi:
+  - `/drivers` feature dosyasinda workspace blogu `drivers-workspace-pane.tsx` ve query guard hook'u `use-drivers-query-guards.ts` ayristirildi.
+  - `drivers-company-members-feature.tsx` satir sayisi `365 -> 339` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz birinci dilim tamamlandi:
+  - `/routes` feature dosyasinda filtre state/handler blogu `use-routes-filter-state.ts` hook'una tasindi.
+  - `routes-company-routes-feature.tsx` satir sayisi `388 -> 336` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz ikinci dilim tamamlandi:
+  - `/admin` risk durum/filtre/turetim blogu `use-admin-risk-priority-state.ts` hook'una tasindi.
+  - `admin-operations-feature.tsx` satir sayisi `385 -> 202` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz ucuncu dilim tamamlandi:
+  - `/vehicles` feature dosyasinda workspace + query guard + filter state bloglari ayristirildi (`vehicles-workspace-pane.tsx`, `use-vehicles-query-guards.ts`, `use-vehicles-filter-state.ts`).
+  - `vehicles-company-vehicles-feature.tsx` satir sayisi `337 -> 255` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz dorduncu dilim tamamlandi:
+  - `/drivers` feature dosyasinda filtre state/handler blogu `use-drivers-filter-state.ts` hook'una tasindi.
+  - `drivers-company-members-feature.tsx` satir sayisi `339 -> 287` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz besinci dilim tamamlandi:
+  - `/mode-select` ekraninda Company Mode render blogu `mode-select-company-panel.tsx` bilesenine tasindi.
+  - `mode-select-cards.tsx` satir sayisi `349 -> 215` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz altinci dilim tamamlandi:
+  - Company callable hata-mesaj haritasi `company-callable-error-messages.ts` dosyasina tasindi ve `company-callables.ts` icinden re-export edildi.
+  - `company-callables.ts` satir sayisi `358 -> 311` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+
+- Faz 3 yuz yedinci dilim tamamlandi:
+  - `/admin` audit panelindeki URL preset + local override filtre state blogu `use-admin-audit-filter-state.ts` hook'una tasindi.
+  - `admin-audit-panel.tsx` satir sayisi `352 -> 282` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz sekizinci dilim tamamlandi:
+  - `/routes` feature dosyasinda turetim/paging/selection hesaplari `use-routes-derived-view.ts` hook'una tasindi.
+  - `routes-company-routes-feature.tsx` satir sayisi `334 -> 255` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz dokuzuncu dilim tamamlandi:
+  - `/routes` yan panelde canli operasyon/aktif sefer/gorunum linki kartlari `routes-side-panel-live-ops-section.tsx` bilesenine tasindi.
+  - `routes-side-panel.tsx` satir sayisi `323 -> 233` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz onuncu dilim tamamlandi:
+  - Dashboard KPI grid blogu `dashboard-kpi-grid.tsx` bilesenine tasindi.
+  - `dashboard-mode-placeholder.tsx` satir sayisi `314 -> 236` seviyesine indirildi; davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 3 yuz on birinci dilim tamamlandi:
+  - Company callable katmani route/permission ve vehicle gruplarina ayrildi (`company-route-callables.ts`, `company-vehicle-callables.ts`).
+  - `company-callables.ts` facade + re-export katmanina indirildi (`311 -> 116` satir); davranis/kontrat korunmustur.
+  - Yeni endpoint acilmadi; yalnizca maintainability/refactor kazanci saglandi.
+- Faz 4 birinci dilim tamamlandi:
+  - `/live-ops` split-view harita paneli gercek Mapbox canvas ile calisir hale getirildi (`live-ops-mapbox-canvas.tsx`).
+  - Secili seferde RTDB effective koordinat onceleme ve marker secim/hover davranisi korunarak tasindi.
+  - `NEXT_PUBLIC_MAPBOX_TOKEN` yoksa fallback uyarisi gosterilir; endpoint kontratlari degismedi.
+  - `npm run lint`, `npm run build` (web) gecti.
+
+
+- Faz 4 ikinci dilim tamamlandi:
+  - Secili seferin route stop listesi map overlay'e baglandi (durak markerlari + stop-path cizgisi).
+  - Harita artik yalnizca arac marker'i degil, rota durak geometri baglamini da gosterir.
+  - Yeni endpoint acilmadi; mevcut route stop read-modeli yeniden kullanildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 ucuncu dilim tamamlandi:
+  - Live Ops haritasinda marker katmani performans limiti eklendi (`max 200 marker`, secili sefer oncelikli).
+  - Limit asildiginda operatore bilgilendirme bandi gosterilir; liste verisi etkilenmez.
+  - Yeni endpoint acilmadi; yalnizca web map performans sertlestirmesi yapildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 dorduncu dilim tamamlandi:
+  - Mapbox canvas uzerine operator hizli kontrolu icin `Haritaya Sigdir` aksiyonu eklendi.
+  - Harita legend'i (canli/stale/secili/durak) gorunur hale getirildi.
+  - Split-view ust durum satirina secili rota durak sayisi eklendi.
+  - Yeni endpoint acilmadi; yalnizca web map UX ergonomisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 besinci dilim tamamlandi:
+  - Haritaya secili sefer kamera takip modu eklendi (`Secili Takip: Acik/Kapali`).
+  - Takip davranisi gereksiz kamera ziplamasini azaltacak sekilde secim-degisimi odakli sertlestirildi.
+  - Kullanici tercihi local preference anahtarinda saklandi.
+  - Yeni endpoint acilmadi; yalnizca web live map ergonomisi/perf davranisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 altinci dilim tamamlandi:
+  - Secili rota durak overlay'i icin ac/kapat kontrolu eklendi (harita sade/ayrintili mod).
+  - Durak marker + stop-path cizgisi tek tikla gizlenebilir hale getirildi.
+  - Overlay tercihi local state olarak kalici saklandi.
+  - Yeni endpoint acilmadi; yalnizca web map okunurluk/ergonomi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 yedinci dilim tamamlandi:
+  - Harita split-view ust ciplara canli konum kaynagi etiketi eklendi (`RTDB Stream/RTDB/Trip Doc`, stale varyanti).
+  - Operasyon tarafinda stream-fallback ayrimi tek bakista gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web copy/okunurluk iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 sekizinci dilim tamamlandi:
+  - Live Ops haritasinda secili rota geometri cizgisi iyilestirildi (smoother stop-path) ve secili seferin canli konumundan ilk duraga uzanan ayri baglanti cizgisi eklendi.
+  - Dispatcher tarafinda "anlik konum -> rota giris noktasi" ayrimi daha net gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web map geometri okunurlugu iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 dokuzuncu dilim tamamlandi:
+  - Live Ops haritasina stil donusumu eklendi (`Harita Stili: Light/Streets/Navigation`).
+  - Stil tercihi localStorage'da saklanir; map yeniden yuklenirken marker/overlay semantigi korunur.
+  - Yeni endpoint acilmadi; yalnizca web map ergonomisi ve gorunurluk iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 onuncu dilim tamamlandi:
+  - Live Ops secili sefer detay paneline dispatch hazir mesaj aksiyonlari eklendi.
+  - Hazir mesajlar icin `Kopyala` ve `WhatsApp` hizli akislar acildi (10/20 dk gecikme, yolcu alim basladi, varisa 5 dk).
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon ergonomisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 on birinci dilim tamamlandi:
+  - Live Ops detay panelinde dispatch aksiyonlari icin yerel gecmis katmani eklendi (`Son Dispatch Aksiyonlari`).
+  - Kopyala/WhatsApp aksiyonlari sefer bazli kaydedilip son 6 kayit gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon izlenebilirligi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 on ikinci dilim tamamlandi:
+  - Live Ops dispatch gecmis paneline `Gecmisi Temizle` aksiyonu eklendi.
+  - Operator tek tikla yerel dispatch kayitlarini sifirlayabilir; sefer bazli gecmis gorunumu korunur.
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon ergonomisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 on ucuncu dilim tamamlandi:
+  - Live Ops secili sefer detayina `Operasyon Icgorusu` karti eklendi.
+  - Kartta canli risk tonu/nedeni, yakin durak, tahmini mesafe ve sefer suresi gosterilir hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops karar destek UX'i iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 on dorduncu dilim tamamlandi:
+  - Live Ops secili sefer detayina `Destek Paketini Kopyala` aksiyonu eklendi.
+  - Trip/route/driver/live-stream baglamini iceren teknik triage metni tek tikla panoya alinabilir hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web destek operasyon ergonomisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+- Faz 4 on besinci dilim tamamlandi:
+  - Dispatch gecmis temizleme davranisi sefer bazli hale getirildi (`Bu Seferi Temizle`).
+  - Secili trip gecmisi sifirlanirken diger seferlerin local dispatch kayitlari korunur.
+  - Yeni endpoint acilmadi; yalnizca web dispatch state ergonomisi iyilestirildi.
+  - `npm run lint`, `npm run build` (web) gecti.
+
+- Faz 4 on altinci dilim tamamlandi:
+  - Live Ops secili sefer detayina Operasyon Playbook karti eklendi.
+  - Stream/risk durumuna gore onerilen aksiyon seti dinamik secilir (destek paketi, sefer linki, route editor, WhatsApp hazir mesaj).
+  - Yeni endpoint acilmadi; yalnizca web operasyon triage ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 on yedinci dilim tamamlandi:
+  - Live Ops dispatch gecmis paneline Gecmisi Kopyala aksiyonu eklendi.
+  - Secili seferin son dispatch adimlari operasyon devir/triage icin tek tikla panoya alinabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon devri ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 on sekizinci dilim tamamlandi:
+  - Live Ops aktif sefer listesine Risk Oncelik Kuyrugu eklendi.
+  - Kritik/uyari seferler top-liste olarak gosterilir, en riskli sefer tek tikla secilebilir.
+  - Yeni endpoint acilmadi; yalnizca web operasyon odaklama ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 on dokuzuncu dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina Kritikleri Kopyala ve Uyarilari Kopyala aksiyonlari eklendi.
+  - Riskli sefer listesi operasyon devirlerinde tek tikla metin olarak paylasilabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web operasyon devir ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirminci dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina Kritige Odaklan, Uyariya Odaklan, Odagi Temizle aksiyonlari eklendi.
+  - Risk odagi aktifken liste sadece ilgili risk tonundaki seferleri gosterir; odak temizlenince normal gorunume donulur.
+  - Yeni endpoint acilmadi; yalnizca web operasyon odaklama ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirmi birinci dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina Risk Linklerini Kopyala aksiyonu eklendi.
+  - Kuyruktaki riskli seferlerin deep-link listesi tek tikla panoya alinip operasyon ekibine iletilebilir.
+  - Yeni endpoint acilmadi; yalnizca web operasyon koordinasyon ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirmi ikinci dilim tamamlandi:
+  - Live Ops risk odagi query parametresiyle paylasilabilir hale getirildi (riskTone=critical|warning).
+  - Risk odak butonlari ve risk link kopyalama aksiyonu ayni URL baglamina cekildi.
+  - Yeni endpoint acilmadi; yalnizca web filtre/deep-link tutarliligi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirmi ucuncu dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu odak aksiyonlari secim davranisi ile guclendirildi.
+  - Kritige Odaklan ve Uyariya Odaklan ilgili risk grubundaki ilk seferi otomatik secer hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web triage hizi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirmi dorduncu dilim tamamlandi:
+  - Live Ops Filtreleri Sifirla aksiyonu risk odagini da temizleyecek sekilde duzeltildi.
+  - Reset sonrasi riskTone query parametresi kaldirilir; liste varsayilan odaga geri doner.
+  - Yeni endpoint acilmadi; yalnizca web filtre reset tutarliligi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+
+- Faz 4 yirmi besinci dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina toplu dispatch mesaj kopyalama aksiyonlari eklendi.
+  - Kritik ve uyari risk gruplari icin ayri hazir mesaj seti tek tikla panoya alinabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 yirmi altinci dilim tamamlandi:
+  - Live Ops aktif sefer listesindeki her satira risk rozeti eklendi (Kritik/Uyari).
+  - Satir meta alaninda risk nedeni (`Risk: ...`) gosterilir hale getirildi.
+  - Risk kuyrugu disinda da triage gorunurlugu artirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops liste okunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 yirmi yedinci dilim tamamlandi:
+  - Live Ops harita markerlarinda risk tonu semantigi eklendi (Kritik/Uyari halka).
+  - Marker legend, risk durumlarini da gosterecek sekilde genisletildi.
+  - Riskli seferlerin harita uzerinde ayirt edilme hizi artirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops harita okunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 yirmi sekizinci dilim tamamlandi:
+  - Live Ops toolbar'a aktif risk odagi banner'i eklendi.
+  - Banner icinden tek tik Risk Odagini Temizle aksiyonu acildi.
+  - Risk filtre baglami kuyruk disinda da gorunur hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops filtre okunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 yirmi dokuzuncu dilim tamamlandi:
+  - Live Ops harita marker tooltip metnine risk ozeti eklendi.
+  - Tooltip icinde risk tonu ve risk nedeni gorunur hale getirildi.
+  - Harita hover triage baglami guclendirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops harita etiket ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuzuncu dilim tamamlandi:
+  - Live Ops risk odagi harita marker gorunumuyle senkronize edildi.
+  - Risk odagi aktifken harita yalnizca ilgili tone markerlarini gosterir.
+  - Secili sefer risk disinda kalsa bile baglamin korunmasi icin haritada tutulur.
+  - Yeni endpoint acilmadi; yalnizca web live-ops liste-harita tutarliligi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz birinci dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina kritik/uyari bazli toplu WhatsApp aksiyonlari eklendi.
+  - Toplu dispatch mesaji copy disinda dogrudan WhatsApp taslagina acilabilir hale geldi.
+  - Risk devir akisinda copy-paste adimi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web dispatch operasyon ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz ikinci dilim tamamlandi:
+  - Live Ops harita split-view ust durum ciplari marker hacmiyle genisletildi.
+  - Marker toplam, canli ve stale sayilari panelde gorunur hale getirildi.
+  - Risk odakli gorunumde harita veri hacmi baglami netlestirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops harita okunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz ucuncu dilim tamamlandi:
+  - Live Ops risk odagi aktifken secili sefer risk disi oldugunda baglam cipi eklendi.
+  - Harita tarafinda ekstra marker gorunme nedeni acik sekilde UI'a yansitildi.
+  - Liste-harita tutarlilik semantigi operator acisindan netlestirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops durum copy'si iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz dorduncu dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina sinyal gecikme metrikleri eklendi.
+  - En eski sinyal suresi ve ortalama gecikme degeri panelde gorunur hale getirildi.
+  - Risk yogunlugu tek bakista yorumlanabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops triage metrik okunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz besinci dilim tamamlandi:
+  - Live Ops harita legend paneli icin ac/kapat aksiyonu eklendi.
+  - Legend gorunurluk tercihi localStorage'da saklanir hale getirildi.
+  - Operator ekran yogunluguna gore haritayi sade kullanabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops harita ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz altinci dilim tamamlandi:
+  - Live Ops liste toolbar ust metriklerine risk yogunlugu satiri eklendi.
+  - Riskli, kritik ve uyari adetleri tek bakista gorunur hale getirildi.
+  - Risk kuyrugu acilmadan hizli operasyon durumu okunabilir hale geldi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops metrik gorunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz yedinci dilim tamamlandi:
+  - Live Ops toolbar aksiyonlarina Kritik Odak ve Uyari Odak butonlari eklendi.
+  - Risk kuyrugu disinda da ust panelden hizli filtre odagi ac/kapat akisi saglandi.
+  - Operasyon triage hizi listede yukari seviyeden artirildi.
+  - Yeni endpoint acilmadi; yalnizca web filtre ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz sekizinci dilim tamamlandi:
+  - Live Ops siralama seceneklerine Risk Onceligi (risk_desc) eklendi.
+  - Kritik ve uyari seferler listedeki oncelikli siraya otomatik cekildi.
+  - Query parse/build zinciri risk siralama secenegini destekler hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops liste triage ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 otuz dokuzuncu dilim tamamlandi:
+  - Live Ops Risk Oncelik Kuyrugu kartina Risk Siralama toggle butonu eklendi.
+  - Kuyruktan cikmadan liste siralama modu risk_desc/signal_desc arasinda degistirilebilir hale geldi.
+  - Risk kuyrugu ve liste triage akisi daha bagli hale getirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops etkileÅŸim ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 kirkinci dilim tamamlandi:
+  - Live Ops harita split-view ciplara risk disi gizlenen sefer sayaci eklendi.
+  - Risk odagi acikken filtre kaynakli gorunum farki sayisal olarak aciklandi.
+  - Operatorin liste/harita farkini yorumlama hizi artirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops semantik gorunurlugu iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 kirk birinci dilim tamamlandi:
+  - Live Ops risk odagi secildiginde siralama otomatik risk_desc moduna cekildi.
+  - Kritik/Uyari odak aksiyonlari listede risk onceligini otomatik hizaladi.
+  - Triage akisinda manuel siralama degistirme adimi azaltildi.
+  - Yeni endpoint acilmadi; yalnizca web filtre-siralama ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 kirk ikinci dilim tamamlandi:
+  - Live Ops risk kuyruguna Onceki Risk / Sonraki Risk gezinme butonlari eklendi.
+  - Secili risk kaydi yoksa ilk/son kayda akilli fallback secimi eklendi.
+  - Risk triage akisinda seferler arasi gecis hizi artirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops gezinme ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 kirk ucuncu dilim tamamlandi:
+  - Live Ops risk kuyrugu icin Alt+Yukari / Alt+Asagi klavye gezinme kisa yolu eklendi.
+  - Input/textarea odaginda kisa yol tetiklenmeyerek yan etkiler engellendi.
+  - Risk triage akisinda klavye odakli operasyon hizi artirildi.
+  - Yeni endpoint acilmadi; yalnizca web live-ops etkileÅŸim ergonomisi iyilestirildi.
+  - npm run lint, npm run build (web) gecti.
+- Faz 4 kirk dorduncu dilim tamamlandi: live-ops risk kuyruguna secili risk konum gostergesi eklendi (x/y). Operasyon ekibi klavye/fare ile gezerken risk sirasini kaybetmeden takip edebilir hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 kirk besinci dilim tamamlandi: live-ops risk odagi Esc kisayoluyla temizlenebilir hale getirildi. Operator risk filtresinden klavyeyle aninda cikis yapabilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 kirk altinci dilim tamamlandi: live-ops risk siralama modu Alt+R kisayoluyla degistirilebilir hale getirildi. Operator risk_desc/signal_desc gecisini klavyeyle hizli yapabilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 kirk yedinci dilim tamamlandi: live-ops risk kuyrugunda klavye kisayol rehberi gorunur hale getirildi. Operator yeni kisayollari panel uzerinden hizli ogrenebilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 kirk sekizinci dilim tamamlandi: live-ops liste bos durumunda risk odagi varsa inline temizleme butonu eklendi. Risk filtresi cikis akisi hizlandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 kirk dokuzuncu dilim tamamlandi: live-ops harita ciplari arasina risk odagi temizleme butonu eklendi. Operator harita panelinden direkt filtre cikisi yapabilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 ellinci dilim tamamlandi: live-ops risk kuyrugunda Alt+C ve Alt+W ile kritik/uyari odaklari klavyeden tetiklenebilir hale getirildi. Operator triage hizi arttirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli birinci dilim tamamlandi: live-ops harita durum ciplara Kritik/Uyari risk sayaÃ§lari eklendi. Operator harita baglaminda risk yogunlugunu hizli okuyabilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli ikinci dilim tamamlandi: live-ops risk odagi durum satirina odaga uyan kayit adedi eklendi. Filtre etkisi daha okunur hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli ucuncu dilim tamamlandi: live-ops secili sefer dispatch gecmis karti kayit adediyle zenginlestirildi, liste turetimi tek noktaya indirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli dorduncu dilim tamamlandi: live-ops dispatch gecmis basligina son aksiyon zamani eklendi. Triage/devir karar hizi iyilesti. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli besinci dilim tamamlandi: live-ops En Riskliyi Ac buton metni risk nedenini de kapsayacak sekilde zenginlestirildi. Triage secim hizi artirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli altinci dilim tamamlandi: live-ops risk kuyrugu listesinde oncelik sira numaralari gorunur hale getirildi. Operator risk sirasini tek bakista takip edebilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli yedinci dilim tamamlandi: live-ops risk odagi banner'i gorunen kayit adediyle zenginlestirildi. Operatorde odak kapsami algisi guclendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli sekizinci dilim tamamlandi: live-ops risk kuyrugu panelinde gosterilen kayit adedi ile toplam risk adedi birlikte gosterildi. Queue truncation semantigi netlesti. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 elli dokuzuncu dilim tamamlandi: live-ops harita metrik ciplari secili sefer risk etiketiyle zenginlestirildi. Secili sefer triage baglami guclendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmisinci dilim tamamlandi: live-ops dispatch gecmis kartina gizli kayit adedi gostergesi eklendi (+N daha). Operator kirpilan gecmis hacmini gorebilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis birinci dilim tamamlandi: live-ops risk panelinde tum risk ozetini tek tikla panoya alma aksiyonu eklendi. Devir ve raporlama akisi hizlandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis ikinci dilim tamamlandi: live-ops risk odagi bos liste mesajina toplam risk adedi eklendi. Bos durumda triage baglami guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis ucuncu dilim tamamlandi: live-ops risk kuyrugunda Top 4/Top 8 gecis aksiyonu eklendi. Kuyruk derinligi operasyon ihtiyacina gore genisletilebilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis dorduncu dilim tamamlandi: live-ops harita metriklerine risk yogunlugu yuzdesi eklendi. Marker setindeki risk seviyesi hizli okunur hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis besinci dilim tamamlandi: live-ops risk panelinde risk linklerini WhatsApp ile acma aksiyonu eklendi. Ekip ici devir akisi hizlandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis altinci dilim tamamlandi: live-ops harita metrik ciplari secili sefer son sinyal etiketiyle genisletildi. Secili kaydin tazelik baglami guclendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis yedinci dilim tamamlandi: live-ops risk kuyrugunda Tum Riskleri Kopyala aksiyonu Alt+K kisayoluyla hizlandirildi. Operasyon devir hizi artti. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis sekizinci dilim tamamlandi: live-ops risk yogunlugu cipi durum esiklerine gore renk semantigi kazandi. Harita paneli triage okunurlugu arttirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 altmis dokuzuncu dilim tamamlandi: live-ops risk odak butonlari kritik/uyari adetlerini gosterecek ve bos durumda disable olacak sekilde iyilestirildi. Triage aksiyon guvenilirligi artti. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yetmisinci dilim tamamlandi: live-ops risk yogunlugu metrigine Dusuk/Orta/Yuksek etiketi eklendi. Harita risk okumasi hizlandirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis birinci dilim tamamlandi: live-ops risk odagi aktifken Alt+Yukari/Asagi gezinme secili tone kuyruyuyla sinirlandi. Klavye triage akisinda odak tutarliligi guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis ikinci dilim tamamlandi: live-ops risk kuyrugunda secili risk satiri gezinme kapsami etiketiyle genisletildi (Tum riskler/Kritik odak/Uyari odak). Klavye triage davranisinin semantigi netlestirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis ucuncu dilim tamamlandi: live-ops risk kuyrugunda Risk Linklerini WhatsApp Ac aksiyonu Alt+M kisayoluyla desteklendi. Klavye odakli devir ergonomisi genisletildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis dorduncu dilim tamamlandi: live-ops risk kuyrugu limiti (Top 4/Top 8) kalici preference olarak saklandi ve Alt+Q ile klavyeden degistirilebilir hale getirildi. Triage ergonomisi oturumlar arasi tutarli hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis besinci dilim tamamlandi: live-ops risk kuyrugunda En Riskliyi Ac aksiyonu Alt+E ile klavyeden tetiklenebilir hale getirildi. Triage akisinda fare bagimliligi azaldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis altinci dilim tamamlandi: live-ops risk kuyrugu limiti query-state parity'ye alindi (
+iskLimit). Deep-link ile acilan gorunumde Top 4/Top 8 tercihi tutarli hale getirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis yedinci dilim tamamlandi: risk kuyrugu link kopyala/WhatsApp aksiyonlari linke aktif sort + riskLimit bilgisi ekleyecek sekilde guncellendi. Deep-link acisinda state parity guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis sekizinci dilim tamamlandi: live-ops query self-heal katmani 
+iskLimit icin gecersiz degerleri normalize edecek sekilde guclendirildi. Bozuk deep-linkler otomatik toparlanir hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yetmis dokuzuncu dilim tamamlandi: live-ops toolbar'a risk kuyrugu limiti metrigini eklendi. Kuyruk derinligi bilgisi risk paneline inmeden de gorunur oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 sekseninci dilim tamamlandi: live-ops risk kuyrugunda odak acikken listeleme Top N genel kuyruk yerine tone-scoped Top N'e cekildi. Kritik/Uyari sayaclari ve toplu kopya/dispatch aksiyonlari toplam risk setiyle hizalandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen birinci dilim tamamlandi: risk odagi aktif ve kuyruk bos oldugunda panel ici Odagi Temizle butonu eklendi. Operatorun filtre cikisi hizlandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen ikinci dilim tamamlandi: risk kuyrugunda secili kayit gorunum disinda kaldiginda scope icindeki konumu korunacak sekilde secili-risk etiketi guncellendi ve Top 8'e genisletme aksiyonu eklendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen ucuncu dilim tamamlandi: live-ops URL dayanýkliligi guclendirildi; gecersiz sort/riskTone/hideStale/riskLimit query degerleri otomatik normalize edilir hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen dorduncu dilim tamamlandi: risk kuyrugunda seciliyi gorunume al (Top 8) aksiyonu Alt+G ile klavyeden tetiklenebilir hale getirildi. Triage akisinda fare bagimliligi azaltiildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen besinci dilim tamamlandi: risk kuyrugunda gorunum disi secili kayit senaryosu icin Alt+J hizli gecis aksiyonu eklendi. Triage geri-donus ergonomisi guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen altinci dilim tamamlandi: risk kuyrugunda Top N butonu ve sayaclar odak kapsamiyla hizalandi. Aktif risk odaginda scope toplam + genel toplam birlikte gorunur hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen yedinci dilim tamamlandi: risk kuyrugunda Alt+K kopyalama akisinda Top N kirpmasi kaldirildi; kopya payload'i kapsam tamami + kapsam/genel toplam metrikleriyle hizalandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen sekizinci dilim tamamlandi: live-ops risk kuyruguna secili kaydi tek adimda panoya alan Secili Riski Kopyala aksiyonu eklendi ve Alt+P kisayoluyla klavyeden tetiklenebilir hale getirildi. Secili risk scope baglami ve konum bilgisi (x/y) ile kopyalanir; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 seksen dokuzuncu dilim tamamlandi: live-ops risk kuyrugunda secili kayit icin dogrudan WhatsApp aksiyonu eklendi (Secili Riski WhatsApp Ac) ve Alt+O kisayoluyla klavyeden tetiklenebilir hale getirildi. Secili risk payload'i sefer ozeti + deep-link (tripId/routeId/driverUid/sort/riskLimit) ile paylasilir; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksaninci dilim tamamlandi: live-ops liste bos durumunda risk odagi acikken stale gizleme kaynakli kayiplar sayisal olarak gosterilir hale getirildi (stale gizlenen X) ve tek tik Stale Gorunurlugunu Ac aksiyonu eklendi. Operator risk odaginda neden sonuc gelmedigini daha hizli ayirt eder; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan birinci dilim tamamlandi: live-ops toolbar risk odagi banner'i stale gizleme baglamiyla genisletildi. Risk odagi aktif ve hideStale acikken Stale gizlenen: X metrigi gorunur hale geldi; ayni satira tek tik Stale Gorunurlugunu Ac aksiyonu eklendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan ikinci dilim tamamlandi: live-ops toolbar aksiyonlarina risk kuyrugu limiti hizli gecisi eklendi (Risk Kuyrugu: Top 4/Top 8). Operator risk paneline inmeden ustten kuyruk derinligini degistirebilir hale geldi; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan ucuncu dilim tamamlandi: live-ops harita paneli risk odagi kontrolu genisletildi (Kritik Odagi, Uyari Odagi) ve Risk disi gizlenen metriði oran bilgisini de icerecek sekilde guncellendi (X (%Y)). Operator map-first triage akisinda filtrelemeyi listeye donmeden yonetebilir hale geldi; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan dorduncu dilim tamamlandi: live-ops harita paneli stale-gizleme semantigiyle guclendirildi. Risk odagi + hideStale aktifken Stale gizlenen risk metrigine eklendi ve haritadan tek tik Stale Gorunurlugunu Ac aksiyonu verildi. Boylece operator map panelinden filtre cikisi yapabilir hale geldi; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan besinci dilim tamamlandi: live-ops state katmaninda stale-gizlenen risk sayaclari tone-bazli ayrildi (kritik/uyari) ve harita paneli risk odak butonlari bu toplamlarla hizalandi. Boylece hideStale acikken de Kritik/Uyari Odagi butonlari dogru disable semantigiyle calisir; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan altinci dilim tamamlandi: live-ops harita paneline risk odagi icin gorunen yok ama stale-gizli var uyarisi eklendi. Odakta gorunen marker yoksa ve hideStale nedeniyle kayitlar gizleniyorsa operator bunu aninda gorur ve ayni satirdan Stale Gorunurlugunu Ac aksiyonuyla filtreyi acabilir. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan yedinci dilim tamamlandi: live-ops harita risk odagi metrikleri genisletildi. Odagin toplam hacmi (Odak Toplami) ve hideStale acikken gorunen/stale-gizli dagilimi tek cipe tasindi. Operator risk odaginin tam hacmini harita panelinden dogrudan okuyabilir hale geldi; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan sekizinci dilim tamamlandi: live-ops listede stale gorunurlugu klavye kisayoluna alindi (Alt+H). Operator stale gizle/goster akisinda fare bagimliligi olmadan hizli gecis yapabilir hale geldi; toolbar stale buton etiketleri kisayolla hizalandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 doksan dokuzuncu dilim tamamlandi: live-ops risk kuyrugu paneline stale gorunurluk toggle aksiyonu eklendi ve kisayol rehberi Alt+H ile guncellendi. Operator risk panelinden cikmadan stale gizle/goster gecisi yapabilir hale geldi; yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+
+- Faz 4 yuzuncu dilim tamamlandi: live-ops risk kuyrugunda Odagi Temizle davranisi Esc (Alt gerektirmeden) ile calisacak sekilde duzeltildi. Klavye kisayol etiketiyle gercek davranis parity'si saglandi; contentEditable alanlar da kisayoldan muaf tutuldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz birinci dilim tamamlandi: live-ops risk kuyrugu deep-link payload'i hideStale query state'ini de tasiyacak sekilde guncellendi. Secili risk WhatsApp/link kopya akislari acilan gorunumde stale filtre parity'sini korur hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz ikinci dilim tamamlandi: live-ops risk link export payload'i kapsam semantigiyle zenginlestirildi (Kapsam, Kopyalanan, Kapsam Toplami, Genel Toplam). Top N kirpma ile kapsam tamami ayrimi dispatch paylasiminda acik hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz ucuncu dilim tamamlandi: live-ops risk link kopyalama akisinda bos kuyruk korumasi eklendi. Alt+L kisayolu ve buton aksiyonu bos payload uretmek yerine acik hata mesaji verir; buton bos kuyrukta disabled semantige cekildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz dorduncu dilim tamamlandi: live-ops Risk Linklerini WhatsApp Ac butonu bos kuyrukta disabled semantiðe cekildi. UI davranisi Alt+M klavye guard'i ve kopyalama aksiyonlariyla hizalandi; bos payload riski kaldirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz besinci dilim tamamlandi: live-ops Tum Riskleri Kopyala aksiyonu bos kapsamda UI+klavye guard ile sertlestirildi. Alt+K bos listede acik geri bildirim verir, buton bos kapsamda disabled semantige cekildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz altinci dilim tamamlandi: live-ops risk panelinde Esc davranisi iki kademeli hale getirildi. Odag aktifse odak temizlenir; odak yoksa acik copy/status mesaji klavyeden kapatilabilir oldu. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti.
+- Faz 4 yuz yedinci dilim tamamlandi: route/durak conflict guard web semantigi sertlestirildi. `UPDATE_TOKEN_MISMATCH` ve route-structure precondition hatalari icin operasyonel mesajlar eklendi; `route-update` ve `route-stops` akislari bu hata sinifinda otomatik liste yenileme yapar hale getirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz sekizinci dilim tamamlandi: rota zamanlama baseline'i icin web tarafina HH:MM format guard eklendi (`route-create`, `route-update`). Gecersiz saat girdileri backend'e gitmeden engellenir ve operasyonel hata copy'si verilir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz dokuzuncu dilim tamamlandi: route create/update formlarinda saat alanina anlik HH:MM validation geri bildirimi eklendi ve update formunda submit guard'i dogrudan bu dogrulamaya baglandi. Boylesce gecersiz saat degerleri backend cagrisina ulasmadan engellenir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz onuncu dilim tamamlandi: durak formunda (order/lat/lng) anlik validation geri bildirimi ve submit guard sertlestirmesi eklendi. Gecersiz koordinat/sira degerleri backend cagrisina ulasmadan engellenir, form alanlari inline hata semantigiyle operatoru yonlendirir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz on birinci dilim tamamlandi: durak formunda koordinat parse semantigi TR girisle uyumlu hale getirildi (`41,015` -> `41.015`) ve ayni rota icinde duplicate sira numarasi form seviyesinde engellendi. Boylesce gecersiz/cakisan durak yazimlari backend'e gitmeden onlenir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz on ikinci dilim tamamlandi: route create formunda koordinat alanlari submit-oncesi aralik dogrulamasina alindi (lat/lng) ve virgullu TR giris normalizasyonu eklendi. Gecersiz koordinatlar backend cagrisina ulasmadan engellenir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on ucuncu dilim tamamlandi: vehicle create/update formlarinda plaka-yil-kapasite icin ortak validation katmani acildi. Plaka normalize edildi, yil (1980+) ve kapasite (1-200) aralik disi girdiler backend cagrisina gitmeden engellendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+
+- Faz 4 yuz on dorduncu dilim tamamlandi: vehicle create/update formlarinda plaka alani blur aninda normalize edilir hale getirildi (buyuk harf + tek bosluk + trim). Form semantigi daha tutarli hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on besinci dilim tamamlandi: route-create koordinat parser strict moda alindi (bos/kismi-kirli metin reject) ve vehicle integer parser kismi parse acigini kapatacak sekilde sertlestirildi (`12abc` artik gecersiz). Gecersiz sayisal veriler backend cagrisina ulasmadan engellenir. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on altinci dilim tamamlandi: route-stop koordinat parser strict moda alindi ve bos degerin `0` kabul edilmesine yol acan parse bug'i kapatildi. Durak formunda lat/lng alanlari zorunlu semantige cekildi; gecersiz/bos koordinatlar backend cagrisina ulasmadan engellenir. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on yedinci dilim tamamlandi: route-stop sira alani integer-zorunlu hale getirildi. Decimal degerlerin sessiz trunc edilmesi kaldirildi; sira artik 0-500 araliginda tam sayi degilse submit engellenir. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on sekizinci dilim tamamlandi: route-create ve route-stop koordinat alanlari blur aninda kanonik formata normalize edilir hale getirildi (virgul->nokta + trim). Validation semantigi korunarak giris ergonomisi ve veri tutarliligi arttirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz on dokuzuncu dilim tamamlandi: vehicle year/capacity alanlari blur aninda kanonik integer formata normalize edilir hale getirildi ve input sinirlari (`step=1`, `min/max`) eklendi. Form semantigi ve veri giris ergonomisi guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirminci dilim tamamlandi: route-stop order alani blur aninda integer+range normalizasyonuna alindi ve conflict kontrolu yalnizca gecerli order degerinde calisacak sekilde sertlestirildi. Sira alaninda UX tutarliligi guclendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi birinci dilim tamamlandi: route-create ve route-stop koordinat alanlarina `inputMode=decimal` eklendi. Ozellikle mobil/sanal klavyede koordinat giris ergonomisi iyilesti; validation/kontrat semantigi degismedi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi ikinci dilim tamamlandi: route/stop ve vehicle form alanlarinda invalid stateler icin `aria-invalid` semantigi eklendi. Ekran okuyucu uyumu ve form erisilebilirligi guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi ucuncu dilim tamamlandi: route-create (ad/adres), route-stop (durak adi) ve vehicle (marka/model) alanlarina blur-trim normalizasyonu eklendi. Forma girilen metinlerde gereksiz kenar bosluklar backend'e gitmeden temizlenir hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi dorduncu dilim tamamlandi: route-stop order inputunda bos degerin otomatik 0'a dusmesine neden olan onChange davranisi duzeltildi. Bos giris artik gecersiz state olarak kalir ve blur normalizasyonu ile toparlanir. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi besinci dilim tamamlandi: route-update formunda rota adi alani blur-trim + inline validation semantigine alindi, saat alanina `aria-invalid` eklendi. Update form UX/erisilebilirlik tutarliligi route-create ile hizalandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi altinci dilim tamamlandi: route-update ve vehicle-update formlarinda degisiklik yoksa submit pasif hale getirildi. Gereksiz callable trafik ve anlamsiz no-op submit denemeleri azaltildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi yedinci dilim tamamlandi: form text normalizasyonu tek helpera tasindi (`input-normalization.ts`) ve route/stop/vehicle ad alanlarinda tutarli hale getirildi (trim + multi-space collapse). Veri hijyeni kod tekrarini azaltarak guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+
+- Faz 4 yuz yirmi sekizinci dilim tamamlandi: route/stop/vehicle formlarinda geri bildirim kutulari erisilebilirlik semantigiyle guncellendi (`error -> role=alert`, `success -> aria-live=polite`). Form geri bildirimlerinin ekran okuyucu gorunurlugu iyilestirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz yirmi dokuzuncu dilim tamamlandi: drivers-member invite/management formlarinda e-posta blur-normalization, stricter email guard ve feedback semantics (`error -> role=alert`, `success -> aria-live=polite`) eklendi. Driver uye davet/yetki yonetimi UX ve erisilebilirlik davranisi route/vehicle form standardiyla hizalandi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuzuncu dilim tamamlandi: drivers-member invite formunda gecersiz e-posta state'i alanda da gorunur hale getirildi (invalid durumda kirmizi border + odak semantigi). Inline geri bildirimle davet formu hata algilanabilirligi guclendirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz birinci dilim tamamlandi: drivers-member management kartinda degisiklik yok durumuna acik guard mesaji eklendi ("Kaydetmek icin rol veya durumda degisiklik yap.") ve bilgi kutusu aria-live=polite semantigine alindi. Role/durum guncelleme akisinda pasif submit sebebi netlestirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz ikinci dilim tamamlandi: drivers side panelde Gorunum Linki geri bildirimi erisilebilirlik semantigine alindi (copied/info -> aria-live=polite, error -> role=alert). Link kopyalama akisinda durum mesajlari ekran okuyucu tarafinda tutarli anons edilir hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz ucuncu dilim tamamlandi: drivers-member invite/management kartlarinda pasif butonlar icin disabled-reason `title` semantigi eklendi. Davet gonderme, uye guncelleme ve uye kaldirma aksiyonlarinda neden pasif oldugu hover seviyesinde net okunur hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz dorduncu dilim tamamlandi: drivers liste filtrelerinde erisilebilirlik ve no-op semantigi guclendirildi (`aria-pressed`, filtre alanlari icin `aria-label`, pasifken Filtreyi Temizle disable guard). Uye secim satirlarina da `aria-label` eklendi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz besinci dilim tamamlandi: drivers ekraninda query sync performans guard'i eklendi. Filtre ve secili-uye query string'i degismiyorsa `router.replace` artik tetiklenmez; gereksiz navigasyon churn'u azaltildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz altinci dilim tamamlandi: routes ve vehicles feature query sync akislari no-op `router.replace` guard'i ile sertlestirildi. Filtre/secim query string'i degismediginde URL replace cagrilmaz; dashboard genelinde gereksiz navigasyon churn'u azaltildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz yedinci dilim tamamlandi: routes ve vehicles liste filtreleri drivers standardina hizalandi (`aria-pressed`, alan bazli `aria-label`, no-op durumda Filtreyi Temizle disable guard, satir secimlerinde `aria-label`). Liste erisilebilirligi ve filtre ergonomisi dashboard genelinde tutarli hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz sekizinci dilim tamamlandi: live-ops query sync katmanina no-op `router.replace` guard'i eklendi. Efekt ve self-heal akislarinda query degismediginde gereksiz URL replace tetiklenmesi onlendi; live-ops render churn'u azaltildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz otuz dokuzuncu dilim tamamlandi: drivers side panelin altindaki "sonraki faz" placeholder kaldirildi ve gercek `Driver Ops Snapshot` karti acildi (uye rol/durum + aktif sefer + bagli rota metrikleri). Drivers paneli faz-notundan operasyonel okunurluge gecirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirkinci dilim tamamlandi: vehicles ve routes side panellerdeki "sonraki faz" placeholderlar kaldirildi; yerlerine gercek operasyon snapshot kartlari acildi (durum/yuk metrikleri + aktif sefer/yetki ozetleri). Side panel okunurlugu dashboard genelinde gercek veri odakli hale geldi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk birinci dilim tamamlandi: vehicles ve routes side panelde Gorunum Linki geri bildirimleri erisilebilirlik semantigine alindi (copied/info -> aria-live=polite, error -> role=alert). Link kopyalama durum mesajlari panel genelinde tutarli hale getirildi. Yeni endpoint acilmadi. npm run lint, npm run build (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk ikinci dilim tamamlandi: Vercel deploy gunluk limitini korumak icin zorunlu deploy-budget policy aktive edildi (`79_vercel_deploy_budget_policy.md`) ve release runbook'a baglandi (`33_release_and_pilot_runbook_web.md`). Bundan sonraki deploylar bu kuralla yonetilecek.
+- Faz 4 yuz kirk ucuncu dilim tamamlandi: live-ops harita paneline "aktif sefer yok" empty-state eklendi ve risk odagi/stale filtreleri icin hizli temizleme aksiyonlari harita uzerinden sunuldu. Harita paneli filtre kaynakli bosluklarda daha acik geri bildirim verir. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk dorduncu dilim tamamlandi: login sayfasi bilgilendirme copy'si placeholder dilinden operasyonel dile cekildi (Google/Microsoft/email akisi netlestirildi, sifre reset notu sadeletildi). Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk besinci dilim tamamlandi: live-ops feature "next phase" notlari guncellenerek RTDB reconnect/backoff ve pilot smoke odagi netlestirildi. Yalnizca panel copy/guncel yon bilgisi degisti, kontrat degismedi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk altinci dilim tamamlandi: live-ops risk kuyrugu bileseninde prop hizasi/okunurlugu duzeltildi (indent standardi). Davranis degismedi, dosya sisme riski artmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk yedinci dilim tamamlandi: marketing ana sayfa kopyalari placeholder dilinden erken erisim diline cekildi (premium shell/akýþ metinleri). Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk sekizinci dilim tamamlandi: Firebase client bootstrap probe copy'si placeholder dilden dogrulama diline cekildi. Login saglik geri bildirimi daha net. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz kirk dokuzuncu dilim tamamlandi: live-ops placeholder bileseninde etiketler "ornek" semantigine cekildi; UX dil tutarliligi iyilestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz ellinci dilim tamamlandi: panel mode label'lari "placeholder" ibaresinden arindirildi. UI dil tutarliligi ve profesyonel gorunum iyilestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli birinci dilim tamamlandi: dashboard list placeholder toolbar ve alt satir copy'leri "ornek" semantigine cekildi. Placeholder ekranlarinin dili daha profesyonel hale geldi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli ikinci dilim tamamlandi: panel mode tercih yorum/kopyasindan "placeholder" ibaresi kaldirildi. Erken bootstrap dili sadeletildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli ucuncu dilim tamamlandi: iletisim sayfasi metni faz referanslarindan arindirildi; demo/pilot iletisim kopyasi sade ve operasyonel dile cekildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli dorduncu dilim tamamlandi: gizlilik/KVKK metinlerinde "placeholder" ibareleri "taslak" diline cekildi. Hukuki metinler icin dil tutarliligi saglandi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli besinci dilim tamamlandi: dashboard feature placeholder notlari ve hizli gecis basligi operasyonel dile hizalandi; "yukleniyor/bos" dili netlestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli altinci dilim tamamlandi: dashboard list placeholder toolbar ve footer copy'si "ornek" diline cekildi. Placeholder UI dili sade ve profesyonel hale getirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli yedinci dilim tamamlandi: mode preference katmaninda erken bootstrap yorum dili sadeletildi (placeholder ibaresi kaldirildi). Davranis degismedi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli sekizinci dilim tamamlandi: iletisim sayfasi demo/pilot kopyasi sadeleþtirildi; faz referanslari kaldirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz elli dokuzuncu dilim tamamlandi: marketing content page "erken erisim notu" kopyasi guncellendi ve placeholder dili kaldirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmisinci dilim tamamlandi: gizlilik/KVKK metinleri "erken erisim" diline cekildi (faz referanslari kaldirildi). Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis birinci dilim tamamlandi: dashboard feature placeholder hizli gecis etiketi "Canli Ops" olarak Turkcelestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis ikinci dilim tamamlandi: gizlilik sayfasinda retention metni "pilot sonrasi" baglamina cekildi; taslak hukuki notu netlestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis ucuncu dilim tamamlandi: live-ops toolbar aksiyonlarinda aria-pressed/aria-label semantigi ile erisilebilirlik sertlestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis dorduncu dilim tamamlandi: marketing bilgi sayfasi header CTA metni "Panel Girisi" olarak netlestirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis besinci dilim tamamlandi: marketing bilgi sayfasi erken erisim notu diline gecis netlestirildi (kopi tutarliligi). Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis altinci dilim tamamlandi: gizlilik/KVKK erisim metinleri erken erisim diliyle tutarli hale getirildi ve faz referanslari kaldirildi. Yeni endpoint acilmadi. `npm run lint`, `npm run build` (web) gecti; Vercel free deployment gunluk limitine takildigi icin prod yayin bir sonraki kota penceresine ertelendi.
+- Faz 4 yuz altmis yedinci dilim tamamlandi: live-ops filtre sifirlama aksiyonu hide-stale ve risk kuyrugu limitini de varsayilanlara cekiyor (tercih kaydi + query sync). Filtre reset artan no-op durumlarini kaldirdi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz altmis sekizinci dilim tamamlandi: live-ops state katmaninda `hasActiveFilters` hesaplandi ve liste toolbarina tasindi. Filtre durumunun UI'da belirginlesmesi icin temel sinyal saglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz altmis dokuzuncu dilim tamamlandi: live-ops toolbar "Filtreleri Sifirla" butonu filtre yokken disabled hale getirildi ve no-op tiklamalar engellendi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmisinci dilim tamamlandi: live-ops bos liste durumunda aktif filtre varken "Filtreleri Sifirla" kisa aksiyonu eklendi. Operasyon bosluklarinda hizli toparlama akisi saglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis birinci dilim tamamlandi: `useCompanyRoutes` hook'u includeArchived parametresiyle genisletildi; listCompanyRoutes callable artan arsiv kapsamini destekler hale getirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis ikinci dilim tamamlandi: routes feature status filtresine gore archived route'larin listelenmesi aktif edildi (archived/all filtrelerinde arsivler yuklenir). Deep-link ile arsiv rota secimi de desteklenir. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis ucuncu dilim tamamlandi: route update secim dropdown'unda arsivli rota etiketi gorunur hale getirildi. Operator unarchive hedefini daha net gorur. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis dorduncu dilim tamamlandi: routes listesinde arsivli rota satirlari gorsel olarak soluklastirildi. Arsivli rota durumunu listede hizli ayirt etme saglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis besinci dilim tamamlandi: route stop editoru aktif sefer varken yapisal degisiklikleri (ekle/sil/sirala) UI'da soft-lock'a aldi. Drag/drop ve hareket butonlari pasiflestirildi, uyarý banner'i eklendi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis altinci dilim tamamlandi: stop create formu aktif sefer varken submit guard'i ile kilitlendi; order alaný pasif ve lock mesajý gorunur hale geldi. Yapýsal degisiklikler yerine yalnizca mevcut durak guncelleme izinli hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis yedinci dilim tamamlandi: stop listesinde delete/move aksiyonlari soft-lock semantigiyle disabled oldu; drag cursor kilitlendi. Edge-case týklamalarda hata yerine net politika mesaji basilir. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis sekizinci dilim tamamlandi: route stop editoru aktif sefer sayisini panelde gosterir ve soft-lock politikasi netlestirilir. Durak operasyonlari artik "aktif sefer varken yapisal degisiklik yok" kuraliyla tutarli. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz yetmis dokuzuncu dilim tamamlandi: RTDB stream hook'una retry/backoff mantigi eklendi ve permission_denied hatasinda token refresh fallback tetiklendi. Stream kopmalarinda kontrollu yeniden baglanma davranisi saglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz sekseninci dilim tamamlandi: live-ops stream stale semantigi eklendi (30 sn stream sessizligi veya RTDB offline durumda stale). effectiveLiveCoords artik stale bayragi tasir. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen birinci dilim tamamlandi: live-ops detail paneline stream stale/backoff gosterimleri eklendi (deneme sayisi ve kalan sure). Operator RTDB kopma durumunu net gorur. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen ikinci dilim tamamlandi: live-ops state katmaninda stream stale durumu UI'ya aktarildi ve harita/detay semantiklerinin operasyonel ayrimi guclendirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen ucuncu dilim tamamlandi: routes side panelde rota paylasim karti eklendi (rota gorunumu + live-ops link kopyalama). Basic operasyonel paylasim akisi tamamlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen dorduncu dilim tamamlandi: misafir takip linki icin public onizleme sayfasi (`/r/[srvCode]`) eklendi. Misafir paylasim linki 404 yerine kontrollu onizleme verir. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen besinci dilim tamamlandi: rota paylasim kartinda misafir takip linki allowGuestTracking + srvCode ile gate edildi ve yeni sekme onizleme aksiyonu eklendi. Paylasim akisi netlestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen altinci dilim tamamlandi: rota paylasim linkleri icin kopyalama geri bildirimi hedefe gore netlestirildi (rota/live-ops/misafir). Operasyonel paylasim geri bildirimi standartlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen yedinci dilim tamamlandi: live-ops derived state'te filter+sort maliyeti ms olarak olculmeye baslandi (perf smoke metrik). Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen sekizinci dilim tamamlandi: live-ops state katmani filtre perf metriðini UI'ya tasidi. Liste toolbarinda performans durumu gorunur. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz seksen dokuzuncu dilim tamamlandi: live-ops list toolbarinda perf smoke etiketi (OK/Izle/Yavas) eklendi. Filtre+sirala gecikmesi operasyonel olarak izlenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksaninci dilim tamamlandi: live-ops harita panelinde marker sayisina dayali perf smoke etiketi eklendi. Harita yogunlugunda performans risk sinyali gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan birinci dilim tamamlandi: live-ops derived state'te read-model baskisi hesaplandi (sefer sayisi + filtre ms). Projection endpoint kararini tetikleyecek sinyal uretildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan ikinci dilim tamamlandi: read-model baskisi state katmanina aktarildi ve UI'ya baglandi. Live ops listesinde projection karar uyarisi gorunur. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan ucuncu dilim tamamlandi: live-ops toolbarina projection uyarisi eklendi (warn/high). Read-model optimizasyonu karar noktasi netlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan dorduncu dilim tamamlandi: read-model uyarisi live-ops list barinda standardize edildi; projection endpoint kararini operasyonel olarak izlemek kolaylasti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan besinci dilim tamamlandi: live-ops stream issue label helper eklendi; mismatch/offline/permission_denied icin tekil yorum metni olustu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan altinci dilim tamamlandi: live-ops detay panelinde stream issue uyarisi eklendi. Operator RTDB sorunu ve fallback durumunu net gorur. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan yedinci dilim tamamlandi: live-ops harita panelinde stream issue banner eklendi. Harita overlay/fallback durumu tek bakista gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 4 yuz doksan sekizinci dilim tamamlandi: operator playbook mismatch durumunu stream issue sayacak sekilde guncellendi ve stream issue aciklamasi playbook icine eklendi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 birinci dilim tamamlandi: admin operasyon ekranina staging smoke checklist karti eklendi. Faz 5 quality gate checklist UI'da hizli dogrulama araci olarak gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 ikinci dilim tamamlandi: release gate checklist karti eklendi (CI/auth/live-ops/audit/CORS/budget/rollback). Release oncesi onay adimlari admin side panelde izlenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 ucuncu dilim tamamlandi: admin side panelde release gate karti konumlandirildi. Faz 5 quality gate tek bakista takip edilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 dorduncu dilim tamamlandi: admin operasyon durum kartina release gate notu eklendi (yol gosterici). Operasyon durumu ile release gate baglantisi kuruldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 besinci dilim tamamlandi: admin operasyon ekranina cost/budget alerts karti eklendi. Firebase/Mapbox/Vercel butce kontrolleri pilot oncesi gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altinci dilim tamamlandi: admin cost alerts karti ile budget kontrollerinin checklist listesi eklendi. Operasyonel hatirlatici UI tamamlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yedinci dilim tamamlandi: admin quick actions listesine release gate hizli gecisi eklendi. Release kontrol adimlarina hizli ulasim saglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 sekizinci dilim tamamlandi: admin operasyon ekraninda cost/budget karti KPI altina konumlandi; release gate ve smoke checklist ile Faz 5 kalite duvari hizalandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 dokuzuncu dilim tamamlandi: staging smoke checklist kalici hale getirildi (localStorage) ve kontrol listesi kopyalama aksiyonu eklendi. Release smoke iterasyonlari daha izlenebilir oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 onuncu dilim tamamlandi: admin operasyon ekranina CORS/origin allow-list kontrol karti eklendi. Pilot oncesi domain allow-list dogrulamasi tek bakista izlenir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on birinci dilim tamamlandi: admin operasyon ekranina env/secret hygiene checklist karti eklendi. Secret hijyen kontrolleri release gate ile hizalandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on ikinci dilim tamamlandi: admin operasyon ekraninda staging smoke + CORS allow-list + secret hygiene kartlari kalite duvarina dahil edildi; Faz 5 sertlestirme paneli genislestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on ucuncu dilim tamamlandi: release gate checklist'ine security hardening + secret hygiene maddeleri eklendi. Pilot oncesi guvenlik/secret gate zorunlu hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on dorduncu dilim tamamlandi: admin operasyon ekranina security hardening checklist karti eklendi (2FA/session/CSP/secret rotation). Faz 5 guvenlik kontrol adimlari panelde gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on besinci dilim tamamlandi: staging smoke runbook karti eklendi (adim adim smoke suite). Runbook kopyalama aksiyonu ile operasyonel tekrar kolaylasti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on altinci dilim tamamlandi: admin operasyon ekraninda security hardening + staging runbook kartlari kalite duvarina dahil edildi. Faz 5 sertlestirme paneli tamamlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on yedinci dilim tamamlandi: release gate checklist'ine staging smoke runbook maddesi eklendi. Smoke suite onayi release gate'e baglandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on sekizinci dilim tamamlandi: admin risk paneline CORS/security/secret checklist durum chip'leri eklendi. Risk panelinde kalite durumu hizli okunur hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 on dokuzuncu dilim tamamlandi: admin audit paneline denied/error icin hizli aksiyon runbook kutusu eklendi. Operasyonel triage adimlari netlestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirminci dilim tamamlandi: Faz 5 sertlestirme metrikleri risk + audit panelleriyle hizlandi (release gate + runbook + kalite chip'leri). Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi birinci dilim tamamlandi: staging smoke runbook kartina son guncelleme/timestamp etiketi eklendi ve kayit kaliciligi netlestirildi. Smoke suite takibi daha izlenebilir oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi ikinci dilim tamamlandi: risk panelindeki kalite chip'leri icin ok/uyari ozet satiri eklendi. Kalite durumu tek satirda gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi ucuncu dilim tamamlandi: audit denied/error runbook kutusuna kopyalama aksiyonu eklendi. Triage adimlari ekip ici paylasim icin hazir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi dorduncu dilim tamamlandi: Faz 5 operasyonel runbook'larin paylasim ergonomisi artirildi (staging runbook timestamp + audit runbook kopya). Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi besinci dilim tamamlandi: risk paneline son guncelleme etiketi eklendi. Operasyon risklerinin tazelik baglami gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi altinci dilim tamamlandi: admin operasyon ekranina Faz 5 kapsam ozeti karti eklendi. Pilot oncesi sertlestirme kapsamý tek bakista gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi yedinci dilim tamamlandi: audit runbook kopyalama aksiyonu basari geri bildirimi (Kopyalandi) ile guncellendi. Ekip ici paylasim geri bildirimi netlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi sekizinci dilim tamamlandi: Faz 5 sertlestirme kartlari admin operasyon ekraninda risk/audit triage ile hizlandi (risk tazelik + kapsam ozet + runbook feedback). Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yirmi dokuzuncu dilim tamamlandi: admin operasyon ekraninda Faz 5 kartlari oncelik sirasina gore yeniden dizildi (release gate -> smoke -> runbook -> security -> secrets -> CORS -> cost -> scope). Sertlestirme panosu daha net siralandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuzuncu dilim tamamlandi: risk paneline Faz 5 kapsam ozetine hizli gecis linki eklendi. Risk triage ile kapsam kontrolu hizlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz birinci dilim tamamlandi: audit denied/error runbook kutusuna "son kopya zamani" etiketi eklendi. Operasyonel triage paylasim izi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz ikinci dilim tamamlandi: Faz 5 sertlestirme metrikleri admin operasyon ekraninda runbook zaman damgasi ve risk->kapsam gecisi ile hizlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz ucuncu dilim tamamlandi: Faz 5 durum ozeti karti eklendi (release gate + smoke + runbook + security + secrets + CORS). Checklist ilerleme durumu tek kartta gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz dorduncu dilim tamamlandi: staging smoke checklist kartina toplam sure (dk) alani eklendi ve kopya formatina dahil edildi. Smoke suite performans takibi basladi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz besinci dilim tamamlandi: audit runbook kopyalama aksiyonuna aria-live status eklendi. Eriþilebilirlik ve geri bildirim guclendirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz altinci dilim tamamlandi: Faz 5 sertlestirme panosu checklist sure + ozet kart + aria-live sinyaliyle tamamlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz yedinci dilim tamamlandi: staging smoke checklist kartina hedef sure (dk) alani eklendi ve kopya formatina dahil edildi. Smoke suite hedef/gercek karsilastirmasi basladi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz sekizinci dilim tamamlandi: Faz 5 durum ozeti kartina secret hygiene son guncelleme etiketi eklendi. Secret hijyen takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 otuz dokuzuncu dilim tamamlandi: audit runbook son kopya zamani etiketi aria-label ile zenginlestirildi. Eriþilebilirlik gelistirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirkincý dilim tamamlandi: Faz 5 sertlestirme panosu hedef sure + secret update etiketi + aria iyilestirmesiyle genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk birinci dilim tamamlandi: Faz 5 durum ozeti kartina CORS allow-list son guncelleme etiketi eklendi. CORS kontrol tazelik takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk ikinci dilim tamamlandi: staging smoke checklist kartina notlar alani eklendi ve kopya formatina dahil edildi. Smoke suite icin operasyon notlari kayit altina alinir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk ucuncu dilim tamamlandi: risk panelindeki Faz 5 kapsam linkine aria-label eklendi. Eriþilebilirlik iyilestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk dorduncu dilim tamamlandi: Faz 5 sertlestirme panosu CORS tazelik + smoke notlari + aria iyilestirmesiyle genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk besinci dilim tamamlandi: Faz 5 durum ozeti kartina staging smoke son guncelleme etiketi eklendi. Smoke checklist tazelik takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk altinci dilim tamamlandi: staging smoke checklist kopya formatinda notlar basliklandirildi (multi-line). Paylasim okunurlugu iyilesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk yedinci dilim tamamlandi: CORS allow-list kartina kopyalama aksiyonu eklendi ve geri bildirim eklendi. Kural paylasimi hizlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk sekizinci dilim tamamlandi: Faz 5 sertlestirme panosu smoke tazelik + kopya ergonomisiyle genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 kirk dokuzuncu dilim tamamlandi: release gate checklist updatedAt kaydi eklendi ve Faz 5 ozet kartina guncelleme etiketi tasindi. Release gate tazelik takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 ellinci dilim tamamlandi: CORS allow-list kartina aria-live kopya bildirimi eklendi. Kopyalama geri bildirimi erisilebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli birinci dilim tamamlandi: staging smoke checklist notlari icin uzunluk siniri ve sayac eklendi. Operasyon notlari standart hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli ikinci dilim tamamlandi: Faz 5 sertlestirme panosu release gate tazelik + CORS kopya aria + smoke not limiti ile genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli ucuncu dilim tamamlandi: Faz 5 durum ozeti kartina security hardening son guncelleme etiketi eklendi. Security checklist tazelik takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli dorduncu dilim tamamlandi: CORS allow-list kopya formatina tarih satiri eklendi. Paylasilan allow-list baglami zenginlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli besinci dilim tamamlandi: staging smoke checklist notlari icin "Temizle" aksiyonu eklendi. Operasyon notlarini sifirlama hizlandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli altinci dilim tamamlandi: Faz 5 sertlestirme panosu security tazelik + CORS tarih + smoke not temizleme aksiyonlariyla genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli yedinci dilim tamamlandi: Faz 5 durum ozeti kartina staging runbook son guncelleme etiketi eklendi. Runbook tazelik takibi gorunur oldu. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli sekizinci dilim tamamlandi: release gate checklist kartina kopyalama aksiyonu eklendi. Release gate paylasim ergonomisi artirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 elli dokuzuncu dilim tamamlandi: staging smoke checklist notlari icin guncelleme etiketi ayrica gosterildi. Notlar tazelik baglami netlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmisinci dilim tamamlandi: Faz 5 sertlestirme panosu runbook tazelik + release gate kopya + not tazelik etiketiyle genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis birinci dilim tamamlandi: release gate kopyalama aksiyonuna aria-live durum bildirimi eklendi. Kopyalama geri bildirimi erisilebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis ikinci dilim tamamlandi: smoke checklist kopya formatina not guncelleme zamani satiri eklendi. Kopyalanan operasyon notu baglami zenginlesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis ucuncu dilim tamamlandi: Faz 5 durum ozeti kartina lokal veri notu eklendi. UpdatedAt satirlarinin kaynagi netlestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis dorduncu dilim tamamlandi: Faz 5 sertlestirme panosu release gate aria + smoke not zamani + lokal durum notuyla genislesti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis besinci dilim tamamlandi: Faz 5 ozet kartinda release gate toplam adim sayisi 10'a hizalandi. Checklist sayac parity sorunu kapatildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis altinci dilim tamamlandi: smoke checklist "Notlar guncelleme" etiketi tarih formatinda netlestirildi. Not tazelik metni okunurlugu artti. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis yedinci dilim tamamlandi: release gate ve CORS kopya payloadlarina "Son guncelleme" satiri eklendi. Kopyalanan checklist baglami guclendirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis sekizinci dilim tamamlandi: Faz 5 ozet kartina manuel "Yenile" aksiyonu eklendi. LocalStorage tabanli metrikler sayfa yenilemeden tazelenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 altmis dokuzuncu dilim tamamlandi: Faz 5 sertlestirme panosu not etiketi + kopya baglami + ozet yenile aksiyonuyla genislestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmisinci dilim tamamlandi: smoke checklist kopya payloadi ortam/tarih/son guncelleme satirlariyla standardize edildi. Kopyalanan kalite raporu baglami guclendirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis birinci dilim tamamlandi: smoke checklist kopyalama aksiyonuna button-level geri bildirim ve aria-live status eklendi. Eriþilebilirlik ve UX parity gelistirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis ikinci dilim tamamlandi: Faz 5 ozet kartinda "Yenile" aksiyonu status geri bildirimiyle guclendirildi. Manuel tazeleme ergonomisi netlestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis ucuncu dilim tamamlandi: Faz 5 sertlestirme panosu smoke copy standardi + copy status + ozet refresh status ile genislestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis dorduncu dilim tamamlandi: admin copy payload helper eklendi ve panel copy formati ortaklasacak sekilde hazirlandi. Maintainability artirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis besinci dilim tamamlandi: release gate kopya payload'i ortak helper kullanimina alindi (env + updatedAt standardi). Tekrarlayan metin olusturma kodu azaltildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis altinci dilim tamamlandi: CORS ve smoke checklist kopya payloadlari ortak helper ile hizalandi. Faz 5 copy standardi panel genelinde parity kazandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis yedinci dilim tamamlandi: Faz 5 sertlestirme panosu copy payload refactoru ile sade ve bakimi kolay hale getirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis sekizinci dilim tamamlandi: release gate kopyalama aksiyonu clipboard destek guard'i ile sertlestirildi. Desteklenmeyen ortamlarda buton pasiflestirilerek yalanci aksiyon engellendi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 yetmis dokuzuncu dilim tamamlandi: CORS allow-list kopyalama aksiyonu clipboard destek guard'i ile sertlestirildi. Kopya fallback UX parity kazandi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 sekseninci dilim tamamlandi: smoke checklist kopyalama aksiyonu clipboard destek guard'i ile sertlestirildi. Desteklenmeyen tarayici durumlarinda buton durumu netlestirildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen birinci dilim tamamlandi: Faz 5 sertlestirme panosu copy aksiyonlari clipboard guard + disabled semantigiyle ortak UX standardina cekildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen ikinci dilim tamamlandi: admin copy payload standardi korunarak release/cors/smoke kartlarinda ortak helper kullanimi dogrulandi. Copy format tek eksene cekildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen ucuncu dilim tamamlandi: smoke checklist copy payload standardi helper tabanli modele tasindi; ortam/tarih/updatedAt satirlari tek kaynakla uretildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen dorduncu dilim tamamlandi: release ve CORS copy payload akislari helper merkezli kalarak parity korundu; tekrar eden string olusturma riski azaldi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen besinci dilim tamamlandi: Faz 5 sertlestirme panosu copy UX standardi helper + clipboard guard birlikte calisacak sekilde stabilize edildi. Yeni endpoint acilmadi. Testler bu turda calistirilamadi.
+- Faz 5 seksen altinci dilim tamamlandi: admin panel icin ortak tarih-saat helper dosyasi eklendi ve copy payload helper bu kaynaga baglandi. Tekrarlayan tarih formatlama kodu tek eksene cekildi. Yeni endpoint acilmadi. Testler bu turda `npm run build` ile dogrulandi.
+- Faz 5 seksen yedinci dilim tamamlandi: release gate ve CORS allow-list kartlarinda `updatedAt` formatlama ortak helper'a tasindi. Kartlar arasi tarih etiketi parity sorunu kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run build` ile dogrulandi.
+- Faz 5 seksen sekizinci dilim tamamlandi: smoke checklist ve staging smoke runbook kartlarinda tarih/not guncelleme etiketleri ortak helper'a alindi. Faz 5 smoke kartlarinda tarih formatlama tutarliligi tamamlandi. Yeni endpoint acilmadi. Testler bu turda `npm run build` ile dogrulandi.
+- Faz 5 seksen dokuzuncu dilim tamamlandi: Faz 5 ozet karti ve audit runbook kopya zamani etiketi ortak helper'a baglandi; ayni turda admin/live-ops tarafindaki tip engelleri kapatilarak web build yeniden yesile cekildi. Yeni endpoint acilmadi. Testler bu turda `npm run build` ile dogrulandi.
+- Faz 5 doksaninci dilim tamamlandi: release gate ve CORS allow-list kartlarinda localStorage bootstrap akisi lazy state init modeline alindi; setState-in-effect kaynakli lint riski kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan birinci dilim tamamlandi: smoke checklist ve staging smoke runbook kartlari lazy bootstrap modeline tasindi; ilk acilis davranisi korunurken effect-ici setState borcu temizlendi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan ikinci dilim tamamlandi: Faz 5 ozet karti ile security/secret/risk quality kartlarinda localStorage ilk yukleme akisi effect yerine lazy init ile standartlastirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan ucuncu dilim tamamlandi: admin cost ve route share copy lintlari temizlendi; live-ops derived/stream hook'larinda purity kurallariyla uyumlu stale-perf semantigi kalibre edilerek web lint tamamen yesile cekildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan dorduncu dilim tamamlandi: admin checklist localStorage degisimlerini tek yerden yayinlamak icin `admin-local-storage-sync.ts` helper'i eklendi. Faz 5 kartlari arasinda event tabanli senkron altyapisi acildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan besinci dilim tamamlandi: release gate, CORS, smoke checklist, staging runbook, security ve secret kartlarinin persist akislarina sync emit eklendi. Kart guncellemeleri artik panel genelinde dinlenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan altinci dilim tamamlandi: Faz 5 durum ozeti karti localStorage sync eventlerini dinleyerek otomatik tazelenir hale getirildi. Manuel yenile butonuna ek olarak cross-card guncelleme parity'si saglandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan yedinci dilim tamamlandi: admin risk kalite chip'leri sync event aboneligiyle otomatik guncellenir hale getirildi. CORS/security/secret durumlari kartlar degistigi anda risk paneline yansir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan sekizinci dilim tamamlandi: admin checklist storage state'i icin ortak helper dosyasi eklendi (`admin-checklist-storage-helpers.ts`). Legacy dizi ve yeni object (`checked + updatedAt`) formatlari tek parserda birlestirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 doksan dokuzuncu dilim tamamlandi: security hardening checklist karti object tabanli storage schema'ya cekildi ve `updatedAt` etiketi eklendi. Faz 5 ozet kartinda security tazelik bilgisi gercek veriyle gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuzuncu dilim tamamlandi: secret hygiene checklist karti object tabanli storage schema'ya cekildi ve `updatedAt` etiketi eklendi. Secret checklist tazelik takibi Faz 5 panelinde parity kazandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz birinci dilim tamamlandi: Faz 5 ozet karti ve risk kalite chip'lerinde sayim/updatedAt okuma ortak checklist helper uzerine alindi. CORS key dahil tum checklist kaynaklarinda sayac tutarliligi ve anlik panel senkronu kalibre edildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz ikinci dilim tamamlandi: admin checklist storage helper'ina extra payload okuma/yazma destegi eklendi (`readAdminChecklistStorageExtras`, `persistAdminChecklistStorageWithExtras`). Smoke gibi metadata tasiyan checklistler icin tekil parser/persist standardi acildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz ucuncu dilim tamamlandi: staging smoke checklist karti ortak checklist helper'ina tasindi; checked/updatedAt + duration/target/notes alanlari tek storage contract altinda birlestirildi. Kartlar arasi schema drift riski azaltildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz dorduncu dilim tamamlandi: admin risk kalite chip'lerine Faz 5 readiness satiri eklendi (READY/BLOCKED + bloklayan basliklar). Risk triage ekraninda release gate blokajlari tek satirda gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz besinci dilim tamamlandi: Faz 5 durum ozet kartina bloklayan basliklar kutusu ve readiness son guncelleme etiketi eklendi. Ozet kart artik sadece sayim degil, gate blokaj nedenlerini de dogrudan gosterir. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz altinci dilim tamamlandi: Faz 5 readiness helper'ina merkezi toplam sabitleri (`ADMIN_PHASE5_TOTALS`) ve CORS allow-list toplam cozumleyicisi eklendi. Toplam hesabinin kartlar arasi daginikligi kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yedinci dilim tamamlandi: `use-admin-phase5-readiness-state.ts` hook'u eklendi; checklist sayimlari, updatedAt alanlari, readiness metrikleri ve sync aboneligi tek state katmaninda birlestirildi. Admin kartlari icin ortak readiness veri kaynagi olustu. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz sekizinci dilim tamamlandi: Faz 5 ozet karti readiness hook'unu kullanacak sekilde refactor edildi. Ozet/kopya/blokaj akislarindaki tekrar eden localStorage okuma kodu temizlenerek tek kaynaga baglandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz dokuzuncu dilim tamamlandi: admin risk kalite chip'leri readiness hook'una tasindi. Risk paneli ve ozet kartinin readiness/blokaj semantigi ayni state kaynagindan beslenecek sekilde parity kazandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz onuncu dilim tamamlandi: Faz 5 readiness state tipi `use-admin-phase5-readiness-state.ts` icinde export edilerek kartlar arasi prop tabanli tek kaynak modeli acildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on birinci dilim tamamlandi: Faz 5 ozet karti ve risk kalite chip'leri hook-ici state okumak yerine parent'tan gelen readiness prop'u ile calisacak sekilde refactor edildi. Ayri hook instance kaynakli cift abonelik riski kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on ikinci dilim tamamlandi: admin operations status kartina Faz 5 readiness badge'i ve bloklayan baslik ozet satiri eklendi. Operasyon ust kartinda release gate riski gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on ucuncu dilim tamamlandi: admin operations feature readiness hook'unu tek kez olusturup status/risk/summary kartlarina dagitacak sekilde guncellendi. Faz 5 panelinde state kaynagi tekillestirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on dorduncu dilim tamamlandi: Faz 5 checklist kartlarina anchor id'leri eklendi (`phase5-release-gate`, `phase5-smoke-checklist`, `phase5-smoke-runbook`, `phase5-security-hardening`, `phase5-secret-hygiene`, `phase5-cors-allowlist`, `phase5-summary`). Readiness blokajlari artik dogrudan ilgili kartlara baglanabilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on besinci dilim tamamlandi: Faz 5 blokaj etiketi -> kart linki donusumu icin `admin-phase5-blocking-link-helpers.ts` eklendi. Blokaj metinlerinin operasyonel linklenmesi standartlastirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on altinci dilim tamamlandi: side panel icin `admin-phase5-readiness-card.tsx` eklendi; READY/BLOCKED badge ve bloklayan basliklar listesi side panelde gorunur oldu. Faz 5 kalite durumu artik risk bolumune gitmeden de izlenebilir. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on yedinci dilim tamamlandi: `admin-side-panel.tsx` ve `admin-operations-feature.tsx` readiness kartini parent readiness state ile besleyecek sekilde guncellendi. Side paneldeki Faz 5 gorunurlugu summary/risk ile ayni state kaynagina baglandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on sekizinci dilim tamamlandi: `use-admin-phase5-readiness-state.ts` icine toplam tamamlanma metriði eklendi (`completed/total/percent`). Faz 5 ilerleme orani artik tek readiness state uzerinden okunur hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz on dokuzuncu dilim tamamlandi: admin operations status kartina Faz 5 ilerleme etiketi eklendi (`x/y (%z)`) ve parent feature readiness progress degerini status karta gecmeye basladi. Operasyon ust kartinda kalite ilerleme baglami netlesti. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirminci dilim tamamlandi: side panel readiness kartina progress bar + ilk blokaja hizli gecis aksiyonu eklendi. BLOCKED durumda operator dogrudan ilk eksik gate kartina atlayabilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi birinci dilim tamamlandi: Faz 5 ozet kartindaki blokajlar metin yerine linkli chip semantigine tasindi. Ozet karttan blokaj kartina direkt gecis parity'si side panel ile hizalandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi ikinci dilim tamamlandi: CORS allow-list degerleri `admin-phase5-readiness-helpers.ts` icinde merkezi helper'a tasindi (`resolveAdminCorsAllowlistValues`). CORS karti ve readiness toplam hesabinda deger seti tek kaynaga baglandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi ucuncu dilim tamamlandi: release gate karti custom localStorage parse/persist akisindan cikartilip ortak checklist storage helper'ina tasindi. Kartta storage semantigi Faz 5 diger checklist kartlariyla parity kazandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi dorduncu dilim tamamlandi: CORS allow-list karti ortak checklist storage helper'ina tasindi ve `updatedAt` akisi helper donusuyle kalibre edildi. Faz 5 checklist kartlarinda storage contract tutarliligi guclendi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi besinci dilim tamamlandi: operasyon durum kartina "Ilk blokaja git" hizli gecisi eklendi; `admin-operations-feature.ts` blokaj link helper ile ilk eksik gate kartini hesaplayip status karta geciyor. BLOCKED durumda aksiyon suresi kisaltildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi altinci dilim tamamlandi: readiness helper katmanina freshness hesap fonksiyonlari eklendi (`getAdminPhase5FreshnessMinutes/Label/Tone`). Faz 5 tazelik sinyali tek helper kaynagindan uretilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi yedinci dilim tamamlandi: side panel readiness kartina freshness badge'i ve readiness ozet kopyalama aksiyonu eklendi. Operator artik side panelden hem tazelik durumunu gorup hem raporu panoya alabiliyor. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi sekizinci dilim tamamlandi: operasyon durum kartina Faz 5 tazelik etiketi eklendi ve freshness tonu (ok/warn) desteklendi. Ust durum kartinda readiness ilerlemesi yaninda veri tazeligi de gorunur hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yirmi dokuzuncu dilim tamamlandi: `admin-operations-feature.ts` freshness label/tone degerlerini readiness state'ten hesaplayip status karta iletecek sekilde guncellendi. Faz 5 readiness + freshness semantigi side panel ve operasyon kartinda parity kazandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuzuncu dilim tamamlandi: side/admin/summary freshness metriklerini canli tutmak icin `use-admin-minute-tick.ts` hook'u eklendi (60 sn interval). Faz 5 tazelik etiketi artik yalnizca storage degisince degil zaman akarken de guncellenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz birinci dilim tamamlandi: `admin-operations-feature.ts` tazelik hesaplarini minute tick uzerinden uretip status/side/summary kartlarina dagitacak sekilde guncellendi. Freshness label/tone tek kaynaktan canli akiyor. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz ikinci dilim tamamlandi: side panel readiness karti freshness'i parent prop modeliyle alacak sekilde refactor edildi; kart icindeki statik Date.now bagimliligi kaldirildi. Side panel freshness semantigi status karti ile parity kazandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz ucuncu dilim tamamlandi: Faz 5 ozet kartina freshness badge eklendi ve tazelik tonu parent'tan alinacak sekilde genislestirildi. Ozet kartta readiness + freshness birlikte izlenebilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz dorduncu dilim tamamlandi: `admin-operations-feature.tsx` icinde Faz 5 freshness baglami (label/tone/updatedAt) parent seviyesinde tek kaynaktan uretildi ve status/side/summary kartlarina dagitildi. Freshness metadata dagitimi tek merkezde toplandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz besinci dilim tamamlandi: operasyon durum kartina readiness son guncelleme satiri eklendi (`phase5FreshnessUpdatedLabel`). Faz 5 tazelik sinyali artik dakika etiketiyle birlikte zaman baglamini da gosteriyor. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz altinci dilim tamamlandi: side panel readiness karti ve Faz 5 ozet karti freshness updatedAt prop modeline tasindi. Kartlar arasi tazelik baglami parity'si (status/side/summary) tamamlandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz yedinci dilim tamamlandi: admin workspace'e freshness warn durumunda amber operasyon uyarisi eklendi ve `#phase5-summary` hizli gecisi acildi. Stale Faz 5 checklist durumlari acilista daha erken fark edilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz sekizinci dilim tamamlandi: `admin-operations-feature.tsx` ve `admin-risk-section.tsx` arasinda Faz 5 freshness baglami (label/tone/updatedAt) risk paneline aktarildi. Risk triage katmani artik readiness kadar tazelik baglamini da parent state uzerinden aliyor. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz otuz dokuzuncu dilim tamamlandi: `admin-risk-quality-chips.tsx` Faz 5 freshness etiketi ve son guncelleme satirini gosterecek sekilde genisletildi. Risk kalite chip'leri sadece count degil veri tazeligi sinyalini de operasyonel olarak gorunur kildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirkinci dilim tamamlandi: `admin-risk-filter-meta.tsx` filtre linki kopyalama aksiyonuna clipboard destek guard'i, aria-live status geri bildirimi ve hata/success mesajlari eklendi. Filtre link paylasim akisi desteklenmeyen tarayicilarda yalanci aksiyon uretmeyecek sekilde sertlestirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk birinci dilim tamamlandi: `admin-risk-priority-list.tsx` icinde `/admin?` link gecisleri `window.location.assign` yerine `router.push` ile SPA navigasyona cekildi. Risk kartindan alt filtre ekranina geciste tam sayfa yenileme kaldirilip operasyon akis hizlandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk ikinci dilim tamamlandi: `admin-phase5-blocking-link-helpers.ts` icine `resolveAdminPhase5BlockingPreview` helper'i eklendi. Faz 5 blokaj listelerini gorunen+gizlenen sayi semantiginde yonetmek icin ortak preview katmani acildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk ucuncu dilim tamamlandi: `admin-risk-quality-chips.tsx` Faz 5 ilerleme progress bar'i, blokaj link chip'leri (ilk 3) ve gizlenen blokaj sayaci ile genislestirildi. Risk kalite kartinda triage aksiyonlari daha hizli hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk dorduncu dilim tamamlandi: `admin-risk-section.tsx` freshness warn durumunda operasyon riski callout'u ve ilk blokaja dogrudan gecis linki eklendi. Risk paneli stale Faz 5 verisini operasyonel aksiyonla birlikte gosterir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk besinci dilim tamamlandi: `admin-risk-filter-meta.tsx` icinde filtre link kopyalama geri bildirimi gorunur durum etiketiyle desteklendi; clipboard guard + aria-live semantigi korunarak paylasim UX'i sertlestirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz kirk altinci dilim tamamlandi: `admin-phase5-readiness-helpers.ts` icine `buildAdminPhase5ReadinessReportLines` helper'i eklendi. Faz 5 readiness kopya payloadi side+summary kartlarinda tek helper semantigine baglandi.
+- Faz 5 yuz kirk yedinci dilim tamamlandi: `admin-phase5-summary-card.tsx` blokaj listesi `resolveAdminPhase5BlockingPreview` ile ilk 5 + gizlenen sayi modeline cekildi ve readiness copy payload'i ortak helper'a tasindi. Ozet kartta uzun blokaj listesi kaynakli gorsel yogunluk azaltildi.
+- Faz 5 yuz kirk sekizinci dilim tamamlandi: `admin-phase5-readiness-card.tsx` side panel blokaj listesi preview (ilk 4 + gizli sayi) semantigine alinip copy payload'i ortak readiness report helper'ina cekildi. Side panel kopya ve liste davranisi ozet kart ile parity kazandi.
+- Faz 5 yuz kirk dokuzuncu dilim tamamlandi: `admin-phase5-blocking-link-helpers.ts` icine `buildAdminPhase5BlockingSummary` eklendi ve `admin-operations-feature.tsx` operasyon karti blokaj satiri ilk 3 + ek sayi semantigine tasindi. Operasyon status satirinda asiri uzun blokaj metni riski kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz ellinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `buildLiveOpsMapTelemetry` eklendi; marker, stale/canli, kritik/uyari, risk yogunlugu ve perf saglik metrikleri tek helper uzerinde standartlastirildi. Live ops map telemetry hesaplari merkezi kaynaga baglandi.
+- Faz 5 yuz elli birinci dilim tamamlandi: `live-ops-map-split-pane.tsx` map sayim/perf/risk hesaplarini yeni telemetry helper uzerinden okuyacak sekilde refactor edildi. Map split pane icindeki daginik hesap bloklari sadeleþip davranis parity'si guclendi.
+- Faz 5 yuz elli ikinci dilim tamamlandi: map split pane ust chip grubuna `Harita Sagligi` etiketi eklendi (Stabil/Izlenmeli/Kritik). Operatörler marker yogunlugu ve risk baskisini tek sinyalde daha hizli gorebilir hale geldi.
+- Faz 5 yuz elli ucuncu dilim tamamlandi: map split pane'e perf tone `slow` oldugunda operasyonel uyari banner'i eklendi (stale gizle / risk odagi onerisi). Yuksek marker yogunlugunda harita stabilite riski proaktif gorunur hale getirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz elli dorduncu dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `resolveStreamIssueState` eklendi (label+tone). Stream issue semantigi `warn/error/none` olarak tek helper'da standartlastirildi.
+- Faz 5 yuz elli besinci dilim tamamlandi: `live-ops-map-split-pane.tsx` stream issue banner'i yeni state helper'ina tasindi ve tone'a gore amber/rose stil ayrimi eklendi. Harita panelinde stream problemi ciddiyeti daha net gorunur hale geldi.
+- Faz 5 yuz elli altinci dilim tamamlandi: `live-ops-selected-trip-detail-pane.tsx` stream issue callout'u `resolveStreamIssueState` ile hizalandi ve tone tabanli durum sinyali eklendi. Secili sefer detayinda stream hatasi ile stream uyarisi ayri semantik kazandi.
+- Faz 5 yuz elli yedinci dilim tamamlandi: `live-ops-operator-playbook-card.tsx` gercek `streamErrorSemantic` prop'unu kullanacak sekilde guncellendi; playbook icindeki stream issue metni artik fake semantic yerine canli durumdan uretiliyor. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz elli sekizinci dilim tamamlandi: `use-live-ops-selected-trip-stream-state.ts` icinde stream issue sinyali tek yerde uretilmeye baslandi (`streamIssueState`). RTDB stream issue semantigi selected-trip state katmanina alinip component dagitimi icin hazirlandi.
+- Faz 5 yuz elli dokuzuncu dilim tamamlandi: `use-live-ops-company-active-trips-state.ts` ve `live-ops-company-active-trips-feature.tsx` stream issue state'i map/detail panellerine parent seviyeden gecirecek sekilde guncellendi. Live ops ekraninda stream issue state dagitimi tek eksene cekildi.
+- Faz 5 yuz altmisinci dilim tamamlandi: `live-ops-map-split-pane.tsx` ve `live-ops-selected-trip-detail-pane.tsx` stream issue callout'larini prop tabanli state'ten okuyacak sekilde refactor edildi. Map + detail panel stream issue tonu (warn/error) ayni kaynaktan beslenir hale geldi.
+- Faz 5 yuz altmis birinci dilim tamamlandi: `live-ops-operator-playbook-card.tsx` stream issue mode kararini `streamIssueState` uzerinden verecek sekilde sadeleþtirildi; fake stream semantic bagimliligi kaldirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz altmis ikinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `LiveOpsStreamIssuePresentation` ve `resolveStreamIssuePresentation` eklendi. Stream issue tone -> UI semantigi (container/text/severity) tek helper uzerinde standartlastirildi.
+- Faz 5 yuz altmis ucuncu dilim tamamlandi: `live-ops-stream-issue-banner.tsx` adli ortak stream issue banner component'i eklendi. Map/detail panelleri icin tekrar eden stream issue callout markupi tek bilesene tasindi.
+- Faz 5 yuz altmis dorduncu dilim tamamlandi: `live-ops-map-split-pane.tsx` ve `live-ops-selected-trip-detail-pane.tsx` stream issue gorunurlugu ortak banner component'i ile hizalandi. Live ops panelinde stream issue callout parity'si saglandi.
+- Faz 5 yuz altmis besinci dilim tamamlandi: `live-ops-operator-playbook-card.tsx` stream issue metin tonunu `resolveStreamIssuePresentation` ile uretir hale geldi; severity etiketi (Kritik/Uyari) playbook copy'sine eklendi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz altmis altinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `LiveOpsStreamIssueSummary` tipi ve `buildLiveOpsStreamIssueSummary` helper'i eklendi. Stream issue tonunun toolbar-level kisa etiket semantigi tek helper kaynagina baglandi.
+- Faz 5 yuz altmis yedinci dilim tamamlandi: `live-ops-trips-list-toolbar.tsx` stream issue summary chip'i (Stabil/Uyari/Kritik) ve issue label satirini gosterecek sekilde genisletildi. Live ops liste ustu operasyonel stream sinyali map/detail disina tasindi.
+- Faz 5 yuz altmis sekizinci dilim tamamlandi: `live-ops-trips-list-pane.tsx` stream issue state prop'unu toolbar'a forward edecek sekilde guncellendi. Liste panelindeki prop dagitimi map/detail ile ayni issue state kaynagina hizalandi.
+- Faz 5 yuz altmis dokuzuncu dilim tamamlandi: `live-ops-company-active-trips-feature.tsx` trips list pane'e `streamIssueState` gecmeye basladi; live ops uc panelinde (liste+harita+detay) stream issue parity'si tamamlandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yetmisinci dilim tamamlandi: `live-ops-risk-priority-queue.tsx` stream issue summary helper'ini (`buildLiveOpsStreamIssueSummary`) kullanacak sekilde genisletildi. Risk kuyrugu header ve bos-durum kartina stream saglik chip'i eklendi.
+- Faz 5 yuz yetmis birinci dilim tamamlandi: risk kuyrugu header stream chip'ine `title` semantigi eklendi (`streamIssueState.label`), boylece operator stream sorununun detay metnini risk panelinden dogrudan gorebilir hale geldi.
+- Faz 5 yuz yetmis ikinci dilim tamamlandi: `LiveOpsRiskPriorityQueueProps` stream issue state alacak sekilde guncellendi (`LiveOpsStreamIssueState`). Risk kuyrugu bileseni stream saglik bilgisini parent state'ten almaya basladi.
+- Faz 5 yuz yetmis ucuncu dilim tamamlandi: `live-ops-trips-list-pane.tsx` risk kuyruguna `streamIssueState` prop'unu gecmeye basladi. Liste toolbar + risk kuyrugu + map/detail panellerinde stream issue parity'si tek kaynakta hizalandi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yetmis dorduncu dilim tamamlandi: `live-ops-map-split-pane.tsx` stream issue summary helper'i kullanacak sekilde guncellendi ve map chip grubuna stream saglik etiketi eklendi. Harita panelinde RTDB stream durumu tek bakista gorunur hale geldi.
+- Faz 5 yuz yetmis besinci dilim tamamlandi: map split stream chip'ine `title` semantigi eklendi (`streamIssueState.label`), operatorun stream sorun metnini chip uzerinden hizli gormesi saglandi.
+- Faz 5 yuz yetmis altinci dilim tamamlandi: `live-ops-selected-trip-detail-pane.tsx` ust bolumune stream saglik chip'i eklendi ve detail panelde stream issue banner ile chip parity'si tamamlandi.
+- Faz 5 yuz yetmis yedinci dilim tamamlandi: selected trip detail panelindeki stream backoff satiri ASCII-safe kopyaya cekildi (`Deneme X - Y sn sonra`). Stream satiri encoding kaynakli gorunum bozulmasi riski kapatildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz yetmis sekizinci dilim tamamlandi: `live-ops-operator-playbook-card.tsx` stream issue summary helper'ini (`buildLiveOpsStreamIssueSummary`) kullanacak sekilde genisletildi. Playbook karti stream issue kisaltilmis etiket semantigini helper kaynagindan alir hale geldi.
+- Faz 5 yuz yetmis dokuzuncu dilim tamamlandi: playbook kart header'i mode chip + stream chip ciftli gorunume cekildi. Operator aksiyon kartinda operasyon modu ve stream sagligi ayni satirda izlenebilir hale geldi.
+- Faz 5 yuz sekseninci dilim tamamlandi: playbook stream chip'ine `title` semantigi eklendi (`streamIssueState.label`). Stream sorunu varsa detay metni chip hover/aciklama baglamina tasindi.
+- Faz 5 yuz seksen birinci dilim tamamlandi: playbook kart stream issue parity refactor'u sonrasi web kalite dogrulama tamamlandi (`npm run lint`, `npm run build`). Yeni endpoint acilmadi.
+- Faz 5 yuz seksen ikinci dilim tamamlandi: ortak `live-ops-stream-issue-chip.tsx` bileseni eklendi. Stream issue short-label + tone sinifi + title semantigi tek UI bilesenine tasindi.
+- Faz 5 yuz seksen ucuncu dilim tamamlandi: `live-ops-trips-list-toolbar.tsx` ve `live-ops-risk-priority-queue.tsx` inline stream chip markuplari ortak bilesene cekildi. Liste panelindeki stream chip tekrar kodu temizlendi.
+- Faz 5 yuz seksen dorduncu dilim tamamlandi: `live-ops-map-split-pane.tsx` ve `live-ops-selected-trip-detail-pane.tsx` stream chip gorunurlugu ortak bilesenle hizalandi. Map+detail panelinde stream chip stil/tone parity'si tek kaynaga baglandi.
+- Faz 5 yuz seksen besinci dilim tamamlandi: `live-ops-operator-playbook-card.tsx` stream chip'i ortak bilesene tasindi; stream saglik chip markupu tum live ops panellerinde tek standarda cekildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz seksen altinci dilim tamamlandi: `live-ops-risk-priority-queue.tsx` icine `buildStreamIssueContextLine` helper'i eklendi ve stream short label + detay metni tek satir baglamina standartlastirildi.
+- Faz 5 yuz seksen yedinci dilim tamamlandi: risk queue payload uretecileri (`clipboard`, `links`, `tum risk`, `secili risk`, `whatsapp`, `bulk dispatch`) stream issue state alacak sekilde genisletildi; kopya/paylasim metinlerine `Stream Durumu` satiri eklendi.
+- Faz 5 yuz seksen sekizinci dilim tamamlandi: risk queue kopya/paylasim aksiyonlarinin tum cagrilari stream issue state parametresiyle guncellendi. Klavye kisayolu ile tetiklenen payloadlar da ayni stream baglamini tasiyacak sekilde parity kazandi.
+- Faz 5 yuz seksen dokuzuncu dilim tamamlandi: useCallback/useEffect dependency listeleri stream issue state degiskenini kapsayacak sekilde kalibre edildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz doksaninci dilim tamamlandi: `use-live-ops-dispatch-actions.ts` stream issue state parametresi alacak sekilde genisletildi ve dispatch katmanina `buildDispatchStreamContextLine` helper'i eklendi.
+- Faz 5 yuz doksan birinci dilim tamamlandi: sefer ozeti kopyala/WhatsApp akislarina stream baglam satiri eklendi (`Stream: ...`). Operator paylasim metinleri live stream saglik durumunu da tasir hale geldi.
+- Faz 5 yuz doksan ikinci dilim tamamlandi: destek paketi ve dispatch gecmisi payloadlarina stream durumu satiri eklendi. Operasyonel debug paketlerinde stream fallback/yetki baglami daha net hale getirildi.
+- Faz 5 yuz doksan ucuncu dilim tamamlandi: `use-live-ops-company-active-trips-state.ts` dispatch hook cagrisina `streamIssueState` gecmeye basladi; dispatch payload stream semantigi live-ops state kaynagiyla tekillestirildi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 yuz doksan dorduncu dilim tamamlandi: `use-live-ops-dispatch-actions.ts` icindeki `buildDispatchTemplateText` stream issue state parametresi alacak sekilde genisletildi. Hazir dispatch mesajlari artik stream baglam satiriyla uretiliyor.
+- Faz 5 yuz doksan besinci dilim tamamlandi: dispatch template copy ve WhatsApp aksiyonlari `streamIssueState` parametresini payload uretecisine geciyor. Template tabanli operator mesajlarinda stream semantik parity'si saglandi.
+- Faz 5 yuz doksan altinci dilim tamamlandi: `live-ops-risk-priority-queue.tsx` icindeki `toWhatsAppText` trim davranisi `slice(2)` modeline cekildi; bulk dispatch WhatsApp akisinda `Stream Durumu` satiri korunur hale geldi.
+- Faz 5 yuz doksan yedinci dilim tamamlandi: stream baglami eklenen payload refactor'u sonrasi web kalite dogrulama tamamlandi (`npm run lint`, `npm run build`). Yeni endpoint acilmadi.
+- Faz 5 yuz doksan sekizinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine ortak `buildLiveOpsStreamContextLine` helper'i eklendi. Stream short label + detay metni birlestirme semantigi merkezi katmana alindi.
+- Faz 5 yuz doksan dokuzuncu dilim tamamlandi: `use-live-ops-dispatch-actions.ts` local stream context builder kaldirilarak ortak helper'a tasindi. Dispatch payload katmaninda stream context drift riski azaltildi.
+- Faz 5 iki yuzuncu dilim tamamlandi: `live-ops-risk-priority-queue.tsx` local stream context builder kaldirilarak ortak helper'a tasindi. Risk queue copy/share payload uretecileri dispatch katmaniyla ayni stream context semantigini kullanir hale geldi.
+- Faz 5 iki yuz birinci dilim tamamlandi: ortak stream context helper refactor'u sonrasi TS derleme hatasi giderildi ve web kalite dogrulama tamamlandi (`npm run lint`, `npm run build`). Yeni endpoint acilmadi.
+- Faz 5 iki yuz ikinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `buildLiveOpsGeneratedAtMeta` helper'i eklendi. Live ops payload'larinda ISO + TR zaman damgasi uretimi ortak kaynaga tasindi.
+- Faz 5 iki yuz ucuncu dilim tamamlandi: `live-ops-risk-priority-queue.tsx` payload uretecileri (`kuyruk`, `link`, `tum risk`, `secili risk`, `toplu dispatch`) ortak generatedAt helper'ini kullanacak sekilde guncellendi.
+- Faz 5 iki yuz dorduncu dilim tamamlandi: `use-live-ops-dispatch-actions.ts` destek paketi ve dispatch gecmisi payload'larinda generatedAt satirlari ortak helper ile ISO + TR formatinda standardize edildi.
+- Faz 5 iki yuz besinci dilim tamamlandi: generatedAt standardizasyonu sonrasi web kalite dogrulama tamamlandi (`npm run lint`, `npm run build`). Yeni endpoint acilmadi.
+- Faz 5 iki yuz altinci dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icinde stream status/rtdb status union type'lari export edildi (`LiveOpsStreamStatus`, `LiveOpsRtdbConnectionStatus`) ve `resolveLiveOpsStreamContextMessage` helper'i eklendi. Stream baglam metni tek semantik kaynaga tasindi.
+- Faz 5 iki yuz yedinci dilim tamamlandi: `live-ops-map-split-pane.tsx` stream context metnini inline ternary yerine `resolveLiveOpsStreamContextMessage` ile uretecek sekilde guncellendi; lokal stream/rtdb type alias'lari ortak helper tiplerine tasindi.
+- Faz 5 iki yuz sekizinci dilim tamamlandi: `live-ops-selected-trip-detail-pane.tsx` stream/rtdb tiplerini ortak helper tiplerine tasidi ve detay satirlarina `Stream Ozet` alani eklendi. Detay panelinde stream issue+fallback metni merkezi helper semantigiyle hizalandi.
+- Faz 5 iki yuz dokuzuncu dilim tamamlandi: `live-ops-trips-list-pane.tsx` + `live-ops-trips-list-toolbar.tsx` + `live-ops-company-active-trips-feature.tsx` stream/rtdb status prop zinciriyle genisletildi ve toolbar satirinda `Stream ozet` metni merkezi helper'dan uretilir hale geldi. Yeni endpoint acilmadi. Testler bu turda `npm run lint`, `npm run build` ile dogrulandi.
+- Faz 5 iki yuz onuncu dilim tamamlandi: `live-ops-company-active-trips-helpers.ts` icine `buildLiveOpsTripDeepLinkQuery` ve `buildLiveOpsTripDeepLink` helper'lari eklendi. Live ops deep-link query/URL uretimi merkezi katmana tasindi.
+- Faz 5 iki yuz on birinci dilim tamamlandi: `live-ops-risk-priority-queue.tsx` icinde risk link payload ve secili risk deep-link uretimi ortak deep-link helper'ina tasindi. Risk panelinde link semantigi tek kaynaga baglandi.
+- Faz 5 iki yuz on ikinci dilim tamamlandi: `use-live-ops-dispatch-actions.ts` icindeki sefer linki kopyalama akisi ortak deep-link helper'ina tasindi (`baseSearchParams` korunarak). Dispatch ve risk paneli ayni deep-link kontratini kullanir hale geldi.
+- Faz 5 iki yuz on ucuncu dilim tamamlandi: deep-link helper merkezilesme refactor'u sonrasi web kalite dogrulama tamamlandi (`npm run lint`, `npm run build`). Yeni endpoint acilmadi.

@@ -11,7 +11,7 @@ export function FirebaseClientBootstrapProbe() {
     <div className="rounded-2xl border border-line bg-white px-3 py-2 text-xs text-slate-700">
       <span className="font-semibold">Firebase client init:</span>{" "}
       {ready ? (
-        <span className="text-emerald-700">hazir (placeholder probe)</span>
+        <span className="text-emerald-700">hazir (bootstrap dogrulandi)</span>
       ) : (
         <span className="text-amber-700">env eksik / init bekliyor</span>
       )}

@@ -1,0 +1,45 @@
+{
+    "generatedAt":  "2026-02-27 22:11:45",
+    "package":  "APP-SPRINT-3",
+    "status":  "READY",
+    "source":  "website/app-impact/12_phase9_app_sprint_packages_latest.json",
+    "checks":  [
+                   {
+                       "result":  "pending",
+                       "name":  "membership parser set",
+                       "id":  "S3-01",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "permission parser set",
+                       "id":  "S3-02",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "owner/self guard mapping",
+                       "id":  "S3-03",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "invite error mapping",
+                       "id":  "S3-04",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "route primary guard mapping",
+                       "id":  "S3-05",
+                       "note":  ""
+                   }
+               ],
+    "blockTemplate":  {
+                          "expected":  "",
+                          "endpoint":  "",
+                          "code":  "",
+                          "actual":  "",
+                          "payloadSample":  ""
+                      }
+}

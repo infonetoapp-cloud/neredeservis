@@ -1,0 +1,51 @@
+{
+    "generatedAt":  "2026-02-27 22:11:44",
+    "package":  "APP-SPRINT-1",
+    "status":  "READY",
+    "source":  "website/app-impact/12_phase9_app_sprint_packages_latest.json",
+    "checks":  [
+                   {
+                       "result":  "pending",
+                       "name":  "createCompany parser",
+                       "id":  "S1-01",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "listMyCompanies parser",
+                       "id":  "S1-02",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "active company resolver fallback",
+                       "id":  "S1-03",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "listCompanyMembers parser",
+                       "id":  "S1-04",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "vehicle parser set (list/create/update)",
+                       "id":  "S1-05",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "route parser set (create/update + token)",
+                       "id":  "S1-06",
+                       "note":  ""
+                   }
+               ],
+    "blockTemplate":  {
+                          "expected":  "",
+                          "endpoint":  "",
+                          "code":  "",
+                          "actual":  "",
+                          "payloadSample":  ""
+                      }
+}

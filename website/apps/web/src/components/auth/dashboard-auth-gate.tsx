@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { DashboardCompanyContextSync } from "@/components/dashboard/dashboard-company-context-sync";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 
 export function DashboardAuthGate({ children }: { children: ReactNode }) {
@@ -43,5 +44,10 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <DashboardCompanyContextSync />
+      {children}
+    </>
+  );
 }

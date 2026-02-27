@@ -39,6 +39,7 @@ Opsiyonel:
 - [ ] `NEXT_PUBLIC_SENTRY_DSN` (client side gerekiyorsa)
 - [ ] `NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN`
 - [ ] `NEXT_PUBLIC_ENABLE_EMAIL_LOGIN`
+- [ ] `NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN`
 
 ## 4. Panel Uygulamasi - Server Env Listesi (MVP/Faz 2)
 
@@ -46,6 +47,7 @@ MVP'de gerekmeyebilir ama planli:
 - [ ] `SENTRY_AUTH_TOKEN` (CI/source maps vb. gerekiyorsa)
 - [ ] `INTERNAL_API_SIGNING_SECRET` (gerekirse)
 - [ ] `WEBHOOK_SECRET_*` (ileride)
+- [ ] `ROUTE_SHARE_BASE_URL` (Functions: misafir/share link canonical hostu; ornek `https://app.neredeservis.app/r`)
 
 Kural:
 - Firebase Admin service credential browser bundle'a asla girmez.

@@ -7,6 +7,7 @@ import {
   sendPasswordResetEmailForAddress,
   signInWithEmailPassword,
   signInWithGooglePopup,
+  signInWithMicrosoftPopup,
 } from "@/features/auth/auth-client";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
@@ -14,7 +15,9 @@ import {
   isDevAppEnv,
   isEmailLoginEnabled,
   isGoogleLoginEnabled,
+  isMicrosoftLoginEnabled,
 } from "@/lib/env/public-env";
+import { resolvePostLoginPath } from "@/features/mode/mode-preference";
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -58,13 +61,19 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<"email" | "google" | null>(null);
+  const [pendingAction, setPendingAction] = useState<
+    "email" | "google" | "microsoft" | null
+  >(null);
   const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [isNavigating, startTransition] = useTransition();
 
-  const nextPath = searchParams.get("next") || "/mode-select";
+  const nextPath = useMemo(
+    () => resolvePostLoginPath(searchParams.get("next")),
+    [searchParams],
+  );
   const emailEnabled = isEmailLoginEnabled();
   const googleEnabled = isGoogleLoginEnabled();
+  const microsoftEnabled = isMicrosoftLoginEnabled();
   const fastLoginCreds = useMemo(() => getDevFastLoginCredentials(), []);
 
   useEffect(() => {
@@ -107,6 +116,20 @@ export function LoginForm() {
     setPendingAction("google");
     try {
       await signInWithGooglePopup();
+      navigateAfterLogin();
+    } catch (error) {
+      setErrorMessage(toFriendlyErrorMessage(error));
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const submitMicrosoft = async () => {
+    setErrorMessage(null);
+    setResetStatus("idle");
+    setPendingAction("microsoft");
+    try {
+      await signInWithMicrosoftPopup();
       navigateAfterLogin();
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
@@ -216,12 +239,26 @@ export function LoginForm() {
         {pendingAction === "google" ? "Google aciliyor..." : "Google ile Giris"}
       </button>
 
+      <button
+        type="button"
+        disabled={!microsoftEnabled || busy}
+        onClick={submitMicrosoft}
+        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {pendingAction === "microsoft"
+          ? "Microsoft aciliyor..."
+          : "Microsoft ile Giris"}
+      </button>
+
       <div className="flex flex-wrap gap-2 text-xs text-muted">
         {!emailEnabled ? (
           <span className="rounded-full bg-slate-100 px-2 py-1">Email login kapali</span>
         ) : null}
         {!googleEnabled ? (
           <span className="rounded-full bg-slate-100 px-2 py-1">Google login kapali</span>
+        ) : null}
+        {!microsoftEnabled ? (
+          <span className="rounded-full bg-slate-100 px-2 py-1">Microsoft login kapali</span>
         ) : null}
       </div>
     </div>

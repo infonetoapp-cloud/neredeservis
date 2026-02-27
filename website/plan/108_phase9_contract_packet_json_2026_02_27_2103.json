@@ -1,0 +1,220 @@
+﻿{
+    "generatedAt":  "2026-02-27 21:03:49",
+    "status":  "PASS",
+    "sources":  {
+                    "checklist":  "website/app-impact/07_app_parser_mapping_checklist_2026_02_27.md",
+                    "apiDiff":  "website/app-impact/04_api_contract_diff_register.md"
+                },
+    "stats":  {
+                  "errorCodeCount":  11,
+                  "endpointCount":  24,
+                  "appPendingEndpointCount":  24
+              },
+    "endpoints":  [
+                      {
+                          "id":  1,
+                          "code":  "API-DIFF-001",
+                          "endpoint":  "Legacy mobile mutasyon endpointleri (`v1` yollar)",
+                          "diffType":  "versioning",
+                          "status":  "web-partial-app-pending",
+                          "appLayer":  "network error mapping / router / session"
+                      },
+                      {
+                          "id":  2,
+                          "code":  "API-DIFF-002",
+                          "endpoint":  "Route/trip mutasyon reason codes",
+                          "diffType":  "error_code",
+                          "status":  "implemented-web-app-pending",
+                          "appLayer":  "driver route management / active trip actions"
+                      },
+                      {
+                          "id":  3,
+                          "code":  "API-DIFF-003",
+                          "endpoint":  "`createCompany` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future company onboarding / company setup flow"
+                      },
+                      {
+                          "id":  4,
+                          "code":  "API-DIFF-004",
+                          "endpoint":  "`listMyCompanies` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "role/mode/company resolver, auth sonrasi routing"
+                      },
+                      {
+                          "id":  5,
+                          "code":  "API-DIFF-005",
+                          "endpoint":  "`listCompanyMembers` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "company member list flows, company context secimi sonrasi operasyon ekranlari"
+                      },
+                      {
+                          "id":  6,
+                          "code":  "API-DIFF-006",
+                          "endpoint":  "`listCompanyRoutes` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending` (response expanded; app parser parity pending)",
+                          "appLayer":  "route list/read flows, company context secimi sonrasi route screens"
+                      },
+                      {
+                          "id":  7,
+                          "code":  "API-DIFF-007",
+                          "endpoint":  "`listCompanyVehicles` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "vehicle list/read flows, company context secimi sonrasi vehicle screens"
+                      },
+                      {
+                          "id":  8,
+                          "code":  "API-DIFF-008",
+                          "endpoint":  "`createVehicle` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future vehicle create forms, error mapping, company context guards"
+                      },
+                      {
+                          "id":  9,
+                          "code":  "API-DIFF-009",
+                          "endpoint":  "`updateVehicle` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future vehicle edit drawer/forms, assignment/maintenance status flows, error mapping"
+                      },
+                      {
+                          "id":  10,
+                          "code":  "API-DIFF-010",
+                          "endpoint":  "`createCompanyRoute` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route create forms, company route onboarding, error mapping / route create feedback katmani"
+                      },
+                      {
+                          "id":  11,
+                          "code":  "API-DIFF-011",
+                          "endpoint":  "`updateCompanyRoute` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request",
+                          "status":  "implemented-web-runtime-validated-app-pending` (authorizedDriverIds patch UI aktif)",
+                          "appLayer":  "future route edit forms, route detail drawer, error mapping / conflict feedback"
+                      },
+                      {
+                          "id":  12,
+                          "code":  "API-DIFF-012",
+                          "endpoint":  "`listCompanyRouteStops` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route stop list/read flows, route detail drawer stop panels"
+                      },
+                      {
+                          "id":  13,
+                          "code":  "API-DIFF-013",
+                          "endpoint":  "`upsertCompanyRouteStop` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route stop add/edit forms, route mutation error mapping / conflict feedback"
+                      },
+                      {
+                          "id":  14,
+                          "code":  "API-DIFF-014",
+                          "endpoint":  "`deleteCompanyRouteStop` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route stop delete actions, route stop editor shell state, mutation error mapping/conflict feedback"
+                      },
+                      {
+                          "id":  15,
+                          "code":  "API-DIFF-015",
+                          "endpoint":  "`reorderCompanyRouteStops` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route stop reorder actions, route detail shell state refresh, mutation error mapping/conflict feedback"
+                      },
+                      {
+                          "id":  16,
+                          "code":  "API-DIFF-016",
+                          "endpoint":  "`listActiveTripsByCompany` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future company live-ops trip feed/list, live status chips, RTDB/Firestore live read adapters"
+                      },
+                      {
+                          "id":  17,
+                          "code":  "API-DIFF-017",
+                          "endpoint":  "`updateCompanyMember` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future company member role/status mutation forms, authz guard feedback mapping, company member list refresh orchestrasyonu"
+                      },
+                      {
+                          "id":  18,
+                          "code":  "API-DIFF-018",
+                          "endpoint":  "`inviteCompanyMember` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future company member invite forms, invited-state rendering, authz/error feedback mapping"
+                      },
+                      {
+                          "id":  19,
+                          "code":  "API-DIFF-019",
+                          "endpoint":  "`acceptCompanyInvite` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future invite acceptance flow, company chooser state/cache refresh, onboarding feedback mapping"
+                      },
+                      {
+                          "id":  20,
+                          "code":  "API-DIFF-020",
+                          "endpoint":  "`declineCompanyInvite` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future invite decline flow, company chooser membership state/copy mapping, onboarding action guards"
+                      },
+                      {
+                          "id":  21,
+                          "code":  "API-DIFF-021",
+                          "endpoint":  "`removeCompanyMember` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future member remove actions, member list cache/selection fallback, policy/error feedback mapping"
+                      },
+                      {
+                          "id":  22,
+                          "code":  "API-DIFF-022",
+                          "endpoint":  "`grantDriverRoutePermissions` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route permission grant actions, permission object parser, route membership sync UX"
+                      },
+                      {
+                          "id":  23,
+                          "code":  "API-DIFF-023",
+                          "endpoint":  "`revokeDriverRoutePermissions` (Firebase callable, `europe-west3`)",
+                          "diffType":  "request+response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route permission revoke actions, primary-driver guard UX, mutation error feedback mapping"
+                      },
+                      {
+                          "id":  24,
+                          "code":  "API-DIFF-024",
+                          "endpoint":  "`listRouteDriverPermissions` (Firebase callable, `europe-west3`)",
+                          "diffType":  "response+authz",
+                          "status":  "implemented-web-runtime-validated-app-pending",
+                          "appLayer":  "future route permission list/read hooks, permission summary cards, cache refresh orchestration"
+                      }
+                  ],
+    "errorCodes":  [
+                       "426 Upgrade Required",
+                       "UPDATE_TOKEN_MISMATCH",
+                       "ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED",
+                       "ROUTE_STOP_INVALID_STATE",
+                       "ROUTE_STOP_REORDER_STATE_INVALID",
+                       "OWNER_MEMBER_IMMUTABLE",
+                       "SELF_MEMBER_REMOVE_FORBIDDEN",
+                       "INVITE_EMAIL_NOT_FOUND",
+                       "INVITE_NOT_ACCEPTABLE",
+                       "INVITE_NOT_DECLINABLE",
+                       "ROUTE_PRIMARY_DRIVER_IMMUTABLE"
+                   ]
+}

@@ -6,10 +6,14 @@ const googleLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN ?? "true")
 const emailLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_EMAIL_LOGIN ?? "true")
   .trim()
   .toLowerCase();
+const microsoftLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN ?? "true")
+  .trim()
+  .toLowerCase();
 const devFastLoginEmail = (process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_EMAIL ?? "").trim();
 const devFastLoginPassword = (
   process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_PASSWORD ?? ""
 ).trim();
+const publicMapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
 
 export function getPublicAppEnv(): string {
   return appEnv;
@@ -31,6 +35,10 @@ export function isEmailLoginEnabled(): boolean {
   return emailLoginFlag !== "false";
 }
 
+export function isMicrosoftLoginEnabled(): boolean {
+  return microsoftLoginFlag !== "false";
+}
+
 export function getDevFastLoginCredentials():
   | { email: string; password: string }
   | null {
@@ -44,4 +52,8 @@ export function getDevFastLoginCredentials():
     email: devFastLoginEmail,
     password: devFastLoginPassword,
   };
+}
+
+export function getPublicMapboxToken(): string | null {
+  return publicMapboxToken.length > 0 ? publicMapboxToken : null;
 }

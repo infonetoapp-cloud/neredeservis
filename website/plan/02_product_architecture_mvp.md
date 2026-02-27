@@ -112,10 +112,13 @@ Ilk asama pragmatik yaklasim:
 Ornek yeni endpoint ihtiyaclari:
 - createCompany
 - inviteCompanyMember
-- setCompanyMemberRole
+- acceptCompanyInvite / declineCompanyInvite
+- updateCompanyMember
+- removeCompanyMember
 - createVehicle / updateVehicle
 - assignDriverToCompany
 - createRouteAsCompany (owner/dispatcher yetkisiyle)
+- listRouteDriverPermissions / grantDriverRoutePermissions / revokeDriverRoutePermissions
 
 ## 7. Yetki Modeli (policy-first)
 

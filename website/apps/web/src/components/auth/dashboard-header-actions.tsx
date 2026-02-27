@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { signOutCurrentUser } from "@/features/auth/auth-client";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
+import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
+import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 
 function formatUserLabel(email: string | null | undefined): string {
   if (!email) {
@@ -17,10 +20,17 @@ export function DashboardHeaderActions() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, status } = useAuthSession();
+  const activeCompany = useActiveCompanyPreference();
+  const membership = useActiveCompanyMembership();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const canSignOut = status === "signed_in" && !isPending;
+  const showAdminLink =
+    Boolean(activeCompany?.companyId) &&
+    membership.status === "success" &&
+    membership.memberStatus === "active" &&
+    (membership.role === "owner" || membership.role === "admin");
 
   const handleSignOut = async () => {
     if (!canSignOut) {
@@ -42,6 +52,22 @@ export function DashboardHeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
+      <Link
+        href="/mode-select"
+        className="hidden rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 md:inline-flex"
+      >
+        Mod Sec
+      </Link>
+
+      {showAdminLink ? (
+        <Link
+          href="/admin"
+          className="hidden rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 md:inline-flex"
+        >
+          Admin
+        </Link>
+      ) : null}
+
       <div className="hidden rounded-xl border border-line bg-surface px-3 py-2 text-right sm:block">
         <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
           Oturum

@@ -1,0 +1,53 @@
+{
+    "generatedAt":  "2026-02-27 22:11:44",
+    "status":  "PARTIAL",
+    "totals":  {
+                   "total":  48,
+                   "done":  7,
+                   "open":  41,
+                   "completion":  14.6,
+                   "p0Open":  27,
+                   "p1Open":  14,
+                   "workcardsOpen":  41
+               },
+    "packages":  [
+                     {
+                         "id":  "APP-SPRINT-1",
+                         "priority":  "P0",
+                         "total":  9,
+                         "done":  0,
+                         "open":  9,
+                         "completion":  0
+                     },
+                     {
+                         "id":  "APP-SPRINT-2",
+                         "priority":  "P0",
+                         "total":  13,
+                         "done":  0,
+                         "open":  13,
+                         "completion":  0
+                     },
+                     {
+                         "id":  "APP-SPRINT-3",
+                         "priority":  "P1",
+                         "total":  14,
+                         "done":  0,
+                         "open":  14,
+                         "completion":  0
+                     },
+                     {
+                         "id":  "APP-SPRINT-4",
+                         "priority":  "P0",
+                         "total":  12,
+                         "done":  7,
+                         "open":  5,
+                         "completion":  58.3
+                     }
+                 ],
+    "next4":  [
+                  "close_app_sprint_1_parser_core",
+                  "close_app_sprint_2_route_liveops_parser",
+                  "close_app_sprint_4_acceptance_smokes",
+                  "rerun_phase9_closeout_and_measure"
+              ]
+}

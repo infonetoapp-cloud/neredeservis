@@ -1,0 +1,51 @@
+{
+    "generatedAt":  "2026-02-27 22:11:44",
+    "package":  "APP-SPRINT-2",
+    "status":  "READY",
+    "source":  "website/app-impact/12_phase9_app_sprint_packages_latest.json",
+    "checks":  [
+                   {
+                       "result":  "pending",
+                       "name":  "listCompanyRouteStops parser",
+                       "id":  "S2-01",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "upsert/delete/reorder stop parser",
+                       "id":  "S2-02",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "listActiveTripsByCompany parser",
+                       "id":  "S2-03",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "liveState and live.source mapping",
+                       "id":  "S2-04",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "RTDB state mapping",
+                       "id":  "S2-05",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "critical error mapping (426/token/lock)",
+                       "id":  "S2-06",
+                       "note":  ""
+                   }
+               ],
+    "blockTemplate":  {
+                          "expected":  "",
+                          "endpoint":  "",
+                          "code":  "",
+                          "actual":  "",
+                          "payloadSample":  ""
+                      }
+}

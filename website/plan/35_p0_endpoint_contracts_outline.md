@@ -96,23 +96,94 @@ Errors:
 - `failed-precondition` (owner/admin kuralı)
 - `already-exists`
 
-### `setCompanyMemberRole`
+### `acceptCompanyInvite`
 
 Auth:
-- `owner` (veya policy ile `admin` kisitli)
+- signed-in user (invite target)
 
 Request:
 - `companyId`
-- `targetUid`
-- `role`
 
 Response:
-- `targetUid`
+- `companyId`
+- `memberUid`
 - `role`
+- `memberStatus` (`active`)
+- `acceptedAt`
+
+Audit:
+- `company_member_invite_accepted`
+
+Errors:
+- `not-found`
+- `failed-precondition` (`INVITE_NOT_ACCEPTABLE`)
+
+### `declineCompanyInvite`
+
+Auth:
+- signed-in user (invite target)
+
+Request:
+- `companyId`
+
+Response:
+- `companyId`
+- `memberUid`
+- `role`
+- `memberStatus` (`suspended`)
+- `declinedAt`
+
+Audit:
+- `company_member_invite_declined`
+
+Errors:
+- `not-found`
+- `failed-precondition` (`INVITE_NOT_DECLINABLE`)
+
+### `updateCompanyMember`
+
+Auth:
+- `owner | admin`
+
+Request:
+- `companyId`
+- `memberUid`
+- `patch.role?`
+- `patch.memberStatus?`
+
+Response:
+- `memberUid`
+- `role`
+- `memberStatus`
 - `updatedAt`
 
 Audit:
-- `company_member_role_changed`
+- `company_member_updated`
+
+### `removeCompanyMember`
+
+Auth:
+- `owner | admin`
+
+Request:
+- `companyId`
+- `memberUid`
+
+Response:
+- `companyId`
+- `memberUid`
+- `removedRole`
+- `removedMemberStatus`
+- `removed`
+- `removedAt`
+
+Audit:
+- `company_member_removed`
+
+Errors:
+- `permission-denied`
+- `not-found`
+- `failed-precondition` (`OWNER_MEMBER_IMMUTABLE`, `SELF_MEMBER_REMOVE_FORBIDDEN`)
 
 ### `listCompanyMembers`
 
@@ -255,6 +326,21 @@ Audit:
 
 ## 3.4 Route-Level Driver Permissions (P0/P1)
 
+### `listRouteDriverPermissions`
+
+Auth:
+- `owner|admin|dispatcher|viewer`
+
+Request:
+- `companyId`
+- `routeId`
+
+Response:
+- `items[]`
+- `items[].driverUid`
+- `items[].permissions`
+- `items[].updatedAt`
+
 ### `grantDriverRoutePermissions`
 
 Auth:
@@ -369,10 +455,15 @@ Oneri:
 Faz 1/2 implementation baslamadan once su endpointler en az V1 taslakta dondurulur:
 - `createCompany`
 - `inviteCompanyMember`
-- `setCompanyMemberRole`
+- `acceptCompanyInvite`
+- `declineCompanyInvite`
+- `updateCompanyMember`
+- `removeCompanyMember`
 - `createVehicle`
 - `updateVehicle`
 - `createCompanyRoute`
 - `updateCompanyRoute`
 - `upsertCompanyRouteStop`
 - `grantDriverRoutePermissions`
+- `listRouteDriverPermissions`
+- `revokeDriverRoutePermissions`

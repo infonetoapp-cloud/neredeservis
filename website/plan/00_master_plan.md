@@ -96,3 +96,4 @@ Detaylar icin:
 - `55_adr_007_mvp_read_model_simplification_and_projection_triggers.md`
 - `56_adr_008_vehicle_collection_security_revision.md`
 - `57_adr_009_map_standardization_and_eta_consistency.md`
+- `79_vercel_deploy_budget_policy.md` (aktif deploy butcesi ve release penceresi kurali)

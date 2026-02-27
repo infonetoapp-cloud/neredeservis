@@ -1,0 +1,51 @@
+{
+    "generatedAt":  "2026-02-27 22:11:45",
+    "package":  "APP-SPRINT-4",
+    "status":  "READY",
+    "source":  "website/app-impact/12_phase9_app_sprint_packages_latest.json",
+    "checks":  [
+                   {
+                       "result":  "pending",
+                       "name":  "parser crash-free smoke",
+                       "id":  "S4-01",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "error mapping smoke",
+                       "id":  "S4-02",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "company context recoverability",
+                       "id":  "S4-03",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "route conflict recoverability",
+                       "id":  "S4-04",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "live ops fallback correctness",
+                       "id":  "S4-05",
+                       "note":  ""
+                   },
+                   {
+                       "result":  "pending",
+                       "name":  "cutover checklist full closure",
+                       "id":  "S4-06",
+                       "note":  ""
+                   }
+               ],
+    "blockTemplate":  {
+                          "expected":  "",
+                          "endpoint":  "",
+                          "code":  "",
+                          "actual":  "",
+                          "payloadSample":  ""
+                      }
+}

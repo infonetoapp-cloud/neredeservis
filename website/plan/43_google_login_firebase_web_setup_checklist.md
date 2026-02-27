@@ -1,24 +1,25 @@
-# Google Login + Firebase Web Auth Setup Checklist (Dev/Stg/Prod)
+# Firebase Web Auth Setup Checklist (Email + Google + Microsoft)
 
 Tarih: 2026-02-24
 Durum: Faz 1 hazirlik checklisti
 
 ## 1. Amac
 
-Web panelde `Email/Password + Google` login kararini guvenli ve ortam ayrimli sekilde kurmak.
+Web panelde `Email/Password + Google + Microsoft` login kararini guvenli ve ortam ayrimli sekilde kurmak.
 
 Bu dokuman:
 - Firebase Console
 - Google provider
 - authorized domains
 - web app config
-- Azure env mapping
+- hosting env mapping (Vercel primary, host-agnostic)
 icin checklist verir.
 
 ## 2. Hedef Provider Seti (MVP)
 
 - Email/Password
 - Google Sign-In
+- Microsoft Sign-In (`microsoft.com`, feature-flag rollout)
 
 Not:
 - Bu karar ADR ile kilitli: `22_web_auth_provider_decision.md`
@@ -39,6 +40,7 @@ Kural:
 
 - [ ] Email/Password enabled
 - [ ] Google provider enabled
+- [ ] Microsoft provider enabled (rollout aktifse)
 - [ ] Support email dogru
 - [ ] Project branding/basic metadata kontrol edildi
 
@@ -46,10 +48,12 @@ Kural:
 
 Dev:
 - [ ] local dev domain(ler)i (gerekliyse)
-- [ ] Azure preview/generated domain(ler)i (dev)
+- [ ] Vercel preview/generated domain(ler)i (dev)
+- [ ] `nsv-web-dev.vercel.app` (dev alias)
+- [ ] `app.neredeservis.app` (dev custom domain smoke asamasi acildiginda)
 
 Staging:
-- [ ] Azure generated staging/preview domain
+- [ ] Vercel generated staging/preview domain
 - [ ] `stg-app.neredeservis.app` (acildiginda)
 
 Prod:
@@ -106,8 +110,11 @@ Guncel execution notu (Faz 1):
 - `Email/Password` ve `Google` provider durumlari `dev/stg/prod` icin API uzerinden dogrulandi (enabled)
 - Lokal auth smoke icin `dev` + `stg` authorized domains listesine `localhost` ve `127.0.0.1` eklendi
 - Lokal web bootstrap su an gercek `dev` web sdk config ile ilerliyor (`NEXT_PUBLIC_FIREBASE_APP_ID` dahil)
+- Vercel dev alias `nsv-web-dev.vercel.app` ve aktif preview domainleri Firebase `dev` authorized domains listesine eklendi
+- `app.neredeservis.app` Firebase `dev` authorized domains listesine pre-emptive eklendi (custom domain DNS dogrulamasi bekleniyor)
+- `neredeservis.app` ve `www.neredeservis.app` Firebase `dev` authorized domains listesine eklendi (tek web app / landing+panel dev smoke icin)
 
-## 7. Azure SWA Env Mapping Checklist (Panel)
+## 7. Hosting Env Mapping Checklist (Panel) - Vercel Primary
 
 Dev (`web-dev`):
 - [ ] `NEXT_PUBLIC_FIREBASE_API_KEY` = dev
@@ -117,6 +124,8 @@ Dev (`web-dev`):
 - [ ] `NEXT_PUBLIC_FIREBASE_DATABASE_URL` = dev
 - [ ] `NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN=true`
 - [ ] `NEXT_PUBLIC_ENABLE_EMAIL_LOGIN=true`
+- [ ] `NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN=true|false` (rollout durumuna gore)
+- [ ] Vercel project env vars (Development/Preview/Production scope) dogru atandi
 
 Stg (`web-stg`):
 - [ ] ayni set = stg degerleri
@@ -136,6 +145,11 @@ Prod (`web-prod`):
 - [ ] unauthorized-domain hatasi yok
 - [ ] login sonrasi session bootstrap calisiyor
 
+### Microsoft (aktifse)
+- [ ] popup flow success
+- [ ] `microsoft.com` provider operation-not-allowed hatasi yok
+- [ ] login sonrasi session bootstrap calisiyor
+
 ### Authz
 - [ ] login oldum diye panelde her yere giremiyorum (role guard)
 
@@ -146,6 +160,7 @@ Prod (`web-prod`):
 
 2. Google login dev preview domaininde calismiyor
 - Cozum: authorized domains listesi check
+ - Vercel preview URL degisti ise yeni generated domaini eklemeyi unutma
 
 3. Prod projeye fazla preview domain eklemek
 - Cozum: dev/stg/prod domain listelerini ayri tut
@@ -157,6 +172,7 @@ Prod (`web-prod`):
 
 - [ ] dev panelde Email login calisiyor
 - [ ] dev panelde Google login calisiyor
+- [ ] dev panelde Microsoft login calisiyor (aktifse)
 - [ ] session bootstrap calisiyor
 - [ ] mode selector / guard shell calisiyor
 - [ ] env badge dogru
