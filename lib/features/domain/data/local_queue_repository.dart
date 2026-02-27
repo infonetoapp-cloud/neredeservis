@@ -32,6 +32,44 @@ class TripQueuedActionTypeCodec {
   }
 }
 
+class QueueMetricsSnapshot {
+  const QueueMetricsSnapshot({
+    required this.tripPendingCount,
+    required this.tripInFlightCount,
+    required this.tripFailedPermanentCount,
+    required this.supportReportPendingCount,
+    required this.supportReportFailedPermanentCount,
+    required this.locationQueuedCount,
+    required this.locationRetryingCount,
+    this.oldestTripActionCreatedAtMs,
+    this.oldestLocationSampledAtMs,
+  });
+
+  final int tripPendingCount;
+  final int tripInFlightCount;
+  final int tripFailedPermanentCount;
+  final int supportReportPendingCount;
+  final int supportReportFailedPermanentCount;
+  final int locationQueuedCount;
+  final int locationRetryingCount;
+  final int? oldestTripActionCreatedAtMs;
+  final int? oldestLocationSampledAtMs;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'tripPendingCount': tripPendingCount,
+      'tripInFlightCount': tripInFlightCount,
+      'tripFailedPermanentCount': tripFailedPermanentCount,
+      'supportReportPendingCount': supportReportPendingCount,
+      'supportReportFailedPermanentCount': supportReportFailedPermanentCount,
+      'locationQueuedCount': locationQueuedCount,
+      'locationRetryingCount': locationRetryingCount,
+      'oldestTripActionCreatedAtMs': oldestTripActionCreatedAtMs,
+      'oldestLocationSampledAtMs': oldestLocationSampledAtMs,
+    };
+  }
+}
+
 class QueueRetryPolicy {
   static const int defaultMaxRetryAttempts = 3;
 
@@ -221,6 +259,60 @@ class LocalQueueRepository {
     final row = await query.getSingle();
     final count = row.read(countExp) ?? 0;
     return count > 0;
+  }
+
+  Future<QueueMetricsSnapshot> getQueueMetricsSnapshot({
+    required String ownerUid,
+  }) async {
+    final supportReportActionRaw = TripQueuedActionTypeCodec.toRaw(
+      TripQueuedActionType.supportReport,
+    );
+
+    final tripPendingCount = await _countTripActionsByFilter(
+      ownerUid: ownerUid,
+      status: TripActionQueueStatusCodec.pending,
+    );
+    final tripInFlightCount = await _countTripActionsByFilter(
+      ownerUid: ownerUid,
+      status: TripActionQueueStatusCodec.inFlight,
+    );
+    final tripFailedPermanentCount = await _countTripActionsByFilter(
+      ownerUid: ownerUid,
+      status: TripActionQueueStatusCodec.failedPermanent,
+    );
+    final supportReportPendingCount = await _countTripActionsByFilter(
+      ownerUid: ownerUid,
+      status: TripActionQueueStatusCodec.pending,
+      actionTypeRaw: supportReportActionRaw,
+    );
+    final supportReportFailedPermanentCount = await _countTripActionsByFilter(
+      ownerUid: ownerUid,
+      status: TripActionQueueStatusCodec.failedPermanent,
+      actionTypeRaw: supportReportActionRaw,
+    );
+    final locationQueuedCount = await _countLocationSamplesByFilter(
+      ownerUid: ownerUid,
+    );
+    final locationRetryingCount = await _countLocationSamplesByFilter(
+      ownerUid: ownerUid,
+      retryingOnly: true,
+    );
+    final oldestTripActionCreatedAtMs =
+        await _readOldestTripActionCreatedAtMs(ownerUid);
+    final oldestLocationSampledAtMs =
+        await _readOldestLocationSampledAtMs(ownerUid);
+
+    return QueueMetricsSnapshot(
+      tripPendingCount: tripPendingCount,
+      tripInFlightCount: tripInFlightCount,
+      tripFailedPermanentCount: tripFailedPermanentCount,
+      supportReportPendingCount: supportReportPendingCount,
+      supportReportFailedPermanentCount: supportReportFailedPermanentCount,
+      locationQueuedCount: locationQueuedCount,
+      locationRetryingCount: locationRetryingCount,
+      oldestTripActionCreatedAtMs: oldestTripActionCreatedAtMs,
+      oldestLocationSampledAtMs: oldestLocationSampledAtMs,
+    );
   }
 
   Future<int> countManualInterventionTripActions({
@@ -693,6 +785,28 @@ class LocalQueueRepository {
     return row.read(countExp) ?? 0;
   }
 
+  Future<int> _countTripActionsByFilter({
+    required String ownerUid,
+    String? status,
+    String? actionTypeRaw,
+  }) async {
+    final table = _database.tripActionQueueTable;
+    final countExp = table.id.count();
+    final query = _database.selectOnly(table)
+      ..addColumns(<Expression<Object>>[countExp]);
+
+    Expression<bool> predicate = table.ownerUid.equals(ownerUid);
+    if (status != null && status.isNotEmpty) {
+      predicate = predicate & table.status.equals(status);
+    }
+    if (actionTypeRaw != null && actionTypeRaw.isNotEmpty) {
+      predicate = predicate & table.actionType.equals(actionTypeRaw);
+    }
+    query.where(predicate);
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
+  }
+
   Future<int> _countLocationSamplesForOwner(String ownerUid) async {
     final table = _database.locationQueueTable;
     final countExp = table.id.count();
@@ -701,6 +815,51 @@ class LocalQueueRepository {
       ..where(table.ownerUid.equals(ownerUid));
     final row = await query.getSingle();
     return row.read(countExp) ?? 0;
+  }
+
+  Future<int> _countLocationSamplesByFilter({
+    required String ownerUid,
+    bool retryingOnly = false,
+  }) async {
+    final table = _database.locationQueueTable;
+    final countExp = table.id.count();
+    final query = _database.selectOnly(table)
+      ..addColumns(<Expression<Object>>[countExp]);
+    Expression<bool> predicate = table.ownerUid.equals(ownerUid);
+    if (retryingOnly) {
+      predicate = predicate & table.retryCount.isBiggerThanValue(0);
+    }
+    query.where(predicate);
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
+  }
+
+  Future<int?> _readOldestTripActionCreatedAtMs(String ownerUid) async {
+    final query = _database.select(_database.tripActionQueueTable)
+      ..where((tbl) => tbl.ownerUid.equals(ownerUid))
+      ..orderBy(
+        <OrderingTerm Function(TripActionQueueTable)>[
+          (tbl) => OrderingTerm.asc(tbl.createdAt),
+          (tbl) => OrderingTerm.asc(tbl.id),
+        ],
+      )
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row?.createdAt;
+  }
+
+  Future<int?> _readOldestLocationSampledAtMs(String ownerUid) async {
+    final query = _database.select(_database.locationQueueTable)
+      ..where((tbl) => tbl.ownerUid.equals(ownerUid))
+      ..orderBy(
+        <OrderingTerm Function(LocationQueueTable)>[
+          (tbl) => OrderingTerm.asc(tbl.sampledAt),
+          (tbl) => OrderingTerm.asc(tbl.id),
+        ],
+      )
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row?.sampledAt;
   }
 
   Future<void> _applyOwnershipTransferInSingleTransaction({

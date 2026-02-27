@@ -1,0 +1,38 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.neredeservis.app.dev",
+      "sha256_cert_fingerprints": [
+        "25:AA:7C:63:59:86:92:5D:BE:E2:CE:95:F3:41:E6:A1:1E:91:02:7A:0F:7B:50:64:A8:C9:C9:25:0B:E4:C4:C6"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.neredeservis.app.stg",
+      "sha256_cert_fingerprints": [
+        "25:AA:7C:63:59:86:92:5D:BE:E2:CE:95:F3:41:E6:A1:1E:91:02:7A:0F:7B:50:64:A8:C9:C9:25:0B:E4:C4:C6"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.neredeservis.app",
+      "sha256_cert_fingerprints": [
+        "25:AA:7C:63:59:86:92:5D:BE:E2:CE:95:F3:41:E6:A1:1E:91:02:7A:0F:7B:50:64:A8:C9:C9:25:0B:E4:C4:C6"
+      ]
+    }
+  }
+]

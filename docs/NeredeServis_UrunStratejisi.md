@@ -23,7 +23,7 @@ Kullanıcı uygulamayı açar → servisin nerede olduğunu görür → telefonu
 
 ## Bu Uygulama Ne DEĞİLDİR?
 
-- **WhatsApp grubu değildir.** Mesajlaşma özelliği KOYMUYORUZ. PDF'de "Canlı Duyuru Kanalı" önerilmiş — bu özellik doğru ama chat'e dönüşmemeli. Tek yönlü duyuru, sadece şoförden yolcuya.
+- **WhatsApp grubu değildir.** Grup sohbeti, karma kanal ve serbest chat yok. Sadece aynı güzergahta eşleşen **şoför ↔ yolcu arasında 1:1 kısa mesaj** var (arama yok), odak tek sefer iletişimi.
 - **Tam kapsamlı navigasyon uygulaması değildir.** Turn-by-turn vermiyoruz; ancak şoför ekranında **Driver Guidance Lite** (sıradaki durak + mesafe + sade harita) var.
 - **Sosyal platform değildir.** Profil fotoğrafı, yorum, beğeni yok. Bunlar bu ürünün DNA'sında yok.
 
@@ -184,6 +184,7 @@ Yolcunun sabah servisi Şoför A, akşam dönüşü Şoför B olabilir. Uygulama
 | Push bildirim (yaklaşıyor + gecikme) | Sabah alışkanlığı oluşturucu |
 | QR kod ile hızlı katılım (güzergaha özel) | Viral büyümenin motoru |
 | Şoför → yolcu tek yönlü duyuru | WhatsApp grubunun yerini alan mekanik |
+| Şoför ↔ yolcu 1:1 mesajlaşma (arama yok) | Kritik anlarda kısa ve kontrollü iletişim |
 | Yolcu çoklu güzergah kaydı | Sabah/akşam farklı servis senaryosu |
 | Telefon numara görünürlük ayarı (şoför + yolcu) | Geçiş döneminde telefon iletişimi için |
 | "Bugün Binmiyorum" yolcu bildirimi | Şoför boşuna durmağa gitmesin |

@@ -8,7 +8,7 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.driverProfileSetup,
           builder: (context, state) {
-            final user = FirebaseAuth.instance.currentUser;
+            final user = _authCredentialGateway.currentUser;
             return FutureBuilder<_DriverProfileSetupBootstrapData>(
               future: _loadDriverProfileSetupBootstrapData(user),
               builder: (context, snapshot) {
@@ -54,17 +54,15 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.driverHome,
           builder: (context, state) {
-            final previewRouteId =
-                _nullableParam(state.uri.queryParameters['previewRouteId']);
-            final startedRouteId =
-                _nullableParam(state.uri.queryParameters['startedRouteId']);
+            final query = _DriverHomeRouteQuery.fromState(state);
             unawaited(_ensureDriverHomeLocationPermissionPrompt(context));
             return FutureBuilder<_DriverHomeBootstrapData>(
               future: _loadDriverHomeBootstrapData(),
               builder: (context, snapshot) {
                 final bootstrap =
                     snapshot.data ?? const _DriverHomeBootstrapData();
-                return _DoubleBackExitGuard(
+                return RouterDoubleBackExitGuard(
+                  onBackBlocked: _showDoubleBackExitHint,
                   child: DriverMapHomeScreen(
                     appName: deps.flavorConfig.appName,
                     routeName: bootstrap.routeName,
@@ -74,8 +72,8 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
                     stops: bootstrap.stops,
                     myTrips: bootstrap.myTrips,
                     loadMyTrips: _loadDriverMyTripsItems,
-                    initialPreviewRouteId: previewRouteId,
-                    initialStartedRouteId: startedRouteId,
+                    initialPreviewRouteId: query.previewRouteId,
+                    initialStartedRouteId: query.startedRouteId,
                     queuedPassengerCount: bootstrap.queuedPassengerCount,
                     onStartTripTap: () => unawaited(
                       _handleStartTripWithUndo(context).catchError((_) {
@@ -168,10 +166,8 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.driverTripDetail,
           builder: (context, state) {
-            final routeId =
-                _nullableParam(state.uri.queryParameters['routeId']);
-            final tripId = _nullableParam(state.uri.queryParameters['tripId']);
-            if (routeId == null) {
+            final query = _DriverTripDetailRouteQuery.fromState(state);
+            if (!query.hasRouteId) {
               return Scaffold(
                 appBar: AppBar(title: const Text('Sefer Detayi')),
                 body: const Center(
@@ -182,8 +178,8 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
             return DriverTripDetailScreen(
               googleMapsApiKey: deps.environment.googleMapsApiKey,
               loadData: () => _loadDriverTripDetailData(
-                routeId: routeId,
-                tripId: tripId,
+                routeId: query.routeId!,
+                tripId: query.tripId,
               ),
               onEditTripTap: (data) {
                 final updateUri = Uri(
@@ -239,33 +235,37 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         ),
         GoRoute(
           path: AppRoutePath.driverRouteUpdate,
-          builder: (context, state) => RouteUpdateScreen(
-            initialRouteId:
-                _nullableParam(state.uri.queryParameters['routeId']),
-            googleMapsApiKey: deps.environment.googleMapsApiKey,
-            onManageStopsTap: (routeId) {
-              final stopsUri = Uri(
-                path: AppRoutePath.driverRouteStops,
-                queryParameters: <String, String>{'routeId': routeId},
-              );
-              context.push(stopsUri.toString());
-            },
-            onSubmit: (input) => _handleUpdateRoute(context, input),
-          ),
+          builder: (context, state) {
+            final query = _RouteIdOnlyRouteQuery.fromState(state);
+            return RouteUpdateScreen(
+              initialRouteId: query.routeId,
+              googleMapsApiKey: deps.environment.googleMapsApiKey,
+              onManageStopsTap: (routeId) {
+                final stopsUri = Uri(
+                  path: AppRoutePath.driverRouteStops,
+                  queryParameters: <String, String>{'routeId': routeId},
+                );
+                context.push(stopsUri.toString());
+              },
+              onSubmit: (input) => _handleUpdateRoute(context, input),
+            );
+          },
         ),
         GoRoute(
           path: AppRoutePath.driverRouteStops,
-          builder: (context, state) => StopCrudScreen(
-            initialRouteId:
-                _nullableParam(state.uri.queryParameters['routeId']),
-            onUpsert: (input) => _handleUpsertStop(context, input),
-            onDelete: (input) => _handleDeleteStop(context, input),
-          ),
+          builder: (context, state) {
+            final query = _RouteIdOnlyRouteQuery.fromState(state);
+            return StopCrudScreen(
+              initialRouteId: query.routeId,
+              onUpsert: (input) => _handleUpsertStop(context, input),
+              onDelete: (input) => _handleDeleteStop(context, input),
+            );
+          },
         ),
         GoRoute(
           path: AppRoutePath.paywall,
           builder: (context, state) {
-            final source = _nullableParam(state.uri.queryParameters['source']);
+            final query = _DriverPaywallRouteQuery.fromState(state);
             final currentRole = _resolveRoutingRoleWithSessionPreference(
               backendRole: deps.readCurrentRole(),
             );
@@ -309,7 +309,7 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
                     trialDaysLeft: subscriptionSnapshot.trialDaysLeft,
                     onPurchaseTap: (_) => _handlePaywallPurchaseTap(
                       context,
-                      source: source,
+                      source: query.source,
                       environment: deps.environment,
                     ),
                     onRestoreTap: () => _handlePaywallRestoreTap(context),
@@ -330,21 +330,12 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.activeTrip,
           builder: (context, state) {
-            final routeName =
-                _nullableParam(state.uri.queryParameters['routeName']) ??
-                    'Darica -> GOSB';
-            final routeId =
-                _nullableParam(state.uri.queryParameters['routeId']);
-            final tripId = _nullableParam(state.uri.queryParameters['tripId']);
-            final transitionVersion = int.tryParse(
-              _nullableParam(state.uri.queryParameters['transitionVersion']) ??
-                  '',
-            );
+            final query = _ActiveTripRouteQuery.fromState(state);
             return _DriverFinishTripGuard(
-              routeId: routeId,
-              tripId: tripId,
-              routeName: routeName,
-              initialTransitionVersion: transitionVersion,
+              routeId: query.routeId,
+              tripId: query.tripId,
+              routeName: query.routeName,
+              initialTransitionVersion: query.transitionVersion,
               mapboxPublicToken: deps.environment.googleMapsApiKey,
             );
           },
@@ -352,16 +343,11 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.driverTripCompleted,
           builder: (context, state) {
-            final routeId =
-                _nullableParam(state.uri.queryParameters['routeId']);
-            final tripId = _nullableParam(state.uri.queryParameters['tripId']);
-            final routeName =
-                _nullableParam(state.uri.queryParameters['routeName']) ??
-                    'Şoför Rotası';
+            final query = _DriverTripCompletedRouteQuery.fromState(state);
             return FutureBuilder<_DriverTripCompletedBootstrapData>(
               future: _loadDriverTripCompletedBootstrapData(
-                routeId: routeId,
-                tripId: tripId,
+                routeId: query.routeId,
+                tripId: query.tripId,
               ),
               builder: (context, snapshot) {
                 final bootstrap = snapshot.data ??
@@ -369,7 +355,7 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
                       totalDurationMinutes: 0,
                     );
                 return DriverTripCompletedScreen(
-                  routeName: routeName,
+                  routeName: query.routeName,
                   totalDistanceKm: bootstrap.totalDistanceKm,
                   totalDurationMinutes: bootstrap.totalDurationMinutes,
                   totalPassengers: bootstrap.totalPassengers,

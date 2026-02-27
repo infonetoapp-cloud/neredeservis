@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../components/banners/amber_stale_status_banner.dart';
-import '../components/cards/amber_announcement_card.dart';
-import '../components/cards/amber_route_card.dart';
-import '../components/indicators/amber_status_chip.dart';
-import '../components/layout/amber_screen_scaffold.dart';
-import '../components/panels/amber_driver_action_panel.dart';
+import '../../features/subscription/presentation/paywall_copy_tr.dart';
+import '../components/banners/core_stale_status_banner.dart';
+import '../components/cards/core_announcement_card.dart';
+import '../components/cards/core_route_card.dart';
+import '../components/indicators/core_status_chip.dart';
+import '../components/layout/core_screen_scaffold.dart';
+import '../components/panels/core_driver_action_panel.dart';
+import '../tokens/core_spacing.dart';
 import '../tokens/cta_tokens.dart';
 import '../tokens/icon_tokens.dart';
-import '../tokens/spacing_tokens.dart';
 
 class DriverHomeScreen extends StatelessWidget {
   const DriverHomeScreen({
@@ -18,6 +19,8 @@ class DriverHomeScreen extends StatelessWidget {
     this.onManageRouteTap,
     this.onAnnouncementTap,
     this.onSettingsTap,
+    this.subscriptionStatus,
+    this.onSubscriptionBannerTap,
   });
 
   final String appName;
@@ -26,14 +29,21 @@ class DriverHomeScreen extends StatelessWidget {
   final VoidCallback? onAnnouncementTap;
   final VoidCallback? onSettingsTap;
 
+  // Compatibility fields kept while UI tests and router usage converge.
+  final SubscriptionUiStatus? subscriptionStatus;
+  final VoidCallback? onSubscriptionBannerTap;
+
   @override
   Widget build(BuildContext context) {
-    return AmberScreenScaffold(
-      title: 'Sofor Home',
+    final showTrialExpiredBanner =
+        subscriptionStatus == SubscriptionUiStatus.trialExpired;
+
+    return CoreScreenScaffold(
+      title: 'Sofor Ana Sayfa',
       subtitle: appName,
       actions: <Widget>[
         IconButton(
-          icon: const Icon(AmberIconTokens.settings),
+          icon: const Icon(CoreIconTokens.settings),
           tooltip: 'Ayarlar',
           onPressed: onSettingsTap ?? onManageRouteTap,
         ),
@@ -42,49 +52,56 @@ class DriverHomeScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const AmberStatusChip(
+          const CoreStatusChip(
             label: 'Yayina hazir',
-            tone: AmberStatusChipTone.green,
+            tone: CoreStatusChipTone.green,
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          const AmberStaleStatusBanner(
+          const SizedBox(height: CoreSpacing.space12),
+          const CoreStaleStatusBanner(
             message: 'Son heartbeat 35 sn once alindi.',
           ),
-          const SizedBox(height: AmberSpacingTokens.space16),
-          AmberRouteCard(
+          if (showTrialExpiredBanner) ...<Widget>[
+            const SizedBox(height: CoreSpacing.space12),
+            _SubscriptionBanner(
+              // Keep callback optional for backward-compatible tests.
+              onTap: onSubscriptionBannerTap,
+            ),
+          ],
+          const SizedBox(height: CoreSpacing.space16),
+          CoreRouteCard(
             routeName: 'Darica -> GOSB',
             metaLine: '6 durak - 14 yolcu',
             scheduleLabel: '06:30',
-            statusChip: const AmberStatusChip(
+            statusChip: const CoreStatusChip(
               label: 'Hazir',
-              tone: AmberStatusChipTone.green,
+              tone: CoreStatusChipTone.green,
               compact: true,
             ),
-            primaryActionLabel: AmberCtaTokens.startTrip,
+            primaryActionLabel: CoreCtaTokens.startTrip,
             onPrimaryAction: onStartTripTap,
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          AmberRouteCard(
+          const SizedBox(height: CoreSpacing.space12),
+          CoreRouteCard(
             routeName: 'Gebze -> TUZLA',
             metaLine: '5 durak - 11 yolcu',
             scheduleLabel: '07:10',
-            statusChip: const AmberStatusChip(
+            statusChip: const CoreStatusChip(
               label: 'Planli',
-              tone: AmberStatusChipTone.neutral,
+              tone: CoreStatusChipTone.neutral,
               compact: true,
             ),
             primaryActionLabel: 'Rota Detayi',
             onPrimaryAction: onManageRouteTap,
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          const AmberAnnouncementCard(
+          const SizedBox(height: CoreSpacing.space12),
+          const CoreAnnouncementCard(
             title: 'Bugunluk Not',
             message: 'D2 duraginda yol calismasi var, 2 dk gecikme beklenir.',
             sentAtLabel: '10 dk once',
             channelLabel: 'In-app',
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          AmberDriverActionPanel(
+          const SizedBox(height: CoreSpacing.space12),
+          CoreDriverActionPanel(
             isTripActive: false,
             onPrimaryAction: onStartTripTap,
             onSecondaryAction: onManageRouteTap,
@@ -92,6 +109,36 @@ class DriverHomeScreen extends StatelessWidget {
             onAnnouncementTap: onAnnouncementTap,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SubscriptionBanner extends StatelessWidget {
+  const _SubscriptionBanner({
+    this.onTap,
+  });
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(CoreSpacing.space12),
+        child: Row(
+          children: <Widget>[
+            const Expanded(
+              child: Text(
+                'Denemen bitti. Premium ozellikler icin aboneligi yonet.',
+              ),
+            ),
+            TextButton(
+              onPressed: onTap,
+              child: const Text('Aboneligi Yonet'),
+            ),
+          ],
+        ),
       ),
     );
   }

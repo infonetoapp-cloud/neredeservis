@@ -113,7 +113,7 @@ Future<void> _handleSubmitSupportReport(
   String? tripId,
   bool? batteryDegradeModeEnabled,
 }) async {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = _authCredentialGateway.currentUser;
   if (user == null) {
     if (context.mounted) {
       _showInfo(context, CoreErrorFeedbackTokens.sessionMissingSignInAgain);

@@ -14,6 +14,15 @@ void main() {
     expect(canPrompt, isTrue);
   });
 
+  test('driver role can prompt location on driver home entry', () {
+    final canPrompt = gate.shouldPromptLocationPermission(
+      role: UserRole.driver,
+      trigger: LocationPermissionPromptTrigger.driverHomeEntry,
+    );
+
+    expect(canPrompt, isTrue);
+  });
+
   test('driver role can prompt location on ghost drive recording', () {
     final canPrompt = gate.shouldPromptLocationPermission(
       role: UserRole.driver,

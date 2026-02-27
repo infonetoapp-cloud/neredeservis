@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../components/buttons/amber_buttons.dart';
-import '../tokens/color_tokens.dart';
-import '../tokens/radius_tokens.dart';
-import '../tokens/spacing_tokens.dart';
+import '../components/buttons/core_buttons.dart';
+import '../tokens/core_colors.dart';
+import '../tokens/core_radii.dart';
+import '../tokens/core_spacing.dart';
 
 class AuthHeroLoginScreen extends StatelessWidget {
   const AuthHeroLoginScreen({
     super.key,
     required this.appName,
-    this.heroImageAssetPath = 'assets/images/start.jpeg',
+    this.heroImageAssetPath = 'assets/images/logo.png',
+    this.continueHint,
     this.onGoogleSignInTap,
     this.onSignInTap,
     this.onRegisterTap,
@@ -18,6 +19,7 @@ class AuthHeroLoginScreen extends StatelessWidget {
 
   final String appName;
   final String heroImageAssetPath;
+  final String? continueHint;
   final VoidCallback? onGoogleSignInTap;
   final VoidCallback? onSignInTap;
   final VoidCallback? onRegisterTap;
@@ -41,8 +43,8 @@ class AuthHeroLoginScreen extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: <Color>[
-                      Color(0xFFF7F8F5),
-                      Color(0xFFEFE3D4),
+                      Color(0xFFEAF8F2),
+                      Color(0xFFDCEEE6),
                     ],
                   ),
                 ),
@@ -55,15 +57,15 @@ class AuthHeroLoginScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: <Color>[
-                  Color(0x33000000),
-                  Color(0xA6101413),
+                  Color(0x220A1411),
+                  Color(0xCC0A1411),
                 ],
               ),
             ),
           ),
           SafeArea(
             child: Padding(
-              padding: AmberSpacingTokens.screenPadding,
+              padding: CoreSpacing.screenPadding,
               child: CustomScrollView(
                 slivers: <Widget>[
                   SliverFillRemaining(
@@ -74,65 +76,86 @@ class AuthHeroLoginScreen extends StatelessWidget {
                         Text(
                           appName,
                           style: textTheme.titleLarge?.copyWith(
-                            color: AmberColorTokens.surface0,
+                            color: CoreColors.surface0,
                           ),
                         ),
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.all(
-                            AmberSpacingTokens.space20,
+                            CoreSpacing.space20,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xCC101413),
-                            borderRadius: AmberRadiusTokens.radius20,
+                            color: const Color(0xBC0B151D),
+                            borderRadius: CoreRadii.radius20,
                             border: Border.all(
-                              color: const Color(0x33FFFFFF),
+                              color: const Color(0x4DFFFFFF),
                             ),
+                            boxShadow: const <BoxShadow>[
+                              BoxShadow(
+                                color: Color(0x4A000000),
+                                blurRadius: 24,
+                                offset: Offset(0, 10),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               Text(
-                                'Yolculuk takibini tek noktadan yonet.',
+                                'Yolculuk takibini tek noktadan yönet.',
                                 style: textTheme.headlineSmall?.copyWith(
-                                  color: AmberColorTokens.surface0,
+                                  color: CoreColors.surface0,
                                 ),
                               ),
+                              if (continueHint != null &&
+                                  continueHint!.trim().isNotEmpty) ...<Widget>[
+                                const SizedBox(
+                                  height: CoreSpacing.space8,
+                                ),
+                                Text(
+                                  continueHint!,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: const Color(0xE6FFFFFF),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(
-                                height: AmberSpacingTokens.space8,
+                                height: CoreSpacing.space8,
                               ),
                               Text(
-                                'Hemen giris yap ve servis akisini amber UI ile devam ettir.',
+                                'Hemen giriş yap ve servis akışını sade premium arayüzle devam ettir.',
                                 style: textTheme.bodyMedium?.copyWith(
                                   color: const Color(0xD9FFFFFF),
                                 ),
                               ),
                               const SizedBox(
-                                height: AmberSpacingTokens.space20,
+                                height: CoreSpacing.space20,
                               ),
-                              AmberPrimaryButton(
-                                label: 'Giris Yap',
+                              CorePrimaryButton(
+                                label: 'Email ile Giriş',
                                 onPressed: onSignInTap,
                               ),
                               const SizedBox(
-                                height: AmberSpacingTokens.space12,
+                                height: CoreSpacing.space12,
                               ),
-                              AmberSecondaryButton(
-                                label: 'Google ile Giris',
-                                onPressed: onGoogleSignInTap,
+                              CoreSecondaryButton(
+                                label: 'Email ile Üye Ol',
+                                onPressed: onRegisterTap,
                                 isOnDarkSurface: true,
                               ),
                               const SizedBox(
-                                height: AmberSpacingTokens.space8,
+                                height: CoreSpacing.space8,
                               ),
-                              TextButton(
-                                onPressed: onRegisterTap,
-                                child: const Text('Hesabin yok mu? Uye ol'),
+                              CoreSecondaryButton(
+                                label: 'Google ile Giriş',
+                                onPressed: onGoogleSignInTap,
+                                isOnDarkSurface: true,
                               ),
                               if (onTestGuestTap != null) ...<Widget>[
                                 const SizedBox(
-                                  height: AmberSpacingTokens.space8,
+                                  height: CoreSpacing.space8,
                                 ),
                                 TextButton(
                                   onPressed: onTestGuestTap,

@@ -31,7 +31,7 @@ List<RouteBase> _buildSharedRoutes(_AppRouterRouteDeps deps) {
     GoRoute(
       path: AppRoutePath.profileEdit,
       builder: (context, state) {
-        final user = FirebaseAuth.instance.currentUser;
+        final user = _authCredentialGateway.currentUser;
         return FutureBuilder<_ProfileEditBootstrapData>(
           future: _loadProfileEditBootstrapData(user),
           builder: (context, snapshot) {

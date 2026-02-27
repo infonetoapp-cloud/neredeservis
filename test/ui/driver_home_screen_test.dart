@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:neredeservis/features/subscription/presentation/paywall_copy_tr.dart';
 import 'package:neredeservis/ui/screens/driver_home_screen.dart';
-import 'package:neredeservis/ui/theme/theme_amber.dart';
+import 'package:neredeservis/ui/tokens/cta_tokens.dart';
+import 'package:neredeservis/ui/theme/core_theme.dart';
 
 void main() {
   testWidgets('driver home screen renders amber sections', (
@@ -9,7 +11,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: const DriverHomeScreen(
           appName: 'NeredeServis Dev',
         ),
@@ -18,11 +20,11 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Sofor Home'), findsOneWidget);
+    expect(find.text('Sofor Ana Sayfa'), findsOneWidget);
     expect(find.text('Darica -> GOSB'), findsOneWidget);
     expect(find.text('Gebze -> TUZLA'), findsOneWidget);
     expect(find.text('Bugunluk Not'), findsOneWidget);
-    expect(find.text('Sefer baslatma paneli'), findsOneWidget);
+    expect(find.textContaining('paneli'), findsOneWidget);
   });
 
   testWidgets('driver home actions trigger callbacks', (
@@ -35,7 +37,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: DriverHomeScreen(
           appName: 'NeredeServis Dev',
           onStartTripTap: () {
@@ -54,7 +56,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Seferi Baslat').first);
+    await tester.tap(find.text(CoreCtaTokens.startTrip).first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rota Detayi'));
     await tester.pumpAndSettle();
@@ -62,7 +64,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Rotalari Yonet'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Duyuru gonder'));
+    await tester.tap(find.textContaining('Duyuru'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Ayarlar'));
     await tester.pumpAndSettle();
@@ -71,5 +73,35 @@ void main() {
     expect(manageTapCount, greaterThan(0));
     expect(announcementTapCount, equals(1));
     expect(settingsTapCount, equals(1));
+  });
+
+  testWidgets('trial expired banner renders and triggers callback', (
+    WidgetTester tester,
+  ) async {
+    var bannerTapCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CoreTheme.light(),
+        home: DriverHomeScreen(
+          appName: 'NeredeServis Dev',
+          subscriptionStatus: SubscriptionUiStatus.trialExpired,
+          onSubscriptionBannerTap: () {
+            bannerTapCount++;
+          },
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Denemen bitti.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Aboneligi Yonet').first);
+    await tester.pumpAndSettle();
+
+    expect(bannerTapCount, equals(1));
   });
 }

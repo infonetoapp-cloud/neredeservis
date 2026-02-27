@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
-import '../components/buttons/amber_buttons.dart';
-import '../components/layout/amber_screen_scaffold.dart';
-import '../tokens/color_tokens.dart';
+import '../components/buttons/core_buttons.dart';
+import '../components/layout/core_screen_scaffold.dart';
+import '../tokens/core_colors.dart';
+import '../tokens/core_radii.dart';
+import '../tokens/core_spacing.dart';
 import '../tokens/icon_tokens.dart';
-import '../tokens/radius_tokens.dart';
-import '../tokens/spacing_tokens.dart';
 
 enum PaywallPlan {
   monthly,
@@ -51,7 +51,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AmberScreenScaffold(
+    return CoreScreenScaffold(
       title: PaywallCopyTr.settingsCardTitle,
       subtitle: widget.appName,
       scrollable: true,
@@ -59,25 +59,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _buildStatusBanner(context),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           _HeroCard(subscriptionStatus: widget.subscriptionStatus),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           _buildPlanCards(),
-          const SizedBox(height: AmberSpacingTokens.space12),
-          AmberPrimaryButton(
+          const SizedBox(height: CoreSpacing.space12),
+          CorePrimaryButton(
             label: PaywallCopyTr.primaryCta,
             onPressed: () => widget.onPurchaseTap?.call(_selectedPlan),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
-          AmberSecondaryButton(
+          const SizedBox(height: CoreSpacing.space8),
+          CoreSecondaryButton(
             label: PaywallCopyTr.secondaryCta,
             onPressed: widget.onLaterTap,
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: AmberSpacingTokens.space12,
-            runSpacing: AmberSpacingTokens.space8,
+            spacing: CoreSpacing.space12,
+            runSpacing: CoreSpacing.space8,
             children: <Widget>[
               TextButton(
                 onPressed: widget.onRestoreTap,
@@ -89,12 +89,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
               ),
             ],
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           Text(
             PaywallCopyTr.legalLine,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AmberColorTokens.ink700,
+                  color: CoreColors.ink700,
                 ),
           ),
         ],
@@ -110,24 +110,24 @@ class _PaywallScreenState extends State<PaywallScreen> {
     );
 
     final toneColor = switch (widget.subscriptionStatus) {
-      SubscriptionUiStatus.trialExpired => AmberColorTokens.dangerStrong,
-      SubscriptionUiStatus.active => AmberColorTokens.success,
-      SubscriptionUiStatus.trialActive => AmberColorTokens.amber500,
-      SubscriptionUiStatus.mock => AmberColorTokens.ink700,
+      SubscriptionUiStatus.trialExpired => CoreColors.dangerStrong,
+      SubscriptionUiStatus.active => CoreColors.success,
+      SubscriptionUiStatus.trialActive => CoreColors.amber500,
+      SubscriptionUiStatus.mock => CoreColors.ink700,
     };
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AmberColorTokens.surface0,
-        borderRadius: AmberRadiusTokens.radius14,
-        border: Border.all(color: toneColor.withValues(alpha: 0.28)),
+        color: CoreColors.surface0,
+        borderRadius: CoreRadii.radius12,
+        border: Border.all(color: toneColor.withOpacity(0.28)),
       ),
       child: Padding(
-        padding: AmberSpacingTokens.cardPadding,
+        padding: CoreSpacing.cardPadding,
         child: Row(
           children: <Widget>[
-            Icon(AmberIconTokens.info, color: toneColor),
-            const SizedBox(width: AmberSpacingTokens.space8),
+            Icon(CoreIconTokens.info, color: toneColor),
+            const SizedBox(width: CoreSpacing.space8),
             Expanded(
               child: Text(
                 message,
@@ -172,7 +172,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
           return Column(
             children: <Widget>[
               monthlyCard,
-              const SizedBox(height: AmberSpacingTokens.space8),
+              const SizedBox(height: CoreSpacing.space8),
               yearlyCard,
             ],
           );
@@ -181,7 +181,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         return Row(
           children: <Widget>[
             Expanded(child: monthlyCard),
-            const SizedBox(width: AmberSpacingTokens.space8),
+            const SizedBox(width: CoreSpacing.space8),
             Expanded(child: yearlyCard),
           ],
         );
@@ -204,19 +204,19 @@ class _HeroCard extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: AmberRadiusTokens.radius20,
+        borderRadius: CoreRadii.radius20,
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            AmberColorTokens.amber100,
-            AmberColorTokens.surface50,
+            CoreColors.amber100,
+            CoreColors.surface50,
           ],
         ),
-        border: Border.all(color: AmberColorTokens.line200),
+        border: Border.all(color: CoreColors.line200),
       ),
       child: Padding(
-        padding: AmberSpacingTokens.cardPadding,
+        padding: CoreSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -224,18 +224,18 @@ class _HeroCard extends StatelessWidget {
               PaywallCopyTr.paywallTitle,
               style: textTheme.headlineSmall,
             ),
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             Text(
               subtitle,
               style: textTheme.bodyMedium?.copyWith(
-                color: AmberColorTokens.ink700,
+                color: CoreColors.ink700,
               ),
             ),
-            const SizedBox(height: AmberSpacingTokens.space12),
+            const SizedBox(height: CoreSpacing.space12),
             const _FeatureBullet(label: PaywallCopyTr.paywallFeatureLive),
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             const _FeatureBullet(label: PaywallCopyTr.paywallFeaturePriority),
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             const _FeatureBullet(
               label: PaywallCopyTr.paywallFeatureResync,
             ),
@@ -256,11 +256,11 @@ class _FeatureBullet extends StatelessWidget {
     return Row(
       children: <Widget>[
         const Icon(
-          AmberIconTokens.checkCircle,
-          color: AmberColorTokens.success,
+          CoreIconTokens.checkCircle,
+          color: CoreColors.success,
           size: 18,
         ),
-        const SizedBox(width: AmberSpacingTokens.space8),
+        const SizedBox(width: CoreSpacing.space8),
         Expanded(
           child: Text(
             label,
@@ -291,22 +291,21 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor =
-        selected ? AmberColorTokens.amber500 : AmberColorTokens.line200;
+    final borderColor = selected ? CoreColors.amber500 : CoreColors.line200;
     final backgroundColor =
-        selected ? AmberColorTokens.amber100 : AmberColorTokens.surface0;
+        selected ? CoreColors.amber100 : CoreColors.surface0;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AmberRadiusTokens.radius20,
+        borderRadius: CoreRadii.radius20,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: AmberSpacingTokens.cardPadding,
+          padding: CoreSpacing.cardPadding,
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: AmberRadiusTokens.radius20,
+            borderRadius: CoreRadii.radius20,
             border: Border.all(
               color: borderColor,
               width: selected ? 2 : 1,
@@ -326,32 +325,32 @@ class _PlanCard extends StatelessWidget {
                   if (badgeLabel != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AmberSpacingTokens.space8,
+                        horizontal: CoreSpacing.space8,
                         vertical: 4,
                       ),
                       decoration: const BoxDecoration(
-                        color: AmberColorTokens.ink900,
-                        borderRadius: AmberRadiusTokens.radius28,
+                        color: CoreColors.ink900,
+                        borderRadius: CoreRadii.radius28,
                       ),
                       child: Text(
                         badgeLabel!,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AmberColorTokens.surface0,
+                              color: CoreColors.surface0,
                             ),
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: AmberSpacingTokens.space8),
+              const SizedBox(height: CoreSpacing.space8),
               Text(
                 priceLabel,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: AmberSpacingTokens.space8),
+              const SizedBox(height: CoreSpacing.space8),
               Text(
                 description,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AmberColorTokens.ink700,
+                      color: CoreColors.ink700,
                     ),
               ),
             ],

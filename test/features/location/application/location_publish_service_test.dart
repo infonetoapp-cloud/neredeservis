@@ -11,6 +11,7 @@ void main() {
   late LocalQueueRepository localQueueRepository;
   late _FakeLiveLocationRepository liveLocationRepository;
   late List<LocationHistorySampleRecord> historySamples;
+  late List<LocationPublishMetric> publishMetrics;
   late DateTime fixedNowUtc;
   late LocationPublishService Function() buildService;
 
@@ -19,6 +20,7 @@ void main() {
     localQueueRepository = LocalQueueRepository(database: database);
     liveLocationRepository = _FakeLiveLocationRepository();
     historySamples = <LocationHistorySampleRecord>[];
+    publishMetrics = <LocationPublishMetric>[];
     fixedNowUtc = DateTime.utc(2026, 2, 19, 12, 0, 0);
     buildService = () {
       return LocationPublishService(
@@ -28,6 +30,7 @@ void main() {
           historySamples.add(sample);
         },
         nowUtc: () => fixedNowUtc,
+        metricListener: publishMetrics.add,
       );
     };
   });
@@ -58,6 +61,9 @@ void main() {
     expect(result.outcome, LocationPublishOutcome.publishedLive);
     expect(liveLocationRepository.upserted, hasLength(1));
     expect(historySamples, isEmpty);
+    expect(publishMetrics, hasLength(1));
+    expect(publishMetrics.single.outcome, LocationPublishOutcome.publishedLive);
+    expect(publishMetrics.single.publishIntervalMs, isNull);
   });
 
   test('publish queues sample when live write fails', () async {
@@ -173,6 +179,42 @@ void main() {
           ..where((tbl) => tbl.id.equals(rowId)))
         .getSingle();
     expect(row.retryCount, 1);
+  });
+
+  test('publish emits interval metric on consecutive attempts', () async {
+    final service = buildService();
+    final nowMs = fixedNowUtc.millisecondsSinceEpoch;
+
+    await service.publish(
+      LocationPublishInput(
+        ownerUid: 'driver-6',
+        routeId: 'route-6',
+        lat: 40.95,
+        lng: 29.35,
+        accuracy: 4,
+        sampledAtMs: nowMs - 2000,
+        createdAtMs: nowMs - 2000,
+      ),
+    );
+
+    fixedNowUtc = fixedNowUtc.add(const Duration(seconds: 4));
+    final secondNowMs = fixedNowUtc.millisecondsSinceEpoch;
+    await service.publish(
+      LocationPublishInput(
+        ownerUid: 'driver-6',
+        routeId: 'route-6',
+        lat: 40.951,
+        lng: 29.351,
+        accuracy: 4,
+        sampledAtMs: secondNowMs - 1500,
+        createdAtMs: secondNowMs - 1500,
+      ),
+    );
+
+    expect(publishMetrics, hasLength(2));
+    expect(publishMetrics.first.publishIntervalMs, isNull);
+    expect(publishMetrics.last.publishIntervalMs, 4000);
+    expect(publishMetrics.last.staleReplay, isFalse);
   });
 }
 

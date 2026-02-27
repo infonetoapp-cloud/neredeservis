@@ -5,9 +5,8 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
     GoRoute(
       path: AppRoutePath.auth,
       builder: (context, state) {
-        final nextRole = _resolveAuthNextRole(
-          state.uri.queryParameters[_authNextRoleQueryKey],
-        );
+        final query = _AuthEntryRouteQuery.fromState(state);
+        final nextRole = query.nextRole;
         return EmailAuthScreen(
           appName: deps.flavorConfig.appName,
           continueHint: _resolveAuthContinueHint(nextRole),
@@ -43,12 +42,9 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
     GoRoute(
       path: AppRoutePath.authEmail,
       builder: (context, state) {
-        final nextRole = _resolveAuthNextRole(
-          state.uri.queryParameters[_authNextRoleQueryKey],
-        );
-        final mode = _resolveAuthEmailMode(
-          state.uri.queryParameters[_authEmailModeQueryKey],
-        );
+        final query = _AuthEntryRouteQuery.fromState(state);
+        final nextRole = query.nextRole;
+        final mode = query.emailMode;
         final isRegister = mode == _authEmailModeRegister;
         final isForgot = mode == _authEmailModeForgot;
         return EmailAuthScreen(
@@ -124,9 +120,8 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
     GoRoute(
       path: AppRoutePath.splash,
       builder: (context, state) {
-        final nextRole = _resolveAuthNextRole(
-          state.uri.queryParameters[_authNextRoleQueryKey],
-        );
+        final query = _AuthEntryRouteQuery.fromState(state);
+        final nextRole = query.nextRole;
         return EmailAuthScreen(
           appName: deps.flavorConfig.appName,
           continueHint: _resolveAuthContinueHint(nextRole),
@@ -161,7 +156,8 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
     ),
     GoRoute(
       path: AppRoutePath.roleSelect,
-      builder: (context, state) => _DoubleBackExitGuard(
+      builder: (context, state) => RouterDoubleBackExitGuard(
+        onBackBlocked: _showDoubleBackExitHint,
         child: RoleSelectScreen(
           appName: deps.flavorConfig.appName,
           onDriverTap: () => _handleContinueAsDriver(context),
@@ -178,12 +174,10 @@ List<RouteBase> _buildPublicJoinRoutes(_AppRouterRouteDeps _) {
     GoRoute(
       path: AppRoutePath.join,
       builder: (context, state) {
-        final selectedRoleRaw =
-            joinRoleFromQuery(state.uri.queryParameters[_joinRoleQueryKey]);
-        final selectedRole = selectedRoleRaw == JoinRole.unknown
-            ? JoinRole.passenger
-            : selectedRoleRaw;
-        return _DoubleBackExitGuard(
+        final query = _JoinRouteQuery.fromState(state);
+        final selectedRole = query.selectedRole;
+        return RouterDoubleBackExitGuard(
+          onBackBlocked: _showDoubleBackExitHint,
           child: JoinScreen(
             selectedRole: selectedRole,
             authCtaLabel: _buildJoinAuthCtaLabel(selectedRole),
@@ -212,12 +206,8 @@ List<RouteBase> _buildPublicJoinRoutes(_AppRouterRouteDeps _) {
     GoRoute(
       path: AppRoutePath.joinQr,
       builder: (context, state) {
-        final selectedRoleRaw = joinRoleFromQuery(
-          state.uri.queryParameters[_joinRoleQueryKey],
-        );
-        final selectedRole = selectedRoleRaw == JoinRole.unknown
-            ? JoinRole.passenger
-            : selectedRoleRaw;
+        final query = _JoinRouteQuery.fromState(state);
+        final selectedRole = query.selectedRole;
         return JoinQrScannerScreen(
           onBackTap: () {
             final navigator = Navigator.of(context);
@@ -240,22 +230,16 @@ List<RouteBase> _buildPublicJoinRoutes(_AppRouterRouteDeps _) {
     GoRoute(
       path: AppRoutePath.joinSuccess,
       builder: (context, state) {
-        final selectedRoleRaw = joinRoleFromQuery(
-          state.uri.queryParameters[_joinRoleQueryKey],
-        );
-        final selectedRole = selectedRoleRaw == JoinRole.unknown
-            ? JoinRole.passenger
-            : selectedRoleRaw;
-        final nextPath =
-            _nullableParam(state.uri.queryParameters[_joinNextPathQueryKey]) ??
-                _buildJoinRoute(role: selectedRole);
+        final query = _JoinSuccessRouteQuery.fromState(state);
+        final selectedRole = query.selectedRole;
+        final nextPath = query.nextPath ?? _buildJoinRoute(role: selectedRole);
         final isGuest = selectedRole == JoinRole.guest;
         return JoinSuccessScreen(
-          title: isGuest ? 'Takip HazÄ±r' : 'KatÄ±lÄ±m BaÅŸarÄ±lÄ±',
+          title: isGuest ? 'Takip Haz?r' : 'Kat?l?m Ba?ar?l?',
           description: isGuest
-              ? 'Misafir takip oturumu oluÅŸturuldu. Servisi canlÄ± izleyebilirsin.'
-              : 'Servise katÄ±lÄ±m tamamlandi. Takip ekranina gecerek canlÄ± konumu izleyebilirsin.',
-          primaryCtaLabel: 'Takibi GÃ¶rÃ¼ntÃ¼le',
+              ? 'Misafir takip oturumu olu?turuldu. Servisi canl? izleyebilirsin.'
+              : 'Servise kat?l?m tamamland?. Takip ekran?na ge?erek canl? konumu izleyebilirsin.',
+          primaryCtaLabel: 'Takibi G?r?nt?le',
           onBackTap: () => context.go(_buildJoinRoute(role: selectedRole)),
           onPrimaryTap: () => context.go(nextPath),
         );
@@ -264,15 +248,9 @@ List<RouteBase> _buildPublicJoinRoutes(_AppRouterRouteDeps _) {
     GoRoute(
       path: AppRoutePath.joinError,
       builder: (context, state) {
-        final selectedRoleRaw = joinRoleFromQuery(
-          state.uri.queryParameters[_joinRoleQueryKey],
-        );
-        final selectedRole = selectedRoleRaw == JoinRole.unknown
-            ? JoinRole.passenger
-            : selectedRoleRaw;
-        final reason = _nullableParam(
-                state.uri.queryParameters[_joinErrorReasonQueryKey]) ??
-            _joinErrorUnknown;
+        final query = _JoinErrorRouteQuery.fromState(state);
+        final selectedRole = query.selectedRole;
+        final reason = query.reason;
         final content = _resolveJoinErrorContent(reason);
         return JoinErrorScreen(
           title: content.title,

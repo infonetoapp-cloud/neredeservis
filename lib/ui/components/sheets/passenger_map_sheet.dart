@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../tokens/color_tokens.dart';
-import '../../tokens/elevation_tokens.dart';
+import '../../../features/domain/data/phone_masking_helper.dart';
+import '../../tokens/core_colors.dart';
+import '../../tokens/core_elevations.dart';
+import '../../tokens/core_radii.dart';
+import '../../tokens/core_spacing.dart';
+import '../../tokens/core_typography.dart';
+import '../../tokens/empty_state_tokens.dart';
 import '../../tokens/icon_tokens.dart';
-import '../../tokens/radius_tokens.dart';
-import '../../tokens/spacing_tokens.dart';
-import '../../tokens/typography_tokens.dart';
-import '../banners/amber_stale_status_banner.dart';
-import '../buttons/amber_buttons.dart';
+import '../banners/core_stale_status_banner.dart';
+import '../buttons/black_action_button.dart';
+import '../buttons/core_buttons.dart';
 
 /// Data class representing a single stop in the route.
 class PassengerStopInfo {
@@ -31,6 +34,18 @@ class PassengerStopInfo {
   final int? passengersWaiting;
 }
 
+class PassengerDriverSnapshotInfo {
+  const PassengerDriverSnapshotInfo({
+    required this.name,
+    required this.plate,
+    required this.phone,
+  });
+
+  final String name;
+  final String plate;
+  final String? phone;
+}
+
 /// Stale freshness level for the driver's location signal.
 ///
 /// Runbook 328: 4-level stale system (0-30s, 31-120s, 121-300s, 300+s).
@@ -51,7 +66,7 @@ enum LocationFreshness {
 /// A draggable bottom sheet for passengers to track the service vehicle.
 ///
 /// Runbook 156 / Design rule 3.4 line 93:
-/// - ETA + stale + sofor notu tek sheet'te.
+/// - ETA + stale + şoför notu tek sheet'te.
 /// - Late departure label when `now > scheduledTime + 10 dk`.
 /// - Single sheet on passenger screen (runbook 175).
 ///
@@ -62,6 +77,7 @@ class PassengerMapSheet extends StatelessWidget {
     super.key,
     this.estimatedMinutes,
     this.etaSourceLabel,
+    this.lastEtaSourceLabel,
     this.freshness = LocationFreshness.live,
     this.lastSeenAgo,
     this.driverNote,
@@ -69,8 +85,14 @@ class PassengerMapSheet extends StatelessWidget {
     this.isLate = false,
     this.routeName,
     this.scheduledTime,
+    this.morningReminderNote,
+    this.vacationModeNote,
+    this.driverSnapshot,
+    this.isSoftLockMode = false,
     this.onKeepNotificationsTap,
     this.onBackToServicesTap,
+    this.onSkipTodayTap,
+    this.onMessageDriverTap,
   });
 
   /// Estimated time of arrival in minutes (crow-fly × 1.3 fallback).
@@ -80,10 +102,13 @@ class PassengerMapSheet extends StatelessWidget {
   /// Source label for ETA, e.g. `Kus ucusu` or `Directions API`.
   final String? etaSourceLabel;
 
+  /// Last ETA computation source shown as a compact diagnostic label.
+  final String? lastEtaSourceLabel;
+
   /// Current freshness of the driver's location signal.
   final LocationFreshness freshness;
 
-  /// Human-readable time since last location update, e.g. `2 dk once`.
+  /// iuman-readable time since last location update, e.g. `2 dk once`.
   final String? lastSeenAgo;
 
   /// Latest driver announcement note (single line).
@@ -101,50 +126,73 @@ class PassengerMapSheet extends StatelessWidget {
   /// Scheduled departure time label, e.g. `07:30`.
   final String? scheduledTime;
 
-  /// CTA action for "Bildirim Acik Kalsin".
+  /// Morning reminder note shown near departure window.
+  final String? morningReminderNote;
+
+  /// Route vacation mode note (if route is temporarily paused).
+  final String? vacationModeNote;
+
+  /// Driver snapshot captured on trip start.
+  final PassengerDriverSnapshotInfo? driverSnapshot;
+
+  /// Whether route feed is forced to low-priority (soft-lock) mode.
+  final bool isSoftLockMode;
+
+  /// CTA action for "Bildirim Açık Kalsın".
   final VoidCallback? onKeepNotificationsTap;
 
   /// CTA action for "Servislerim'e Don".
   final VoidCallback? onBackToServicesTap;
 
+  /// CTA action for "Bugun Binmiyorum".
+  final VoidCallback? onSkipTodayTap;
+
+  /// CTA action for "Şoföre Mesaj Gönder".
+  final VoidCallback? onMessageDriverTap;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AmberColorTokens.surface0,
+        color: CoreColors.surface0,
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AmberRadiusTokens.radius28Value),
+          top: Radius.circular(CoreRadii.radius28Value),
         ),
-        boxShadow: AmberElevationTokens.shadowLevel2,
+        boxShadow: CoreElevations.shadowLevel2,
+        border: Border.fromBorderSide(
+          BorderSide(color: CoreColors.line200),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           // Drag handle
           Padding(
-            padding: const EdgeInsets.only(top: AmberSpacingTokens.space12),
+            padding: const EdgeInsets.only(top: CoreSpacing.space12),
             child: Center(
               child: Container(
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AmberColorTokens.line200,
+                  color: CoreColors.ink500.withAlpha(80),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
 
           // ETA hero section
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AmberSpacingTokens.space16,
+              horizontal: CoreSpacing.space16,
             ),
-            child: _EtaHeroSection(
+            child: _EtaieroSection(
               estimatedMinutes: estimatedMinutes,
               etaSourceLabel: etaSourceLabel,
+              lastEtaSourceLabel: lastEtaSourceLabel,
               routeName: routeName,
+              freshness: freshness,
             ),
           ),
 
@@ -152,9 +200,9 @@ class PassengerMapSheet extends StatelessWidget {
           if (isLate)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AmberSpacingTokens.space16,
-                AmberSpacingTokens.space12,
-                AmberSpacingTokens.space16,
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
                 0,
               ),
               child: _LateDepatureBanner(
@@ -164,18 +212,44 @@ class PassengerMapSheet extends StatelessWidget {
               ),
             ),
 
+          if (morningReminderNote != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
+                0,
+              ),
+              child: _MorningReminderCard(note: morningReminderNote!),
+            ),
+
+          if (vacationModeNote != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
+                0,
+              ),
+              child: CoreStaleStatusBanner(
+                message: vacationModeNote!,
+                severity: CoreStaleSeverity.warning,
+              ),
+            ),
+
           // Stale location warning
           if (freshness != LocationFreshness.live)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AmberSpacingTokens.space16,
-                AmberSpacingTokens.space12,
-                AmberSpacingTokens.space16,
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
                 0,
               ),
               child: _StaleLocationBanner(
                 freshness: freshness,
                 lastSeenAgo: lastSeenAgo,
+                showSoftLockLabel: isSoftLockMode,
               ),
             ),
 
@@ -183,25 +257,58 @@ class PassengerMapSheet extends StatelessWidget {
           if (driverNote != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AmberSpacingTokens.space16,
-                AmberSpacingTokens.space12,
-                AmberSpacingTokens.space16,
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
                 0,
               ),
               child: _DriverNoteCard(note: driverNote!),
             ),
 
+          if (driverSnapshot != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
+                0,
+              ),
+              child: _DriverSnapshotCard(
+                snapshot: driverSnapshot!,
+                routeName: routeName,
+                onSkipTodayTap: onSkipTodayTap,
+                onMessageDriverTap: onMessageDriverTap,
+              ),
+            )
+          else if (onSkipTodayTap != null || onMessageDriverTap != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                CoreSpacing.space16,
+                CoreSpacing.space12,
+                CoreSpacing.space16,
+                0,
+              ),
+              child: _PassengerQuickActionsCard(
+                onSkipTodayTap: onSkipTodayTap,
+                onMessageDriverTap: onMessageDriverTap,
+              ),
+            ),
+
           // Stop list
           if (stops.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AmberSpacingTokens.space16),
+            const SizedBox(height: CoreSpacing.space16),
             const _SectionDivider(),
             _StopListSection(stops: stops),
+          ] else ...<Widget>[
+            const SizedBox(height: CoreSpacing.space16),
+            const _SectionDivider(),
+            const _StopListEmptyState(),
           ],
 
           // Bottom safe area padding
           SizedBox(
             height: MediaQuery.of(context).padding.bottom +
-                AmberSpacingTokens.space16,
+                CoreSpacing.space16,
           ),
         ],
       ),
@@ -212,16 +319,20 @@ class PassengerMapSheet extends StatelessWidget {
 // --- Internal Widgets (< 300 lines each) ---
 
 /// ETA hero: large minute display + source label + route name.
-class _EtaHeroSection extends StatelessWidget {
-  const _EtaHeroSection({
+class _EtaieroSection extends StatelessWidget {
+  const _EtaieroSection({
     this.estimatedMinutes,
     this.etaSourceLabel,
+    this.lastEtaSourceLabel,
     this.routeName,
+    required this.freshness,
   });
 
   final int? estimatedMinutes;
   final String? etaSourceLabel;
+  final String? lastEtaSourceLabel;
   final String? routeName;
+  final LocationFreshness freshness;
 
   @override
   Widget build(BuildContext context) {
@@ -232,13 +343,13 @@ class _EtaHeroSection extends StatelessWidget {
           Text(
             routeName!,
             style: const TextStyle(
-              fontFamily: AmberTypographyTokens.bodyFamily,
+              fontFamily: CoreTypography.bodyFamily,
               fontWeight: FontWeight.w500,
               fontSize: 13,
-              color: AmberColorTokens.ink700,
+              color: CoreColors.ink700,
             ),
           ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
@@ -247,10 +358,10 @@ class _EtaHeroSection extends StatelessWidget {
               Text(
                 '~$estimatedMinutes',
                 style: const TextStyle(
-                  fontFamily: AmberTypographyTokens.headingFamily,
+                  fontFamily: CoreTypography.headingFamily,
                   fontWeight: FontWeight.w800,
-                  fontSize: 36,
-                  color: AmberColorTokens.ink900,
+                  fontSize: 38,
+                  color: CoreColors.ink900,
                   height: 1.1,
                 ),
               ),
@@ -258,20 +369,20 @@ class _EtaHeroSection extends StatelessWidget {
               const Text(
                 'dk',
                 style: TextStyle(
-                  fontFamily: AmberTypographyTokens.headingFamily,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  color: AmberColorTokens.ink700,
+                  fontFamily: CoreTypography.headingFamily,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  color: CoreColors.ink700,
                 ),
               ),
             ] else
               const Text(
-                'Hesaplaniyor...',
+                'iesaplaniyor...',
                 style: TextStyle(
-                  fontFamily: AmberTypographyTokens.headingFamily,
+                  fontFamily: CoreTypography.headingFamily,
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
-                  color: AmberColorTokens.ink700,
+                  color: CoreColors.ink700,
                 ),
               ),
             const Spacer(),
@@ -279,19 +390,19 @@ class _EtaHeroSection extends StatelessWidget {
             Container(
               width: 10,
               height: 10,
-              decoration: const BoxDecoration(
-                color: AmberColorTokens.success,
+              decoration: BoxDecoration(
+                color: _freshnessColor(freshness),
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 6),
-            const Text(
-              'Canli',
+            Text(
+              _freshnessLabel(freshness),
               style: TextStyle(
-                fontFamily: AmberTypographyTokens.bodyFamily,
-                fontWeight: FontWeight.w600,
+                fontFamily: CoreTypography.bodyFamily,
+                fontWeight: FontWeight.w700,
                 fontSize: 12,
-                color: AmberColorTokens.success,
+                color: _freshnessColor(freshness),
               ),
             ),
           ],
@@ -302,15 +413,46 @@ class _EtaHeroSection extends StatelessWidget {
             child: Text(
               etaSourceLabel!,
               style: TextStyle(
-                fontFamily: AmberTypographyTokens.bodyFamily,
-                fontWeight: FontWeight.w400,
+                fontFamily: CoreTypography.bodyFamily,
+                fontWeight: FontWeight.w500,
                 fontSize: 11,
-                color: AmberColorTokens.ink700.withAlpha(160),
+                color: CoreColors.ink700.withAlpha(160),
+              ),
+            ),
+          ),
+        if (lastEtaSourceLabel != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'Son ETA kaynağı: $lastEtaSourceLabel',
+              style: TextStyle(
+                fontFamily: CoreTypography.bodyFamily,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+                color: CoreColors.ink700.withAlpha(180),
               ),
             ),
           ),
       ],
     );
+  }
+
+  Color _freshnessColor(LocationFreshness freshness) {
+    return switch (freshness) {
+      LocationFreshness.live => CoreColors.success,
+      LocationFreshness.mild => CoreColors.warning,
+      LocationFreshness.stale => CoreColors.amber500,
+      LocationFreshness.lost => CoreColors.dangerStrong,
+    };
+  }
+
+  String _freshnessLabel(LocationFreshness freshness) {
+    return switch (freshness) {
+      LocationFreshness.live => 'Canlı',
+      LocationFreshness.mild => 'Gecikme',
+      LocationFreshness.stale => 'Eski veri',
+      LocationFreshness.lost => 'Bağlantı yok',
+    };
   }
 }
 
@@ -335,26 +477,26 @@ class _LateDepatureBanner extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        AmberStaleStatusBanner(
-          message: 'Sofor henuz baslatmadi (Olasi Gecikme)$timeContext',
-          severity: AmberStaleSeverity.warning,
+        CoreStaleStatusBanner(
+          message: 'Şoför henüz başlatmadı (Olası Gecikme)$timeContext',
+          severity: CoreStaleSeverity.warning,
         ),
         if (onKeepNotificationsTap != null ||
             onBackToServicesTap != null) ...<Widget>[
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           Wrap(
-            spacing: AmberSpacingTokens.space8,
-            runSpacing: AmberSpacingTokens.space8,
+            spacing: CoreSpacing.space8,
+            runSpacing: CoreSpacing.space8,
             children: <Widget>[
               if (onKeepNotificationsTap != null)
-                AmberSecondaryButton(
-                  label: 'Bildirim Acik Kalsin',
+                CoreSecondaryButton(
+                  label: 'Bildirim Açık Kalsın',
                   onPressed: onKeepNotificationsTap,
                   fullWidth: false,
                 ),
               if (onBackToServicesTap != null)
-                AmberSecondaryButton(
-                  label: "Servislerim'e Don",
+                CoreSecondaryButton(
+                  label: "Servislerime Dön",
                   onPressed: onBackToServicesTap,
                   fullWidth: false,
                 ),
@@ -366,36 +508,284 @@ class _LateDepatureBanner extends StatelessWidget {
   }
 }
 
+class _MorningReminderCard extends StatelessWidget {
+  const _MorningReminderCard({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return CoreStaleStatusBanner(
+      message: note,
+      severity: CoreStaleSeverity.warning,
+    );
+  }
+}
+
 /// Stale location banner with severity mapping.
 ///
 /// Runbook 328: 4-level stale (0-30s live, 31-120s mild, 121-300s stale, 300+s lost).
 class _StaleLocationBanner extends StatelessWidget {
-  const _StaleLocationBanner({required this.freshness, this.lastSeenAgo});
+  const _StaleLocationBanner({
+    required this.freshness,
+    this.lastSeenAgo,
+    this.showSoftLockLabel = false,
+  });
 
   final LocationFreshness freshness;
   final String? lastSeenAgo;
+  final bool showSoftLockLabel;
 
   @override
   Widget build(BuildContext context) {
-    final severity = freshness == LocationFreshness.lost
-        ? AmberStaleSeverity.critical
-        : AmberStaleSeverity.warning;
+    final severity = switch (freshness) {
+      LocationFreshness.live => CoreStaleSeverity.warning,
+      LocationFreshness.mild => CoreStaleSeverity.warning,
+      LocationFreshness.stale => CoreStaleSeverity.elevated,
+      LocationFreshness.lost => CoreStaleSeverity.critical,
+    };
 
     final timeLabel = lastSeenAgo ?? '';
-    final message = switch (freshness) {
+    final baseMessage = switch (freshness) {
       LocationFreshness.live => '',
       LocationFreshness.mild => 'Son konum bilgisi $timeLabel',
       LocationFreshness.stale =>
-        'Konum bilgisi gecikiyor ($timeLabel). Servis baglantisi zayif olabilir.',
+        'Konum bilgisi gecikiyor ($timeLabel). Servis bağlantısı zayıf olabilir.',
       LocationFreshness.lost =>
-        'Sofor baglantisi kesildi ($timeLabel). Son bilinen konum gosteriliyor.',
+        'Şoför bağlantısı kesildi ($timeLabel). Son bilinen konum gösteriliyor.',
     };
+    final message = showSoftLockLabel
+        ? '$baseMessage\nServis Bağlantısı: Düşük Öncelik Modu'
+        : baseMessage;
 
     if (message.isEmpty) return const SizedBox.shrink();
 
-    return AmberStaleStatusBanner(
+    return CoreStaleStatusBanner(
       message: message,
       severity: severity,
+    );
+  }
+}
+
+class _DriverSnapshotCard extends StatelessWidget {
+  const _DriverSnapshotCard({
+    required this.snapshot,
+    this.routeName,
+    this.onSkipTodayTap,
+    this.onMessageDriverTap,
+  });
+
+  final PassengerDriverSnapshotInfo snapshot;
+  final String? routeName;
+  final VoidCallback? onSkipTodayTap;
+  final VoidCallback? onMessageDriverTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final maskedPhone = PhoneMaskingHelper.mask(snapshot.phone);
+    final hasVisiblePhone = maskedPhone.isNotEmpty;
+    final phoneLabel =
+        hasVisiblePhone ? 'Iletisim: $maskedPhone' : 'Telefon paylasimi kapali';
+    final maskingPolicyLabel = hasVisiblePhone
+        ? 'Gizlilik: Telefon bilgisi maskeli paylasilir.'
+        : 'Gizlilik: Telefon bilgisi yolculara kapali.';
+    final effectiveRouteName = routeName?.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(CoreSpacing.space12),
+      decoration: BoxDecoration(
+        color: CoreColors.surface50,
+        borderRadius: CoreRadii.radius12,
+        border: Border.all(color: CoreColors.line200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            'Şoför Özeti',
+            style: TextStyle(
+              fontFamily: CoreTypography.bodyFamily,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              color: CoreColors.ink700,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: CoreColors.surface0,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: CoreColors.line200),
+                ),
+                child: const Icon(
+                  CoreIconTokens.user,
+                  color: CoreColors.ink700,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: CoreSpacing.space12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      snapshot.name,
+                      style: const TextStyle(
+                        fontFamily: CoreTypography.bodyFamily,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: CoreColors.ink900,
+                        height: 1.1,
+                      ),
+                    ),
+                    if (effectiveRouteName != null &&
+                        effectiveRouteName.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(
+                        effectiveRouteName,
+                        style: const TextStyle(
+                          fontFamily: CoreTypography.bodyFamily,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          color: CoreColors.ink700,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CoreSpacing.space10,
+                  vertical: CoreSpacing.space8,
+                ),
+                decoration: BoxDecoration(
+                  color: CoreColors.surface0,
+                  borderRadius: CoreRadii.radius12,
+                  border: Border.all(color: CoreColors.line200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'PLAKA',
+                      style: TextStyle(
+                        fontFamily: CoreTypography.bodyFamily,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        color: CoreColors.ink500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      snapshot.plate,
+                      style: const TextStyle(
+                        fontFamily: CoreTypography.headingFamily,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: CoreColors.ink900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            phoneLabel,
+            style: const TextStyle(
+              fontFamily: CoreTypography.bodyFamily,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              color: CoreColors.ink700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            maskingPolicyLabel,
+            style: const TextStyle(
+              fontFamily: CoreTypography.bodyFamily,
+              fontWeight: FontWeight.w400,
+              fontSize: 11,
+              color: CoreColors.ink700,
+            ),
+          ),
+          if (onSkipTodayTap != null || onMessageDriverTap != null) ...<Widget>[
+            const SizedBox(height: CoreSpacing.space12),
+            if (onSkipTodayTap != null)
+              BlackPrimaryButton(
+                label: 'Bugun Binmiyorum',
+                onPressed: onSkipTodayTap,
+              ),
+            if (onSkipTodayTap != null && onMessageDriverTap != null)
+              const SizedBox(height: CoreSpacing.space8),
+            if (onMessageDriverTap != null)
+              BlackPrimaryButton(
+                label: 'Şoföre Mesaj Gönder',
+                onPressed: onMessageDriverTap,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PassengerQuickActionsCard extends StatelessWidget {
+  const _PassengerQuickActionsCard({
+    this.onSkipTodayTap,
+    this.onMessageDriverTap,
+  });
+
+  final VoidCallback? onSkipTodayTap;
+  final VoidCallback? onMessageDriverTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(CoreSpacing.space12),
+      decoration: BoxDecoration(
+        color: CoreColors.surface50,
+        borderRadius: CoreRadii.radius12,
+        border: Border.all(color: CoreColors.line200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            'Hızlı İşlemler',
+            style: TextStyle(
+              fontFamily: CoreTypography.bodyFamily,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: CoreColors.ink700,
+            ),
+          ),
+          if (onSkipTodayTap != null) ...<Widget>[
+            const SizedBox(height: CoreSpacing.space8),
+            BlackPrimaryButton(
+              label: 'Bugun Binmiyorum',
+              onPressed: onSkipTodayTap,
+            ),
+          ],
+          if (onSkipTodayTap != null && onMessageDriverTap != null)
+            const SizedBox(height: CoreSpacing.space8),
+          if (onMessageDriverTap != null)
+            BlackPrimaryButton(
+              label: 'Şoföre Mesaj Gönder',
+              onPressed: onMessageDriverTap,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -410,32 +800,32 @@ class _DriverNoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AmberSpacingTokens.space12),
+      padding: const EdgeInsets.all(CoreSpacing.space12),
       decoration: BoxDecoration(
-        color: AmberColorTokens.amber100,
-        borderRadius: AmberRadiusTokens.radius14,
-        border: Border.all(color: AmberColorTokens.amber400.withAlpha(60)),
+        color: CoreColors.amber100,
+        borderRadius: CoreRadii.radius12,
+        border: Border.all(color: CoreColors.amber400.withAlpha(60)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Icon(
-            AmberIconTokens.megaphone,
-            color: AmberColorTokens.amber500,
+            CoreIconTokens.megaphone,
+            color: CoreColors.amber500,
             size: 18,
           ),
-          const SizedBox(width: AmberSpacingTokens.space8),
+          const SizedBox(width: CoreSpacing.space8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 const Text(
-                  'Sofor Notu',
+                  'Şoför Notu',
                   style: TextStyle(
-                    fontFamily: AmberTypographyTokens.bodyFamily,
+                    fontFamily: CoreTypography.bodyFamily,
                     fontWeight: FontWeight.w600,
                     fontSize: 11,
-                    color: AmberColorTokens.amber500,
+                    color: CoreColors.amber500,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -443,10 +833,10 @@ class _DriverNoteCard extends StatelessWidget {
                 Text(
                   note,
                   style: const TextStyle(
-                    fontFamily: AmberTypographyTokens.bodyFamily,
+                    fontFamily: CoreTypography.bodyFamily,
                     fontWeight: FontWeight.w500,
                     fontSize: 13,
-                    color: AmberColorTokens.ink900,
+                    color: CoreColors.ink900,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -469,9 +859,9 @@ class _SectionDivider extends StatelessWidget {
     return Container(
       height: 1,
       margin: const EdgeInsets.symmetric(
-        horizontal: AmberSpacingTokens.space16,
+        horizontal: CoreSpacing.space16,
       ),
-      color: AmberColorTokens.line200,
+      color: CoreColors.line200,
     );
   }
 }
@@ -486,8 +876,8 @@ class _StopListSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AmberSpacingTokens.space16,
-        vertical: AmberSpacingTokens.space12,
+        horizontal: CoreSpacing.space16,
+        vertical: CoreSpacing.space12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,13 +885,13 @@ class _StopListSection extends StatelessWidget {
           const Text(
             'Duraklar',
             style: TextStyle(
-              fontFamily: AmberTypographyTokens.headingFamily,
+              fontFamily: CoreTypography.headingFamily,
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: AmberColorTokens.ink900,
+              color: CoreColors.ink900,
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           ...stops.map(
             (stop) => _StopRow(
               stop: stop,
@@ -509,6 +899,53 @@ class _StopListSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StopListEmptyState extends StatelessWidget {
+  const _StopListEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: CoreSpacing.space16,
+        vertical: CoreSpacing.space12,
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(CoreSpacing.space12),
+        decoration: BoxDecoration(
+          color: CoreColors.surface50,
+          borderRadius: CoreRadii.radius12,
+          border: Border.all(color: CoreColors.line200),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              CoreEmptyStateTokens.passengerStopsTitle,
+              style: TextStyle(
+                fontFamily: CoreTypography.bodyFamily,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: CoreColors.ink900,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              CoreEmptyStateTokens.passengerStopsDescription,
+              style: TextStyle(
+                fontFamily: CoreTypography.bodyFamily,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: CoreColors.ink700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -524,16 +961,16 @@ class _StopRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dotColor = stop.isPassed
-        ? AmberColorTokens.success
+        ? CoreColors.success
         : stop.isNext
-            ? AmberColorTokens.amber500
-            : AmberColorTokens.line200;
+            ? CoreColors.amber500
+            : CoreColors.line200;
 
     final nameColor = stop.isPassed
-        ? AmberColorTokens.ink700
+        ? CoreColors.ink700
         : stop.isNext
-            ? AmberColorTokens.ink900
-            : AmberColorTokens.ink700;
+            ? CoreColors.ink900
+            : CoreColors.ink700;
 
     final nameWeight = stop.isNext ? FontWeight.w600 : FontWeight.w500;
 
@@ -554,16 +991,16 @@ class _StopRow extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: stop.isNext
                         ? Border.all(
-                            color: AmberColorTokens.amber400,
+                            color: CoreColors.amber400,
                             width: 2,
                           )
                         : null,
                   ),
                   child: stop.isPassed
                       ? const Icon(
-                          AmberIconTokens.check,
+                          CoreIconTokens.check,
                           size: 8,
-                          color: AmberColorTokens.surface0,
+                          color: CoreColors.surface0,
                         )
                       : null,
                 ),
@@ -572,19 +1009,19 @@ class _StopRow extends StatelessWidget {
                     child: Container(
                       width: 1.5,
                       color: stop.isPassed
-                          ? AmberColorTokens.success.withAlpha(100)
-                          : AmberColorTokens.line200,
+                          ? CoreColors.success.withAlpha(100)
+                          : CoreColors.line200,
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: AmberSpacingTokens.space8),
+          const SizedBox(width: CoreSpacing.space8),
           // Stop info
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(
-                bottom: AmberSpacingTokens.space12,
+                bottom: CoreSpacing.space12,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,7 +1029,7 @@ class _StopRow extends StatelessWidget {
                   Text(
                     stop.name,
                     style: TextStyle(
-                      fontFamily: AmberTypographyTokens.bodyFamily,
+                      fontFamily: CoreTypography.bodyFamily,
                       fontWeight: nameWeight,
                       fontSize: 14,
                       color: nameColor,
@@ -607,10 +1044,10 @@ class _StopRow extends StatelessWidget {
                       child: Text(
                         '${stop.passengersWaiting} yolcu bekliyor',
                         style: const TextStyle(
-                          fontFamily: AmberTypographyTokens.bodyFamily,
+                          fontFamily: CoreTypography.bodyFamily,
                           fontWeight: FontWeight.w400,
                           fontSize: 12,
-                          color: AmberColorTokens.ink700,
+                          color: CoreColors.ink700,
                         ),
                       ),
                     ),

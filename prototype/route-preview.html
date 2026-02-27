@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NeredeServis | Servis Takip Linki</title>
+  <meta name="description" content="Paylasilan SRV kodu ile NeredeServis uzerinden canli servis takibini ac.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="NeredeServis | Canli Servis Takibi">
+  <meta property="og:description" content="Paylasilan SRV kodu ile servisin durumunu tek ekrandan izle.">
+  <meta property="og:image" content="https://nerede.servis/screens/screen_05_passenger_live_map.png">
+  <meta property="og:url" content="https://nerede.servis/r">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NeredeServis | Canli Servis Takibi">
+  <meta name="twitter:description" content="Paylasilan SRV kodu ile servisin durumunu tek ekrandan izle.">
+  <meta name="twitter:image" content="https://nerede.servis/screens/screen_05_passenger_live_map.png">
+
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f5f2;
+      --surface: #ffffff;
+      --line: #dcd8cf;
+      --text: #111111;
+      --muted: #5f5f5f;
+      --amber: #e8760a;
+      --amber-dark: #c66206;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Arial", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #fff3e7 0%, var(--bg) 50%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(460px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .srv {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #fffaf5;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .actions {
+      margin-top: 20px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 46px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 600;
+      background: #ffffff;
+    }
+
+    .button.primary {
+      background: var(--amber);
+      color: #111111;
+      border-color: var(--amber);
+    }
+
+    .button.primary:hover {
+      background: var(--amber-dark);
+      border-color: var(--amber-dark);
+      color: #ffffff;
+    }
+
+    .hint {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>NeredeServis</h1>
+    <p>Servis paylasim linki acildi. Devam etmek icin uygulamayi acabilir veya magaza sayfasina gidebilirsin.</p>
+
+    <div class="srv">
+      SRV Kodu: <span id="srv-code-value">-</span>
+    </div>
+
+    <div class="actions">
+      <a id="open-app-link" class="button primary" href="neredeservis://route-preview">Uygulamada Ac</a>
+      <a class="button" href="https://play.google.com/store/apps/details?id=com.neredeservis.app" rel="noopener noreferrer">Google Play</a>
+      <a class="button" href="https://apps.apple.com/tr/search?term=NeredeServis" rel="noopener noreferrer">App Store</a>
+    </div>
+
+    <p class="hint">Uygulama yuku degilse once magaza kurulumunu tamamla.</p>
+  </main>
+
+  <script>
+    (function initializeRoutePreviewLanding() {
+      var pathname = window.location.pathname || "";
+      var srvFromPath = "";
+      var match = pathname.match(/^\/r\/([a-z0-9]{4,12})$/i);
+      if (match && match[1]) {
+        srvFromPath = match[1];
+      }
+
+      var params = new URLSearchParams(window.location.search || "");
+      var srvFromQuery = params.get("srvCode") || "";
+      var srvCodeRaw = srvFromPath || srvFromQuery;
+      var srvCode = srvCodeRaw.trim().toUpperCase();
+      if (!/^[A-Z0-9]{4,12}$/.test(srvCode)) {
+        srvCode = "-";
+      }
+
+      var srvCodeNode = document.getElementById("srv-code-value");
+      if (srvCodeNode) {
+        srvCodeNode.textContent = srvCode;
+      }
+
+      var openLink = document.getElementById("open-app-link");
+      if (!openLink) {
+        return;
+      }
+
+      var deepLink = "neredeservis://route-preview";
+      if (srvCode !== "-") {
+        deepLink += "?srvCode=" + encodeURIComponent(srvCode);
+      }
+      openLink.setAttribute("href", deepLink);
+    })();
+  </script>
+</body>
+</html>

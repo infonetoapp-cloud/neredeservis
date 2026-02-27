@@ -1,4 +1,4 @@
-﻿part of '../app_router.dart';
+part of '../app_router.dart';
 
 String _buildTripActionIdempotencyKey({
   required String action,
@@ -41,21 +41,13 @@ String _randomIdempotencyToken(int length) {
 }
 
 String _resolveDisplayName(User? user) {
-  if (user == null) {
-    return 'Kullanici';
-  }
-  final displayName = user.displayName?.trim();
-  if (displayName != null && displayName.length >= 2) {
-    return displayName;
-  }
-  final email = user.email?.trim();
-  if (email != null && email.isNotEmpty) {
-    final prefix = email.split('@').first.trim();
-    if (prefix.length >= 2) {
-      return prefix;
-    }
-  }
-  return user.isAnonymous ? 'Misafir' : 'Kullanici';
+  return _resolveAuthUserDisplayNameUseCase.execute(
+    ResolveAuthUserDisplayNameCommand(
+      displayName: user?.displayName,
+      email: user?.email,
+      isAnonymous: user?.isAnonymous ?? false,
+    ),
+  );
 }
 
 Future<bool> _tryOpenExternalUri(Uri uri) async {

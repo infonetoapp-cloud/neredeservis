@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 
 import '../../features/subscription/presentation/paywall_copy_tr.dart';
-import '../components/buttons/amber_buttons.dart';
-import '../components/layout/amber_screen_scaffold.dart';
-import '../tokens/color_tokens.dart';
+import '../components/buttons/core_buttons.dart';
+import '../components/layout/core_screen_scaffold.dart';
+import '../tokens/core_colors.dart';
+import '../tokens/core_radii.dart';
+import '../tokens/core_spacing.dart';
 import '../tokens/cta_tokens.dart';
-import '../tokens/radius_tokens.dart';
-import '../tokens/spacing_tokens.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
     super.key,
     required this.appName,
     this.showSubscriptionSection = true,
+    this.showDriverPhoneVisibilitySection = false,
     this.subscriptionStatus = SubscriptionUiStatus.trialActive,
+    this.trialDaysLeft = 0,
     this.initialConsentEnabled = true,
     this.initialVoiceAlertEnabled = true,
+    this.initialShowPhoneToPassengers = true,
     this.onSubscriptionTap,
-    this.onProfileTap,
     this.onConsentTap,
     this.onVoiceAlertTap,
+    this.onDriverPhoneVisibilityTap,
     this.onSupportTap,
     this.onReportIssueTap,
     this.onDeleteAccountTap,
@@ -27,13 +30,16 @@ class SettingsScreen extends StatefulWidget {
 
   final String appName;
   final bool showSubscriptionSection;
+  final bool showDriverPhoneVisibilitySection;
   final SubscriptionUiStatus subscriptionStatus;
+  final int trialDaysLeft;
   final bool initialConsentEnabled;
   final bool initialVoiceAlertEnabled;
+  final bool initialShowPhoneToPassengers;
   final VoidCallback? onSubscriptionTap;
-  final VoidCallback? onProfileTap;
   final ValueChanged<bool>? onConsentTap;
   final ValueChanged<bool>? onVoiceAlertTap;
+  final ValueChanged<bool>? onDriverPhoneVisibilityTap;
   final VoidCallback? onSupportTap;
   final VoidCallback? onReportIssueTap;
   final VoidCallback? onDeleteAccountTap;
@@ -45,17 +51,19 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late bool _consentEnabled;
   late bool _voiceAlertEnabled;
+  late bool _showPhoneToPassengers;
 
   @override
   void initState() {
     super.initState();
     _consentEnabled = widget.initialConsentEnabled;
     _voiceAlertEnabled = widget.initialVoiceAlertEnabled;
+    _showPhoneToPassengers = widget.initialShowPhoneToPassengers;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AmberScreenScaffold(
+    return CoreScreenScaffold(
       title: 'Ayarlar',
       subtitle: widget.appName,
       scrollable: true,
@@ -68,30 +76,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               description: PaywallCopyTr.settingsCardDescriptionForStatus(
                 widget.subscriptionStatus,
               ),
-              child: AmberPrimaryButton(
-                label: AmberCtaTokens.manageSubscription,
+              child: CorePrimaryButton(
+                label: CoreCtaTokens.manageSubscription,
                 onPressed: widget.onSubscriptionTap,
               ),
             ),
-            const SizedBox(height: AmberSpacingTokens.space12),
+            const SizedBox(height: CoreSpacing.space12),
           ],
-          _SectionCard(
-            title: 'Profil',
-            description: 'Ad soyad ve telefon bilgilerini guncelle.',
-            child: AmberSecondaryButton(
-              label: 'Profili Guncelle',
-              onPressed: widget.onProfileTap,
+          if (widget.showDriverPhoneVisibilitySection) ...<Widget>[
+            const SizedBox(height: CoreSpacing.space12),
+            _SectionCard(
+              title: 'Şoför Gizliligi',
+              description: 'Yolculara görünen telefon bilgisini buradan yönet.',
+              child: SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Numaramı yolcularla paylaş'),
+                subtitle: const Text('Kapaliysa yolcular telefonunu goremez.'),
+                value: _showPhoneToPassengers,
+                onChanged: (value) {
+                  setState(() {
+                    _showPhoneToPassengers = value;
+                  });
+                  widget.onDriverPhoneVisibilityTap?.call(value);
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          ],
+          const SizedBox(height: CoreSpacing.space12),
           _SectionCard(
-            title: 'Acik Riza ve KVKK',
+            title: 'Açık Riza ve KVKK',
             description:
-                'Veri isleme izinlerini ve aydinlatma metnini buradan yonet.',
+                'Veri isleme izinlerini ve aydinlatma metnini buradan yönet.',
             child: SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Acik riza onayi'),
-              subtitle: const Text('Onay kapatilirsa canli takip kisitlanir.'),
+              title: const Text('Açık rıza onayi'),
+              subtitle: const Text('Onay kapatılırsa canlı takip kısıtlanır.'),
               value: _consentEnabled,
               onChanged: (value) {
                 setState(() {
@@ -101,16 +120,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           _SectionCard(
             title: 'Bildirimler',
             description:
-                'Sofor aktif seferde baglanti degisimlerini sesli bildirimle duyur.',
+                'Şoför aktif seferde bağlantı değişimlerini sesli bildirimle duyur.',
             child: SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Sesli Uyari'),
+              title: const Text('Sesli Uyarı'),
               subtitle: const Text(
-                'Baglanti kesildi/baglandi ve sefer sonu sesli okunur.',
+                'Bağlantı kesildi/baglandi ve sefer sonu sesli okunur.',
               ),
               value: _voiceAlertEnabled,
               onChanged: (value) {
@@ -121,21 +140,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           _SectionCard(
             title: 'Destek',
             description: 'Sorun bildirimi ve destek kanallari.',
             child: Row(
               children: <Widget>[
                 Expanded(
-                  child: AmberSecondaryButton(
+                  child: CoreSecondaryButton(
                     label: 'Destek Merkezi',
                     onPressed: widget.onSupportTap,
                   ),
                 ),
-                const SizedBox(width: AmberSpacingTokens.space8),
+                const SizedBox(width: CoreSpacing.space8),
                 Expanded(
-                  child: AmberSecondaryButton(
+                  child: CoreSecondaryButton(
                     label: 'Sorun Bildir',
                     onPressed: widget.onReportIssueTap,
                   ),
@@ -143,12 +162,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           _SectionCard(
             title: 'Hesap',
-            description: 'Hesap ve veri silme islemleri.',
-            child: AmberDangerButton(
-              label: 'Hesabimi Sil',
+            description: 'Hesap ve veri silme işlemleri.',
+            child: CoreDangerButton(
+              label: 'Hesabımı Sil',
               onPressed: widget.onDeleteAccountTap,
             ),
           ),
@@ -173,12 +192,12 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AmberColorTokens.surface0,
-        borderRadius: AmberRadiusTokens.radius20,
-        border: Border.all(color: AmberColorTokens.line200),
+        color: CoreColors.surface0,
+        borderRadius: CoreRadii.radius20,
+        border: Border.all(color: CoreColors.line200),
       ),
       child: Padding(
-        padding: AmberSpacingTokens.cardPadding,
+        padding: CoreSpacing.cardPadding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -186,14 +205,14 @@ class _SectionCard extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             Text(
               description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AmberColorTokens.ink700,
+                    color: CoreColors.ink700,
                   ),
             ),
-            const SizedBox(height: AmberSpacingTokens.space12),
+            const SizedBox(height: CoreSpacing.space12),
             child,
           ],
         ),

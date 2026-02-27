@@ -759,4 +759,59 @@ void main() {
         .getSingleOrNull();
     expect(reasonRow?.value, 'manual_reset');
   });
+
+  test('queue metrics snapshot includes support report and retry counters',
+      () async {
+    final supportQueueId = await repository.enqueueTripAction(
+      ownerUid: 'owner-metrics',
+      actionType: TripQueuedActionType.supportReport,
+      payloadJson: '{"source":"settings"}',
+      idempotencyKey: 'idem-support-metrics',
+      createdAtMs: 1000,
+    );
+    final finishQueueId = await repository.enqueueTripAction(
+      ownerUid: 'owner-metrics',
+      actionType: TripQueuedActionType.finishTrip,
+      payloadJson: '{"tripId":"trip-metrics"}',
+      idempotencyKey: 'idem-finish-metrics',
+      createdAtMs: 1200,
+    );
+    await repository.claimReplayableTripActions(nowMs: 2000);
+    await repository.markTripActionRetryableFailure(
+      id: supportQueueId,
+      nowMs: 2500,
+      errorCode: 'unavailable',
+    );
+    await repository.markTripActionPermanentFailure(
+      id: finishQueueId,
+      nowMs: 2600,
+      errorCode: 'internal',
+    );
+
+    final locationQueueId = await repository.enqueueLocationSample(
+      ownerUid: 'owner-metrics',
+      routeId: 'route-metrics',
+      lat: 40.9,
+      lng: 29.3,
+      accuracy: 5.0,
+      sampledAtMs: 900,
+      createdAtMs: 900,
+    );
+    await repository.markLocationSampleFailure(
+      id: locationQueueId,
+      nowMs: 3000,
+    );
+
+    final metrics = await repository.getQueueMetricsSnapshot(
+      ownerUid: 'owner-metrics',
+    );
+    expect(metrics.tripPendingCount, greaterThanOrEqualTo(1));
+    expect(metrics.tripFailedPermanentCount, equals(1));
+    expect(metrics.supportReportPendingCount, greaterThanOrEqualTo(1));
+    expect(metrics.supportReportFailedPermanentCount, equals(0));
+    expect(metrics.locationQueuedCount, equals(1));
+    expect(metrics.locationRetryingCount, equals(1));
+    expect(metrics.oldestTripActionCreatedAtMs, equals(1000));
+    expect(metrics.oldestLocationSampledAtMs, equals(900));
+  });
 }

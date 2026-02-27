@@ -14882,6 +14882,343 @@ Etiket: codex
 4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
    - Sonuc: PASS
 
+## 2026-02-24 - Faz 3 Route Mutation Outcome Executor Helper Standardizasyonu
+
+### Yapilanlar
+- `route_mutation` router-side outcome executor helper'lari eklendi:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_executeCreateDriverRouteFailureOutcome(...)`
+  - `_showRouteMutationWriteSuccessOutcome(...)`
+  - `_showRouteMutationWriteFailureOutcome(...)`
+- `route_mutation` handler branch migration:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleCreateRoute(...)` failure branch artik tek helper cagiriyor
+  - `_handleUpdateRoute(...)`, `_handleUpsertStop(...)`, `_handleDeleteStop(...)` success/failure feedback branch'leri helper'a delege edildi
+- Ek sadeleştirme:
+  - `_ensureDriverReadyForRouteMutation(...)` icindeki duplicate `FirebaseFunctionsException`/generic catch bloklari tek `catch` akısına indirildi (davranış degismeden; her iki durumda da ayni UI outcome uygulanıyordu)
+
+### Sonuc
+- `route_mutation_handlers.dart` icindeki outcome plan application tekrarları azaldi.
+- Handler'lar daha net şekilde `commit -> plan -> execute helper` akışını izliyor.
+- `route_mutation_support_helpers.dart` outcome execution sorumlulugunu merkezileştirdi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` helper/setlerini standalone `router_route_mutation_outcome_helpers.dart` dosyasina tasiyarak `route_mutation_support_helpers.dart`'i daha da inceltmek
+- veya `_ensureDriverReadyForRouteMutation(...)` icin `auth credential read + readiness use-case invoke + destination resolve` adimlarini da typed orchestration helper/use-case'e tasimak
+
+## 2026-02-24 - Faz 3 Route Mutation Outcome Helper'lar Standalone Router Dosyasina Tasindi
+
+### Yapilanlar
+- `route_mutation` outcome executor helper seti standalone router helper dosyasina tasindi:
+  - `lib/app/router/router_route_mutation_outcome_helpers.dart`
+  - `applyRouterDriverRouteMutationReadinessUiOutcome(...)`
+  - `executeRouterCreateDriverRouteFailureOutcome(...)`
+  - `showRouterRouteMutationWriteSuccessOutcome(...)`
+  - `showRouterRouteMutationWriteFailureOutcome(...)`
+- `route_mutation_support_helpers.dart` callsite migration:
+  - readiness UI outcome apply branch'leri yeni helper'a delege edildi
+- `route_mutation_handlers.dart` callsite migration:
+  - create failure + write success/failure branch'leri yeni standalone helper'a delege edildi
+- `app_router.dart` import wiring guncellendi:
+  - `router_route_mutation_outcome_helpers.dart`
+
+### Ek Sadelestirme
+- `_ensureDriverReadyForRouteMutation(...)` icindeki duplicate error catch akisi tek generic `catch` blokta toplandi (davranis degismeden; her iki durumda da ayni profile-check-failed outcome'u uygulanıyordu).
+
+### Sonuc
+- `route_mutation_support_helpers.dart` icindeki outcome execution kodu azaldi; dosya sorumlulugu daha netleşti.
+- `route_mutation` outcome application logic artik `app/router` seviyesinde reusable standalone helper dosyasinda.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/router_route_mutation_outcome_helpers.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/router_route_mutation_outcome_helpers.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/router_runtime_use_cases.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `_ensureDriverReadyForRouteMutation(...)` icin `auth credential read + readiness use-case invoke + destination resolve` adimlarini typed orchestration helper/use-case'e tasimak
+- veya `route_mutation_support_helpers.dart` icindeki kalan helper'lari (readiness + cache write + srv dialog) tematik dosyalara ayirmak
+
+## 2026-02-24 - Faz 3 Route Mutation Feedback Resolver Extraction + Mojibake Temizligi
+
+### Yapilanlar
+- `lib/app/router/embedded/route_mutation_support_helpers.dart` icindeki bozuk/uzun mojibake mesaj satirlari temizlendi ve kisa/readable copy ile degistirildi.
+- Ayni dosyada `SRV` kodu dialog `Text(...)` bloğundaki kapanis parantezi sentaks kirigi duzeltildi.
+- `route mutation` write feedback message switch'i router helper'dan application use-case'e tasindi:
+  - yeni use-case: `lib/features/driver/application/resolve_route_mutation_write_feedback_message_use_case.dart`
+  - runtime wiring: `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - callsite migration: `lib/app/router/embedded/route_mutation_handlers.dart`
+- Router helper icindeki `_resolveRouteMutationWriteFeedbackMessage(...)` kaldirildi:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+- Yeni unit test eklendi:
+  - `test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart`
+
+### Sonuc
+- `route_mutation_support_helpers.dart` parse/sentaks olarak stabil hale geldi (devasa bozuk string satirlari temizlendi).
+- `updateRoute / upsertStop / deleteStop` feedback copy branching router helper yerine typed application use-case uzerinden cozuluyor.
+- `route_mutation` tarafinda router ownership biraz daha inceldi; Faz 3 use-case standardizasyonu devam etti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_route_mutation_write_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/resolve_route_mutation_write_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` create failure copy mapping (`_mapRouteMutationError`) icin benzer resolver use-case extraction (router helper switch'ini inceltme)
+- veya `create route` UI side-effect execution (`SRV` dialog + navigation) icin typed post-commit executor/helper standardizasyonu
+
+## 2026-02-24 - Faz 3 Route Mutation Create Failure Feedback Resolver Extraction
+
+### Yapilanlar
+- `route_mutation` create failure feedback copy switch'i router helper'dan application resolver use-case'e tasindi:
+  - yeni use-case: `lib/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case.dart`
+  - runtime wiring: `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - router helper sadeleştirme: `lib/app/router/embedded/route_mutation_support_helpers.dart` (`_mapRouteMutationError`)
+- Yeni unit test eklendi:
+  - `test/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case_test.dart`
+- Var olan write feedback resolver testleri ile birlikte regresyon doğrulamasi tekrar koşuldu.
+
+### Sonuc
+- `route_mutation_support_helpers.dart` icindeki create failure message branching de application katmanina alinmis oldu.
+- Router helper tarafinda `plan -> resolve message` delegasyonu standardı oturdu (write + create failure).
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case.dart lib/features/driver/application/resolve_route_mutation_write_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case_test.dart test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case.dart lib/features/driver/application/resolve_route_mutation_write_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case_test.dart test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/resolve_route_mutation_write_feedback_message_use_case_test.dart test/features/driver/application/resolve_route_mutation_create_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `create route` UI side-effect execution (`SRV` dialog + navigation) icin typed post-commit executor/helper standardizasyonu
+- veya `route_mutation` dialog/UI copy'lerini router dialog helper standardına tasiyip Faz 2/Faz 3 sinirini daha da netlestirme
+
+## 2026-02-24 - Faz 3 Create Route Post-Commit UI Execution Helper Extraction
+
+### Yapilanlar
+- `create route` success sonrasindaki router-side execution zinciri (`recent cache write + SRV dialog + driver home navigation`) handler icinden helper'a tasindi:
+  - yeni helper: `lib/app/router/router_create_driver_route_post_commit_executor.dart`
+  - `applyRouterCreateDriverRoutePostCommitCacheWritePlan(...)`
+  - `executeRouterCreateDriverRoutePostCommitUiEffects(...)`
+- `route_mutation` handler sadeleştirildi:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleCreateRoute(...)` artik post-commit plan execution icin helper kullanıyor
+- Cache write bridge helper eklendi:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_rememberRecentDriverCreatedRouteFromPlan(...)`
+- Router import wiring guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Not (Lint/Safety)
+- `use_build_context_synchronously` uyarisini davranis degistirmeden kapatmak icin cache write adimi context'siz helper'a ayrildi; `BuildContext` kullanan dialog/navigation adimlari `if (!context.mounted)` kontrolunden sonra calisiyor.
+
+### Sonuc
+- `_handleCreateRoute(...)` icindeki success orchestration daha okunur ve maintainable hale geldi.
+- `PlanCreateDriverRoutePostCommitHandlingUseCase` ciktisi artik tek bir execution helper standardi ile uygulanıyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/router_create_driver_route_post_commit_executor.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/router_create_driver_route_post_commit_executor.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` icindeki `SRV` code dialog UI'sini (`_showSrvCodeDialog`) router dialog helper standardina tasimak
+- veya `route_mutation` precondition redirect/error handling branch'lerini typed action/result planina tasiyarak handler branch sayisini azaltmak
+
+## 2026-02-24 - Faz 3 Route Mutation SRV Dialog Helper Standardizasyonu
+
+### Yapilanlar
+- `SRV code` dialog UI bloğu standalone router dialog helper'a tasindi:
+  - `lib/app/router/router_dialog_helpers.dart`
+  - yeni helper: `showRouterSrvCodeDialog(...)`
+- `route_mutation` tarafindaki `_showSrvCodeDialog(...)` artik helper'a delege ediyor:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - copy-to-clipboard sonucu `bool` olarak donuyor; toast (`SRV kodu panoya kopyalandi.`) davranisi router helper'da korunuyor
+- Router main library import cleanup:
+  - `lib/app/router/app_router.dart` icinde `Clipboard` / `ClipboardData` importlari kaldirildi (`PlatformException` kaldi)
+
+### Sonuc
+- `route_mutation_support_helpers.dart` icindeki büyük dialog UI bloğu inceldi.
+- `router_dialog_helpers.dart` icinde reusable dialog standardi genisledi (yes/no + SRV code dialog).
+- Davranis degismedi: `Kopyala` clipboard'a yaziyor, dialog kapaniyor ve toast gosteriliyor; `Tamam` sadece dialog'u kapatiyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/router_dialog_helpers.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/router_dialog_helpers.dart lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` precondition redirect/error handling branch'lerini typed action/result planina tasiyarak `_handleCreateRoute(...)` branch sayisini azaltmak
+- veya `route_mutation_support_helpers.dart` icindeki create-failure redirect davranisini (`driverProfilePrecondition`) typed outcome use-case'e tasimak
+
+## 2026-02-24 - Faz 3 Create Route Failure Handling Outcome Planner Extraction
+
+### Yapilanlar
+- `create route` failure branch'i icin typed action/result planner use-case eklendi:
+  - `lib/features/driver/application/plan_create_driver_route_failure_handling_use_case.dart`
+  - cikti: `CreateDriverRouteFailureHandlingPlan`
+  - action enum: `CreateDriverRouteFailureHandlingAction`
+- Use-case, mevcut `route mutation create failure feedback planner + message resolver` zincirini compose ediyor:
+  - redirect gerekli mi (`driverProfilePrecondition`)
+  - gosterilecek feedback mesaji
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+- `create route` catch bloğu sadeleştirildi:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleDriverProfilePreconditionForRoute(...)` ve `_mapRouteMutationError(...)` helper'lari kaldirildi
+- Yeni unit test eklendi:
+  - `test/features/driver/application/plan_create_driver_route_failure_handling_use_case_test.dart`
+
+### Sonuc
+- `_handleCreateRoute(...)` icindeki `precondition redirect + message` branching tek typed plan uzerinden cozuluyor.
+- `route_mutation_support_helpers.dart` daha da inceldi (iki router helper daha gitti).
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_create_driver_route_failure_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/plan_create_driver_route_failure_handling_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_create_driver_route_failure_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/plan_create_driver_route_failure_handling_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_create_driver_route_failure_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` update/upsert/delete catch branch'leri icin benzer typed failure outcome planner (mesaj + olasi refresh policy)
+- veya `route_mutation_support_helpers.dart` icindeki readiness/precondition flow'unu (`_ensureDriverReadyForRouteMutation`) daha küçük typed step/use-case'lere ayirmak
+
+## 2026-02-24 - Faz 3 Route Mutation Write Failure Outcome Planner Extraction
+
+### Yapilanlar
+- `update/upsert/delete` write failure catch branch'leri icin typed outcome planner use-case eklendi:
+  - `lib/features/driver/application/plan_route_mutation_write_failure_handling_use_case.dart`
+  - cikti: `RouteMutationWriteFailureHandlingPlan`
+  - action enum: `RouteMutationWriteFailureHandlingAction`
+- Use-case, mevcut write feedback planner + message resolver zincirini compose ediyor:
+  - `PlanRouteMutationWriteFeedbackUseCase`
+  - `ResolveRouteMutationWriteFeedbackMessageUseCase`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+- `route_mutation` catch branch migration:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleUpdateRoute(...)`, `_handleUpsertStop(...)`, `_handleDeleteStop(...)` failure branch'leri artik typed `failurePlan.feedbackMessage` kullaniyor
+- Yeni unit test eklendi:
+  - `test/features/driver/application/plan_route_mutation_write_failure_handling_use_case_test.dart`
+
+### Sonuc
+- `route_mutation` write failure catch branch'lerinde planner/resolver tekrarları router handler seviyesinden application katmanina alinmis oldu.
+- `create route` failure planner'dan sonra `update/upsert/delete` failure planner da standardize edildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_route_mutation_write_failure_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_failure_handling_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_route_mutation_write_failure_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_failure_handling_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_route_mutation_write_failure_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` success branch'leri icin benzer typed outcome planner/executor (message + olasi UI refresh policy) standardini tamamlamak
+- veya `route_mutation_support_helpers.dart` icindeki readiness flow (`_ensureDriverReadyForRouteMutation`) icin typed step sonuc modeli cikarmak
+
+## 2026-02-24 - Faz 3 Route Mutation Write Success Outcome Planner Extraction
+
+### Yapilanlar
+- `update/upsert/delete` write success branch'leri icin typed outcome planner use-case eklendi:
+  - `lib/features/driver/application/plan_route_mutation_write_success_handling_use_case.dart`
+  - cikti: `RouteMutationWriteSuccessHandlingPlan`
+  - action enum: `RouteMutationWriteSuccessHandlingAction`
+- Use-case, mevcut write feedback planner + message resolver zincirini compose ediyor:
+  - `PlanRouteMutationWriteFeedbackUseCase`
+  - `ResolveRouteMutationWriteFeedbackMessageUseCase`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+- `route_mutation` success branch migration:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleUpdateRoute(...)`, `_handleUpsertStop(...)`, `_handleDeleteStop(...)` success branch'leri artik typed `successPlan.feedbackMessage` kullaniyor
+- Yeni unit test eklendi:
+  - `test/features/driver/application/plan_route_mutation_write_success_handling_use_case_test.dart`
+
+### Sonuc
+- `route_mutation` write success ve failure branch'leri artik ayni seviyede typed outcome planner standardina sahip.
+- Handler tarafinda planner/resolver tekrari daha da azaldi; Faz 3 standardizasyonu netleşti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_route_mutation_write_success_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_success_handling_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_route_mutation_write_success_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_success_handling_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_route_mutation_write_success_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icindeki readiness flow (`_ensureDriverReadyForRouteMutation`) icin typed step sonuc modeli cikarmak
+- veya `route_mutation` success/failure handler branch'lerini tek `execute outcome plan` helper'i ile daha da sadeleştirmek
+
+## 2026-02-24 - Faz 3 Route Mutation Readiness UI Outcome Planner Extraction
+
+### Yapilanlar
+- `route_mutation` readiness flow UI branch/copy/navigation kararları icin typed planner use-case eklendi:
+  - `lib/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case.dart`
+  - cikti: `DriverRouteMutationReadinessUiOutcomePlan`
+  - navigation enum: `DriverRouteMutationReadinessUiNavigationKind`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+- Router helper tarafinda küçük executor eklendi ve readiness flow migration yapildi:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_applyDriverRouteMutationReadinessUiOutcome(...)`
+  - `_ensureDriverReadyForRouteMutation(...)` artik unauth/profileCheckFailed/roleRequired/profileSetupRequired branch'lerinde typed planner kullaniyor
+- Router import wiring:
+  - `lib/app/router/app_router.dart`
+- Yeni unit test eklendi:
+  - `test/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case_test.dart`
+
+### Sonuc
+- `route_mutation` readiness akışındaki UI kararları (mesaj + navigation hedefi) application katmanında typed hale geldi.
+- `_ensureDriverReadyForRouteMutation(...)` içindeki hardcoded copy/redirect tekrarları azaldi, okunabilirlik artti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart test/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` success/failure handler branch'lerini tek `execute outcome plan` router helper'i ile daha da sadeleştirmek
+- veya `_ensureDriverReadyForRouteMutation(...)` icindeki duplicate catch handling (`FirebaseFunctionsException` / generic catch) akisini tek helper ile sadeleştirmek
+
 ### Sonraki Adim Onerisi
 - Faz 2'de ayni pattern ile `passenger trip history` raw fetch extraction yap.
 - Alternatif: `driver trip completed` / `trip history` router mapping'lerini mapper/composer seam'e tasiyarak router'i daha da incelt.
@@ -16552,3 +16889,2985 @@ Etiket: codex
 
 ### Sonraki Adim Onerisi
 - Faz 2'de bir sonraki mantikli cerrahi dilim: bir sonraki helper/UI glue blogunu `part` extraction ile almak (hedef: `app_router.dart` 5K altina inmek).
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Entry + Membership Helper Part Extraction)
+
+### Yapilanlar
+- `passenger entry/membership` helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_resolveDeleteInterceptorManageUri(...)`
+  - `_resolveDriverEntryDestination(...)`
+  - `_resolvePassengerHomeDestination(...)`
+  - `_resolvePrimaryPassengerMembership(...)`
+  - `_toPassengerMembershipSummaryFromRouteSnapshot(...)`
+  - `_buildPassengerTrackingUri(...)`
+  - `_buildTripChatUri(...)`
+  - `_hasReadyDriverProfile(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_entry_membership_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger entry/membership resolve ve tracking/chat URI helper'lari router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `5021`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_entry_membership_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: `PassengerTracking` route builder icindeki helper/UI glue katmanini parcali extraction ile inceltmek veya typed route param/validation helper extraction'a gecmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Finish Trip Helper Part Extraction)
+
+### Yapilanlar
+- `finishTrip` helper/blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_resolveFinishTripCommitMessage(...)`
+  - `_trackFinishTripCommitTelemetry(...)`
+  - `_mapFinishTripErrorMessage(...)`
+  - `_resolveActiveTripContextForFinish(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/finish_trip_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- `finishTrip` helper/orchestration glue blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4888` (5K altina indi)
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/finish_trip_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: `PassengerTracking` route builder icindeki route-param parse/UI glue blogunu parcali extraction ile inceltmek veya typed route param/validation helper extraction'a gecmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Announcement Helper Part Extraction)
+
+### Yapilanlar
+- `announcement` helper/UI glue blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_flushAnnouncementQueueBestEffort(...)`
+  - `_mapAnnouncementErrorMessage(...)`
+  - `_shouldRedirectToPaywallAfterAnnouncementFailure(...)`
+  - `_isPremiumEntitlementError(...)`
+  - `_showDriverAnnouncementDialog(...)`
+  - `_shareAnnouncementLink(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/announcement_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Announcement helper/dialog/share glue blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4626`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/announcement_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: `join/guest` helper/error-mapping blogunu parcali `part` extraction ile inceltmek veya typed route param/validation helper extraction'a gecmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Join Error Helper Part Extraction)
+
+### Yapilanlar
+- `join` hata mapleme/helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_mapJoinBySrvCodeError(...)`
+  - `_resolveJoinBySrvCodeErrorDetails(...)`
+  - `_buildJoinErrorRoute(...)` ailesindeki ilgili helper'lar
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/join_error_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Join error feedback/details helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi (bu dilim sonrasi): `4459`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/join_error_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: passenger ETA/skip helper blogunu ayri `part` dosyasina tasiyarak `PassengerTracking`/`skip today` yardimci fonksiyonlarini ayirmak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger ETA/Skip Helper Part Extraction)
+
+### Yapilanlar
+- Passenger ETA ve `skip today` helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_resolveEtaSourceLabelFromPassengerData(...)`
+  - `_buildEtaSourceLabel(...)`
+  - `_nullableParam(...)`
+  - `_buildIstanbulDateKey(...)`
+  - `_buildSkipTodayIdempotencyKey(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_eta_skip_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger ETA source label ve skip idempotency helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi (bu dilim sonrasi): `4386`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_eta_skip_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: passenger tracking snapshot/stop helper blogunu ayri `part` dosyasina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Tracking Snapshot Helper Part Extraction)
+
+### Yapilanlar
+- Passenger tracking snapshot/stop helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_toPassengerDriverSnapshotInfo(...)`
+  - `_toPassengerDriverSnapshotFromTripData(...)`
+  - `_resolvePassengerStops(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_tracking_snapshot_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger tracking snapshot/stop parsing helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4086`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_tracking_snapshot_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: passenger tracking route builder icindeki kalan UI glue/helper blogunu veya typed route param/validation helper'larini parcali extraction ile ayirmak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Tracking Announcement/Soft Lock Helper Part Extraction)
+
+### Yapilanlar
+- Passenger tracking announcement ve soft-lock karar helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_resolveLatestAnnouncementData(...)`
+  - `_resolvePassengerSoftLockMode(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_tracking_announcement_soft_lock_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger tracking icindeki announcement resolve + soft-lock mode helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi (bu dilim sonrasi): `4239`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_tracking_announcement_soft_lock_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: router altindaki runtime/global singleton declaration blogunu ayri `part` dosyasina tasiyarak satir sayisini guvenli sekilde dusurmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Router Runtime Globals Part Extraction)
+
+### Yapilanlar
+- Router altindaki runtime/global declaration blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_idempotencyRandom`
+  - support/manage-subscription URL sabitleri
+  - recent route cache/global set-map'leri
+  - permission orchestrator/service singleton'lari
+  - telemetry / queue / notification service singleton'lari
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Runtime singleton/declaration blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4172`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_globals.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: passenger tracking route builder icindeki kalan helper/UI glue blogunu parcali extraction ile inceltmek veya typed route param/validation helper extraction'a gecmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Location Runtime Sync Helper Part Extraction)
+
+### Yapilanlar
+- Runtime location sync helper cluster'i `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_recordLocationPublishMetric(...)`
+  - `_syncDriverLocationForegroundService(...)`
+  - `_syncIosSilentKillWatchdog(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/location_runtime_sync_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Location publish metric ve foreground/watchdog sync helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4109`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/location_runtime_sync_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: notification permission fallback/orchestration helper blogunu parcali `part` extraction ile ayirmak veya typed route param/validation helper extraction'a gecmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Notification Permission Orchestration Helper Part Extraction)
+
+### Yapilanlar
+- Notification permission fallback/orchestration helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_showIosForegroundOnlyLocationFallback(...)`
+  - `_orchestrateNotificationPermissionAtValueMoment(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/notification_permission_orchestration_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Notification permission fallback/orchestration helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `4029`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/notification_permission_orchestration_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: route mutation support helper blogunu (precondition/ready/error/srv dialog) ayri `part` dosyasina almak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Route Mutation Support Helper Part Extraction)
+
+### Yapilanlar
+- Route mutation destek helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleDriverProfilePreconditionForRoute(...)`
+  - `_ensureDriverReadyForRouteMutation(...)`
+  - `_mapRouteMutationError(...)`
+  - `_showSrvCodeDialog(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Route mutation destek helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `3880`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: join/guest auth helper veya profile/account helper cluster'larini parcali `part` extraction ile ayirmaya devam etmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Auth Credential Handler Part Extraction)
+
+### Yapilanlar
+- Auth credential handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleEmailSignIn(...)`
+  - `_handleEmailRegister(...)`
+  - `_handleForgotPassword(...)`
+  - `_handleGoogleSignIn(...)`
+  - `_signInWithGoogleProviderFallback(...)`
+  - `_mapGoogleAuthExceptionMessage(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/auth_credential_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Auth credential handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `3498`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/auth_credential_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: join/guest helper+error cluster veya profile/account handler cluster'ini parcali `part` extraction ile ayirmak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Join/Guest Handler Part Extraction)
+
+### Yapilanlar
+- Join/guest handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleContinueAsPassenger(...)`
+  - `_handleContinueAsDriver(...)`
+  - `_handleContinueAsGuest(...)`
+  - `_buildJoinAuthCtaLabel(...)`
+  - `_handleJoinAuthTap(...)`
+  - `_handleDriverDrawerSignOut(...)`
+  - `_handleQrScanTap(...)`
+  - `_handleJoinViaQr(...)`
+  - `_resolveQrJoinDisplayName(...)`
+  - `_resolveGuestJoinDisplayName(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Join/guest akisina ait handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `3182`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/join_guest_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: account/profile settings handler cluster'ini ayri `part` dosyasina almak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Account/Profile Handler Part Extraction)
+
+### Yapilanlar
+- Account/profile settings handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleDriverProfileSetupSave(...)`
+  - `_handleConsentUpdate(...)`
+  - `_handleVoiceAlertSettingUpdate(...)`
+  - `_handleDriverPhoneVisibilityToggle(...)`
+  - `_handleDeleteAccount(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Account/profile settings handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `2930`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/account_profile_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: route/trip action handler cluster'larini parcali `part` extraction ile ayirmaya devam etmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Trip Chat Handler Part Extraction)
+
+### Yapilanlar
+- Trip chat handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleOpenTripChat(...)`
+  - `_mapTripChatOpenError(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/trip_chat_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Trip chat handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `2846`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/trip_chat_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: route/trip action handler cluster'larini parcali `part` extraction ile ayirmaya devam etmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Tracking Route Builder Part Extraction)
+
+### Yapilanlar
+- `passenger tracking` route builder blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_buildPassengerTrackingRoute(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_tracking_route_builder.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger tracking route builder blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `2517`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_tracking_route_builder.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: driver route-context ve trip transition helper blogunu da ayri `part` dosyasina almak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Driver Route Context Helper Part Extraction)
+
+### Yapilanlar
+- Driver route-context helper blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_resolvePrimaryDriverRouteContext(...)`
+  - `_readCurrentTripTransitionVersion(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/driver_route_context_helpers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Driver route-context helper blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `2468`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/driver_route_context_helpers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: trip action handler cluster'larinin (start/finish/announcement) part seviyesinde ayrilmaya devam edilmesi.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Bootstrap/Data Loader Part Extraction)
+
+### Yapilanlar
+- Bootstrap/data loader blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_loadSettingsBootstrapData(...)`
+  - `_loadDriverProfileSetupBootstrapData(...)`
+  - `_loadProfileEditBootstrapData(...)`
+  - `_loadDriverHomeBootstrapData(...)`
+  - `_loadDriverTripCompletedBootstrapData(...)`
+  - `_loadDriverTripHistoryItems(...)`
+  - `_loadPassengerTripHistoryItems(...)`
+  - `_loadDriverMyTripsItems(...)`
+  - `_loadDriverTripDetailData(...)`
+  - `_mapDriverTripCardStatus(...)`
+  - `_parseDriverTripGeoPoint(...)`
+  - `_parseScheduledTimeAsTodayLocal(...)`
+  - `_resolveCurrentDriverSubscriptionSnapshot(...)`
+  - `_readDriverSubscriptionSnapshotByUid(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/bootstrap_data_loaders.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Bootstrap/data loader blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `1879`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/bootstrap_data_loaders.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: route/trip action handler cluster'ini (`_handleCreateRoute`, `_handleUpdateRoute`, `_handleUpsertStop`, `_handleDeleteStop`) ayri bir `part` dosyasina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Route Mutation Handler Part Extraction)
+
+### Yapilanlar
+- Route mutation handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleCreateRoute(...)`
+  - `_handleUpdateRoute(...)`
+  - `_handleUpsertStop(...)`
+  - `_handleDeleteStop(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Route mutation handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `1681`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: trip lifecycle/action cluster'ini (`_handleStartTripWithUndo`, `_commitStartTrip`, `_showStartTripUndoWindow`) ayri bir `part` dosyasina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Start Trip Handler Part Extraction)
+
+### Yapilanlar
+- Start trip lifecycle handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleStartTripWithUndo(...)`
+  - `_commitStartTrip(...)`
+  - `_showStartTripUndoWindow(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/start_trip_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Start trip lifecycle handler blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `1428`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/start_trip_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: finish trip/announcement aksiyon cluster'ini (`_showFinishTripUndoWindow`, `_commitFinishTrip`, `_handleSendDriverAnnouncement`) ayri `part` dosyalarina ayirmak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Finish Trip + Announcement Handler Part Extraction)
+
+### Yapilanlar
+- Finish trip ve announcement aksiyon blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_showFinishTripUndoWindow(...)`
+  - `_commitFinishTrip(...)`
+  - `_mapFinishTripCommitResultState(...)`
+  - `_handleSendDriverAnnouncement(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/trip_finish_announcement_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Finish trip + announcement aksiyon blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `1220`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/trip_finish_announcement_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: join + guest join orchestration cluster'ini (`_handleJoinBySrvCode`, `_handleCreateGuestSession`, `_ensureAnonymousSessionForGuestFlow`) ayri bir `part` dosyasina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Join Flow Handler Part Extraction)
+
+### Yapilanlar
+- Join + guest orchestration blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleJoinBySrvCode(...)`
+  - `_handleCreateGuestSession(...)`
+  - `_ensureAnonymousSessionForGuestFlow(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Join flow orchestration blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `798`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/join_flow_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: kalan passenger action cluster'ini (`_handleSubmitSkipToday`, `_handleUpdatePassengerSettings`, `_handleLeaveRoute`) ayri bir `part` dosyasina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Action Handler Part Extraction)
+
+### Yapilanlar
+- Passenger action handler blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_handleSubmitSkipToday(...)`
+  - `_handleUpdatePassengerSettings(...)`
+  - `_handleLeaveRoute(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/passenger_action_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- Passenger action blogu router ana dosyasindan ayrildi.
+- `app_router.dart` guncel satir sayisi: `585`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/passenger_action_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'de bir sonraki mantikli cerrahi dilim: session role/cache + auth sonrası route kararlarini tek `part` altina toplamak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Session Routing + Profile Handler Extraction)
+
+### Yapilanlar
+- Session/corridor routing blogu `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_sessionRoleHydrated`
+  - `_sessionPreferredRole`
+  - `_JoinEntrySource`
+  - `_hydrateSessionRolePreference(...)`
+  - `_persistSessionRolePreference(...)`
+  - `_clearSessionRolePreference(...)`
+  - `_persistCachedPassengerRoute(...)`
+  - `_clearCachedPassengerRoute(...)`
+  - `_readCachedPassengerRoute(...)`
+  - `_resolveRoutingRoleWithSessionPreference(...)`
+  - `_routeAfterAuth(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/session_routing_helpers.dart`
+- Kalan profil action handler'lari mevcut profile handler dosyasina tasindi:
+  - `_handleProfileUpdate(...)`
+  - `_handleProfilePhotoPick(...)`
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- `app_router.dart` router composition ve redirect omurgasina indirildi.
+- `app_router.dart` guncel satir sayisi: `311`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/session_routing_helpers.dart lib/app/router/embedded/account_profile_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (yalnizca info-level lint onerileri)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'yi kapatmak icin bir sonraki mantikli adim: `app_router.dart` import/part duzenini lint temizligi ile toparlayip `directives_ordering` info'larini sifirlamak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Router Builder Part Extraction + Lint Zero)
+
+### Yapilanlar
+- Router builder/orchestration omurgasi `app_router.dart` icinden ayri `part` dosyasina tasindi:
+  - `_AppRouterRouteDeps`
+  - `buildAppRouter(...)`
+- Yeni `part` dosyasi:
+  - `lib/app/router/embedded/router_builder.dart`
+- `app_router` `part` listesi guncellendi:
+  - `lib/app/router/app_router.dart`
+- Router test dosyalarindaki kalan info-level const onerileri temizlendi:
+  - `test/app/router/router_recent_driver_created_route_store_test.dart`
+  - `test/app/router/router_runtime_initializer_test.dart`
+  - `test/app/router/router_session_role_preference_store_test.dart`
+
+### Sonuc
+- `app_router.dart` artik library giris dosyasi (imports + part registry) seviyesine indi.
+- `app_router.dart` guncel satir sayisi: `208`
+- `dart analyze lib/app/router test/app/router` sonucu: `No issues found!`
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/embedded/router_builder.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 kapanisina giderken bir sonraki mantikli adim: router `part`larindaki direct Firebase call kalanlarini (ozellikle auth/join/profile handler bloklari) tek tek use-case/repository adapter katmanina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Route Mutation Runtime Singleton Activation)
+
+### Yapilanlar
+- Route mutation aksiyonlari icin tekrar eden Firebase Functions/repository/use-case kurulumlari router runtime globals'a tasindi:
+  - `_firebaseFunctions`
+  - `_createDriverRouteUseCase`
+  - `_updateDriverRouteUseCase`
+  - `_upsertDriverStopUseCase`
+  - `_deleteDriverStopUseCase`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Route mutation handler'lar bu shared singleton use-case'leri kullanacak sekilde sadeleştirildi:
+  - `_handleCreateRoute(...)`
+  - `_handleUpdateRoute(...)`
+  - `_handleUpsertStop(...)`
+  - `_handleDeleteStop(...)`
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+
+### Sonuc
+- `route_mutation_handlers.dart` icinde call-basina use-case/repository/FirebaseFunctions instantiate etme deseni kaldirildi.
+- Davranis degismeden router action path'i daha deterministic ve bakimi daha kolay hale geldi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_runtime_globals.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Ayni singleton aktivasyon modelini `passenger_action_handlers.dart` ve `join_flow_handlers.dart` icindeki direct `FirebaseFunctions.instanceFor(...)` tekrarlarina uygulamak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Action Runtime Singleton Activation)
+
+### Yapilanlar
+- Passenger action use-case'leri router runtime globals'a singleton olarak eklendi:
+  - `_submitPassengerSkipTodayUseCase`
+  - `_updatePassengerSettingsUseCase`
+  - `_leavePassengerRouteUseCase`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Passenger action handler'lar call-basina repository/use-case olusturmak yerine shared singleton'lari kullanacak sekilde sadeleştirildi:
+  - `_handleSubmitSkipToday(...)`
+  - `_handleUpdatePassengerSettings(...)`
+  - `_handleLeaveRoute(...)`
+  - `lib/app/router/embedded/passenger_action_handlers.dart`
+
+### Sonuc
+- Passenger aksiyon akıslarinda `FirebaseFunctions.instanceFor(...)` tekrar instantiate deseni kaldirildi.
+- Router action katmani daha net ve testte gozlemlenebilir hale geldi (tek runtime dependency noktasi).
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_runtime_globals.dart lib/app/router/embedded/passenger_action_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Ayni pattern'i `join_flow_handlers.dart` ve `account_profile_handlers.dart` icindeki direct functions/repository kurulum tekrarlarina uygulamak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Join Flow Runtime Singleton Activation)
+
+### Yapilanlar
+- Join flow icin runtime singleton use-case'ler eklendi:
+  - `_joinPassengerRouteBySrvCodeUseCase`
+  - `_createGuestSessionUseCase`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Join flow handler icindeki direct instantiate pattern'i kaldirildi:
+  - `_handleJoinBySrvCode(...)` icindeki route join call
+  - `_handleJoinBySrvCode(...)` icindeki passenger settings upsert call (mevcut `_updatePassengerSettingsUseCase` reuse)
+  - `_handleCreateGuestSession(...)` icindeki guest session create call
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+
+### Sonuc
+- Join orchestration akısinda direct `FirebaseFunctions.instanceFor(...)` tekrarları temizlendi.
+- Use-case baglantilari tek runtime dependency noktasina tasindi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_runtime_globals.dart lib/app/router/embedded/join_flow_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Kalan en yuksek ROI direct functions/repository tekrarlarini `account_profile_handlers.dart` ve `trip_chat_handlers.dart` icinde ayni modelle temizlemek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Account/Profile Runtime Singleton Activation)
+
+### Yapilanlar
+- Account/Profile aksiyonlari icin runtime singleton use-case'ler eklendi:
+  - `_upsertDriverProfileUseCase`
+  - `_deleteUserDataUseCase`
+  - `_upsertConsentUseCase`
+  - `_updateUserProfileUseCase`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Account/profile handler direct instantiate pattern'i kaldirildi:
+  - `_handleDriverProfileSubmit(...)`
+  - `_handleConsentUpdate(...)`
+  - `_handleDeleteAccount(...)`
+  - `_handleProfileUpdate(...)`
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+
+### Sonuc
+- Profile/consent/account-delete aksiyonlari tek runtime dependency noktasi uzerinden yurutulur hale geldi.
+- Handler seviyesinde call-basina use-case/client/repository olusturma tekrarları temizlendi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_runtime_globals.dart lib/app/router/embedded/account_profile_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Kalan direct functions tekrarlarini `trip_chat_handlers.dart`, `start_trip_handlers.dart` ve `account_paywall_bootstrap_helpers.dart` uzerinde ayni singleton aktivasyon modeliyle kapatmak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Chat/StartTrip/Bootstrap Runtime Singleton Activation + Kapanis Kontrolu)
+
+### Yapilanlar
+- Account/profile icindeki kalan legacy profile upsert call singleton modele alindi:
+  - `_maybeMigrateLegacyDriverProfileIfNeeded(...)` icindeki upsert call -> `_upsertDriverProfileUseCase`
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+- Runtime globals'a ek singletonlar eklendi:
+  - `_openTripConversationUseCase`
+  - `_startDriverTripUseCase`
+  - `_bootstrapUserProfileClient`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Handler/helper tarafi singletonlara baglandi:
+  - `_handleOpenTripChat(...)` -> `_openTripConversationUseCase`
+  - `_commitStartTrip(...)` -> `_startDriverTripUseCase`
+  - `_bootstrapCurrentUserAfterLogin(...)` -> `_bootstrapUserProfileClient`
+  - `lib/app/router/embedded/trip_chat_handlers.dart`
+  - `lib/app/router/embedded/start_trip_handlers.dart`
+  - `lib/app/router/embedded/account_paywall_bootstrap_helpers.dart`
+
+### Sonuc
+- `lib/app/router/embedded` altinda direct `FirebaseFunctions.instanceFor(...)` kullanimi temizlendi.
+- Bu cagri artik tek noktada tutuluyor:
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Router action katmaninda dependency baglantilari deterministic hale geldi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_runtime_globals.dart lib/app/router/embedded/trip_chat_handlers.dart lib/app/router/embedded/start_trip_handlers.dart lib/app/router/embedded/account_paywall_bootstrap_helpers.dart lib/app/router/embedded/account_profile_handlers.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router test/app/router`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2'nin kalan kisminda direct client/use-case instantiate noktalarini (Functions disi) da ayni runtime singleton/factory standardina tasimak veya feature-level provider/usecase wiring ile degistirmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Router Auth Singleton Decoupling - AuthCredentialGateway)
+
+### Yapilanlar
+- Router runtime globals'a auth gateway baglandi:
+  - `_authCredentialGateway = FirebaseAuthCredentialGateway()`
+  - `lib/app/router/embedded/router_runtime_globals.dart`
+- Yeni auth gateway katmani eklendi:
+  - `lib/features/auth/data/auth_credential_gateway.dart`
+  - `lib/features/auth/data/firebase_auth_credential_gateway.dart`
+- Router ve route-group katmaninda direct `FirebaseAuth.instance` kullanimi temizlendi:
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+  - `lib/app/router/embedded/bootstrap_data_loaders.dart`
+  - `lib/app/router/embedded/account_paywall_bootstrap_helpers.dart`
+  - `lib/app/router/embedded/auth_join_route_helpers.dart`
+  - `lib/app/router/embedded/driver_finish_trip_guard.dart`
+  - `lib/app/router/embedded/driver_location_permission_helpers.dart`
+  - `lib/app/router/embedded/external_navigation_support_helpers.dart`
+  - `lib/app/router/embedded/guard_widgets.dart`
+  - `lib/app/router/embedded/passenger_tracking_route_builder.dart`
+  - `lib/app/router/embedded/recent_driver_created_route_fallback_helpers.dart`
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `lib/app/router/embedded/session_routing_helpers.dart`
+  - `lib/app/router/embedded/start_trip_handlers.dart`
+  - `lib/app/router/embedded/trip_chat_handlers.dart`
+  - `lib/app/router/embedded/trip_finish_announcement_handlers.dart`
+  - `lib/app/router/route_groups/driver_routes.dart`
+  - `lib/app/router/route_groups/shared_routes.dart`
+
+### Sonuc
+- `lib/app/router` agacinda direct `FirebaseAuth.instance` kullanimi sifirlandi.
+- Router auth erisim noktasi tek bir abstraction uzerinden yonetilir hale geldi.
+- Faz 2 hedefindeki "router data/auth bagimliligini zayiflatma" adimi davranis degistirmeden ilerletildi.
+
+### Dogrulama
+1. `dart format` (degisen router/embedded ve route_groups dosyalari)
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `flutter test --no-pub --no-test-assets test/app/router -r compact` (global Flutter)
+   - Sonuc: FAIL (global SDK ile plugin graph + pub resolution hatasi)
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 icin sonraki ROI dilimi: router side-effect initialization noktalarini (`bootstrap/session hydrate` tipi) app bootstrap composition root'a tasimak ve router dosya agacini orchestration disinda state tutmayacak hale getirmek.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Router Builder Side-Effect Cleanup)
+
+### Yapilanlar
+- Router runtime initialization adimi `buildAppRouter(...)` icinden cikartildi:
+  - yeni composition-root seviyesi giris: `initializeAppRouterRuntime(...)`
+  - `lib/app/router/embedded/router_builder.dart`
+- Uygulama composition root (`NeredeServisApp`) icinde router olusturmadan once init cagrisi eklendi:
+  - `initializeAppRouterRuntime(environment: widget.environment);`
+  - `lib/app/nerede_servis_app.dart`
+
+### Sonuc
+- Router builder daha saf hale geldi (route wiring + redirect orchestration).
+- Session hydrate + telemetry configure side-effectleri application composition root'a alindi.
+- Faz 2 hedefindeki "router side-effect cleanup" maddesinde ilerleme saglandi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/router_builder.dart lib/app/nerede_servis_app.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/nerede_servis_app.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 icin bir sonraki dilim: router kutuphanesindeki private widget/state guard'larini (ozellikle `_DriverFinishTripGuard` ve `_PassengerHomeEntryGuard`) feature/presentation sinirina yaklastiracak sekilde ayrik ownership dosyalarina tasimak.
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Embedded Guard Widget State Extraction)
+
+### Yapilanlar
+- Router kutuphanesi disina tasinmis standalone guard widget dosyasi eklendi:
+  - `lib/app/router/router_guard_widgets.dart`
+  - `RouterDoubleBackExitGuard`
+  - `RouterPassengerHomeEntryGuard`
+- `embedded/guard_widgets.dart` sadeleştirildi:
+  - `_SessionRoleRefreshNotifier` korundu
+  - `_showDoubleBackExitHint(...)` helper eklendi
+  - private stateful guard widget siniflari cikartildi
+- Route group'lar yeni standalone widget'lari kullanacak sekilde guncellendi:
+  - `lib/app/router/route_groups/public_routes.dart`
+  - `lib/app/router/route_groups/driver_routes.dart`
+  - `lib/app/router/route_groups/passenger_routes.dart`
+- `passengerHome` giris akisi davranis korunarak callback tabanli hale getirildi:
+  - target resolve + role-switch apply adimlari `RouterPassengerHomeEntryGuard` callback'leri uzerinden yurutuluyor
+
+### Sonuc
+- Router `part` kutuphanesindeki embedded stateful guard sinifi sayisi azaltildi.
+- `app_router.dart`/route registry tarafi UI-state implementation detayindan bir adim daha ayrildi.
+- Faz 2 hedefindeki "router icindeki gomulu widget/state siniflarini dosyalara ayir" maddesinde ilerleme saglandi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_guard_widgets.dart lib/app/router/embedded/guard_widgets.dart lib/app/router/route_groups/public_routes.dart lib/app/router/route_groups/driver_routes.dart lib/app/router/route_groups/passenger_routes.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/nerede_servis_app.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 icin sonraki yuksek ROI dilim: `_DriverFinishTripGuard` gibi router kutuphanesinde kalan buyuk stateful guard/widget yapilarini ayni prensiple standalone ownership dosyalarina tasimak (gerekirse callback/deps struct ile).
+
+## 2026-02-23 - Faz 2 Cerrahi Dilim (Passenger Location Stream Widget Extraction)
+
+### Yapilanlar
+- Passenger tracking konum/ETA stateful widget katmani router `part` kutuphanesinden cikartildi:
+  - yeni standalone dosya: `lib/app/router/router_passenger_location_widgets.dart`
+  - `RouterPassengerLocationStreamBuilder`
+  - `RouterPassengerLocationSnapshot`
+- Callsite'lar yeni public widget'a guncellendi:
+  - `lib/app/router/embedded/passenger_tracking_route_builder.dart`
+  - `lib/app/router/embedded/guest_session_expiry_guard.dart`
+- Router kutuphanesi baglantisi guncellendi:
+  - `lib/app/router/app_router.dart` icine `router_passenger_location_widgets.dart` import eklendi
+  - `part 'embedded/passenger_location_stream_widgets.dart'` kaldirildi
+- Eski embedded dosya temizlendi:
+  - `lib/app/router/embedded/passenger_location_stream_widgets.dart` silindi
+
+### Sonuc
+- Router icindeki buyuk stateful tracking widget implementation'i standalone dosyaya tasindi.
+- `guest_session` ve `passenger_tracking` route akislari ayni davranisla yeni widgeti kullanir hale geldi.
+- Faz 2 hedefindeki "embedded widget/state siniflarini ayirma" maddesinde anlamli ilerleme saglandi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_passenger_location_widgets.dart lib/app/router/embedded/guest_session_expiry_guard.dart lib/app/router/embedded/passenger_tracking_route_builder.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_passenger_location_widgets.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 icin sonraki saglikli dilim: `_GuestSessionExpiryGuard` extraction (artik `PassengerLocationStreamBuilder` bagimliligi router disina alindigi icin daha dusuk riskli).
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Guest Session Expiry Guard Extraction)
+
+### Yapilanlar
+- Guest session expiry tracking guard router `part` kutuphanesinden cikartildi:
+  - yeni standalone dosya: `lib/app/router/router_guest_session_expiry_guard.dart`
+  - `RouterGuestSessionExpiryGuard`
+- `passenger_tracking` guest-session branch callsite'i yeni standalone widget'a gecirildi:
+  - `lib/app/router/embedded/passenger_tracking_route_builder.dart`
+  - stream factory callback'leri (`watchGuestSessionDocument`, `watchRouteDocument`, `watchActiveTripDocuments`) enjekte edildi
+  - invalid session redirect + info feedback davranisi callback olarak tasindi
+  - trip chat acma davranisi callback olarak tasindi
+- Router kutuphanesi baglantisi guncellendi:
+  - `lib/app/router/app_router.dart` icine `router_guest_session_expiry_guard.dart` import eklendi
+  - `part 'embedded/guest_session_expiry_guard.dart'` kaldirildi
+- Eski embedded dosya temizlendi:
+  - `lib/app/router/embedded/guest_session_expiry_guard.dart` silindi
+
+### Sonuc
+- Router icindeki guest-session takip guard'inin stateful UI + stream orchestration implementation'i standalone dosyaya tasindi.
+- `passenger_tracking` route branch'i davranis degistirmeden callback tabanli dependency injection ile calisir hale geldi.
+- Faz 2 hedefindeki "embedded widget/state siniflarini ayirma" maddesinde bir buyuk dilim daha kapatildi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_guest_session_expiry_guard.dart lib/app/router/embedded/passenger_tracking_route_builder.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_guest_session_expiry_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 icin sonraki yuksek ROI dilim: `lib/app/router/embedded/driver_finish_trip_guard.dart` icindeki UI/state alt parcaciklarini (ilk etapta helper widget/state bloklari) standalone ownership dosyalarina parca parca tasimak.
+
+## 2026-02-24 - Faz 2 Mikro Dilim (Router Runtime Firebase Gateway Cleanup)
+
+### Yapilanlar
+- `router_runtime_globals.dart` icindeki raw Firebase singleton/runtime wiring'i tek noktada toplamak icin yeni gateway eklendi:
+  - `lib/app/router/router_firebase_runtime_gateway.dart`
+  - `RouterFirebaseRuntimeGateway`
+  - `DefaultRouterFirebaseRuntimeGateway`
+- `lib/app/router/embedded/router_runtime_globals.dart` guncellendi:
+  - `FirebaseMessaging.instance` token/refresh closure'lari gateway uzerinden akacak sekilde degistirildi
+  - `_firestore` ve `_firebaseFunctions` tanimlari gateway getter'larina baglandi
+- `lib/app/router/app_router.dart` import listesi sadeleştirildi:
+  - artik kullanilmayan `firebase_messaging` ve `firebase_regions` importlari kaldirildi
+
+### Sonuc
+- `router_runtime_globals.dart` icinde direct Firebase singleton olusturma satirlari sifirlandi.
+- Router runtime wiring daha okunur ve ileride DI/composition-root tasimasina uygun hale geldi.
+- Faz 2 hedefindeki "router runtime globals icindeki raw backend wiring'i zayiflatma" maddesinde ilerleme saglandi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_firebase_runtime_gateway.dart lib/app/router/embedded/router_runtime_globals.dart`
+   - Sonuc: PASS
+2. `rg --line-number "Firebase[A-Za-z]+\\.instance|instanceFor\\(" lib/app/router/embedded/router_runtime_globals.dart`
+   - Sonuc: PASS (eslesme yok)
+3. `dart analyze lib/app/router/app_router.dart lib/app/router/router_firebase_runtime_gateway.dart lib/app/router/router_guest_session_expiry_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 kapanisa yaklasmak icin sonraki ana dilim: `lib/app/router/embedded/driver_finish_trip_guard.dart` icinde extraction'a uygun ilk alt parcayi belirleyip callback/deps ile standalone ownership'e cikarmak (tek seferde tum guard degil).
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Passenger Helper Extraction)
+
+### Yapilanlar
+- `driver_finish_trip_guard` icindeki saf yolcu/skip-today hesaplama helper'lari standalone dosyaya tasindi:
+  - yeni dosya: `lib/app/router/router_driver_finish_trip_passenger_helpers.dart`
+  - `resolveDriverFinishTripSkipTodayPassengerIds(...)`
+  - `resolveDriverFinishTripPassengerEntries(...)`
+  - `resolveDriverFinishTripPassengersAtNextStop(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` callsite'lari yeni helper fonksiyonlara guncellendi
+- Guard icindeki ayni isimli private helper method bloklari kaldirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki data shaping/parsing sorumlulugunun bir parcasi stateful widget'tan ayrildi.
+- Faz 2 hedefindeki "router icindeki business/data helper yukunu azaltma" maddesinde dusuk riskli ama anlamli bir dilim kapatildi.
+- Bir sonraki `driver_finish_trip_guard` extraction'i icin dosya daha okunur hale geldi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_passenger_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_passenger_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki bir sonraki cerrahi alt dilim olarak geometri/stop hesaplama helper'larini (`_resolveNextStop`, `_buildDriverRoutePathPoints`, `_resolveStopsRemaining`, `_distanceMetersBetween`) standalone helper dosyasina tasimak.
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Geometry/Stop Helper Extraction)
+
+### Yapilanlar
+- `driver_finish_trip_guard` icindeki stop/geometri hesaplama helper'lari standalone dosyaya tasindi:
+  - yeni dosya: `lib/app/router/router_driver_finish_trip_geometry_helpers.dart`
+  - `RouterDriverStopSnapshot`
+  - `parseDriverFinishTripStops(...)`
+  - `buildDriverFinishTripRoutePathPoints(...)`
+  - `resolveDriverFinishTripNextStop(...)`
+  - `resolveDriverFinishTripStopsRemaining(...)`
+  - `distanceMetersBetweenDriverFinishTripPoints(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` callsite'lari yeni helper fonksiyonlara guncellendi
+- Guard icindeki ayni isimli private geometri/stop helper method bloklari kaldirildi
+- `lib/app/router/embedded/router_private_models.dart` icindeki artik kullanilmayan `_DriverStopSnapshot` modeli kaldirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki saf geometri/stop hesaplama sorumlulugu stateful widget'tan ayrildi.
+- Guard dosya boyutu yaklasik `1116` satirdan `977` satira indi (davranis korunarak).
+- Faz 2 hedefindeki "router icindeki business/data/helper yukunu azaltma" maddesinde bir buyuk dilim daha kapatildi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart lib/app/router/embedded/router_private_models.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/router_driver_finish_trip_passenger_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icinde bir sonraki cerrahi dilim olarak connectivity/latency UI label helper'larini (`_handleRealtimeConnectionChanged` icindeki label uretimi + `_resolveDriverOfflineBannerLabel` + `_resolveDriverLatencyIndicatorLabel`) stateful guard disina tasimak.
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Realtime Timing Helper Extraction)
+
+### Yapilanlar
+- Realtime connection transition/timing ve sure formatlama icin standalone helper dosyasi eklendi:
+  - `lib/app/router/router_realtime_connection_helpers.dart`
+  - `RouterRealtimeConnectionTransition`
+  - `resolveRouterRealtimeConnectionTransition(...)`
+  - `resolveRouterRecentReconnectLatency(...)`
+  - `formatRouterConnectionDurationLabel(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_handleRealtimeConnectionChanged(...)` icindeki reconnect transition hesaplama stateful guard disina tasindi
+  - `_resolveDriverLatencyIndicatorLabel()` icindeki reconnect visibility/timing hesabi helper'a tasindi
+  - reconnect/latency label sure formati `formatRouterConnectionDurationLabel(...)` uzerinden akiyor
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki realtime connection davranisinin saf hesaplama/timing kismi stateful guard disina ayrildi.
+- Label stringleri bilincli olarak yerinde birakildi (davranis koruma + sonraki dilimde string-level extraction riskini dusurmek icin).
+- Faz 2 hedefindeki "connectivity/latency helperlarini disari alma" maddesinde kontrollu bir ara adim tamamlandi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_realtime_connection_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_realtime_connection_helpers.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/router_driver_finish_trip_passenger_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icinde kalan connectivity label string wrapper'larini (`_resolveDriverOfflineBannerLabel`, `_resolveDriverLatencyIndicatorLabel`, reconnect info label branch) parametreli public label helper'lara tasimak veya ortak `router_connection_labels` helper dosyasina toplamak.
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Shake Listener Helper Extraction)
+
+### Yapilanlar
+- Shake-to-report platform destek ve accelerometer listener kurulumunu ayiran standalone helper dosyasi eklendi:
+  - `lib/app/router/router_shake_to_report_helpers.dart`
+  - `isRouterShakeToReportSupportedPlatform(...)`
+  - `startRouterShakeToReportListener(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_isShakeToReportSupported` getter'i helper'a delege edildi
+  - `_startShakeToReportListener()` icindeki accelerometer stream/listen kurulumu helper'a delege edildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki platform/stream listener kurulum detaylarinin bir parcasi stateful guard disina tasindi.
+- Davranis degismeden shake-to-report alt akisinda test edilebilir helper seviyesinde ayrisma saglandi.
+- Guard dosya boyutu bir miktar daha azaldi (yaklasik `983` -> `968` satir).
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_shake_to_report_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_shake_to_report_helpers.dart lib/app/router/router_realtime_connection_helpers.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/router_driver_finish_trip_passenger_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icinde kalan connectivity label wrapper/string logic'ini (`_resolveDriverOfflineBannerLabel`, `_resolveDriverLatencyIndicatorLabel`, reconnect info label branch) parametreli public helper'lara tasimak (encoding riskine karsi kucuk parca patchlerle).
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Realtime Connection Listener + Label Wrapper Helper Extraction)
+
+### Yapilanlar
+- Shared RTDB `.info/connected` listener kurulumunu router icinde ortak helper'a tasiyan standalone dosya eklendi:
+  - `lib/app/router/router_realtime_connection_listener_helpers.dart`
+  - `startRouterRealtimeConnectionListener(...)`
+- Callsite delegasyonlari yapildi:
+  - `lib/app/router/embedded/driver_finish_trip_guard.dart`
+  - `lib/app/router/router_passenger_location_widgets.dart`
+- `driver_finish_trip_guard` icinde reconnect/offline/latency label karar mantigini parametrik helper'lara tasiyan standalone dosya eklendi:
+  - `lib/app/router/router_driver_finish_trip_realtime_labels_helpers.dart`
+  - `resolveRouterRealtimeReconnectNoticeLabel(...)`
+  - `resolveRouterRealtimeOfflineBannerLabel(...)`
+  - `resolveRouterRealtimeLatencyIndicatorLabel(...)`
+- `driver_finish_trip_guard` icinde:
+  - `_handleRealtimeConnectionChanged(...)` reconnect info label branch'i helper uzerinden akacak sekilde guncellendi
+  - `_resolveDriverOfflineBannerLabel()` ve `_resolveDriverLatencyIndicatorLabel()` helper delegasyonuna indirildi
+- Regex tabanli patch sirasinda kaybolan parser helper'lar ayni davranisla geri eklendi:
+  - `_mapFromRtdbValue(...)`
+  - `_parseFiniteDouble(...)`
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Driver ve passenger tarafindaki realtime connection listener kurulumu ayni helper uzerinden standardize edildi.
+- `driver_finish_trip_guard` icindeki connectivity label karar mantigi stateful guard disina tasindi; mevcut label metinleri (encoding bozukluklari dahil) bilincli olarak korunarak davranis degisikligi riski dusuk tutuldu.
+- Faz 2 hedefindeki "router icindeki tekrar eden listener/setup ve UI-state karar logic'ini disari alma" maddesinde bir dilim daha kapatildi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_realtime_connection_listener_helpers.dart lib/app/router/router_driver_finish_trip_realtime_labels_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_realtime_connection_listener_helpers.dart lib/app/router/router_driver_finish_trip_realtime_labels_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki kalan UI/state agir bloklardan bir sonraki dusuk riskli dilim olarak:
+  - `RTDB location snapshot parse helper`larini standalone ortak helper'a tasimak (`_mapFromRtdbValue`, `_parseFiniteDouble`) veya
+  - `_showShakeToReportConfirmDialog` gibi buyuk UI dialog bloklarini router ownership'inden cikarmak.
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Ortak RTDB/Value Parse Helper Extraction)
+
+### Yapilanlar
+- Ortak parse helper dosyasi eklendi:
+  - `lib/app/router/router_value_parsing_helpers.dart`
+  - `mapFromRouterDynamicValue(...)`
+  - `parseFiniteRouterDouble(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - RTDB location snapshot raw map donusumu ortak helper'a tasindi
+  - lat/lng parse islemleri ortak helper'a tasindi
+  - dosya icindeki duplicate `_mapFromRtdbValue(...)` ve `_parseFiniteDouble(...)` methodlari kaldirildi
+- `lib/app/router/router_passenger_location_widgets.dart` guncellendi:
+  - RTDB snapshot map donusumu ve lat/lng parse islemleri ortak helper'a tasindi
+  - duplicate `_mapFromRtdbValue(...)` ve `_parseFiniteDouble(...)` kaldirildi
+- `lib/app/router/router_driver_finish_trip_geometry_helpers.dart` guncellendi:
+  - raw stop/location point parse icindeki finite double parse islemleri ortak helper'a tasindi
+  - duplicate `_parseFiniteDouble(...)` kaldirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Router tarafinda RTDB/raw value parse davranisi tek helper uzerinden standardize edildi.
+- `driver_finish_trip_guard` icindeki kucuk ama tekrarlayan parse utility yuku daha da azaldi.
+- `driver_finish_trip_guard` dosya boyutu yaklasik `939` satirdan `912` satira indi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_value_parsing_helpers.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/router_passenger_location_widgets.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_value_parsing_helpers.dart lib/app/router/router_driver_finish_trip_geometry_helpers.dart lib/app/router/router_passenger_location_widgets.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki buyuk UI/state bloklardan bir sonraki dusuk riskli dilim:
+  - `_showShakeToReportConfirmDialog` gibi dialog UI'larini standalone router widget/helper dosyasina tasimak veya
+  - driver finish trip ekranina ait presentation fragment'lerini (status banner/indicator builder) ayri widget dosyasina cikarmak.
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Shake Confirm Dialog UI Extraction)
+
+### Yapilanlar
+- Standalone router dialog helper dosyasi eklendi:
+  - `lib/app/router/router_dialog_helpers.dart`
+  - `showRouterYesNoAlertDialog(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_showShakeToReportConfirmDialog(...)` icindeki `showDialog + AlertDialog + action buttons` UI bloğu kaldirildi
+  - method, yeni helper'a delege olacak sekilde sadeleştirildi
+  - title/content/cancel/confirm metinleri aynen korundu (davranis ve copy degismedi)
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki buyuk dialog UI widget bloğunun bir parcasi router stateful guard disina tasindi.
+- Bu dilim ile guard dosyasi yaklasik `912` satirdan `899` satira indi.
+- Faz 2 hedefindeki "router icinde gomulu UI/state bloklarini disari alma" maddesinde kucuk ama temiz bir adim daha tamamlandi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_dialog_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_dialog_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Ayni yaklasimla `driver_finish_trip_guard` icindeki diger dialog/status UI bloklarini parcalamak:
+  - pending sync exit warning dialog
+  - manual intervention / info dialog bloklari
+  - ekran icindeki status indicator/badge builder fragment'leri
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Pending Sync Exit Warning Dialog UI Extraction)
+
+### Yapilanlar
+- Driver finish trip guard dialoglari icin standalone helper dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_dialog_helpers.dart`
+  - `showRouterDriverPendingSyncExitWarningDialog(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_showPendingSyncExitWarning()` icindeki `showDialog + AlertDialog + 3 action` UI bloğu kaldirildi
+  - method, yeni helper'a callback delegasyonu ile sadeleştirildi
+  - `Sorun Bildir` aksiyonu ayni `SupportReportSource.activeTripSync` akisini tetikliyor
+  - `Beklemeden Cik` aksiyonu ayni `Navigator.of(context).maybePop()` davranisini koruyor
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki bir buyuk dialog UI bloğu daha router stateful guard disina tasindi.
+- Guard dosyasi yaklasik `899` satirdan `877` satira indi.
+- Faz 2 hedefindeki "gomulu UI/state bloklarini disari alma" ve "guard dosyasini kademeli kucultme" maddelerinde bir dilim daha kapatildi.
+
+### Dogrulama
+1. `dart format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_dialog_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_dialog_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Ayni dosyada kalan diger dialog/status UI bloklarini ayni pattern ile parcala:
+  - `_showBatteryOptimizationPromptDialog(...)` (yes/no helper'a uygun aday)
+  - status/info banner fragment'leri
+  - gerekiyorsa `finish confirm` dialog UI bloğu (daha sonra, orta risk)
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Battery Optimization Prompt Dialog Delegation)
+
+### Yapilanlar
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_showBatteryOptimizationPromptDialog(...)` icindeki `showDialog + AlertDialog + yes/no actions` UI bloğu kaldirildi
+  - method, mevcut generic helper `showRouterYesNoAlertDialog(...)` uzerinden calisacak sekilde sadeleştirildi
+  - dinamik `message` secimi (`oemKillSignalDetected` branch) aynen korundu
+  - button label'lari (`Simdi Degil`, `Ayarlar'dan Ac`) ve baslik aynen korundu
+- Yeni dosya eklenmedi (mevcut `lib/app/router/router_dialog_helpers.dart` yeniden kullanildi)
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki bir dialog UI bloğu daha generic router dialog helper uzerine alinmis oldu.
+- Guard dosyasi yaklasik `877` satirdan `865` satira indi.
+- Faz 2 hedefindeki "gomulu UI dialog bloklarini ortak helper'a tasima" maddesinde bir dilim daha kapatildi.
+
+### Dogrulama
+1. `dart format lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `dart analyze lib/app/router/app_router.dart lib/app/router/router_dialog_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icinde dialog olmayan ama UI/state agir bloklara gec:
+  - status indicator / banner label builder fragment'leri
+  - manual retry / sync feedback UI helper'lari
+  - orta risk olarak `finish confirm` dialog bloğu (callback sayisi daha fazla)
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Battery Optimization Degrade MaterialBanner UI Extraction)
+
+### Yapilanlar
+- Yeni standalone banner helper dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_banner_helpers.dart`
+  - `showRouterDriverBatteryOptimizationDegradeMaterialBanner(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_showBatteryOptimizationDegradeBanner()` icindeki `showMaterialBanner + MaterialBanner + action buttons` UI bloğu kaldirildi
+  - method, yeni helper'a delegasyon yapacak sekilde sadeleştirildi
+  - `Ayarlar'dan Ac` aksiyonundaki async orchestration (bypass request -> degrade mode off -> state update/info) aynen guard icinde korundu
+  - `Kapat` aksiyonu ayni `messenger.hideCurrentMaterialBanner` davranisini korudu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki dialog olmayan buyuk bir UI banner bloğu daha router stateful guard disina tasindi.
+- Bu slice, ilgili methodu yaklasik `43` satirdan `29` satira dusurerek net ~`14` satir sadeleştirme sagladi.
+- Mevcut `driver_finish_trip_guard` fiziksel satir sayisi (bu noktadaki worktree): yaklasik `906`.
+- Faz 2 hedefindeki "gomulu UI/state bloklarini disari alma" maddesinde behavior-preserving bir dilim daha kapatildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_banner_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_banner_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki sonraki yuksek ROI dilim:
+  - `finish confirm` dialog UI bloğunu helper'a cikarmak (callback/dependency sayisi fazla ama kazanimi yuksek)
+  - veya status/info badge fragment'lerini standalone widget/helper'a parcali tasimak (daha dusuk risk)
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Location Snapshot Helper Extraction)
+
+### Yapilanlar
+- Yeni standalone helper dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_location_snapshot_helpers.dart`
+  - `RouterDriverFinishTripLocationSnapshot`
+  - `resolveDriverFinishTripLocationSnapshot(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - RTDB location -> freshness -> heartbeat -> vehicle point -> next stop -> route path -> distance/stopsRemaining hesaplama bloğu helper'a tasindi
+  - `StreamBuilder<DatabaseEvent>` icindeki builder daha kisa hale geldi
+  - `_buildActiveTripScreen(...)` callsite'i helper snapshot'i uzerinden beslenir oldu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki saf hesaplama/orchestration kodunun bir dilimi daha stateful widget disina tasindi.
+- Davranis degistirmeden `build()` icindeki inner builder okunabilirligi arttirildi.
+- Faz 2 hedefindeki "router icindeki hesaplama/orchestration yukunu helper/use-case tarafina cekme" maddesinde bir adim daha tamamlandi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_location_snapshot_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_location_snapshot_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Router katmaninda kalan raw RTDB singleton erisimlerini gateway'e toplamak
+- Sonraki adim olarak nested stream builder zincirini standalone builder/widget'a tasimak
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Router RTDB Singleton Access Gateway Cleanup)
+
+### Yapilanlar
+- `lib/app/router/router_firebase_runtime_gateway.dart` genisletildi:
+  - `FirebaseDatabase get realtimeDatabase`
+  - `watchRealtimeConnectionInfo()`
+  - `watchRouteLocationValue(String routeId)`
+  - public shared const: `routerFirebaseRuntimeGateway`
+- `lib/app/router/embedded/router_runtime_globals.dart` guncellendi:
+  - private runtime gateway alias artik public shared const uzerinden baglaniyor
+- Raw `FirebaseDatabase.instance` erisimleri router katmanindan kaldirildi / gateway'e delege edildi:
+  - `lib/app/router/embedded/driver_finish_trip_guard.dart`
+  - `lib/app/router/router_passenger_location_widgets.dart`
+  - `lib/app/router/router_realtime_connection_listener_helpers.dart`
+
+### Sonuc
+- Router package icinde raw RTDB singleton erisimi tek noktaya (`router_firebase_runtime_gateway.dart`) toplandi.
+- Faz 2 kapanis kriterindeki "router katmani raw Firebase singleton bilmesin" hedefine bir adim daha yaklasildi.
+- `driver_finish_trip_guard` ve passenger location widget callsite'lari daha test edilebilir hale geldi (gateway uzerinden injection/pivot noktasi olustu).
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/router_firebase_runtime_gateway.dart lib/app/router/router_realtime_connection_listener_helpers.dart lib/app/router/router_passenger_location_widgets.dart lib/app/router/embedded/driver_finish_trip_guard.dart lib/app/router/embedded/router_runtime_globals.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_firebase_runtime_gateway.dart lib/app/router/router_realtime_connection_listener_helpers.dart lib/app/router/router_passenger_location_widgets.dart lib/app/router/router_driver_finish_trip_location_snapshot_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart lib/app/router/embedded/router_runtime_globals.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki nested `StreamBuilder` zincirini standalone builder/widget'a tasiyarak Faz 2 kapanisina yaklas
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Nested StreamBuilder Extraction)
+
+### Yapilanlar
+- Yeni standalone builder dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_stream_builder.dart`
+  - `RouterDriverFinishTripStreamBuilder`
+  - `RouterDriverFinishTripStreamSnapshot`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `build()` icindeki nested `StreamBuilder` zinciri standalone builder widget'a tasindi
+  - guard tarafi artik sadece fallback route yok durumu + snapshot -> `_buildActiveTripScreen(...)` mapping yapıyor
+- `lib/app/router/app_router.dart` import wiring guncellendi ve artik gereksiz kalan helper importlari temizlendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki en yogun okunabilirlik problemi olan nested stream zinciri router stateful guard disina tasindi.
+- Guard dosyasi bu worktree noktasinda yaklasik `751` satira kadar indi.
+- Faz 2 hedefindeki "router/guard dosyalarini orchestration seviyesinde tutma" maddesinde yuksek ROI bir dilim kapatildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_stream_builder.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_stream_builder.dart lib/app/router/router_driver_finish_trip_location_snapshot_helpers.dart lib/app/router/router_firebase_runtime_gateway.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki `_handleTripFinishConfirmed()` UI orchestration zincirini application/service helper'a tasima (Faz 2 kapanis icin yuksek ROI)
+- veya `router_runtime_globals.dart` icindeki wiring ownership'ünü tematik dosyalara ayirarak router composition yükünü azaltma
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip Confirmation Flow Orchestration Helper)
+
+### Yapilanlar
+- Yeni generic orchestration helper dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_confirmation_flow_helpers.dart`
+  - `runRouterDriverFinishTripConfirmationFlow<...>(...)`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_handleTripFinishConfirmed()` icindeki step-by-step flow (finishing guard, user check, undo confirm, active trip context resolve, commit outcome branching, mounted checks) helper'a callback delegasyonu ile tasindi
+  - UI state mutationlari / navigation / message side-effectleri guard icinde callback olarak korundu (davranis degismedi)
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki en kritik UI orchestration methodlarindan biri belirgin sekilde kuculdu.
+- Flow sirasi ve mounted-check davranisi tek helper icinde toplandi; tekrar kullanilabilir ve test edilebilir bir pivot noktasi olustu.
+- Faz 2 hedefindeki "router/guard sadece orchestration seviyesinde kalsin" maddesine dogru temiz bir adim daha atildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_confirmation_flow_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_confirmation_flow_helpers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `driver_finish_trip_guard` icindeki `_buildActiveTripScreen(...)` UI assembly wrapper'ini standalone widget/helper'a tasima
+- veya `router_runtime_globals.dart` icindeki runtime wiring bloklarini tematik modullere bolme
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Driver Finish Trip ActiveTripScreen Wrapper Extraction)
+
+### Yapilanlar
+- Yeni standalone UI wrapper widget dosyasi eklendi:
+  - `lib/app/router/router_driver_finish_trip_active_trip_screen_wrapper.dart`
+  - `RouterDriverFinishTripActiveTripScreenWrapper`
+- `lib/app/router/embedded/driver_finish_trip_guard.dart` guncellendi:
+  - `_buildActiveTripScreen(...)` icindeki `ActiveTripScreen + PopScope` assembly bloğu wrapper widget'a tasindi
+  - guard tarafinda sadece role-specific callback wiring ve state/label kararları korunarak delegasyon yapildi
+- `lib/app/router/app_router.dart` import wiring guncellendi/temizlendi
+
+### Sonuc
+- `driver_finish_trip_guard` icindeki buyuk UI assembly bloğu stateful guard disina tasindi.
+- Guard dosyasi bu worktree noktasinda yaklasik `736` satira kadar indi.
+- Faz 2 hedefindeki "gomulu UI bloklarini disari alma" maddesinde bir yuksek ROI dilim daha kapatildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_active_trip_screen_wrapper.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/router_driver_finish_trip_active_trip_screen_wrapper.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS (wrapper extraction sonrasi kosuldu; import/type cleanup sadece compile wiring degisimi idi)
+
+### Sonraki Adim Onerisi
+- `router_runtime_globals.dart` icindeki runtime wiring bloklarini tematik parcalara ayirma / ownership azaltma
+- Faz 2 kapanis checklist'i icin kalan router ownership noktalarini listeleme ve son temizlemeler
+
+
+## 2026-02-24 - Faz 2 Cerrahi Dilim (Router Runtime Globals Tematik Parcalama)
+
+### Yapilanlar
+- `lib/app/router/embedded/router_runtime_globals.dart` kaldirildi ve declaration-only runtime wiring tematik `part` dosyalarina bolundu:
+  - `lib/app/router/embedded/router_runtime_constants.dart`
+  - `lib/app/router/embedded/router_runtime_state.dart`
+  - `lib/app/router/embedded/router_runtime_services.dart`
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+- `lib/app/router/app_router.dart` part wiring guncellendi (`router_runtime_globals.dart` yerine yeni 4 parca eklendi)
+- Tum degisiklikler davranis degistirmeden ayni global isimler korunarak yapildi (sadece ownership/okunabilirlik ayrimi)
+
+### Sonuc
+- Faz 2 kapanisini engelleyen buyuk runtime wiring yigini tek dosyadan cikti; router runtime declaration'lari artik tema bazli okunabiliyor.
+- `router_runtime_services.dart` ve `router_runtime_use_cases.dart` ayrimi ile router composition yuku daha net sinirlandi.
+- `app_router.dart` ince kalmaya devam etti ve runtime wiring baglantilari explicit hale geldi.
+
+### Dogrulama
+1. `dart analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_constants.dart lib/app/router/embedded/router_runtime_state.dart lib/app/router/embedded/router_runtime_services.dart lib/app/router/embedded/router_runtime_use_cases.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 2 kapanis checklist/raporu olusturup kalan riskleri (router runtime global singleton pattern) Faz 3 DI standardizasyon backlog'una tasimak
+- Faz 3'te use-case/repository aktivasyonu icin bir sonraki yuksek ROI router handler akisini domain/application katmanina almak
+
+## 2026-02-24 - Faz 3 Baslangic Dilimi (Start Trip Commit Orchestration Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni application use-case eklendi:
+  - `lib/features/driver/application/commit_start_driver_trip_use_case.dart`
+  - `CommitStartDriverTripUseCase`
+  - `CommitStartDriverTripCommand`
+  - `CommitStartDriverTripResult`
+- Use-case sorumlulugu:
+  - current transition version okuma
+  - `deviceId` olusturma (`platform + uidPrefix`)
+  - `StartDriverTripUseCase` icin command compose etme ve execute etme
+  - typed sonuc dondurme (`isActiveTripStarted`)
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icinde `_commitStartDriverTripUseCase` eklendi
+- Router handler sadeletiildi:
+  - `lib/app/router/embedded/start_trip_handlers.dart`
+  - `_commitStartTrip(...)` icinden transition version + deviceId + start command compose zinciri cikarildi
+  - handler artik UI side-effect / permission-sync / telemetry / navigation orchestration tarafina odakli
+- Artik kullanilmayan helper/import temizligi yapildi:
+  - `lib/app/router/embedded/driver_route_context_helpers.dart` (`_readCurrentTripTransitionVersion` kaldirildi)
+  - `lib/app/router/app_router.dart` unused import temizlendi
+
+### Sonuc
+- Faz 3 hedefindeki "router business/data orchestration'i application/use-case katmanina tasima" maddesinde ilk somut dilim baslatildi.
+- `start_trip` backend commit akisi typed application siniri kazandi; router tarafinda davranis korunarak daha okunabilir hale geldi.
+
+### Dogrulama
+1. `dart analyze lib/features/driver/application/commit_start_driver_trip_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/start_trip_handlers.dart lib/app/router/embedded/driver_route_context_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` icindeki join/create-guest result branching + error mapping akisini typed application flow/use-case'e tasima
+- veya `trip_finish_announcement_handlers.dart` tarafindaki outcome mapping/feedback kararlarini feature/application tarafina cekme
+
+## 2026-02-24 - Faz 3 Baslangic Dilimi (Passenger Join Commit Orchestration Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni passenger application use-case eklendi:
+  - `lib/features/passenger/application/commit_passenger_join_by_srv_code_use_case.dart`
+  - `CommitPassengerJoinBySrvCodeUseCase`
+  - `CommitPassengerJoinBySrvCodeCommand`
+  - `CommitPassengerJoinBySrvCodeResult`
+- Use-case sorumlulugu:
+  - join callable command compose etme (`PassengerRouteJoinBySrvCodeCommand`)
+  - `JoinPassengerRouteBySrvCodeUseCase` execute etme
+  - typed sonuc dondurme (`hasCompleteRouteResponse`, `trimmedRouteName`)
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_commitPassengerJoinBySrvCodeUseCase` eklendi
+- Router handler sadeletildi:
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+  - `_handleJoinBySrvCode(...)` icinde join command compose + response normalization/validation helper use-case'e tasindi
+  - cache/tracking URI olusturma tarafinda `trimmedRouteName` kullanimi tek noktaya indirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi/temizlendi
+
+### Sonuc
+- Faz 3 hedefindeki "router handler business/data orchestration'i typed application use-case'e tasima" maddesinde ikinci somut dilim kapatildi.
+- Join flow davranisi korunarak router handler okunabilirligi arttirildi; domain command tipi router callsite'indan gizlenmis oldu.
+
+### Dogrulama
+1. `dart analyze lib/features/passenger/application/commit_passenger_join_by_srv_code_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_flow_handlers.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` icindeki role/profile bootstrap hazirlama branching'ini (`_resolveCurrentUserRole` + `_bootstrapCurrentProfile`) typed application flow helper'a tasima
+- veya guest join (`_handleCreateGuestSession`) callable/result validation zincirini benzer `commit` use-case'e tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Auth Profile Session Bootstrap Orchestration Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni auth application use-case eklendi:
+  - `lib/features/auth/application/bootstrap_current_auth_profile_session_use_case.dart`
+  - `BootstrapCurrentAuthProfileSessionUseCase`
+  - `BootstrapCurrentAuthProfileSessionCommand`
+  - `BootstrapCurrentAuthProfileSessionResult`
+- Use-case sorumlulugu:
+  - mevcut auth user kontrolu
+  - best-effort `getIdToken(true)` refresh
+  - `bootstrapUserProfile` callable invoke (`BootstrapUserProfileClient`)
+  - role sonucuna gore driver push token register/dispose karari
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_bootstrapCurrentAuthProfileSessionUseCase` eklendi
+- Router helper sadeletildi:
+  - `lib/app/router/embedded/account_paywall_bootstrap_helpers.dart`
+  - `_bootstrapCurrentProfile(...)` artik yeni use-case'e delegasyon yapiyor ve `role.name` donduruyor (imza/davranis korunuyor)
+- Artik kullanilmayan `_registerDevice(...)` helper kaldirildi
+
+### Sonuc
+- Faz 3 hedefindeki "session/profile bootstrap business orchestration'i router'dan cikar" maddesinde yuksek etki alanli bir dilim kapatildi.
+- Bu degisiklik `join`, `auth`, `session routing`, `role promotion` gibi birden fazla router akisini ayni anda sadeletme zemini hazirladi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/features/auth/application/bootstrap_current_auth_profile_session_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` icindeki role/profile hazirlama branching'ini (`_resolveCurrentUserRole` + `_bootstrapCurrentProfile`) typed flow use-case'e toplama
+- veya guest join (`_handleCreateGuestSession`) callable/result validation zincirini `commit` use-case'e tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Join Role/Profile Prepare Branch Typed Auth Role-Ensure Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni auth application use-case eklendi:
+  - `lib/features/auth/application/ensure_auth_profile_role_use_case.dart`
+  - `EnsureAuthProfileRoleUseCase`
+  - `EnsureAuthProfileRoleCommand`
+  - `EnsureAuthProfileRoleResult`
+- Use-case sorumlulugu:
+  - mevcut role okumak (`ReadUserRoleUseCase`)
+  - hedef role degilse auth profile session bootstrap tetiklemek (`BootstrapCurrentAuthProfileSessionUseCase`)
+  - `currentRole` + `effectiveRole` sonucunu typed olarak dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_ensureAuthProfileRoleUseCase` eklendi
+- `join` flow callsite migration:
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+  - `_handleJoinBySrvCode(...)` icindeki `_resolveCurrentUserRole + _bootstrapCurrentProfile` branching use-case'e tasindi
+  - passenger role hazir degilse abort davranisi korundu (`effectiveRole` kontrolu)
+- `join guest` reuse migration:
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+  - `_handleContinueAsPassenger(...)` icindeki role-prepare branch ayni use-case'i kullanacak sekilde sadeletildi
+
+### Sonuc
+- Faz 3 hedefindeki "role/profile hazirlama orchestration'i router handler'dan alma" maddesinde yuksek tekrarli bir branch typed application use-case'e tasindi.
+- Ayni use-case'in hem `join_flow` hem `join_guest` icinde kullanilmasiyla tekrar eden role-check/bootstrap kodu merkezilesmeye basladi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_flow_handlers.dart lib/features/auth/application/ensure_auth_profile_role_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/embedded/join_guest_handlers.dart lib/app/router/embedded/join_flow_handlers.dart lib/features/auth/application/ensure_auth_profile_role_use_case.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` icindeki guest session create branch (`_handleCreateGuestSession`) icin `commit` use-case extraction (response validation + normalization)
+- veya driver role promotion retry akisini (`_promoteToDriverRoleWithRetry`) typed auth application flow use-case'e tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Guest Session Create Commit Orchestration Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni passenger application use-case eklendi:
+  - `lib/features/passenger/application/commit_create_guest_session_use_case.dart`
+  - `CommitCreateGuestSessionUseCase`
+  - `CommitCreateGuestSessionCommand`
+  - `CommitCreateGuestSessionResult`
+- Use-case sorumlulugu:
+  - guest session create command compose etme (`CreateGuestSessionCommand`)
+  - `CreateGuestSessionUseCase` execute etme
+  - response normalization (`routeName` trim/null normalize)
+  - typed response completeness kontrolu (`hasCompleteSessionResponse`)
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_commitCreateGuestSessionUseCase` eklendi
+- Router handler sadeletildi:
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+  - `_handleCreateGuestSession(...)` icindeki command compose + routeName normalization + response completeness kontrolu use-case'e tasindi
+  - router tarafinda navigation/telemetry/error UX davranisi korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi/temizlendi (unused import temizligi dahil)
+
+### Sonuc
+- Faz 3 hedefindeki "guest join callable orchestration'i typed application use-case'e tasima" maddesinde temiz bir dilim daha kapatildi.
+- `join_flow_handlers.dart` icindeki guest create branch okunabilirligi artti; response validation kurali application katmaninda merkezilesti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/passenger/application/commit_create_guest_session_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_flow_handlers.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- driver role promotion retry akisini (`_promoteToDriverRoleWithRetry`) typed auth application flow use-case'e tasima
+- veya `join_flow_handlers.dart` / `join_guest_handlers.dart` icindeki role-switch destination resolve + navigation plan hazirligini typed flow helper'a tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Driver Role Promotion Retry Orchestration Typed Auth Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni auth application use-case eklendi:
+  - `lib/features/auth/application/promote_current_auth_user_to_driver_role_with_retry_use_case.dart`
+  - `PromoteCurrentAuthUserToDriverRoleWithRetryUseCase`
+  - `PromoteCurrentAuthUserToDriverRoleWithRetryCommand`
+  - `PromoteCurrentAuthUserToDriverRoleWithRetryResult`
+- Use-case sorumlulugu:
+  - ilk driver role bootstrap denemesi (`BootstrapCurrentAuthProfileSessionUseCase`)
+  - role driver degilse best-effort `user.reload()` + `getIdToken(true)` refresh
+  - ikinci bootstrap denemesi (retry)
+  - sonuc role'u typed (`UserRole`) dondurme
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_promoteCurrentAuthUserToDriverRoleWithRetryUseCase` eklendi
+- Router helper sadeletildi:
+  - `lib/app/router/embedded/account_paywall_bootstrap_helpers.dart`
+  - `_promoteToDriverRoleWithRetry()` artik yeni use-case'e delegasyon yapiyor; mevcut `String` donus davranisi `role.name` ile korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Faz 3 hedefindeki "driver role promotion retry orchestration'i router helper'dan alma" maddesinde yuksek tekrarli bir auth akisi typed application use-case'e tasindi.
+- `join_guest`, `session_routing`, `route_mutation_support` gibi birden fazla callsite ayni merkezi retry politikasini kullanir hale geldi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/auth/application/promote_current_auth_user_to_driver_role_with_retry_use_case.dart lib/app/router/embedded/account_paywall_bootstrap_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` / `join_guest_handlers.dart` icindeki role-switch destination resolve + navigation plan hazirligini typed flow helper/use-case'e toplama
+- veya route mutation tarafindaki role fallback/orchestration branch'lerini (driver/passenger capability resolve) application flow'a tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Join Guest Driver Role Readiness Branch Typed Auth Flow Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni auth application flow use-case eklendi:
+  - `lib/features/auth/application/ensure_current_auth_user_driver_role_with_retry_use_case.dart`
+  - `EnsureCurrentAuthUserDriverRoleWithRetryUseCase`
+  - `EnsureCurrentAuthUserDriverRoleWithRetryCommand`
+  - `EnsureCurrentAuthUserDriverRoleWithRetryResult`
+- Use-case sorumlulugu:
+  - mevcut role'u okumak (`ReadUserRoleUseCase`)
+  - driver degilse promote+retry flow'unu tetiklemek (`PromoteCurrentAuthUserToDriverRoleWithRetryUseCase`)
+  - `currentRole` + `effectiveRole` typed sonucunu dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_ensureCurrentAuthUserDriverRoleWithRetryUseCase` eklendi
+- `join_guest` driver branch migration:
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+  - `_handleContinueAsDriver(...)` icindeki `_resolveCurrentUserRole + _promoteToDriverRoleWithRetry` branching'i use-case'e tasindi
+  - string role degiskeni yerine typed `UserRole effectiveRole` kullanildi
+  - mevcut error UX / navigation davranisi korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Faz 3 hedefindeki "join guest driver role hazirlama orchestration'ini router handler'dan alma" maddesinde ikinci seviye bir sadeleme tamamlandi.
+- `join_guest` callsite'i daha az string tabanli karar mantigi ile daha okunur hale geldi; auth flow use-case zinciri (read role -> promote retry) application katmaninda merkezilesti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/auth/application/ensure_current_auth_user_driver_role_with_retry_use_case.dart lib/features/auth/application/promote_current_auth_user_to_driver_role_with_retry_use_case.dart lib/app/router/embedded/join_guest_handlers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `session_routing_helpers.dart` icindeki driver corridor prepare fallback branch'ini ayni typed auth flow use-case zinciriyle sadeletme
+- veya `route_mutation_support_helpers.dart` icindeki driver capability fallback orchestration'ini application flow'a tasima (read-role hata fallback davranisini koruyarak)
+
+## 2026-02-24 - Faz 3 Dilimi (Session Routing Driver Corridor Prepare Branch Typed Auth Flow Use-Case'e Tasindi)
+
+### Yapilanlar
+- `lib/app/router/embedded/session_routing_helpers.dart` icindeki driver corridor prepare branch guncellendi.
+- `_routeAfterAuth(...)` icinde `_promoteToDriverRoleWithRetry()` string tabanli akisi yerine:
+  - `_ensureCurrentAuthUserDriverRoleWithRetryUseCase.execute(...)`
+  - `driverRoleReadiness.effectiveRole.name`
+  kullanildi.
+- `switchSourceRole` davranisi bilincli olarak korunarak mevcut `resolvedRole` uzerinden birakildi (davranis degisikligi yok).
+- Hata UX / fallback / navigation davranislari korunarak yalnizca auth role hazirlama orchestration'i typed use-case zincirine baglandi.
+
+### Sonuc
+- Faz 3 hedefindeki "session routing driver prepare fallback branch'ini router helper'dan sadeletme" maddesinde tekrar eden auth role hazirlama mantigi application katmanina tasindi.
+- `join_guest` ve `session_routing` ayni typed driver readiness flow'unu kullanir hale geldi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/embedded/session_routing_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/features/auth/application/ensure_current_auth_user_driver_role_with_retry_use_case.dart lib/features/auth/application/promote_current_auth_user_to_driver_role_with_retry_use_case.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icindeki driver capability fallback orchestration'ini typed auth flow/use-case ile sadeletme (read-role hata fallback davranisini koruyarak)
+- veya route mutation handler tarafindaki result branching/error mapping kurallarini typed application flow helper'a alma
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Driver Capability Fallback Promotion Sonucu Typed Use-Case Sonucuna Tasindi)
+
+### Yapilanlar
+- `lib/app/router/embedded/route_mutation_support_helpers.dart` icindeki `_ensureDriverReadyForRouteMutation(...)` branch guncellendi.
+- Mevcut `read role` hata fallback davranisi korunarak (`_resolveCurrentUserRole` hata -> `UserRole.unknown`) promotion adimi typed hale getirildi:
+  - `_promoteCurrentAuthUserToDriverRoleWithRetryUseCase.execute(...)`
+  - `PromoteCurrentAuthUserToDriverRoleWithRetryCommand(displayName: _resolveDisplayName(user))`
+- `resolvedRole != 'driver'` string karsilastirmasi kaldirildi; yerine `promotionResult.role != UserRole.driver` kullanildi.
+- Driver profile precondition / info dialog / auth route redirect davranislari aynen korundu.
+
+### Sonuc
+- Faz 3 hedefindeki "route mutation capability fallback orchestration'ini router helper'da string tabanli kontrolden kurtarma" maddesinde dusuk riskli ama onemli bir typed migration daha tamamlandi.
+- Route mutation support callsite'i auth role promotion sonucunu artik `UserRole` uzerinden degerlendiriyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/embedded/session_routing_helpers.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/features/auth/application/ensure_current_auth_user_driver_role_with_retry_use_case.dart lib/features/auth/application/promote_current_auth_user_to_driver_role_with_retry_use_case.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki result branching / error mapping / precondition handling zincirlerinden ilk yuksek ROI dilimi typed application flow/use-case'e tasima
+- veya `join_flow` / `join_guest` navigation plan hazirligini typed flow helper'a toplama
+
+## 2026-02-24 - Faz 3 Dilimi (Current Driver Subscription Snapshot Auth+Role Orchestration Typed Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni subscription application use-case eklendi:
+  - `lib/features/subscription/application/load_current_auth_driver_subscription_snapshot_use_case.dart`
+  - `LoadCurrentAuthDriverSubscriptionSnapshotUseCase`
+- Use-case sorumlulugu:
+  - `currentUser` okuma (`AuthCredentialGateway`)
+  - anonymous / signed-out durumda default snapshot dondurme
+  - role kontrolu (`ReadUserRoleUseCase`)
+  - driver ise `LoadDriverSubscriptionSnapshotUseCase` ile snapshot yukleme
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_loadCurrentAuthDriverSubscriptionSnapshotUseCase` eklendi
+- Router helper sadeletildi:
+  - `lib/app/router/embedded/bootstrap_data_loaders.dart`
+  - `_resolveCurrentDriverSubscriptionSnapshot(...)` icindeki auth+role+subscription orchestration use-case'e tasindi
+  - `_readDriverSubscriptionSnapshotByUid(...)` helper'i kaldirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Faz 3 hedefindeki "router helper icindeki auth + role + feature-data compose branch'lerini application use-case'e tasima" maddesinde dusuk riskli ama tekrarli bir bootstrap orchestrator daha router'dan alindi.
+- `bootstrap_data_loaders` artik subscription snapshot icin sadece router-private UI adapter (`_DriverSubscriptionSnapshot`) mappingi yapiyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/subscription/application/load_current_auth_driver_subscription_snapshot_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/bootstrap_data_loaders.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/subscription/application/load_current_auth_driver_subscription_snapshot_use_case.dart lib/app/router/embedded/bootstrap_data_loaders.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `bootstrap_data_loaders.dart` icindeki benzer auth+role gate branch'lerini (varsa) ayni sekilde typed use-case'lere tasima
+- veya `route_mutation_handlers.dart` / `join_flow_handlers.dart` icindeki result branching + error mapping zincirlerinden birini application flow helper'a cikarma
+
+## 2026-02-24 - Faz 3 Dilimi (Location Permission Prompt Role+Gate Karari Typed Permissions Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni permissions application use-case eklendi:
+  - `lib/features/permissions/application/should_prompt_location_permission_for_user_use_case.dart`
+  - `ShouldPromptLocationPermissionForUserUseCase`
+  - `ShouldPromptLocationPermissionForUserCommand`
+  - `ShouldPromptLocationPermissionForUserResult`
+- Use-case sorumlulugu:
+  - kullanici role'unu okumak (`ReadUserRoleUseCase`)
+  - `LocationPermissionGate` ile prompt kararini hesaplamak
+  - `role + shouldPrompt` typed sonucunu dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_shouldPromptLocationPermissionForUserUseCase` eklendi
+- Router helper migration:
+  - `lib/app/router/embedded/driver_location_permission_helpers.dart`
+  - `_ensureDriverLocationPermissionForTrigger(...)` icindeki `_resolveCurrentUserRole + _locationPermissionGate.shouldPromptLocationPermission(...)` karari use-case'e tasindi
+  - mevcut platform branching / telemetry / UX davranisi korunarak yalnizca role+gate orchestration application katmanina alindi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Faz 3 hedefindeki "permissions/policy kararlarini router helper'lardan application use-case'e tasima" maddesinde temiz bir typed migration daha tamamlandi.
+- Router helper artik policy kararini dogrudan role+gate compose ederek vermiyor; permissions application katmanindan gelen typed sonucuna gore ilerliyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/permissions/application/should_prompt_location_permission_for_user_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/driver_location_permission_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/subscription/application/load_current_auth_driver_subscription_snapshot_use_case.dart lib/features/permissions/application/should_prompt_location_permission_for_user_use_case.dart lib/app/router/embedded/bootstrap_data_loaders.dart lib/app/router/embedded/driver_location_permission_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki result branching + error mapping zincirinden ilk dilimi typed flow helper/use-case'e tasima
+- veya `join_flow_handlers.dart` icindeki navigation plan / outcome branching'ini typed application flow helper'a toplama
+
+## 2026-02-24 - Faz 3 Dilimi (Driver Entry Destination Karari Typed Driver Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application use-case eklendi:
+  - `lib/features/driver/application/resolve_driver_entry_destination_use_case.dart`
+  - `ResolveDriverEntryDestinationUseCase`
+  - `DriverEntryDestination` (`home`, `profileSetup`)
+- Use-case sorumlulugu:
+  - `ReadDriverProfileRecordUseCase` ile driver profil kaydini okumak
+  - profil hazirlik kontrolunu (`name/phone/plate`) application katmaninda yapmak
+  - hatalarda guvenli fallback olarak `profileSetup` donmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_resolveDriverEntryDestinationUseCase` eklendi
+- Router helper migration:
+  - `lib/app/router/embedded/passenger_entry_membership_helpers.dart`
+  - `_resolveDriverEntryDestination(User user)` artik typed use-case'e delege oluyor
+  - router helper icindeki `_hasReadyDriverProfile(...)` private check kaldirildi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Driver corridor giris hedefi (home vs profile setup) karari router helper'dan alinip driver application katmaninda merkezilesti.
+- Ayni karar mantigini kullanan `join_guest`, `session_routing` ve `route_mutation_support` callsite'lari icin tekrarli logic riski azaldi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_driver_entry_destination_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/passenger_entry_membership_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/resolve_driver_entry_destination_use_case.dart lib/app/router/embedded/passenger_entry_membership_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icindeki driver readiness / destination fallback branching'ini typed auth+driver flow use-case'e tasima
+- veya `route_mutation_handlers.dart` icindeki result branching + error mapping zincirinden ilk dilimi application flow helper'a cikarma
+
+## 2026-02-24 - Faz 3 Dilimi (Driver Role Readiness + Entry Destination Orchestration Typed Driver Flow Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application flow use-case eklendi:
+  - `lib/features/driver/application/ensure_current_auth_user_driver_corridor_entry_destination_use_case.dart`
+  - `EnsureCurrentAuthUserDriverCorridorEntryDestinationUseCase`
+  - `EnsureCurrentAuthUserDriverCorridorEntryDestinationCommand`
+  - `EnsureCurrentAuthUserDriverCorridorEntryDestinationResult`
+- Use-case sorumlulugu:
+  - mevcut `EnsureCurrentAuthUserDriverRoleWithRetryUseCase` ile driver role readiness'i saglamak
+  - effective role driver ise `ResolveDriverEntryDestinationUseCase` ile `home/profileSetup` hedefini cozmlemek
+  - `currentRole + effectiveRole + destination` sonucunu typed sekilde dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_ensureCurrentAuthUserDriverCorridorEntryDestinationUseCase` eklendi
+- Router callsite migration (davranis korunarak):
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+    - driver continue flow icindeki `ensure role + resolve destination` zinciri yeni use-case'e tasindi
+    - `switchSourceRole` icin `currentRole`, navigation hedefi icin `destination` sonucu kullanildi
+  - `lib/app/router/embedded/session_routing_helpers.dart`
+    - auth sonrasinda driver corridor branch'indeki `ensure role + resolve destination` zinciri yeni use-case'e tasindi
+    - role zaten driver ise mevcut fallback destination resolve davranisi korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Ayni driver corridor hazirlik paterni (`ensure driver role` + `driver entry destination`) router helper'larda tekrarli sekilde kurulmak yerine driver application katmaninda merkezilesti.
+- `join_guest` ve `session_routing` taraflarinda router orchestration yukunun bir parcasi daha application flow use-case'lere tasindi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/ensure_current_auth_user_driver_corridor_entry_destination_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_guest_handlers.dart lib/app/router/embedded/session_routing_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/ensure_current_auth_user_driver_corridor_entry_destination_use_case.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_guest_handlers.dart lib/app/router/embedded/session_routing_helpers.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icin davranis-korumali driver readiness/destination varyantini typed flow use-case'e tasima (role-read hata fallback korunarak)
+- veya `route_mutation_handlers.dart` icindeki result branching + error mapping zincirinden ilk dilimi application flow helper/use-case'e cikarma
+
+## 2026-02-24 - Faz 3 Dilimi (Create Route Backend Commit Cagrisi Typed Driver Commit Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application commit use-case eklendi:
+  - `lib/features/driver/application/commit_create_driver_route_use_case.dart`
+  - `CommitCreateDriverRouteUseCase`
+  - `CommitCreateDriverRouteCommand`
+  - `CommitCreateDriverRouteResult`
+- Use-case sorumlulugu:
+  - route create input alanlarini typed command olarak toplamak
+  - mevcut `CreateDriverRouteUseCase`'e backend commit delegasyonu yapmak
+  - `routeId + srvCode` sonucunu typed commit result olarak dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_commitCreateDriverRouteUseCase` eklendi
+- Router handler migration:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleCreateRoute(...)` icindeki direct `_createDriverRouteUseCase.execute(...)` cagrisi yerine `CommitCreateDriverRouteUseCase` kullanildi
+  - route cache / dialog / navigation davranisi aynen korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- `route_mutation_handlers` icinde backend commit parametre gecisi application katmanina tasinarak handler UI/cache/navigation orchestration'a biraz daha odaklandi.
+- Faz 3 hedefindeki "router handler icindeki backend commit cagrilarini typed commit use-case'lere tasima" yonunde bir dilim daha kapatildi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/commit_create_driver_route_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/ensure_current_auth_user_driver_corridor_entry_destination_use_case.dart lib/features/driver/application/commit_create_driver_route_use_case.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_guest_handlers.dart lib/app/router/embedded/session_routing_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki `updateRoute` / `upsertStop` / `deleteStop` backend commit cagrilarini ayni `commit` patterni ile typed use-case'lere tasima
+- veya `route_mutation_support_helpers.dart` icin davranis-korumali driver readiness/destination varyantini typed flow use-case'e tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Update/Stop Commit Cagrilari Typed Driver Commit Use-Case'lere Tasindi)
+
+### Yapilanlar
+- Yeni driver application commit use-case'ler eklendi:
+  - `lib/features/driver/application/commit_update_driver_route_use_case.dart`
+  - `lib/features/driver/application/commit_upsert_driver_stop_use_case.dart`
+  - `lib/features/driver/application/commit_delete_driver_stop_use_case.dart`
+- Use-case sorumluluklari:
+  - `updateRoute` icin router tarafindaki domain command assembly'yi (`DriverRouteUpdateCommand`, point/inline stop mapleme) application katmanina tasimak
+  - `upsertStop` / `deleteStop` icin backend commit cagrilarini typed commit command'larla sarmalamak
+  - `upsertStop` sonucunda `stopId`'yi typed commit result olarak dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine
+    - `_commitUpdateDriverRouteUseCase`
+    - `_commitUpsertDriverStopUseCase`
+    - `_commitDeleteDriverStopUseCase`
+    eklendi
+- Router handler migration:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleUpdateRoute(...)` artik `CommitUpdateDriverRouteUseCase` kullaniyor
+  - `_handleUpsertStop(...)` artik `CommitUpsertDriverStopUseCase` kullaniyor
+  - `_handleDeleteStop(...)` artik `CommitDeleteDriverStopUseCase` kullaniyor
+  - success/error feedback, dialog ve navigation davranislari korunuyor
+- `lib/app/router/app_router.dart` import wiring guncellendi
+- Kullanilmayan domain importlari temizlendi:
+  - `driver_route_update_repository.dart`
+  - `driver_stop_mutation_repository.dart`
+
+### Sonuc
+- `route_mutation_handlers` icindeki backend commit parametre/doman command kurulum yukunun bir parcasi daha application katmanina tasindi.
+- Router handler'lar route mutation tarafinda daha net bicimde UI/feedback/navigation orchestration'a odaklanmaya basladi.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/commit_update_driver_route_use_case.dart lib/features/driver/application/commit_upsert_driver_stop_use_case.dart lib/features/driver/application/commit_delete_driver_stop_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/commit_update_driver_route_use_case.dart lib/features/driver/application/commit_upsert_driver_stop_use_case.dart lib/features/driver/application/commit_delete_driver_stop_use_case.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icindeki driver readiness / promotion / destination karar zincirini (rol okuma hata fallback'i korunarak) typed driver flow use-case'e tasima
+- veya `route_mutation_handlers.dart` icindeki route mutation error mapping / precondition branching'ini typed application helper'a cikarma
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Driver Readiness Orchestration Typed Driver Flow Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application flow use-case eklendi:
+  - `lib/features/driver/application/ensure_current_auth_user_driver_route_mutation_readiness_use_case.dart`
+  - `EnsureCurrentAuthUserDriverRouteMutationReadinessUseCase`
+  - `EnsureCurrentAuthUserDriverRouteMutationReadinessCommand`
+  - `EnsureCurrentAuthUserDriverRouteMutationReadinessResult`
+- Use-case sorumlulugu:
+  - route mutation flow'u icin driver readiness zincirini merkezilestirmek
+  - `ReadUserRoleUseCase` role read hata durumunda mevcut davranisi koruyarak `UserRole.unknown` fallback'i ile devam etmek
+  - gerekirse `PromoteCurrentAuthUserToDriverRoleWithRetryUseCase` ile role promotion denemek
+  - effective role driver ise `ResolveDriverEntryDestinationUseCase` ile giris hedefini typed olarak dondurmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_ensureCurrentAuthUserDriverRouteMutationReadinessUseCase` eklendi
+- Router helper migration (davranis korunarak):
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_ensureDriverReadyForRouteMutation(...)` icindeki `read role + promote + resolve destination` zinciri yeni use-case'e tasindi
+  - role read hata fallback'i, profile-check failed feedback'i ve non-driver redirect davranislari korundu
+
+### Sonuc
+- `route_mutation_support_helpers` icindeki kritik auth/role/orchestration karar zinciri router helper'dan application katmanina tasindi.
+- Route mutation akisi icin corridor varyantindan farkli olan rol okuma hata fallback davranisi typed ve acik bir use-case ile belgelenmis oldu.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/ensure_current_auth_user_driver_route_mutation_readiness_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/features/driver/application/ensure_current_auth_user_driver_route_mutation_readiness_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki route mutation error mapping / precondition branching zincirinden ilk typed helper/use-case dilimini cikarma
+- veya route mutation support helper'lardaki dialog/feedback kararlarinin typed policy helper'a tasinmasi
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Create Failure Precondition Classifier Typed Driver Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application use-case eklendi:
+  - `lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart`
+  - `ClassifyRouteMutationCreateFailureUseCase`
+  - `ClassifyRouteMutationCreateFailureCommand`
+  - `ClassifyRouteMutationCreateFailureResult`
+  - `RouteMutationCreateFailureKind`
+- Use-case sorumlulugu:
+  - `create route` callable failure'larinda `code + message` normalize/classify etmek
+  - driver profile precondition durumunu typed enum ile isaretlemek
+  - router helper'lardaki tekrar eden `trim/lowercase/contains` zincirini merkezilestirmek
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_classifyRouteMutationCreateFailureUseCase` eklendi
+- Router helper migration (davranis/copy korunarak):
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_handleDriverProfilePreconditionForRoute(...)` artik typed classifier sonucunu kullaniyor
+  - `_mapRouteMutationError(...)` icindeki `failed-precondition` branch'i driver-profile + `srv_code_collision_limit` kontrolu icin ayni classifier normalize sonucunu kullaniyor
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Route mutation create failure parsing mantigi router helper icinde daginik string parsing olarak kalmak yerine typed driver application classifier use-case'e tasindi.
+- Bir sonraki adimda error message mapping'i tamamen typed key/plan katmanina cikarmak icin zemin olustu.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_support_helpers.dart` icindeki route create error copy mapping'ini typed message-key/policy plan helper/use-case'e cikarma
+- veya `route_mutation_handlers.dart` create success side-effect planini (cache + dialog + navigation) typed result/plan helper'a bolme
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Create Error Feedback Plan Typed Driver Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application feedback-planning use-case eklendi:
+  - `lib/features/driver/application/plan_route_mutation_create_failure_feedback_use_case.dart`
+  - `PlanRouteMutationCreateFailureFeedbackUseCase`
+  - `PlanRouteMutationCreateFailureFeedbackCommand`
+  - `RouteMutationCreateFailureFeedbackPlan`
+  - `RouteMutationCreateFailureFeedbackKey`
+- Use-case sorumlulugu:
+  - `create route` failure code/message bilgisini typed feedback key'e donusturmek
+  - `srv_code_collision_limit`, driver profile precondition, retryable unavailable vb. kararlarini application katmaninda toplamak
+  - gerekiyorsa `codeLabel` (unknown fallback dahil) uretmek
+- Yeni use-case, mevcut classifier use-case'i reuse ediyor:
+  - `ClassifyRouteMutationCreateFailureUseCase`
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_planRouteMutationCreateFailureFeedbackUseCase` eklendi
+- Router helper migration (davranis/copy korunarak):
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_mapRouteMutationError(...)` artik `feedbackPlan.key` uzerinden switch ediyor
+  - mevcut kullanici mesajlari aynen korundu, sadece karar mantigi typed use-case'e tasindi
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Sonuc
+- Route mutation create error feedback kararlari router helper icindeki string/code branching'den ayrildi.
+- Router tarafinda metin render/mapleme kalirken, karar mantigi driver application katmaninda typed olarak merkezilesti.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart lib/features/driver/application/plan_route_mutation_create_failure_feedback_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart lib/features/driver/application/plan_route_mutation_create_failure_feedback_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` create success tarafindaki side-effect zincirini (`cache remember + dialog + navigation`) typed plan helper/use-case'e parcala
+- veya route mutation update/upsert/delete error feedback taraflarini benzer typed feedback-plan paternine tasima
+
+## 2026-02-24 - Faz 3 Kalite Dilimi (Route Mutation Failure Classifier/Feedback Plan Unit Test Coverage Eklendi)
+
+### Yapilanlar
+- Yeni unit testler eklendi:
+  - `test/features/driver/application/classify_route_mutation_create_failure_use_case_test.dart`
+  - `test/features/driver/application/plan_route_mutation_create_failure_feedback_use_case_test.dart`
+- Kapsanan davranislar:
+  - driver profile precondition tespiti (`failed-precondition` + message parsing)
+  - `sofor profil` varyanti
+  - non-precondition fallback (`other`)
+  - feedback plan key secimi (`unauthenticated`, `driverProfilePrecondition`, `srvCodeCollisionLimit`, `retryableUnavailable`)
+  - fallback `codeLabel` uretimi (`explicit` ve `unknown`)
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format test/features/driver/application/classify_route_mutation_create_failure_use_case_test.dart test/features/driver/application/plan_route_mutation_create_failure_feedback_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/classify_route_mutation_create_failure_use_case.dart lib/features/driver/application/plan_route_mutation_create_failure_feedback_use_case.dart test/features/driver/application/classify_route_mutation_create_failure_use_case_test.dart test/features/driver/application/plan_route_mutation_create_failure_feedback_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/features/driver/application/classify_route_mutation_create_failure_use_case_test.dart test/features/driver/application/plan_route_mutation_create_failure_feedback_use_case_test.dart -r compact`
+   - Sonuc: PASS
+   - Not: `assets/images/start.jpeg` pubspec referansi nedeniyle `--no-test-assets` kullanildi (kod davranisiyla ilgisiz asset bundle sorunu)
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` create success side-effect zinciri icin typed post-commit plan/helper extraction
+- veya update/upsert/delete error feedback tarafini benzer typed feedback-plan paternine tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Create Route Success Post-Commit Side-Effect Planning Typed Driver Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application post-commit planning use-case eklendi:
+  - `lib/features/driver/application/plan_create_driver_route_post_commit_handling_use_case.dart`
+  - `PlanCreateDriverRoutePostCommitHandlingUseCase`
+  - `PlanCreateDriverRoutePostCommitHandlingCommand`
+  - `CreateDriverRoutePostCommitHandlingPlan`
+  - `CreateDriverRouteRecentCacheWritePlan`
+- Use-case sorumlulugu:
+  - create-route commit sonrasinda recent-route cache write gerekip gerekmedigini typed planlamak (`uid + routeId` varligi)
+  - driver home navigation preview hedefini (`previewRouteId`) ve `forceRefresh` kararini typed olarak uretmek
+  - `srvCode` dialog akisi icin post-commit planda tasimak
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_planCreateDriverRoutePostCommitHandlingUseCase` eklendi
+- Router handler migration (davranis korunarak):
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleCreateRoute(...)` icindeki `currentUser + routeId` cache branching ve driver home navigation arguman kurulum mantigi typed plan use-case'e tasindi
+  - `srvCode` dialog ve `context.go(...)` davranisi aynen korundu
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Kalite
+- Yeni planner use-case icin unit test eklendi:
+  - `test/features/driver/application/plan_create_driver_route_post_commit_handling_use_case_test.dart`
+  - cache write plan olusan/olusmayan varyantlar (`uid/routeId` null kombinasyonlari) kapsandi
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_create_driver_route_post_commit_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_create_driver_route_post_commit_handling_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_create_driver_route_post_commit_handling_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_create_driver_route_post_commit_handling_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/features/driver/application/plan_create_driver_route_post_commit_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki `updateRoute / upsertStop / deleteStop` error feedback branching'lerini typed feedback-plan use-case'lere tasima
+- veya create route success tarafindaki UI side-effect execution'ini (dialog + navigation) router helper adapter'a ayirarak handler'i daha da inceltme
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Update/Stop Write Feedback Branching Typed Driver Planner Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application feedback planner use-case eklendi:
+  - `lib/features/driver/application/plan_route_mutation_write_feedback_use_case.dart`
+  - `PlanRouteMutationWriteFeedbackUseCase`
+  - `PlanRouteMutationWriteFeedbackCommand`
+  - `RouteMutationWriteFeedbackPlan`
+  - `RouteMutationWriteFeedbackKey`
+- Use-case sorumlulugu:
+  - `updateRoute` failure feedback key secimi
+  - `upsertStop` success/failure feedback key secimi (`stopId` tasima dahil)
+  - `deleteStop` success/failure feedback key secimi
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_planRouteMutationWriteFeedbackUseCase` eklendi
+- Router helper migration (davranis korunarak):
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_resolveRouteMutationWriteFeedbackMessage(...)` helper'i eklendi
+  - typed `feedback plan` -> mevcut copy/feedback string mapleme router helper'da tutuldu
+- Router handler migration (davranis korunarak):
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_handleUpdateRoute(...)` error feedback branch'i planner + resolver kullaniyor
+  - `_handleUpsertStop(...)` success/error feedback branch'leri planner + resolver kullaniyor
+  - `_handleDeleteStop(...)` success/error feedback branch'leri planner + resolver kullaniyor
+- `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Kalite
+- Yeni planner use-case icin unit test eklendi:
+  - `test/features/driver/application/plan_route_mutation_write_feedback_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/plan_route_mutation_write_feedback_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_feedback_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/plan_route_mutation_write_feedback_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart test/features/driver/application/plan_route_mutation_write_feedback_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/features/driver/application/plan_route_mutation_write_feedback_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub --no-test-assets test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki `updateRoute` success copy branching (inline stop upserts'e gore iki farkli mesaj) icin typed success-feedback planner extraction
+- veya `assets/images/start.jpeg` referans temizligi (pubspec + `auth_hero_login_screen` default asset) ile `--no-test-assets` ihtiyacini azaltma
+
+## 2026-02-24 - Faz 0/Faz 3 Destek Temizligi (Kullanilmayan `start.jpeg` Asset Referansi Kaldirildi)
+
+### Yapilanlar
+- Kullanilmayan asset referansi temizlendi:
+  - `pubspec.yaml` icinden `assets/images/start.jpeg` satiri kaldirildi
+- Login hero ekran default asset'i mevcut asset'e alindi:
+  - `lib/ui/screens/auth_hero_login_screen.dart`
+  - default `heroImageAssetPath`: `assets/images/logo.png`
+- Arka plan/hero image yuklenemezse mevcut `errorBuilder` fallback gradient davranisi korunuyor
+
+### Sonuc
+- Daha once bazi `flutter test` komutlarinda asset bundle asamasinda gorulen `No file or variants found for asset: assets/images/start.jpeg` hatasi kalkti.
+- `--no-test-assets` opsiyonu zorunlu olmadan da test lane kosabilir hale geldi (en azindan router lane dogrulandi).
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/ui/screens/auth_hero_login_screen.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/ui/screens/auth_hero_login_screen.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_route_mutation_write_feedback_use_case_test.dart -r compact`
+   - Sonuc: PASS (asset bundle hatasi olmadan)
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Readiness Outcome-Command Resolver Use-Case'e Tasindi)
+
+### Yapilanlar
+- Yeni driver application orchestration use-case eklendi:
+  - `lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart`
+  - `ResolveCurrentAuthDriverRouteMutationReadinessUiOutcomeCommandUseCase`
+- Use-case sorumlulugu:
+  - current auth user okuma (`AuthCredentialGateway`)
+  - anonymous/unauthenticated kontrolu
+  - mevcut `EnsureCurrentAuthUserDriverRouteMutationReadinessUseCase` cagrisini sarma
+  - exception -> typed readiness UI outcome command mapleme (`profileCheckFailed`)
+  - driver role / driver profile setup gereksinimini `PlanDriverRouteMutationReadinessUiOutcomeCommand` seviyesine indirme
+- Router runtime wiring guncellendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveCurrentAuthDriverRouteMutationReadinessUiOutcomeCommandUseCase` eklendi
+- Router helper sadeleştirildi (davranis korunarak):
+  - `lib/app/router/embedded/route_mutation_support_helpers.dart`
+  - `_ensureDriverReadyForRouteMutation(...)` artik tek akisla calisiyor:
+    - `resolve outcome command -> plan outcome -> (gerekirse) execute UI outcome`
+  - route_mutation helper icindeki tekrar eden `unauthenticated/profileCheckFailed/driverRoleRequired/driverProfileSetupRequired` branching bloklari kaldirildi
+  - legacy `_resolveDriverEntryDestination(user)` fallback'i route_mutation helper seviyesinden kaldirildi
+- Import wiring guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Sonuc
+- `route_mutation` readiness gate daha ince ve deterministic hale geldi.
+- Router helper artik auth/readiness exception detaylarini bilmiyor; typed outcome command uzerinden ilerliyor.
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/route_mutation_support_helpers.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation` readiness tarafinda `displayName` fallback cozumunu ortak auth/application resolver use-case'e tasiyarak tekrar eden `_resolveDisplayName(...)` kullanimlarini azaltma
+- veya `route_mutation_handlers.dart` icindeki create/update/upsert/delete handler ortak precondition gate cagrisini typed router adapter ile birlestirme
+
+## 2026-02-24 - Faz 3 Dilimi (Display Name Fallback Auth/Application Use-Case'te Merkezilestirildi)
+
+### Yapilanlar
+- Yeni auth/application use-case eklendi:
+  - `lib/features/auth/application/resolve_auth_user_display_name_use_case.dart`
+  - `ResolveAuthUserDisplayNameUseCase`
+  - `ResolveAuthUserDisplayNameCommand`
+- Use-case sorumlulugu:
+  - display name > email prefix > anonymous/default fallback sirasini tek noktada yonetmek
+  - router geneline dagilmis display-name fallback mantigini merkezilestirmek
+- `route_mutation` readiness outcome-command resolver use-case migration:
+  - `lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart`
+  - internal private `_resolveDisplayName(...)` helper kaldirildi
+  - yeni auth use-case dependency injection ile kullanim eklendi
+- Router helper migration (davranis korunarak):
+  - `lib/app/router/embedded/router_misc_utility_helpers.dart`
+  - `_resolveDisplayName(User? user)` artik application use-case'e delegasyon yapiyor
+- Router runtime wiring/import guncellemeleri:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart` icine `_resolveAuthUserDisplayNameUseCase`
+  - `lib/app/router/app_router.dart` import wiring guncellendi
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/auth/application/resolve_auth_user_display_name_use_case_test.dart`
+  - kapsanan senaryolar: displayName, email prefix, anonymous fallback, default fallback
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/auth/application/resolve_auth_user_display_name_use_case.dart lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/router_misc_utility_helpers.dart test/features/auth/application/resolve_auth_user_display_name_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/auth/application/resolve_auth_user_display_name_use_case.dart lib/features/driver/application/resolve_current_auth_driver_route_mutation_readiness_ui_outcome_command_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/router_misc_utility_helpers.dart test/features/auth/application/resolve_auth_user_display_name_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/resolve_auth_user_display_name_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `route_mutation_handlers.dart` icindeki ortak precondition gate + commit handler pattern'ini typed router adapter helper ile birlestirerek handler tekrarini azaltma
+- veya `join` / `session` tarafindaki diger `_resolveDisplayName(...)` kullanimlarini command-level typed input'lara kaydirarak router helper bagimliligini daha da azaltma
+
+## 2026-02-24 - Faz 3 Dilimi (Route Mutation Handler Pattern'i Router Adapter Helper ile Standardize Edildi)
+
+### Yapilanlar
+- `route_mutation` router adapter helper seti genisletildi:
+  - `lib/app/router/router_route_mutation_outcome_helpers.dart`
+  - `ensureRouterRouteMutationHandlerCanProceed(...)`
+  - `executeRouterRouteMutationWriteAction(...)`
+- `create route` handler precondition gate sadeleştirildi:
+  - `lib/app/router/embedded/route_mutation_handlers.dart`
+  - `_ensureDriverReadyForRouteMutation(context)` + `context.mounted` check tekrari tek helper'a delege edildi
+- `updateRoute / upsertStop / deleteStop` handler pattern standardize edildi (davranis korunarak):
+  - `commit -> success command -> success outcome`
+  - `FirebaseFunctionsException -> failure outcome`
+  - mounted check + outcome apply tekrarları `executeRouterRouteMutationWriteAction(...)` helper'ina taşındi
+- Sonuc olarak `route_mutation_handlers.dart` icindeki tekrar eden try/catch + mounted + outcome apply bloklari belirgin sekilde azaldi
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/router_route_mutation_outcome_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/router_route_mutation_outcome_helpers.dart lib/app/router/embedded/route_mutation_handlers.dart lib/app/router/app_router.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `create route` handler icindeki commit + post-commit orchestration zincirini de benzer router adapter helper standardina almak (handler daha da incelir)
+- veya `route_mutation` command mapping (form input -> commit command) kısmını typed mapper/use-case'e tasimak
+
+## 2026-02-24 - Faz 3 Dilimi (Finish Trip Commit Feedback Message Resolver Use-Case'e Tasindi - Mapped Failure Fallback Hariç)
+
+### Yapilanlar
+- Yeni driver application resolver use-case eklendi:
+  - `lib/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case.dart`
+  - `ResolveDriverFinishTripCommitFeedbackMessageUseCase`
+- Sorumluluk (typed resolver):
+  - `queueError` -> `CoreErrorFeedbackTokens.tripFinishQueueFailed`
+  - `synced` -> success message
+  - `pendingSync` -> pending sync message
+  - `mappedFailure` -> `null` (router fallback error mapper'a bilincli delegasyon)
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveDriverFinishTripCommitFeedbackMessageUseCase`
+- Router helper migration (davranis korunarak):
+  - `lib/app/router/embedded/finish_trip_helpers.dart`
+  - `_resolveFinishTripCommitMessage(...)` artik once typed resolver use-case'i dener
+  - `mappedFailure` durumunda mevcut `_mapFinishTripErrorMessage(...)` fallback'i korunur
+- Import wiring guncellendi:
+  - `lib/app/router/app_router.dart`
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case_test.dart`
+  - kapsanan senaryolar: `queueError`, `synced`, `pendingSync`, `mappedFailure -> null fallback`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/finish_trip_helpers.dart test/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/finish_trip_helpers.dart test/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/resolve_driver_finish_trip_commit_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `_mapFinishTripErrorMessage(...)` icindeki failure code/message branching'i ikinci bir typed resolver use-case'e tasiyip `finish_trip` message resolution'ini tamamen router'dan cikarma
+
+## 2026-02-24 - Faz 3 Dilimi (Finish Trip Mapped Failure Error Mapper Router'dan Cikarildi)
+
+### Yapilanlar
+- Yeni driver application resolver use-case eklendi:
+  - `lib/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case.dart`
+  - `ResolveDriverFinishTripMappedFailureFeedbackMessageUseCase`
+- Sorumluluk (typed resolver):
+  - `permission-denied`, `not-found`, `failed-precondition`
+  - `TRANSITION_VERSION_MISMATCH` alt-branch'i
+  - default fallback -> `CoreErrorFeedbackTokens.tripFinishFailed`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveDriverFinishTripMappedFailureFeedbackMessageUseCase`
+- Router helper migration tamamlandi:
+  - `lib/app/router/embedded/finish_trip_helpers.dart`
+  - `_resolveFinishTripCommitMessage(...)` artik `mappedFailure` icin de typed resolver use-case kullanir
+  - legacy `_mapFinishTripErrorMessage(...)` router helper'i kaldirildi
+- Ek not:
+  - `TRANSITION_VERSION_MISMATCH` mesaji icindeki bozuk/mojibake metin temizlenerek normalize edildi (`Sefer durumu degisti...`).
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case_test.dart`
+  - kapsanan senaryolar: `permission-denied`, `failed-precondition` (mismatch/generic), default fallback
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case.dart lib/app/router/embedded/finish_trip_helpers.dart test/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/finish_trip_helpers.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case.dart test/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/resolve_driver_finish_trip_mapped_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `trip_finish_announcement_handlers.dart` icindeki finish-trip catch/result branch'lerini `plan -> resolve -> execute` standardina cekmek
+- veya `start_trip` / `trip_chat` tarafindaki kalan error mapper'lari typed resolver/planner use-case'lere tasimak
+
+## 2026-02-24 - Faz 3 Dilimi (Start Trip ve Trip Chat Error Mapper'lari Typed Resolver Use-Case'lere Tasindi)
+
+### Yapilanlar
+- Yeni chat application resolver use-case eklendi:
+  - `lib/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case.dart`
+  - `ResolveTripChatOpenFailureFeedbackMessageUseCase`
+- Yeni driver application resolver use-case eklendi:
+  - `lib/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case.dart`
+  - `ResolveStartDriverTripFailureFeedbackMessageUseCase`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveTripChatOpenFailureFeedbackMessageUseCase`
+  - `_resolveStartDriverTripFailureFeedbackMessageUseCase`
+- `trip_chat` router migration (davranis korunarak, dosya okunabilir hale getirildi):
+  - `lib/app/router/embedded/trip_chat_handlers.dart`
+  - FirebaseFunctionsException catch branch'i artik typed chat resolver kullanir
+  - legacy `_mapTripChatOpenError(...)` router helper'i kaldirildi
+  - bozuk fallback copy stringleri normalize edildi (`Sofor`, `Sohbet baslatilamadi...`)
+- `start_trip` catch branch migration:
+  - `lib/app/router/embedded/start_trip_handlers.dart`
+  - error code/message switch'i router catch bloğundan cikarilip typed driver resolver'a delege edildi
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case_test.dart`
+  - `test/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case.dart lib/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/trip_chat_handlers.dart lib/app/router/embedded/start_trip_handlers.dart test/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case_test.dart test/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/trip_chat_handlers.dart lib/app/router/embedded/start_trip_handlers.dart lib/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case.dart lib/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case.dart test/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case_test.dart test/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/chat/application/resolve_trip_chat_open_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/resolve_start_driver_trip_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+5. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` ve `join_guest_handlers.dart` icindeki catch/result branching'i typed outcome planner + resolver pattern'ine cekmek
+- ozellikle guest session create / join failure feedback ve redirect kararlarinin router helper'lardan application katmanina alinmasi
+
+## 2026-02-24 - Faz 3 Dilimi (Join Error/Reason Mapper'lari Typed Passenger Resolver Use-Case'lere Tasindi)
+
+### Yapilanlar
+- Yeni passenger application resolver use-case'ler eklendi:
+  - `lib/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case.dart`
+  - `lib/features/passenger/application/resolve_passenger_join_failure_route_reason_use_case.dart`
+  - `lib/features/passenger/application/resolve_guest_join_failure_route_reason_use_case.dart`
+  - `lib/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveJoinBySrvCodeFailureFeedbackMessageUseCase`
+  - `_resolvePassengerJoinFailureRouteReasonUseCase`
+  - `_resolveGuestJoinFailureRouteReasonUseCase`
+  - `_resolveGuestSessionCreateFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/join_error_helpers.dart`
+    - `_mapJoinBySrvCodeError(...)` -> typed resolver delegasyonu
+    - `_mapJoinErrorReason(...)` -> typed resolver delegasyonu
+    - `_mapGuestJoinErrorReason(...)` -> typed resolver delegasyonu
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+    - `_handleCreateGuestSession(...)` icindeki FirebaseFunctionsException catch branch'i typed guest-session-create failure resolver kullanir
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case_test.dart`
+  - `test/features/passenger/application/resolve_join_failure_route_reason_use_cases_test.dart`
+  - `test/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case.dart lib/features/passenger/application/resolve_passenger_join_failure_route_reason_use_case.dart lib/features/passenger/application/resolve_guest_join_failure_route_reason_use_case.dart lib/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_error_helpers.dart lib/app/router/embedded/join_flow_handlers.dart test/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case_test.dart test/features/passenger/application/resolve_join_failure_route_reason_use_cases_test.dart test/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_error_helpers.dart lib/app/router/embedded/join_flow_handlers.dart lib/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case.dart lib/features/passenger/application/resolve_passenger_join_failure_route_reason_use_case.dart lib/features/passenger/application/resolve_guest_join_failure_route_reason_use_case.dart lib/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/passenger/application/resolve_join_by_srv_code_failure_feedback_message_use_case_test.dart test/features/passenger/application/resolve_join_failure_route_reason_use_cases_test.dart test/features/passenger/application/resolve_guest_session_create_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `auth_credential_handlers.dart` icindeki Google/auth error mapper'larini typed auth resolver use-case'lere tasimak
+- `join_flow_handlers.dart` icindeki anonymous session FirebaseAuthException mesaj map'ini typed resolver'a almak
+
+## 2026-02-24 - Faz 3 Dilimi (Auth Google/Anonymous ve Passenger SkipToday Error Mapper'lari Typed Resolver Use-Case'lere Tasindi)
+
+### Yapilanlar
+- Yeni auth application resolver use-case'ler eklendi:
+  - `lib/features/auth/application/resolve_google_auth_exception_feedback_message_use_case.dart`
+  - `lib/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case.dart`
+- Yeni passenger application resolver use-case eklendi:
+  - `lib/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveGoogleAuthExceptionFeedbackMessageUseCase`
+  - `_resolveAnonymousSignInFailureFeedbackMessageUseCase`
+  - `_resolvePassengerSkipTodayFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/auth_credential_handlers.dart`
+    - Google auth fallback ve direct FirebaseAuthException catch branch'leri typed auth resolver kullanir
+    - legacy `_mapGoogleAuthExceptionMessage(...)` router helper'i kaldirildi
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+    - `_ensureAnonymousSessionForGuestFlow(...)` FirebaseAuthException + generic catch message mapping'i typed auth resolver kullanir
+  - `lib/app/router/embedded/passenger_action_handlers.dart`
+    - skip-today FirebaseFunctionsException error code switch'i typed passenger resolver'a tasindi
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/auth/application/resolve_google_auth_exception_feedback_message_use_case_test.dart`
+  - `test/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case_test.dart`
+  - `test/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/auth/application/resolve_google_auth_exception_feedback_message_use_case.dart lib/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case.dart test/features/auth/application/resolve_google_auth_exception_feedback_message_use_case_test.dart test/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case_test.dart lib/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case.dart test/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case_test.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/auth_credential_handlers.dart lib/app/router/embedded/join_flow_handlers.dart lib/app/router/embedded/passenger_action_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/auth_credential_handlers.dart lib/app/router/embedded/join_flow_handlers.dart lib/app/router/embedded/passenger_action_handlers.dart lib/features/auth/application/resolve_google_auth_exception_feedback_message_use_case.dart lib/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case.dart lib/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/resolve_google_auth_exception_feedback_message_use_case_test.dart test/features/auth/application/resolve_anonymous_sign_in_failure_feedback_message_use_case_test.dart test/features/passenger/application/resolve_passenger_skip_today_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+- Not: Paralel `flutter test` denemesinde Flutter startup lock nedeniyle bir komut timeout oldu; testler tek komut olarak yeniden kosuldu ve PASS alindi.
+
+### Sonraki Adim Onerisi
+- `auth_credential_handlers.dart` icindeki kalan email/password FirebaseAuthException catch branch'lerini typed auth resolver/planner standardina cekmek
+- `account_profile_handlers.dart` ve `join_guest_handlers.dart` tarafinda catch/result branching standardizasyonuna devam etmek
+
+## 2026-02-24 - Faz 3 Dilimi (Auth Email/Register/Reset ve Google Platform Error Mapper'lari Typed Resolver Use-Case'lere Tasindi)
+
+### Yapilanlar
+- Yeni auth application resolver use-case'ler eklendi:
+  - `lib/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case.dart`
+  - `lib/features/auth/application/resolve_email_register_failure_feedback_message_use_case.dart`
+  - `lib/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case.dart` (nullable resolver; unknown code -> akisa devam)
+  - `lib/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveEmailSignInFailureFeedbackMessageUseCase`
+  - `_resolveEmailRegisterFailureFeedbackMessageUseCase`
+  - `_resolvePasswordResetEmailFailureFeedbackMessageUseCase`
+  - `_resolveGoogleSignInPlatformFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/auth_credential_handlers.dart`
+    - `_handleEmailSignIn(...)` FirebaseAuthException switch'i typed email-sign-in resolver'a tasindi
+    - `_handleEmailRegister(...)` FirebaseAuthException switch'i typed email-register resolver'a tasindi
+    - `_handleForgotPassword(...)` `invalid-email/network/too-many-requests` branch'leri typed password-reset resolver'a tasindi
+      - bilincli davranis korundu: unknown code / `user-not-found` durumunda neutral success mesaji akisi devam eder
+    - Google sign-in platform hata `switch(error.code)` branch'i typed platform resolver'a tasindi
+- Ek not:
+  - Bazı bozuk/mojibake auth hata mesajlari router'dan cikartilip temiz ASCII resolver mesajlarina normalize edildi.
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case_test.dart`
+  - `test/features/auth/application/resolve_email_register_failure_feedback_message_use_case_test.dart`
+  - `test/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case_test.dart`
+  - `test/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_email_register_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case.dart test/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_email_register_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case_test.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/auth_credential_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/auth_credential_handlers.dart lib/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_email_register_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case.dart lib/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/resolve_email_sign_in_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_email_register_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_password_reset_email_failure_feedback_message_use_case_test.dart test/features/auth/application/resolve_google_sign_in_platform_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `account_profile_handlers.dart` icindeki FirebaseFunctionsException catch/result branching'lerini typed outcome planner/resolver standardina cekmek
+- ardindan `join_guest_handlers.dart` ve `passenger_action_handlers.dart` kalan tekrarli catch branch cleanup / planner dilimleri
+
+## 2026-02-24 - Faz 3 Dilimi (Account Delete Result/Catch Branching Typed Planner+Resolver'a Tasindi)
+
+### Yapilanlar
+- Yeni auth application planner use-case eklendi:
+  - `lib/features/auth/application/plan_delete_account_result_handling_use_case.dart`
+  - `blocked_subscription` vs success status branching + interceptor message/manage label fallback kararlarini typed plan'a tasir
+- Yeni auth application resolver use-case eklendi:
+  - `lib/features/auth/application/resolve_delete_account_failure_feedback_message_use_case.dart`
+  - delete-account callable failure feedback'ini tek noktaya toplar
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_planDeleteAccountResultHandlingUseCase`
+  - `_resolveDeleteAccountFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+  - `_handleDeleteAccount(...)` icinde:
+    - `result.status == blocked_subscription` branch'i planner use-case'e tasindi
+    - interceptor body/manage CTA fallback copy/label kararları planner'a tasindi
+    - success info branch'i planner feedback message uzerinden akiyor
+    - FirebaseFunctionsException catch feedback'i typed resolver'a tasindi
+- Ek blocker fix (aynı dosyada analyze sırasında ortaya çıktı):
+  - `_registerDevice(user)` tanimsiz referansi mevcut servis delegasyonuna cevrildi
+  - yeni cagrı: `_driverPushTokenRegistrationService.registerForUid(user.uid)`
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/auth/application/plan_delete_account_result_handling_use_case_test.dart`
+  - `test/features/auth/application/resolve_delete_account_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/features/auth/application/plan_delete_account_result_handling_use_case.dart lib/features/auth/application/resolve_delete_account_failure_feedback_message_use_case.dart test/features/auth/application/plan_delete_account_result_handling_use_case_test.dart test/features/auth/application/resolve_delete_account_failure_feedback_message_use_case_test.dart lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/account_profile_handlers.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/account_profile_handlers.dart lib/features/auth/application/plan_delete_account_result_handling_use_case.dart lib/features/auth/application/resolve_delete_account_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/plan_delete_account_result_handling_use_case_test.dart test/features/auth/application/resolve_delete_account_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `account_profile_handlers.dart` icindeki kalan catch/result branch'leri icin ikinci dilim:
+  - `driver phone visibility` (precondition/read error + success/failure copy)
+  - `profile update/photo upload` feedback standardizasyonu
+- veya `join_guest_handlers.dart` duplicate `profileCheckFailed` catch branch cleanup + planner/resolver standardizasyonu
+
+## 2026-02-24 - Faz 3 Dilimi (Account Profile Phone Visibility Prep + Profile/Photo Feedback Standardizasyonu)
+
+### Ozet
+- `account_profile_handlers.dart` icindeki `driver phone visibility` akisinin validation/normalization/upsert-command compose yuku typed driver application use-case'e tasindi.
+- `profile update` catch feedback branch'i typed planner'a tasindi.
+- `profile photo pick` session/success/failure feedback mesajlari typed auth resolver'a tasindi.
+
+### Yapilanlar
+- Yeni driver application use-case eklendi:
+  - `lib/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case.dart`
+  - `DriverProfileRecordSnapshot` + toggle flag'den normalized `DriverProfileUpsertCommand` uretir
+  - `incompleteDriverProfile` failure sonucunu typed dondurur
+- Yeni auth application planner eklendi:
+  - `lib/features/auth/application/plan_profile_update_feedback_handling_use_case.dart`
+  - profile update success/failure feedback + `showInfoAndRethrow` davranisini typed plan'a tasir
+- Yeni auth application resolver eklendi:
+  - `lib/features/auth/application/resolve_account_profile_operation_feedback_message_use_case.dart`
+  - `sessionMissing`, `phoneVisibilityUpdateFailed`, `profilePhotoUploadSucceeded`, `profilePhotoUploadFailed`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_prepareDriverPhoneVisibilityToggleUpsertCommandUseCase`
+  - `_planProfileUpdateFeedbackHandlingUseCase`
+  - `_resolveAccountProfileOperationFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/account_profile_handlers.dart`
+  - `_handleDriverPhoneVisibilityToggle(...)`
+    - session-missing token feedback resolver'a tasindi
+    - driver profile validation/plate-company normalization + upsert command compose use-case'e tasindi
+    - update failure token feedback resolver'a tasindi
+  - `_handleProfileUpdate(...)`
+    - catch feedback branch'i planner use-case uzerinden akiyor (rethrow korunuyor)
+  - `_handleProfilePhotoPick(...)`
+    - session missing + upload success/failure feedback'leri resolver'a tasindi
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case_test.dart`
+  - `test/features/auth/application/plan_profile_update_feedback_handling_use_case_test.dart`
+  - `test/features/auth/application/resolve_account_profile_operation_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/account_profile_handlers.dart lib/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case.dart lib/features/auth/application/plan_profile_update_feedback_handling_use_case.dart lib/features/auth/application/resolve_account_profile_operation_feedback_message_use_case.dart test/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case_test.dart test/features/auth/application/plan_profile_update_feedback_handling_use_case_test.dart test/features/auth/application/resolve_account_profile_operation_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/account_profile_handlers.dart lib/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case.dart lib/features/auth/application/plan_profile_update_feedback_handling_use_case.dart lib/features/auth/application/resolve_account_profile_operation_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/prepare_driver_phone_visibility_toggle_upsert_command_use_case_test.dart test/features/auth/application/plan_profile_update_feedback_handling_use_case_test.dart test/features/auth/application/resolve_account_profile_operation_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_guest_handlers.dart` duplicate `profileCheckFailed` catch pattern cleanup + typed outcome standardizasyonu
+- Ardindan `join_flow_handlers.dart` kalan result/catch orchestration dilimi
+
+## 2026-02-24 - Faz 3 Dilimi (Join Guest ProfileCheckFailed Catch Cleanup + Typed Resolver)
+
+### Ozet
+- `join_guest_handlers.dart` icindeki duplicate `profileCheckFailed` catch bloklari tek `catch` akisina indirildi.
+- `profileCheckFailed` feedback mesaji shared auth resolver use-case'e tasindi.
+
+### Yapilanlar
+- Yeni auth application resolver use-case eklendi:
+  - `lib/features/auth/application/resolve_profile_check_failure_feedback_message_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveProfileCheckFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/join_guest_handlers.dart`
+  - `_handleContinueAsPassenger(...)` icindeki `FirebaseFunctionsException` + generic `catch` tekrarları tek `catch` blokta toplandi
+  - `_handleContinueAsDriver(...)` icindeki ayni duplicate catch pattern'i tek `catch` blokta toplandi
+  - her iki noktada feedback mesaji resolver use-case uzerinden akiyor
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/auth/application/resolve_profile_check_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_guest_handlers.dart lib/features/auth/application/resolve_profile_check_failure_feedback_message_use_case.dart test/features/auth/application/resolve_profile_check_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_guest_handlers.dart lib/features/auth/application/resolve_profile_check_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/resolve_profile_check_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` kalan result/catch orchestration dilimi (route reason + feedback + navigation branching standardizasyonu)
+
+## 2026-02-24 - Faz 3 Dilimi (Join Flow Profile Prepare Catch Cleanup + Typed Resolver)
+
+### Ozet
+- `join_flow_handlers.dart` icindeki passenger role/profile prepare asamasinda duplicate catch bloklari tek `catch` akisina indirildi.
+- `profilePrepareFailed` feedback mesaji shared auth resolver use-case'e tasindi.
+
+### Yapilanlar
+- Yeni auth application resolver use-case eklendi:
+  - `lib/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolveProfilePrepareFailureFeedbackMessageUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+  - `_handleJoinBySrvCode(...)` icindeki role/profile prepare `FirebaseFunctionsException` + generic catch tekrarları tek `catch` blokta toplandi
+  - feedback mesaji resolver use-case uzerinden akiyor
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_flow_handlers.dart lib/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case.dart test/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case_test.dart`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/app_router.dart lib/app/router/embedded/router_runtime_use_cases.dart lib/app/router/embedded/join_flow_handlers.dart lib/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case.dart`
+   - Sonuc: PASS (`No issues found`)
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/auth/application/resolve_profile_prepare_failure_feedback_message_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `join_flow_handlers.dart` icindeki join/guest create generic catch + QR/manual outcome branching'leri typed outcome planner standardina tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Join Flow Failure Outcome Planner Standardizasyonu)
+
+### Ozet
+- `join_flow_handlers.dart` icindeki `joinBySrvCode` ve `createGuestSession` failure/incomplete response branching'leri typed planner use-case'lere tasindi.
+- QR/manual entry farklari (route-reason redirect vs info feedback) router handler icinde daginik `if/catch` yerine planner sonucuyla yonetiliyor.
+
+### Yapilanlar
+- Yeni passenger application planner use-case'ler eklendi:
+  - `lib/features/passenger/application/plan_passenger_join_failure_handling_use_case.dart`
+  - `lib/features/passenger/application/plan_guest_session_create_failure_handling_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_planPassengerJoinFailureHandlingUseCase`
+  - `_planGuestSessionCreateFailureHandlingUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/join_flow_handlers.dart`
+  - `_handleJoinBySrvCode(...)` incomplete response + functions/generic catch branch'leri planner tabanli oldu
+  - `_handleCreateGuestSession(...)` incomplete response + functions/generic catch branch'leri planner tabanli oldu
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/passenger/application/plan_passenger_join_failure_handling_use_case_test.dart`
+  - `test/features/passenger/application/plan_guest_session_create_failure_handling_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat format ...join_flow... planner testleri...`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/dart.bat analyze ...join_flow... planner testleri...`
+   - Sonuc: PASS
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/passenger/application/plan_passenger_join_failure_handling_use_case_test.dart test/features/passenger/application/plan_guest_session_create_failure_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+4. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `passenger_action_handlers.dart` icindeki settings/leave-route success-failure feedback branch'lerini typed planner/resolver standardina tasima
+
+## 2026-02-24 - Faz 3 Dilimi (Passenger Action Feedback/Outcome Standardizasyonu)
+
+### Ozet
+- `passenger_action_handlers.dart` icindeki `settings save` failure feedback ve `leave route` success/noop/error telemetry-outcome kararlarini typed resolver/planner katmanina tasidim.
+- Router handler tarafi `use-case -> plan -> UI/telemetry apply` cizgisine yaklasti.
+
+### Yapilanlar
+- Yeni passenger application resolver/planner use-case'ler eklendi:
+  - `lib/features/passenger/application/resolve_passenger_action_failure_feedback_message_use_case.dart`
+  - `lib/features/passenger/application/plan_passenger_route_leave_outcome_handling_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_resolvePassengerActionFailureFeedbackMessageUseCase`
+  - `_planPassengerRouteLeaveOutcomeHandlingUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/passenger_action_handlers.dart`
+  - `_handleUpdatePassengerSettings(...)` functions failure feedback'i typed resolver uzerinden akiyor
+  - `_handleLeaveRoute(...)` success/noop/error telemetry result + cache clear + navigation policy planner tabanli oldu
+
+### Kalite
+- Yeni unit testler eklendi:
+  - `test/features/passenger/application/resolve_passenger_action_failure_feedback_message_use_case_test.dart`
+  - `test/features/passenger/application/plan_passenger_route_leave_outcome_handling_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze ...passenger_action... yeni planner/resolver...`
+   - Sonuc: PASS
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/passenger/application/resolve_passenger_action_failure_feedback_message_use_case_test.dart test/features/passenger/application/plan_passenger_route_leave_outcome_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- `finish_trip` / `announcement` mapper cleanup (typed failure planner + legacy mapper silme)
+
+## 2026-02-24 - Faz 3 Dilimi (Finish Trip / Announcement Failure Planner ve Mapper Cleanup)
+
+### Ozet
+- `trip_finish_announcement_handlers.dart` icindeki announcement failure message + paywall redirect mapper branch'i typed planner use-case'e tasindi.
+- `finish trip commit` sonucunda router-local enum mapleme kaldirildi; `DriverFinishTripCommitResultState` dogrudan kullanima gecildi.
+- `announcement_helpers.dart` icindeki artik kullanilmayan legacy mapper/paywall helper'lari silindi.
+
+### Yapilanlar
+- Yeni driver application planner use-case eklendi:
+  - `lib/features/driver/application/plan_driver_announcement_failure_handling_use_case.dart`
+- Router runtime wiring eklendi:
+  - `lib/app/router/embedded/router_runtime_use_cases.dart`
+  - `_planDriverAnnouncementFailureHandlingUseCase`
+- Router migration (davranis korunarak):
+  - `lib/app/router/embedded/trip_finish_announcement_handlers.dart`
+    - `showMappedFailureMessage` branch'i typed planner sonucunu kullaniyor
+    - `_mapFinishTripCommitResultState(...)` kaldirildi; `_commitFinishTrip(...)` artik `DriverFinishTripCommitResultState` donduruyor
+  - `lib/app/router/embedded/driver_finish_trip_guard.dart`
+    - `isSyncedOutcome/isPendingSyncOutcome` callback'lari yeni typed enum'a guncellendi
+  - `lib/app/router/embedded/announcement_helpers.dart`
+    - `_mapAnnouncementErrorMessage`, `_shouldRedirectToPaywallAfterAnnouncementFailure`, `_isPremiumEntitlementError` silindi
+
+### Kalite
+- Yeni unit test eklendi:
+  - `test/features/driver/application/plan_driver_announcement_failure_handling_use_case_test.dart`
+
+### Dogrulama
+1. `./.fvm/flutter_sdk/bin/dart.bat analyze lib/app/router/embedded/announcement_helpers.dart lib/app/router/embedded/trip_finish_announcement_handlers.dart lib/app/router/embedded/driver_finish_trip_guard.dart`
+   - Sonuc: PASS (`No issues found`)
+2. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/features/driver/application/plan_driver_announcement_failure_handling_use_case_test.dart -r compact`
+   - Sonuc: PASS
+3. `./.fvm/flutter_sdk/bin/flutter.bat test --no-pub test/app/router -r compact`
+   - Sonuc: PASS
+
+### Sonraki Adim Onerisi
+- Faz 3 kapanis checklist/raporu (kalan router-side exception/outcome noktalarinin siniflandirilmasi + Faz 4'e tasinan bilincli basliklar)

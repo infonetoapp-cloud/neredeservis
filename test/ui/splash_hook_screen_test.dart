@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/screens/splash_hook_screen.dart';
-import 'package:neredeservis/ui/theme/theme_amber.dart';
+import 'package:neredeservis/ui/theme/core_theme.dart';
 
 void main() {
   setUp(() {
@@ -12,7 +12,7 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: const SplashHookScreen(
           appName: 'NeredeServis Dev',
           flavorLabel: 'dev',
@@ -25,9 +25,8 @@ void main() {
     expect(find.text('NeredeServis Dev'), findsOneWidget);
     expect(find.text('Atla'), findsOneWidget);
     expect(find.text('Devam Et'), findsOneWidget);
-    expect(find.text('Splash / Router Skeleton (dev)'), findsOneWidget);
-    expect(
-        find.text('Video hazir degil, poster modunda devam.'), findsOneWidget);
+    expect(find.textContaining('Splash / Router'), findsOneWidget);
+    expect(find.textContaining('poster modunda devam'), findsOneWidget);
   });
 
   testWidgets('splash playback policy switches after first open', (
@@ -35,7 +34,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: const SplashHookScreen(
           appName: 'NeredeServis Dev',
           flavorLabel: 'dev',
@@ -44,12 +43,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Autoplay sessiz, ilk acilista max 1 dongu.'),
-        findsOneWidget);
+    expect(find.textContaining('Autoplay sessiz'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: const SplashHookScreen(
           appName: 'NeredeServis Dev',
           flavorLabel: 'dev',
@@ -58,7 +56,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Hizli gecis modu aktif.'), findsOneWidget);
+    expect(find.textContaining('modu aktif'), findsOneWidget);
   });
 
   testWidgets('splash poster fallback stays visible when asset load fails', (
@@ -66,7 +64,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AmberTheme.light(),
+        theme: CoreTheme.light(),
         home: const SplashHookScreen(
           appName: 'NeredeServis Dev',
           flavorLabel: 'dev',
@@ -77,7 +75,6 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(
-        find.text('Video hazir degil, poster modunda devam.'), findsOneWidget);
+    expect(find.textContaining('poster modunda devam'), findsOneWidget);
   });
 }

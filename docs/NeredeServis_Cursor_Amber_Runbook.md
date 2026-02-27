@@ -717,13 +717,13 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [x] 329A Driver aktif sefer map modunu bagla (gesture kisitli, dikkat dagitici UI yok).
 - [x] 329B Mapbox style/tile cache stratejisini agresif yap: `OfflineManager` + `TileStore`, style pack preload, sik kullanilan rota cevresi tile cache + cache size limit.
 - [ ] 329C DOGRULAMA: cache aktifken tekrar acilista map load suresi ve network cagrisi azaliyor mu?
-- [ ] 330 Mapbox Directions ETA servis entegrasyonunu bagla (remote config kill-switch ile varsayilan kapali).
-- [ ] 330A Ghost Drive polyline tolerance kuralini bagla: aracin polyline'a mesafesi `>500m` ise `off_route_eta` moduna gec.
-- [ ] 330B `off_route_eta` modunda zorla snap yapma; marker ham GPS konumunu gostersin.
-- [ ] 330C `off_route_eta` durum etiketini yolcu bottom-sheet'te goster (`Alternatif guzergah`).
-- [ ] 331 ETA fallback (`crowFly * 1.3`) varsayilan kaynak olarak bagla.
-- [ ] 332 `lastEtaSource` UI bagla.
-- [ ] 333 Rate cap (`1 request/20s/route`) + aylik hard cap + quota-asim fallback bagla.
+- [x] 330 Mapbox Directions ETA servis entegrasyonunu bagla (remote config kill-switch ile varsayilan kapali).
+- [x] 330A Ghost Drive polyline tolerance kuralini bagla: aracin polyline'a mesafesi `>500m` ise `off_route_eta` moduna gec.
+- [x] 330B `off_route_eta` modunda zorla snap yapma; marker ham GPS konumunu gostersin.
+- [x] 330C `off_route_eta` durum etiketini yolcu bottom-sheet'te goster (`Alternatif guzergah`).
+- [x] 331 ETA fallback (`crowFly * 1.3`) varsayilan kaynak olarak bagla.
+- [x] 332 `lastEtaSource` UI bagla.
+- [x] 333 Rate cap (`1 request/20s/route`) + aylik hard cap + quota-asim fallback bagla.
 - [ ] 334 DOGRULAMA: ETA servis hatasinda veya kota asiminda fallback calisiyor mu?
 - [ ] 334D DOGRULAMA: `off_route_eta` modunda marker snap'siz ve ETA yeniden hesaplanmis gorunuyor mu?
 - [ ] 334F DOGRULAMA: Ghost Drive route geometri kalitesi map matching ile temiz (zigzag azaltilmis) gorunuyor mu?
@@ -734,122 +734,122 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 334BB Android canli bildirim tipini policy uyumlu sec: route-sharing use-case icin uygun API + FGS bildirim metni.
 - [ ] 334C DOGRULAMA: Yolcu uygulamayi acmadan "kac dk kaldi" bilgisini kilit ekranindan gorebiliyor mu?
 - [ ] 334E DOGRULAMA: Android 14/15 cihazlarda Live Updates yolu, eski cihazlarda fallback yolu calisiyor mu?
-- [ ] 335 Push token register akisini bagla.
-- [ ] 336 Topic/target bildirim baglantilarini yap.
-- [ ] 337 Morning reminder handling bagla.
-- [ ] 338 Announcement push rendering bagla.
-- [ ] 339 Vacation mode UI handling bagla.
-- [ ] 340 Driver snapshot UI handling bagla.
-- [ ] 340A `Bugun Binmiyorum` yolcularini sofor listesinin altina indir + satir ustu cizili (`strikethrough`) goster.
-- [ ] 340B Gun degisiminde siralama/strikethrough otomatik sifirlanmasini server time (`Europe/Istanbul`) bazli `dateKey` filtresiyle bagla.
-- [ ] 341 Phone visibility toggle UI bagla.
-- [ ] 342 Masking policy UI bagla.
-- [ ] 343 DOGRULAMA: phone gizliyken UI'da hic gorunmuyor mu?
-- [ ] 344 Crash-safe retry UI akisini yaz.
-- [ ] 344A `Sorun Bildir` aksiyonunu ekle (otomatik tanilama paketi + kullanici notu).
-- [ ] 344B Opsiyonel `Shake to Report` kisayolunu ekle (yanlis tetiklemeye karsi debounce + confirm modal).
-- [ ] 344C Rapor paketine son 5 dk log ozeti + izin durumu + baglanti tipi + pil seviyesi + queue metriklerini ekle.
-- [ ] 344D Rapor kanalini bagla (support e-posta veya Slack webhook); PII redaction zorunlu.
-- [ ] 345 Offline banner UI bagla.
-- [ ] 346 Reconnect handling yaz.
-- [ ] 347 Latency indicator UI bagla.
-- [ ] 348 Map stale renkleri bagla (yesil/sari/turuncu/kirmizi - 4 seviye).
-- [ ] 348A Soft-lock durumunda yolcu stale bandina ek metin koy: `Servis Baglantisi: Dusuk Oncelik Modu`.
-- [ ] 349 Empty state UI metinlerini finalize et.
-- [ ] 350 Form validation mesajlarini finalize et.
-- [ ] 351 Localization anahtarlarini olustur (TR odakli).
-- [ ] 351A UTF-8 validation testi ekle (TR karakterleri: `Ä±, ÅŸ, ÄŸ, Ã¼, Ã¶, Ã§` bozulmadan render/l10n dosyalarinda duruyor mu).
-- [ ] 352 Kullanici dostu hata metinlerini yaz.
-- [ ] 352A Sofor icin odeme/abonelik entry pointlerini bagla: `Ayarlar > Abonelik`, `Deneme bitince banner`, `premium aksiyon aninda paywall`.
-- [ ] 352AA V1.0 monetization kilidi: gercek Adapty SDK purchase akisini acma; `getSubscriptionState` mock/read-only cevaplariyla UI ve soft-lock davranisini test et.
-- [ ] 352B Paywall buton etiketlerini platforma gore ayir: iOS=`Restore Purchases`, Android=`Satin Alimlari Geri Yukle`; her iki platformda `Manage Subscription`.
-- [ ] 352C Paywall'da varsayilan store billing akisini kullan; bolgesel istisna varsa feature flag + hukuk onayi ile ac.
-- [ ] 352D `NeredeServis_Paywall_Copy_TR.md` metinlerini l10n anahtarlarina tasi ve QA kontrol et.
-- [ ] 352E `Hesabimi Sil` erisimini Ayarlar icinde derine gommeden konumlandir (max 2 seviye).
-- [ ] 352F V1.0 monetization kararini kilitle: Adapty production entegrasyonu kapali; V1.0'da mock/read-only subscription state kullan.
-- [ ] 352G Onboarding gercek video varligini bagla (yerel bundle once; remote kaynak opsiyonel ve kapali baslangic).
-- [ ] 352H Video teknik kilidini uygula: mobil uyumlu codec/profil + boyut limiti + fallback poster zorunlu.
-- [ ] 352I DOGRULAMA: iPhone 11 + Samsung A24'te onboarding video decode/pil/jank testi green mi?
-- [ ] 352J KULLANICIDAN ONAY ISTE: "Onboarding video final gorunum/performance onayi veriyor musun?".
-- [ ] 353 DOGRULAMA: tum ana akislar E2E smoke geciyor mu?
-- [ ] 353A DOGRULAMA: `Sorun Bildir` raporu support kanalina dusuyor mu, PII sizmiyor mu?
-- [ ] 354 KULLANICIDAN ONAY ISTE: "Mobil ozellik akislari beklendigi gibi mi?".
-- [ ] 355 Onay yoksa kritik bug listesi ac.
-- [ ] 356 Onay varsa release candidate etiketi olustur.
-- [ ] 357 Perf monitor eventlerini bagla.
-- [ ] 357A Sentry breadcrumb eventlerini bagla (trip start/finish, join/leave, share, permission red).
-- [ ] 358 Analytics event semasini finalize et.
-- [ ] 358A V1.0 Play release profilinde analytics amacli veri toplama kapali olsun; Data Safety `App functionality` beyaniyla celisme olmasin.
-- [ ] 359 PII'siz event garantisi ver.
-- [ ] 360 DOGRULAMA: event payload PII icermiyor mu?
-- [ ] 361 App startup sure olcumu al.
-- [ ] 362 Map render sure olcumu al.
-- [ ] 363 Route list load sure olcumu al.
-- [ ] 364 Background publish interval olcumu al.
+- [x] 335 Push token register akisini bagla.
+- [x] 336 Topic/target bildirim baglantilarini yap.
+- [x] 337 Morning reminder handling bagla.
+- [x] 338 Announcement push rendering bagla.
+- [x] 339 Vacation mode UI handling bagla.
+- [x] 340 Driver snapshot UI handling bagla.
+- [x] 340A `Bugun Binmiyorum` yolcularini sofor listesinin altina indir + satir ustu cizili (`strikethrough`) goster.
+- [x] 340B Gun degisiminde siralama/strikethrough otomatik sifirlanmasini server time (`Europe/Istanbul`) bazli `dateKey` filtresiyle bagla.
+- [x] 341 Phone visibility toggle UI bagla.
+- [x] 342 Masking policy UI bagla.
+- [x] 343 DOGRULAMA: phone gizliyken UI'da hic gorunmuyor mu?
+- [x] 344 Crash-safe retry UI akisini yaz.
+- [x] 344A `Sorun Bildir` aksiyonunu ekle (otomatik tanilama paketi + kullanici notu).
+- [x] 344B Opsiyonel `Shake to Report` kisayolunu ekle (yanlis tetiklemeye karsi debounce + confirm modal).
+- [x] 344C Rapor paketine son 5 dk log ozeti + izin durumu + baglanti tipi + pil seviyesi + queue metriklerini ekle.
+- [x] 344D Rapor kanalini bagla (support e-posta veya Slack webhook); PII redaction zorunlu.
+- [x] 345 Offline banner UI bagla.
+- [x] 346 Reconnect handling yaz.
+- [x] 347 Latency indicator UI bagla.
+- [x] 348 Map stale renkleri bagla (yesil/sari/turuncu/kirmizi - 4 seviye).
+- [x] 348A Soft-lock durumunda yolcu stale bandina ek metin koy: `Servis Baglantisi: Dusuk Oncelik Modu`.
+- [x] 349 Empty state UI metinlerini finalize et.
+- [x] 350 Form validation mesajlarini finalize et.
+- [x] 351 Localization anahtarlarini olustur (TR odakli).
+- [x] 351A UTF-8 validation testi ekle (TR karakterleri: `Ä±, ÅŸ, ÄŸ, Ã¼, Ã¶, Ã§` bozulmadan render/l10n dosyalarinda duruyor mu).
+- [x] 352 Kullanici dostu hata metinlerini yaz.
+- [x] 352A Sofor icin odeme/abonelik entry pointlerini bagla: `Ayarlar > Abonelik`, `Deneme bitince banner`, `premium aksiyon aninda paywall`.
+- [x] 352AA V1.0 monetization kilidi: gercek Adapty SDK purchase akisini acma; `getSubscriptionState` mock/read-only cevaplariyla UI ve soft-lock davranisini test et.
+- [x] 352B Paywall buton etiketlerini platforma gore ayir: iOS=`Restore Purchases`, Android=`Satin Alimlari Geri Yukle`; her iki platformda `Manage Subscription`.
+- [x] 352C Paywall'da varsayilan store billing akisini kullan; bolgesel istisna varsa feature flag + hukuk onayi ile ac.
+- [x] 352D `NeredeServis_Paywall_Copy_TR.md` metinlerini l10n anahtarlarina tasi ve QA kontrol et.
+- [x] 352E `Hesabimi Sil` erisimini Ayarlar icinde derine gommeden konumlandir (max 2 seviye).
+- [x] 352F V1.0 monetization kararini kilitle: Adapty production entegrasyonu kapali; V1.0'da mock/read-only subscription state kullan.
+- [x] 352G Onboarding gercek video varligini bagla (KAPSAM DISI karari: 2026-02-19 kullanici onayi ile onboarding video yok, poster-only akista kalindi).
+- [x] 352H Video teknik kilidini uygula (KAPSAM DISI: onboarding video oynatimi devreye alinmayacak).
+- [x] 352I DOGRULAMA: iPhone 11 + Samsung A24'te onboarding video decode/pil/jank testi (KAPSAM DISI: video entegrasyonu yok).
+- [x] 352J KULLANICIDAN ONAY ISTE: "Onboarding video final gorunum/performance onayi veriyor musun?" (KARAR ALINDI: onboarding video olmayacak).
+- [x] 353 DOGRULAMA: tum ana akislar E2E smoke geciyor mu? (Widget/Router smoke paketi green: auth, role, join, sofor, yolcu, rota CRUD, aktif sefer, ayarlar, paywall, splash).
+- [x] 353A DOGRULAMA: `Sorun Bildir` raporu support kanalina dusuyor mu, PII sizmiyor mu? (Support service + PII redaction testleri green).
+- [x] 354 KULLANICIDAN ONAY ISTE: "Mobil ozellik akislari beklendigi gibi mi?" (ONAY ALINDI: 2026-02-19 "calisiyor evet devam").
+- [x] 355 Onay yoksa kritik bug listesi ac (N/A: 354 onayi geldigi icin bu dal atlandi).
+- [x] 356 Onay varsa release candidate etiketi olustur (`NSV-RC1-mobile-flow-2026-02-19` + `docs/release_candidate_tag.md`).
+- [x] 357 Perf monitor eventlerini bagla (startup/map/route-list/publish-interval + callable latency eventleri).
+- [x] 357A Sentry breadcrumb eventlerini bagla (trip start/finish, join/leave, share, permission red).
+- [x] 358 Analytics event semasini finalize et (`docs/mobile_event_schema_v1.md`).
+- [x] 358A V1.0 Play release profilinde analytics amacli veri toplama kapali olsun; Data Safety `App functionality` beyaniyla celisme olmasin (prod zorunlu off gate).
+- [x] 359 PII'siz event garantisi ver (MobileTelemetry + PiiRedactor zorunlu sanitization).
+- [x] 360 DOGRULAMA: event payload PII icermiyor mu? (telemetry unit testleri green).
+- [x] 361 App startup sure olcumu al (telemetry event: `perf_app_startup`).
+- [x] 362 Map render sure olcumu al (telemetry event: `perf_map_render`, passenger+driver map shell testleri green).
+- [x] 363 Route list load sure olcumu al (telemetry event: `perf_route_list_load`).
+- [x] 364 Background publish interval olcumu al (telemetry event: `perf_background_publish_interval` + unit test green).
 - [ ] 365 Batarya tuketim olcumu al.
-- [ ] 366 Network failover testi yap.
+- [x] 366 Network failover testi yap (`queue_resilience_test` + `active_trip_screen_sync_recovery_test` green).
 - [ ] 367 Low-end cihaz testi yap.
-- [ ] 368 iOS permissions testi yap.
-- [ ] 369 Android permissions testi yap.
-- [ ] 369A DOGRULAMA: Yolcu/guest roluyle konum izni dialogu hic acilmiyor mu?
-- [ ] 369B DOGRULAMA: Sofor rolunde incremental izin akisi dogru mu? (`while-in-use` -> aktif seferde `background`).
-- [ ] 369C DOGRULAMA: Bildirim izni reddedilince push yerine in-app fallback calisiyor mu, kullaniciya net CTA gosteriliyor mu?
+- [x] 368 iOS permissions testi yap (`ios_location_permission_orchestrator_test` green).
+- [x] 369 Android permissions testi yap (`location_permission_gate_test` + Android battery/orchestrator testleri green).
+- [x] 369A DOGRULAMA: Yolcu/guest roluyle konum izni dialogu hic acilmiyor mu? (`location_permission_gate_test` green).
+- [x] 369B DOGRULAMA: Sofor rolunde incremental izin akisi dogru mu? (`while-in-use` -> aktif seferde `background`) (`ios_location_permission_orchestrator_test` green).
+- [x] 369C DOGRULAMA: Bildirim izni reddedilince push yerine in-app fallback calisiyor mu, kullaniciya net CTA gosteriliyor mu? (`notification_permission_fallback_service_test` green + in-app banner CTA).
 - [ ] 369D DOGRULAMA: `while-in-use` red durumunda sofor `Seferi Baslat` aksiyonunda hard-block ve acik neden metni goruyor mu?
 - [ ] 369E DOGRULAMA: `background/always` red durumunda foreground-only moda gecis + stale risk uyarisi dogru mu?
 - [ ] 369F DOGRULAMA: Pil optimizasyonu istisnasi reddinde degrade mod + heartbeat uyarisi + settings yonlendirmesi gorunur mu?
 - [ ] 370 DOGRULAMA: kritik performans hedefleri saglandi mi?
-- [ ] 371 UI regression screenshot setini al.
-- [ ] 372 Golden testleri guncelle.
-- [ ] 373 Tanimli acceptance testleri tekrar kos.
-- [ ] 373A UTF-8 acceptance testi kos (store listing + uygulama ic metinlerde TR karakter bozulmasi yok).
-- [ ] 374 Hata raporlarini siniflandir (P0/P1/P2).
-- [ ] 375 P0 hatalari kapat.
-- [ ] 376 P1 hatalari planla.
-- [ ] 377 RC2 build al.
+- [x] 371 UI regression screenshot setini al (emulator screenshot set: `tmp/ui_regression_screens/20260220-034438`).
+- [x] 372 Golden testleri guncelle (`flutter test --update-goldens test/golden/amber_components_golden_test.dart` green).
+- [x] 373 Tanimli acceptance testleri tekrar kos (`flutter analyze` + `flutter test` + integration smoke (emulator+fiziksel) green).
+- [x] 373A UTF-8 acceptance testi kos (store listing + uygulama ic metinlerde TR karakter bozulmasi yok) (`utf8_validation_test` green).
+- [x] 374 Hata raporlarini siniflandir (P0/P1/P2) (`docs/faz_g_bug_triage_2026-02-20.md`).
+- [x] 375 P0 hatalari kapat (acik P0 yok).
+- [x] 376 P1 hatalari planla (`SessionId: 20260220-031321` manuel checklist + finalize plani yazildi).
+- [x] 377 RC2 build al (`build/app/outputs/flutter-apk/app-dev-debug.apk`).
 - [ ] 378 KULLANICIDAN ONAY ISTE: "RC2 onayi (evet/hayir)".
 - [ ] 379 Onay varsa Faz G kapat.
 - [ ] 380 Faz G kapanis raporu yaz.
 
 ## FAZ H - Store, Release, Operasyon (381-460)
 
-- [ ] 381 Android signing yapisini kontrol et.
-- [ ] 382 iOS signing yapisini kontrol et.
+- [x] 381 Android signing yapisini kontrol et.
+- [x] 382 iOS signing yapisini kontrol et.
 - [ ] 383 KULLANICIDAN ONAY ISTE: "Signing dosyalari hazir mi?".
 - [ ] 384 Play Console app olustur.
 - [ ] 385 App Store Connect app olustur.
-- [ ] 386 Privacy manifestleri doldur.
-- [ ] 386A App Store icin "Always Location" gerekcesini urun akisina gore yaz.
-- [ ] 386AA Apple review notuna "Driver Guidance Lite (siradaki durak + mesafe + harita)" gerekcesini ekle.
-- [ ] 386B Apple review icin background location kanit videosu/screenshot paketi hazirla.
-- [ ] 386C Apple metadata/review notu terminoloji kilidini uygula: `tracking` yerine `Route Coordination` / `Trip Sharing`.
+- [x] 386 Privacy manifestleri doldur.
+- [x] 386A App Store icin "Always Location" gerekcesini urun akisina gore yaz.
+- [x] 386AA Apple review notuna "Driver Guidance Lite (siradaki durak + mesafe + harita)" gerekcesini ekle.
+- [x] 386B Apple review icin background location kanit videosu/screenshot paketi hazirla.
+- [x] 386C Apple metadata/review notu terminoloji kilidini uygula: `tracking` yerine `Route Coordination` / `Trip Sharing`.
 - [ ] 387 Data safety formlarini doldur.
 - [ ] 387A Google Play background location declaration formunu doldur.
-- [ ] 387AA Play formu metnini birebir kontrol et: `sadece sofor`, `aktif sefer`, `sefer bitince durur`, `yolcu konumu alinmaz`.
-- [ ] 387AB Data Safety formunu muhafazakar doldur: Location=evet (driver), Personal Info=evet, Auth Info=evet, Third-party sharing=hayir, delete request=evet.
-- [ ] 387AC Data Safety'de guest akisini acikla: `guest location toplanmaz`, `driver location gorur`, `TTL ile guest session silinir`.
-- [ ] 387AD Data Safety purpose alaninda `App functionality` disinda gereksiz secim isaretleme (analytics/ads yok).
+- [x] 387AA Play formu metnini birebir kontrol et: `sadece sofor`, `aktif sefer`, `sefer bitince durur`, `yolcu konumu alinmaz`.
+- [x] 387AB Data Safety formunu muhafazakar doldur: Location=evet (driver), Personal Info=evet, Auth Info=evet, Third-party sharing=hayir, delete request=evet.
+- [x] 387AC Data Safety'de guest akisini acikla: `guest location toplanmaz`, `driver location gorur`, `TTL ile guest session silinir`.
+- [x] 387AD Data Safety purpose alaninda `App functionality` disinda gereksiz secim isaretleme (analytics/ads yok).
 - [ ] 387B App Store IAP urunlarini olustur (`monthly`, `yearly`, trial policy) ve screenshot/dil metinlerini tamamla.
 - [ ] 387C Google Play subscription urunlarini olustur (base plan + trial + ulke bazli fiyat).
 - [ ] 387D Adapty entitlement haritasini dogrula (store product <-> entitlement birebir).
-- [ ] 387E Play kategori secimini `Travel & Local` olarak kilitle (gerekce notu ile).
-- [ ] 387F Store billing uyumunu release checklist'inde kanitla (Adapty SDK surumu + test kaniti).
+- [x] 387E Play kategori secimini `Travel & Local` olarak kilitle (gerekce notu ile).
+- [x] 387F Store billing uyumunu release checklist'inde kanitla (Adapty SDK surumu + test kaniti).
 - [ ] 387G App Store Connect'te subscription grace period'u ac ve trial/yenileme senaryosunu test et.
 - [ ] 388 KVKK/policy URL'lerini metadata'ya gir.
-- [ ] 388A Privacy Policy'de su ifadeyi zorunlu yap: `Konum verisi sadece aktif seferde soforden alinir; yolcu/guest konumu toplanmaz; veriler ucuncu taraf reklam aglariyla paylasilmaz`.
-- [ ] 388B Store review oncesi hesap silme yolu kolay erisilebilir mi kontrol et (Apple guideline 5.1.1(v) risk gate).
-- [ ] 388C Share link landing metadata'sini dogrula: Open Graph (`og:title`, `og:description`, `og:image`) dogru render oluyor mu.
+- [x] 388A Privacy Policy'de su ifadeyi zorunlu yap: `Konum verisi sadece aktif seferde soforden alinir; yolcu/guest konumu toplanmaz; veriler ucuncu taraf reklam aglariyla paylasilmaz`.
+- [x] 388B Store review oncesi hesap silme yolu kolay erisilebilir mi kontrol et (Apple guideline 5.1.1(v) risk gate).
+- [x] 388C Share link landing metadata'sini dogrula: Open Graph (`og:title`, `og:description`, `og:image`) dogru render oluyor mu.
 - [ ] 388D Deep-link dogrulama dosyalarini deploy et ve test et: `apple-app-site-association` + `assetlinks.json`.
-- [ ] 389 App ikon/splash varliklarini sonlandir.
-- [ ] 390 Store screenshot setini amber UI ile olustur.
-- [ ] 390A Onboarding video/pilot poster varliklarini release paketi icin sabitle (ilk frame + fallback frame + telif kontrolu).
-- [ ] 391 Short/long description metinlerini yaz.
-- [ ] 391A Kisa aciklama policy kilidi: `personel servis canli takip` degeri net gecsin; yolcu konumu alinmadigi vurgusu yer alsin.
-- [ ] 391B Uzun aciklama policy kilidi: `konum paylasimi sadece aktif seferde soforden`, `sefer bitince durur`, `yolcu konumu alinmaz`, `veri ucuncu tarafla paylasilmaz`.
-- [ ] 391C App Store listing/review metninde `kisi takibi` dili kullanma; `guzergah koordinasyonu` ve `bekleme suresi optimizasyonu` vurgula.
-- [ ] 392 Anahtar kelime setini yaz.
-- [ ] 393 Destek email ve web url gir (varsayilan: `infonetoapp@gmail.com`).
-- [ ] 394 Version code/build number artis stratejisi yaz.
-- [ ] 394A Fastlane setup yap (`beta_android`, `beta_ios`, `release_android`, `release_ios`).
+- [x] 389 App ikon/splash varliklarini sonlandir.
+- [x] 390 Store screenshot setini amber UI ile olustur.
+- [x] 390A Onboarding video/pilot poster varliklarini release paketi icin sabitle (KAPSAM DISI: onboarding video entegrasyonu iptal, mevcut statik poster akisi korunuyor).
+- [x] 391 Short/long description metinlerini yaz.
+- [x] 391A Kisa aciklama policy kilidi: `personel servis canli takip` degeri net gecsin; yolcu konumu alinmadigi vurgusu yer alsin.
+- [x] 391B Uzun aciklama policy kilidi: `konum paylasimi sadece aktif seferde soforden`, `sefer bitince durur`, `yolcu konumu alinmaz`, `veri ucuncu tarafla paylasilmaz`.
+- [x] 391C App Store listing/review metninde `kisi takibi` dili kullanma; `guzergah koordinasyonu` ve `bekleme suresi optimizasyonu` vurgula.
+- [x] 392 Anahtar kelime setini yaz.
+- [x] 393 Destek email ve web url gir (varsayilan: `infonetoapp@gmail.com`).
+- [x] 394 Version code/build number artis stratejisi yaz.
+- [x] 394A Fastlane setup yap (`beta_android`, `beta_ios`, `release_android`, `release_ios`).
 - [ ] 395 Internal test track'e Android yukle.
 - [ ] 395A Play kapali test surecini tamamla (minimum testci ve sure sartlarini karsila; release gate'e kanit ekle).
 - [ ] 396 TestFlight build yukle.
@@ -860,22 +860,22 @@ Asagidaki bilgiler ilgili adimlara gelindiginde istenir:
 - [ ] 401 DOGRULAMA: internal test raporu tamamlandi mi?
 - [ ] 401A DOGRULAMA: Apple/Google location policy checklist tamamen gecti mi?
 - [ ] 401B DOGRULAMA: trial bitisinde paywall dogru anda aciliyor, restore/manage calisiyor, billing akisi policy'ye uygun.
-- [ ] 401F DOGRULAMA: V1.0 release profilinde gercek purchase API cagrisi yok; mock/read-only subscription akisi disina cikilmiyor.
-- [ ] 401C DOGRULAMA: hesap silme oncesi aktif abonelik interceptor'u zorunlu manage yonlendirmesi veriyor mu?
+- [x] 401F DOGRULAMA: V1.0 release profilinde gercek purchase API cagrisi yok; mock/read-only subscription akisi disina cikilmiyor.
+- [x] 401C DOGRULAMA: hesap silme oncesi aktif abonelik interceptor'u zorunlu manage yonlendirmesi veriyor mu?
 - [ ] 401D DOGRULAMA: Play listing + Data Safety + uygulama izin davranisi birbiriyle celismiyor mu?
-- [ ] 401E DOGRULAMA: Apple review notlari `tracking` dili yerine `Route Coordination/Trip Sharing` terminolojisiyle uyumlu mu?
-- [ ] 401G DOGRULAMA: onboarding video aktifken acilis suresi, crash orani ve auth basarisina negatif etki yok mu?
-- [ ] 402 Staged rollout plani yaz (%5 -> %20 -> %100).
-- [ ] 403 Rollback planini dokumante et.
+- [x] 401E DOGRULAMA: Apple review notlari `tracking` dili yerine `Route Coordination/Trip Sharing` terminolojisiyle uyumlu mu?
+- [x] 401G DOGRULAMA: onboarding video aktifken acilis suresi, crash orani ve auth basarisina negatif etki yok mu? (KAPSAM DISI: onboarding video aktif edilmeyecek).
+- [x] 402 Staged rollout plani yaz (%5 -> %20 -> %100).
+- [x] 403 Rollback planini dokumante et.
 - [ ] 404 Remote config kill-switchleri aktif et.
-- [ ] 404A `docs/feature_flags.md` ile key isimlerini birebir esitle (`tracking_enabled`, `announcement_enabled`, `guest_tracking_enabled`, `force_update_min_version`, `directions_enabled`, `map_matching_enabled`).
-- [ ] 404B Her flag icin tip/varsayilan/scope (dev-stg-prod) tablosunu release notuna ekle.
+- [x] 404A `docs/feature_flags.md` ile key isimlerini birebir esitle (`tracking_enabled`, `announcement_enabled`, `guest_tracking_enabled`, `force_update_min_version`, `directions_enabled`, `map_matching_enabled`).
+- [x] 404B Her flag icin tip/varsayilan/scope (dev-stg-prod) tablosunu release notuna ekle.
 - [ ] 405 Alert kurallari ac (crash, stale, auth).
-- [ ] 406 On-call sorumluluklarini yaz.
-- [ ] 407 Incident response SLA yaz.
+- [x] 406 On-call sorumluluklarini yaz.
+- [x] 407 Incident response SLA yaz.
 - [ ] 408 Runbook linklerini operasyon paneline ekle.
 - [ ] 409 Grafana/Cloud dashboard bagla (varsa).
-- [ ] 410 Haftalik maliyet raporu otomasyonu kur (MAU, Directions + Map Matching request sayisi, hard cap kullanimi).
+- [x] 410 Haftalik maliyet raporu otomasyonu kur (MAU, Directions + Map Matching request sayisi, hard cap kullanimi).
 - [ ] 411 KULLANICIDAN ONAY ISTE: "Production release tarihi".
 - [ ] 412 Release adayini freeze et.
 - [ ] 413 Prod deploy dry-run yap.

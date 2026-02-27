@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../components/buttons/amber_buttons.dart';
-import '../components/layout/amber_screen_scaffold.dart';
-import '../tokens/spacing_tokens.dart';
+import '../components/buttons/core_buttons.dart';
+import '../components/layout/core_screen_scaffold.dart';
+import '../tokens/core_spacing.dart';
+import '../tokens/form_validation_tokens.dart';
 
 class PassengerSettingsScreen extends StatefulWidget {
   const PassengerSettingsScreen({
@@ -85,8 +86,13 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
   }
 
   Future<void> _submit() async {
+    final onSave = widget.onSave;
     final input = _buildInput();
     if (input == null) {
+      return;
+    }
+    if (onSave == null) {
+      _setValidation('Ayarlar şu anda kaydedilemiyor. Lütfen tekrar deneyin.');
       return;
     }
 
@@ -95,7 +101,11 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
       _validationError = null;
     });
     try {
-      await widget.onSave?.call(input);
+      await onSave(input);
+    } catch (error) {
+      if (mounted) {
+        _setValidation(_formatSaveErrorMessage(error));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -108,26 +118,26 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
   PassengerSettingsFormInput? _buildInput() {
     final routeId = widget.routeId.trim();
     if (routeId.isEmpty) {
-      _setValidation('Route ID zorunlu.');
+      _setValidation(CoreFormValidationTokens.routeIdRequired);
       return null;
     }
 
     final phoneRaw = _phoneController.text.trim();
     final phone = phoneRaw.isEmpty ? null : phoneRaw;
     if (phone != null && phone.length < 7) {
-      _setValidation('Telefon en az 7 karakter olmali.');
+      _setValidation(CoreFormValidationTokens.phoneMin7);
       return null;
     }
 
     final boardingArea = _boardingAreaController.text.trim();
     if (boardingArea.isEmpty) {
-      _setValidation('Binis alani zorunlu.');
+      _setValidation(CoreFormValidationTokens.boardingAreaRequired);
       return null;
     }
 
     final notificationTime = _notificationTimeController.text.trim();
     if (!_isValidTime(notificationTime)) {
-      _setValidation('Bildirim saati HH:mm formatinda olmali.');
+      _setValidation(CoreFormValidationTokens.notificationTimeFormat);
       return null;
     }
 
@@ -136,11 +146,11 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
       final lat = double.tryParse(_virtualStopLatController.text.trim());
       final lng = double.tryParse(_virtualStopLngController.text.trim());
       if (lat == null || lng == null) {
-        _setValidation('Sanal durak koordinatlari sayisal olmali.');
+        _setValidation(CoreFormValidationTokens.virtualStopCoordinatesNumeric);
         return null;
       }
       if (!_isWithinLatLng(lat, lng)) {
-        _setValidation('Sanal durak koordinatlari gecerli aralikta olmali.');
+        _setValidation(CoreFormValidationTokens.virtualStopCoordinatesRange);
         return null;
       }
       virtualStop = PassengerVirtualStopInput(lat: lat, lng: lng);
@@ -176,31 +186,45 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
     });
   }
 
+  String _formatSaveErrorMessage(Object error) {
+    final raw = error.toString().trim();
+    if (raw.isEmpty) {
+      return 'Ayarlar kaydedilemedi. Lütfen tekrar deneyin.';
+    }
+    const exceptionPrefix = 'Exception:';
+    final normalized = raw.startsWith(exceptionPrefix)
+        ? raw.substring(exceptionPrefix.length).trim()
+        : raw;
+    return normalized.isEmpty
+        ? 'Ayarlar kaydedilemedi. Lütfen tekrar deneyin.'
+        : normalized;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AmberScreenScaffold(
-      title: 'Yolcu Ayarlari',
-      subtitle: 'Callable: updatePassengerSettings',
+    return CoreScreenScaffold(
+      title: 'Yolcu Ayarları',
+      subtitle: 'Servis katılım bilgilerini güncelle',
       scrollable: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           if (widget.routeName != null && widget.routeName!.trim().isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: AmberSpacingTokens.space8),
+              padding: const EdgeInsets.only(bottom: CoreSpacing.space8),
               child: Text(
-                'Route: ${widget.routeName}',
+                'Rota: ${widget.routeName}',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
           TextField(
             enabled: false,
             decoration: InputDecoration(
-              labelText: 'Route ID',
+              labelText: 'Rota ID',
               hintText: widget.routeId,
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           TextField(
             controller: _phoneController,
             enabled: !_submitting,
@@ -209,7 +233,7 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
               labelText: 'Telefon (opsiyonel)',
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             value: _showPhoneToDriver,
@@ -220,17 +244,17 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                       _showPhoneToDriver = value;
                     });
                   },
-            title: const Text('Telefonumu sofor gorebilsin'),
+            title: const Text('Telefonumu şoför görebilsin'),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           TextField(
             controller: _boardingAreaController,
             enabled: !_submitting,
             decoration: const InputDecoration(
-              labelText: 'Binis Alani',
+              labelText: 'Biniş Alanı',
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           TextField(
             controller: _notificationTimeController,
             enabled: !_submitting,
@@ -238,7 +262,7 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
               labelText: 'Bildirim Saati (HH:mm)',
             ),
           ),
-          const SizedBox(height: AmberSpacingTokens.space12),
+          const SizedBox(height: CoreSpacing.space12),
           SwitchListTile.adaptive(
             contentPadding: EdgeInsets.zero,
             value: _useVirtualStop,
@@ -251,11 +275,11 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                   },
             title: const Text('Sanal Durak kullan (opsiyonel)'),
             subtitle: const Text(
-              'Sanal durak yoksa ETA Binis Alani/route baslangicina gore hesaplanir.',
+              'Sanal durak yoksa ETA Biniş Alanı/rota başlangıcına göre hesaplanır.',
             ),
           ),
           if (_useVirtualStop) ...<Widget>[
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             TextField(
               controller: _virtualStopLabelController,
               enabled: !_submitting,
@@ -263,7 +287,7 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                 labelText: 'Sanal Durak Etiketi (opsiyonel)',
               ),
             ),
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             Row(
               children: <Widget>[
                 Expanded(
@@ -279,7 +303,7 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: AmberSpacingTokens.space8),
+                const SizedBox(width: CoreSpacing.space8),
                 Expanded(
                   child: TextField(
                     controller: _virtualStopLngController,
@@ -289,7 +313,7 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                       signed: true,
                     ),
                     decoration: const InputDecoration(
-                      labelText: 'Sanal Durak Lng',
+                      labelText: 'Sanal Durak Lng (Boylam)',
                     ),
                   ),
                 ),
@@ -297,15 +321,15 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
             ),
           ],
           if (_validationError != null) ...<Widget>[
-            const SizedBox(height: AmberSpacingTokens.space8),
+            const SizedBox(height: CoreSpacing.space8),
             Text(
               _validationError!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
-          const SizedBox(height: AmberSpacingTokens.space20),
-          AmberPrimaryButton(
-            label: _submitting ? 'Isleniyor...' : 'Ayarlarimi Kaydet',
+          const SizedBox(height: CoreSpacing.space20),
+          CorePrimaryButton(
+            label: _submitting ? 'İşleniyor...' : 'Ayarlarımı Kaydet',
             onPressed: _submitting ? null : _submit,
           ),
         ],

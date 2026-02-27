@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/screens/passenger_settings_screen.dart';
-import 'package:neredeservis/ui/theme/theme_amber.dart';
+import 'package:neredeservis/ui/tokens/form_validation_tokens.dart';
+import 'package:neredeservis/ui/theme/core_theme.dart';
 
 void main() {
   Widget buildTestApp({
@@ -10,7 +11,7 @@ void main() {
     Future<void> Function(PassengerSettingsFormInput input)? onSave,
   }) {
     return MaterialApp(
-      theme: AmberTheme.light(),
+      theme: CoreTheme.light(),
       home: PassengerSettingsScreen(
         routeId: routeId,
         routeName: routeName,
@@ -23,22 +24,25 @@ void main() {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Yolcu Ayarlari'), findsOneWidget);
+    expect(find.text('Yolcu Ayarları'), findsOneWidget);
     expect(find.text('Telefon (opsiyonel)'), findsOneWidget);
-    expect(find.text('Binis Alani'), findsOneWidget);
+    expect(find.text('Biniş Alanı'), findsOneWidget);
     expect(find.text('Bildirim Saati (HH:mm)'), findsOneWidget);
     expect(find.text('Sanal Durak kullan (opsiyonel)'), findsOneWidget);
-    expect(find.text('Ayarlarimi Kaydet'), findsOneWidget);
+    expect(find.text('Ayarlarımı Kaydet'), findsOneWidget);
   });
 
   testWidgets('passenger settings validates required fields', (tester) async {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Ayarlarimi Kaydet'));
+    await tester.tap(find.text('Ayarlarımı Kaydet'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Binis alani zorunlu.'), findsOneWidget);
+    expect(
+      find.text(CoreFormValidationTokens.boardingAreaRequired),
+      findsOneWidget,
+    );
   });
 
   testWidgets('passenger settings submits payload with virtual stop', (
@@ -65,9 +69,9 @@ void main() {
     await tester.enterText(find.byType(TextField).at(5), '40.8123');
     await tester.enterText(find.byType(TextField).at(6), '29.4123');
 
-    await tester.ensureVisible(find.text('Ayarlarimi Kaydet'));
+    await tester.ensureVisible(find.text('Ayarlarımı Kaydet'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ayarlarimi Kaydet'));
+    await tester.tap(find.text('Ayarlarımı Kaydet'));
     await tester.pumpAndSettle();
 
     expect(submitted, isNotNull);

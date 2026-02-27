@@ -5,10 +5,32 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def decodedDartDefines = [:]
+if (project.hasProperty("dart-defines")) {
+    decodedDartDefines = project.property("dart-defines")
+            .split(",")
+            .collectEntries { encoded ->
+                def decoded = new String(encoded.decodeBase64(), "UTF-8")
+                def separatorIndex = decoded.indexOf("=")
+                if (separatorIndex == -1) {
+                    return [:]
+                }
+                [(decoded.substring(0, separatorIndex)): decoded.substring(separatorIndex + 1)]
+            }
+}
+
+def googleMapsApiKeyFromDartDefine = (decodedDartDefines["GOOGLE_MAPS_API_KEY"] ?: "").toString().trim()
+def resolveGoogleMapsApiKey = { flavorSuffix ->
+    def byFlavor = (project.findProperty("GOOGLE_MAPS_API_KEY_${flavorSuffix}") ?: "")
+            .toString()
+            .trim()
+    return byFlavor.isEmpty() ? googleMapsApiKeyFromDartDefine : byFlavor
+}
+
 android {
     namespace = "com.neredeservis.app"
-    compileSdk = 36
-    ndkVersion = "28.2.13676358"
+    compileSdkVersion 35
+    ndkVersion = "25.1.8937393"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -22,7 +44,7 @@ android {
     defaultConfig {
         applicationId = "com.neredeservis.app"
         minSdkVersion = Math.max(flutter.minSdkVersion, 23)
-        targetSdk = flutter.targetSdkVersion
+        targetSdkVersion 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -33,16 +55,25 @@ android {
             dimension = "environment"
             applicationId = "com.neredeservis.app.dev"
             resValue "string", "app_name", "NeredeServis Dev"
+            manifestPlaceholders = [
+                    GOOGLE_MAPS_API_KEY: resolveGoogleMapsApiKey("DEV")
+            ]
         }
         stg {
             dimension = "environment"
             applicationId = "com.neredeservis.app.stg"
             resValue "string", "app_name", "NeredeServis Stg"
+            manifestPlaceholders = [
+                    GOOGLE_MAPS_API_KEY: resolveGoogleMapsApiKey("STG")
+            ]
         }
         prod {
             dimension = "environment"
             applicationId = "com.neredeservis.app"
             resValue "string", "app_name", "NeredeServis"
+            manifestPlaceholders = [
+                    GOOGLE_MAPS_API_KEY: resolveGoogleMapsApiKey("PROD")
+            ]
         }
     }
 

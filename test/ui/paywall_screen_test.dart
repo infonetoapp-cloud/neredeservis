@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/features/subscription/presentation/paywall_copy_tr.dart';
 import 'package:neredeservis/ui/screens/paywall_screen.dart';
-import 'package:neredeservis/ui/theme/theme_amber.dart';
+import 'package:neredeservis/ui/theme/core_theme.dart';
 
 void main() {
   Widget buildTestApp({
@@ -16,7 +16,7 @@ void main() {
     VoidCallback? onLaterTap,
   }) {
     return MaterialApp(
-      theme: AmberTheme.light(),
+      theme: CoreTheme.light(),
       home: PaywallScreen(
         appName: 'NeredeServis Dev',
         subscriptionStatus: status,
@@ -30,23 +30,20 @@ void main() {
   }
 
   String expectedRestoreLabel() {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return 'Restore Purchases';
-    }
-    return 'Satin Alimlari Geri Yukle';
+    return PaywallCopyTr.restoreLabelForPlatform(defaultTargetPlatform);
   }
 
   testWidgets('paywall renders core sections', (WidgetTester tester) async {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Servisi gecikmeden goster'), findsOneWidget);
-    expect(find.text('Aylik Plan'), findsOneWidget);
-    expect(find.text('Yillik Plan'), findsOneWidget);
-    expect(find.text("Premium'u Ac"), findsOneWidget);
-    expect(find.text('Simdilik Sonra'), findsOneWidget);
+    expect(find.text(PaywallCopyTr.paywallTitle), findsOneWidget);
+    expect(find.text(PaywallCopyTr.monthlyPlanTitle), findsOneWidget);
+    expect(find.text(PaywallCopyTr.yearlyPlanTitle), findsOneWidget);
+    expect(find.text(PaywallCopyTr.primaryCta), findsOneWidget);
+    expect(find.text(PaywallCopyTr.secondaryCta), findsOneWidget);
     expect(find.text(expectedRestoreLabel()), findsOneWidget);
-    expect(find.text('Manage Subscription'), findsOneWidget);
+    expect(find.text(PaywallCopyTr.manageSubscription), findsOneWidget);
   });
 
   testWidgets('trial active message renders with day count', (
@@ -60,7 +57,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Deneme suresi: 3 gun kaldi'), findsOneWidget);
+    expect(
+      find.text(
+        PaywallCopyTr.trialBannerForStatus(
+          SubscriptionUiStatus.trialActive,
+          trialDaysLeft: 3,
+        ),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('paywall actions trigger callbacks', (WidgetTester tester) async {
@@ -87,21 +92,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Aylik Plan'));
+    await tester.tap(find.text(PaywallCopyTr.monthlyPlanTitle));
     await tester.pumpAndSettle();
-    await tester.tap(find.text("Premium'u Ac"));
+    await tester.tap(find.text(PaywallCopyTr.primaryCta));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text(expectedRestoreLabel()));
     await tester.pumpAndSettle();
     await tester.tap(find.text(expectedRestoreLabel()));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Manage Subscription'));
+    await tester.ensureVisible(find.text(PaywallCopyTr.manageSubscription));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Manage Subscription'));
+    await tester.tap(find.text(PaywallCopyTr.manageSubscription));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Simdilik Sonra'));
+    await tester.ensureVisible(find.text(PaywallCopyTr.secondaryCta));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Simdilik Sonra'));
+    await tester.tap(find.text(PaywallCopyTr.secondaryCta));
     await tester.pumpAndSettle();
 
     expect(purchasedPlan, PaywallPlan.monthly);
