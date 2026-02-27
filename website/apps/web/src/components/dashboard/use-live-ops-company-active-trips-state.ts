@@ -181,6 +181,15 @@ export function useLiveOpsCompanyActiveTripsState() {
     }
     return [selectedTrip, ...riskFiltered.filter((trip) => trip.tripId !== selectedTrip.tripId)];
   }, [effectiveRiskTone, selectedTrip, visibleTrips]);
+  const mapMarkerLimit = useMemo(() => {
+    if (readModelPressure.level === "high") {
+      return 120;
+    }
+    if (readModelPressure.level === "warn") {
+      return 160;
+    }
+    return 200;
+  }, [readModelPressure.level]);
 
   const mapPinnedSelectedOutsideRisk = useMemo(() => {
     if (!effectiveRiskTone || !selectedTrip) {
@@ -315,6 +324,7 @@ export function useLiveOpsCompanyActiveTripsState() {
     selectedTripStopsQuery,
     selectedTripStreamErrorSemantic,
     streamIssueState,
+    streamAuthRefreshInFlight,
     effectiveLiveCoords,
     streamStale,
     streamLagSeconds,
@@ -407,6 +417,7 @@ export function useLiveOpsCompanyActiveTripsState() {
     mapRiskHiddenByStaleCount,
     mapRiskHiddenByStaleCriticalCount: mapRiskHiddenByStaleCounts.critical,
     mapRiskHiddenByStaleWarningCount: mapRiskHiddenByStaleCounts.warning,
+    mapMarkerLimit,
     effectiveHoveredTripId,
     setHoveredTripId,
     autoRefreshEnabled,
@@ -436,6 +447,7 @@ export function useLiveOpsCompanyActiveTripsState() {
     selectedTripLiveStream,
     selectedTripStreamErrorSemantic,
     streamIssueState,
+    streamAuthRefreshInFlight,
     liveOpsFilterContext,
     rtdbConnection,
     liveStreamEnabled,

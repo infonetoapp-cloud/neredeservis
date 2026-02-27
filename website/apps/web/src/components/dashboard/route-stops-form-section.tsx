@@ -19,6 +19,7 @@ type Props = {
   canSubmit: boolean;
   structuralLocked: boolean;
   structuralLockMessage: string;
+  structuralEditLockMessage: string;
   error: string | null;
   orderConflictMessage: string | null;
   successMessage: string | null;
@@ -37,6 +38,7 @@ export function RouteStopsFormSection({
   canSubmit,
   structuralLocked,
   structuralLockMessage,
+  structuralEditLockMessage,
   error,
   orderConflictMessage,
   successMessage,
@@ -51,6 +53,8 @@ export function RouteStopsFormSection({
   const hasOrderConflict = Boolean(orderConflictMessage);
   const isLatValid = isValidStopLatitudeInput(form.lat);
   const isLngValid = isValidStopLongitudeInput(form.lng);
+  const isEditMode = Boolean(form.stopId);
+  const isLockedEditMode = structuralLocked && isEditMode;
 
   return (
     <form className="space-y-3 rounded-xl border border-line bg-white p-3" onSubmit={onSubmit}>
@@ -116,6 +120,7 @@ export function RouteStopsFormSection({
             value={form.lat}
             onChange={(event) => onLatChange(event.target.value)}
             onBlur={() => onLatChange(normalizeStopCoordinateInput(form.lat))}
+            disabled={pending || structuralLocked}
             className={`w-full rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ${
               isLatValid
                 ? "border border-line focus:border-brand-400"
@@ -137,6 +142,7 @@ export function RouteStopsFormSection({
             value={form.lng}
             onChange={(event) => onLngChange(event.target.value)}
             onBlur={() => onLngChange(normalizeStopCoordinateInput(form.lng))}
+            disabled={pending || structuralLocked}
             className={`w-full rounded-xl bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ${
               isLngValid
                 ? "border border-line focus:border-brand-400"
@@ -168,6 +174,14 @@ export function RouteStopsFormSection({
           {structuralLockMessage}
         </div>
       ) : null}
+      {isLockedEditMode ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
+        >
+          {structuralEditLockMessage}
+        </div>
+      ) : null}
       {successMessage ? (
         <div
           aria-live="polite"
@@ -179,7 +193,9 @@ export function RouteStopsFormSection({
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-slate-500">
-          Siralama icin Basa/Yukari/Asagi/Sona ve surukle-birak aksiyonlari aktif.
+          {isLockedEditMode
+            ? "Aktif seferde yalnizca durak adi guncellenebilir."
+            : "Siralama icin Basa/Yukari/Asagi/Sona ve surukle-birak aksiyonlari aktif."}
         </p>
         <button
           type="submit"

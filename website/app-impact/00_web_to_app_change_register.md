@@ -6567,3 +6567,66 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - `Ilgili Web Docs`: `plan/135_phase10_report_prune_latest.md`
 - `Ilgili App Dosyalari`: none
 - `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.
+
+### W2A-560
+- `Status`: `web_done_app_pending`
+- `Priority`: `P1`
+- `Kategori`: `route_trip`
+- `Web Trigger`: Route stop editor soft-lock sertlestirmesi (aktif seferde stop edit modunda sadece ad degisimi; order/koordinat kilidi)
+- `App Impact (ozet)`: App tarafindaki stop editor/mutasyon UX'i ayni politika ile hizalanmali; aktif seferde yapisal stop mutasyonu engellenmeli.
+- `Planlanan App Degisiklikleri`:
+  - aktif seferde stop edit ekraninda order/koordinat alanlarini kilitle
+  - soft-lock copy parity: "yalnizca durak adi guncellenebilir"
+  - stop upsert payload'inda lock modunda yapisal alanlari mevcut degerde tut
+- `Bloklayici mi?`: `cutover`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/62_route_trip_versioning_recurrence_timezone_dst_and_concurrent_editing_spec.md`
+- `Ilgili App Dosyalari`: route stop editor / route mutation error mapping katmani
+- `Notlar`: 2026-02-28: Web davranisi sertlestirildi; app parity kalemi acik birakildi.
+
+### W2A-561
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `live_ops`
+- `Web Trigger`: `useCompanyActiveTrips` hook'unda race-condition + arka plan refresh yigilmasi sertlestirmesi (request sequence guard + background dedupe).
+- `App Impact (ozet)`: Yok; degisiklik sadece web read-side refresh zamanlamasi ve UI stabilitesini etkiler.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-562
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `live_ops`
+- `Web Trigger`: Live-ops triage/perf sertlestirmesi (dinamik map marker limiti: 120/160/200, toolbar "Yuk Modu Uygula", map panel performans koruma callout'u).
+- `App Impact (ozet)`: Yok; degisiklik web dispatcher operasyon ergonomisi ve web-side render stabilitesiyle sinirli.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-563
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P2`
+- `Kategori`: `live_ops`
+- `Web Trigger`: RTDB stream `permission_denied` token refresh recovery sertlestirmesi + live-ops toolbar/map token-yenileme gorunurlugu.
+- `App Impact (ozet)`: Yok; degisiklik yalnizca web dispatcher stream toparlanma akisi ve bilgilendirme semantigini etkiler.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-564
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 9 closeout zinciri tekrar kosusu (`handoff/readiness/closeout/progress-delta`) ile latest rapor setinin PASS'e cekilmesi.
+- `App Impact (ozet)`: Yok; degisiklik yeni app davranisi eklemez, yalnizca phase9 handoff/readiness/closeout artefactlarini gunceller.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/103_phase9_app_parity_handoff_latest.md`, `plan/104_phase9_cutover_core_readiness_latest.md`, `plan/106_phase9_closeout_latest.md`, `plan/127_phase9_app_progress_delta_latest.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.

@@ -812,3 +812,14 @@ Detay kanit kaydi:
 - Faz 10 yirminci dilim tamamlandi (prune dry-run raporu alindi: `website/plan/135_phase10_report_prune_latest.md`; aday temizlenecek artefact sayisi 68 olarak olculdu).
 - Faz 10 yirmi birinci dilim tamamlandi (`npm run prune:phase10:reports:apply` kosuldu ve eski timestamp raporlari KeepPerPattern=2 politikasiyla temizlendi; `*_latest.md` kanit dosyalari korundu).
 - Faz 10 yirmi ikinci dilim tamamlandi (website commit-pack raporu prune sonrasi tekrar guncellenmeye hazir hale geldi; web release artefact seti daha kompakt hale getirildi).
+- Faz 10 yirmi ucuncu dilim tamamlandi (live-ops aktif sefer read-side hook'unda race-condition + background refresh yigilmasi sertlestirildi; request sequence guard ve background dedupe eklendi, kalite: npm run lint, npm run build PASS).
+- Faz 10 yirmi dorduncu dilim tamamlandi (live-ops triage/perf sertlestirmesi tamamlandi: dinamik marker limiti 120/160/200, toolbar Yuk Modu Uygula, map performans koruma callout'u; kalite: npm run lint, npm run build PASS).
+- Faz 10 yirmi besinci dilim tamamlandi (RTDB stream permission_denied toparlanmasinda token refresh in-flight gorunurlugu toolbar + harita paneline eklendi; kalite: npm run lint, npm run build PASS).
+- Faz 10 yirmi altinci dilim tamamlandi (release-window zinciri tekrar kosuldu: smoke:manual:phase5, closeout:phase10:no-admin, kisa orneklemli phase10-post-release-observe; latest 130/131/132 raporlari PASS durumda yenilendi).
+- Faz 10 yirmi yedinci dilim tamamlandi (stabilization pack tekrar kosuldu: npm run pack:phase10:stabilization; 133_phase10_stabilization_pack_latest.md PASS olarak guncellendi).
+- Faz 10 yirmi sekizinci dilim tamamlandi (website-only commit paketi tekrar uretildi: npm run pack:phase10:website-commit; guncel kapsam 134_phase10_website_commit_pack_latest.md dosyasina yazildi).
+- Faz 10 yirmi dokuzuncu dilim tamamlandi (Faz 9 app-parity closeout zinciri tekrar kosuldu: handoff:app-parity, readiness:phase9, closeout:phase9, status:phase9:app-delta; latest 103/104/106/121/127 raporlari PASS'e cekildi).
+- Faz 10 otuzuncu dilim tamamlandi (tam lokal kalite kapisi tekrar alindi: npm run gate:local; web/functions/rules zinciri PASS, kanit: 82_phase5_local_gate_run_2026_02_28_0149.md).
+- Faz 10 otuz birinci dilim tamamlandi (no-admin readiness + website commit-pack latest raporlari tekrar yenilendi: npm run readiness:phase10:no-admin, npm run pack:phase10:website-commit).
+- Faz 10 otuz ikinci dilim tamamlandi (rapor sisme kontrolu tekrar uygulandi: npm run prune:phase10:reports:apply; 13 aday artefact prune edildi, kanit: 135_phase10_report_prune_latest.md).
+- Faz 10 otuz ucuncu dilim tamamlandi (prune sonrasi website commit paketi tekrar uretildi: npm run pack:phase10:website-commit; latest kapsam listesi yenilendi).

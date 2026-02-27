@@ -55,6 +55,7 @@ type Props = {
   streamStatus: LiveOpsStreamStatus;
   rtdbConnectionStatus: LiveOpsRtdbConnectionStatus;
   selectedTripStreamLagSeconds: number | null;
+  selectedTripAuthRefreshInFlight: boolean;
   onReload: () => Promise<void> | void;
   onToggleAutoRefresh: () => void;
   onToggleHideStale: () => void;
@@ -102,6 +103,7 @@ export function LiveOpsTripsListToolbar({
   streamStatus,
   rtdbConnectionStatus,
   selectedTripStreamLagSeconds,
+  selectedTripAuthRefreshInFlight,
   onReload,
   onToggleAutoRefresh,
   onToggleHideStale,
@@ -144,6 +146,11 @@ export function LiveOpsTripsListToolbar({
           ? "Link kopyalanamadi."
           : "Bu tarayici pano kopyalamayi desteklemiyor."
         : null;
+  const pressureModeActive =
+    hideStale &&
+    sortOption === "risk_desc" &&
+    riskToneFilter === "critical" &&
+    riskQueueLimit === 4;
 
   return (
     <>
@@ -174,6 +181,11 @@ export function LiveOpsTripsListToolbar({
             />
           </div>
           <div className="mt-1 text-[11px] text-muted">Stream ozet: {streamContextMessage}</div>
+          {selectedTripAuthRefreshInFlight ? (
+            <div className="mt-1 text-[11px] font-medium text-amber-700">
+              Secili stream token yenileme suruyor. Baglanti hizli retry ile toparlanacak.
+            </div>
+          ) : null}
           {streamRecoverySummary.staleLabel || selectedTripStreamLagSeconds != null ? (
             <div className="mt-1 text-[11px] text-muted">
               Secili stream: {streamRecoverySummary.staleLabel ?? "stale yok"}
@@ -241,6 +253,26 @@ export function LiveOpsTripsListToolbar({
           >
             Risk Kuyrugu: Top {riskQueueLimit}
           </button>
+          {readModelPressure.level !== "ok" ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (!hideStale) onToggleHideStale();
+                if (sortOption !== "risk_desc") onSortOptionChange("risk_desc");
+                if (riskToneFilter !== "critical") onRiskToneFilterChange("critical");
+                if (riskQueueLimit !== 4) onRiskQueueLimitChange(4);
+              }}
+              disabled={pressureModeActive}
+              aria-label="Yuk modunu uygula"
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                pressureModeActive
+                  ? "cursor-not-allowed border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-line bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {pressureModeActive ? "Yuk Modu Aktif" : "Yuk Modu Uygula"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() =>
@@ -309,7 +341,8 @@ export function LiveOpsTripsListToolbar({
           }`}
         >
           Read-model baskisi: {readModelPressure.tripCount} sefer, filtre+sirala{" "}
-          {readModelPressure.filterDurationMs} ms. Projection endpoint (server-side) kararini degerlendir.
+          {readModelPressure.filterDurationMs} ms.{" "}
+          {pressureModeActive ? "Yuk modu aktif." : "Yuk modu ile gorunumu sadelestir."}
         </div>
       ) : null}
       <LiveOpsStreamRecoveryCallout

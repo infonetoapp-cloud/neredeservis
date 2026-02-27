@@ -49,6 +49,7 @@ export type LiveOpsMapSplitPaneProps = {
   selectedTripStreamRetryAttempt: number;
   selectedTripStreamNextRetryAt: number | null;
   selectedTripStreamStaleReason: LiveOpsStreamStaleReason;
+  selectedTripAuthRefreshInFlight: boolean;
   riskToneFilter: LiveOpsRiskTone | null;
   onRiskToneFilterChange: (tone: LiveOpsRiskTone | null) => void;
   hideStale: boolean;
@@ -58,6 +59,7 @@ export type LiveOpsMapSplitPaneProps = {
   mapRiskHiddenByStaleCount: number;
   mapRiskHiddenByStaleCriticalCount: number;
   mapRiskHiddenByStaleWarningCount: number;
+  mapMarkerLimit: number;
 };
 
 function liveSourceLabel(
@@ -86,6 +88,7 @@ export function LiveOpsMapSplitPane({
   selectedTripStreamRetryAttempt,
   selectedTripStreamNextRetryAt,
   selectedTripStreamStaleReason,
+  selectedTripAuthRefreshInFlight,
   riskToneFilter,
   onRiskToneFilterChange,
   hideStale,
@@ -95,6 +98,7 @@ export function LiveOpsMapSplitPane({
   mapRiskHiddenByStaleCount,
   mapRiskHiddenByStaleCriticalCount,
   mapRiskHiddenByStaleWarningCount,
+  mapMarkerLimit,
 }: LiveOpsMapSplitPaneProps) {
   const mapTelemetry = buildLiveOpsMapTelemetry(visibleTrips);
   const mapPerfClass =
@@ -184,6 +188,9 @@ export function LiveOpsMapSplitPane({
           </span>
           <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
             Marker: {mapTelemetry.totalCount}
+          </span>
+          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
+            Marker Limiti: {mapMarkerLimit}
           </span>
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${mapPerfClass}`}>
             Harita Perf: {mapTelemetry.perfLabel}
@@ -318,6 +325,11 @@ export function LiveOpsMapSplitPane({
               Toparlanma: {streamRecoverySummary.tone === "critical" ? "Kritik" : "Uyari"}
             </span>
           ) : null}
+          {selectedTripAuthRefreshInFlight ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
+              Token yenileniyor
+            </span>
+          ) : null}
         </div>
       </div>
       {showHiddenOnlyRiskHint ? (
@@ -340,6 +352,11 @@ export function LiveOpsMapSplitPane({
       {mapTelemetry.perfTone === "slow" ? (
         <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs text-rose-800">
           Marker yogunlugu yuksek ({mapTelemetry.totalCount}). Harita stabilitesi icin stale gizle veya risk odagi filtrelerini ac.
+        </div>
+      ) : null}
+      {mapMarkerLimit < 200 ? (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800">
+          Performans koruma modu aktif: marker limiti {mapMarkerLimit}. Yuk azaldiginda limit otomatik 200e doner.
         </div>
       ) : null}
       <div className="relative h-[360px] overflow-hidden rounded-xl border border-line bg-gradient-to-br from-slate-100 via-white to-blue-50">
@@ -399,6 +416,7 @@ export function LiveOpsMapSplitPane({
           hoveredTripId={hoveredTripId}
           effectiveLiveCoords={effectiveLiveCoords}
           selectedTripStops={selectedTripStops}
+          maxMarkerCount={mapMarkerLimit}
           onSelectTripId={onSelectTripId}
         />
         <div className="absolute inset-x-6 bottom-6">

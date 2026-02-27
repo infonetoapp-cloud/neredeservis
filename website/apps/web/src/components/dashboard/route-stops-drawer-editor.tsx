@@ -51,6 +51,8 @@ export function RouteStopsDrawerEditor({
   const hasActiveTrips = activeTripsCount > 0;
   const structuralLockReason =
     "Aktif sefer varken durak ekleme, silme ve sira degistirme kilitlidir.";
+  const lockedEditReason =
+    "Aktif seferde sadece durak adi guncellenebilir; koordinat ve sira degistirilemez.";
 
   const nextOrder = useMemo(() => {
     if (stopsQuery.items.length === 0) return 0;
@@ -72,13 +74,48 @@ export function RouteStopsDrawerEditor({
     ? `Bu sirada zaten \"${orderConflictStop.name}\" duragi var.`
     : null;
   const isCreateMode = !form.stopId;
+  const editingStop = useMemo(() => {
+    if (!form.stopId) return null;
+    return stopsQuery.items.find((item) => item.stopId === form.stopId) ?? null;
+  }, [form.stopId, stopsQuery.items]);
+  const isLockedEditStructuralMutation = useMemo(() => {
+    if (!hasActiveTrips || !editingStop || !form.stopId) return false;
+    const formLat = Number(form.lat);
+    const formLng = Number(form.lng);
+    const latChanged = Number.isFinite(formLat)
+      ? Math.abs(formLat - editingStop.location.lat) > 1e-9
+      : true;
+    const lngChanged = Number.isFinite(formLng)
+      ? Math.abs(formLng - editingStop.location.lng) > 1e-9
+      : true;
+    return form.order !== editingStop.order || latChanged || lngChanged;
+  }, [editingStop, form.lat, form.lng, form.order, form.stopId, hasActiveTrips]);
   const canSubmit = Boolean(
     routeId &&
       !pending &&
       formValidation.ok &&
       !orderConflictStop &&
+      !isLockedEditStructuralMutation &&
       (!hasActiveTrips || !isCreateMode),
   );
+
+  useEffect(() => {
+    if (!hasActiveTrips || !editingStop || !form.stopId) return;
+    setForm((prev) => {
+      if (prev.stopId !== editingStop.stopId) return prev;
+      const nextLat = String(editingStop.location.lat);
+      const nextLng = String(editingStop.location.lng);
+      if (prev.order === editingStop.order && prev.lat === nextLat && prev.lng === nextLng) {
+        return prev;
+      }
+      return {
+        ...prev,
+        order: editingStop.order,
+        lat: nextLat,
+        lng: nextLng,
+      };
+    });
+  }, [editingStop, form.stopId, hasActiveTrips]);
 
   async function refreshAfterConflict(error: unknown) {
     if (!isCompanyCallableConflictError(error)) return;
@@ -94,6 +131,10 @@ export function RouteStopsDrawerEditor({
     if (!routeId || !canSubmit || !currentRoute) return;
     if (hasActiveTrips && !form.stopId) {
       setError(structuralLockReason);
+      return;
+    }
+    if (isLockedEditStructuralMutation) {
+      setError(lockedEditReason);
       return;
     }
 
@@ -116,8 +157,15 @@ export function RouteStopsDrawerEditor({
         lastKnownUpdateToken: currentRoute.updatedAt ?? undefined,
         stopId: form.stopId ?? undefined,
         name: formValidation.data.name,
-        order: formValidation.data.order,
-        location: { lat: formValidation.data.lat, lng: formValidation.data.lng },
+        order:
+          hasActiveTrips && editingStop && form.stopId ? editingStop.order : formValidation.data.order,
+        location:
+          hasActiveTrips && editingStop && form.stopId
+            ? {
+                lat: editingStop.location.lat,
+                lng: editingStop.location.lng,
+              }
+            : { lat: formValidation.data.lat, lng: formValidation.data.lng },
       });
       await stopsQuery.reload();
       if (onRouteMutated) {
@@ -390,6 +438,7 @@ export function RouteStopsDrawerEditor({
             canSubmit={canSubmit}
             structuralLocked={hasActiveTrips}
             structuralLockMessage={structuralLockReason}
+            structuralEditLockMessage={lockedEditReason}
             error={error}
             orderConflictMessage={orderConflictMessage}
             successMessage={successMessage}

@@ -53,6 +53,7 @@ export type TripsListPaneProps = {
   selectedTripStreamNextRetryAt: number | null;
   selectedTripStreamLagSeconds: number | null;
   selectedTripStreamStaleReason: LiveOpsStreamStaleReason;
+  selectedTripAuthRefreshInFlight: boolean;
   streamRecoverySummary: LiveOpsStreamRecoverySummary;
   searchText: string;
   onSearchTextChange: (value: string) => void;
@@ -120,6 +121,7 @@ export function TripsListPane({
   selectedTripStreamNextRetryAt,
   selectedTripStreamLagSeconds,
   selectedTripStreamStaleReason,
+  selectedTripAuthRefreshInFlight,
   streamRecoverySummary,
   searchText,
   onSearchTextChange,
@@ -247,6 +249,7 @@ export function TripsListPane({
         streamStatus={streamStatus}
         rtdbConnectionStatus={rtdbConnectionStatus}
         selectedTripStreamLagSeconds={selectedTripStreamLagSeconds}
+        selectedTripAuthRefreshInFlight={selectedTripAuthRefreshInFlight}
         sortOption={sortOption}
         onReload={onReload}
         onToggleAutoRefresh={onToggleAutoRefresh}

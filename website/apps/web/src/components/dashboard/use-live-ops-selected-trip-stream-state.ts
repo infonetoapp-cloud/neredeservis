@@ -123,6 +123,7 @@ export function useLiveOpsSelectedTripStreamState({
     liveStreamEnabled,
     rtdbConnection,
     selectedTripLiveStream,
+    streamAuthRefreshInFlight: selectedTripLiveStream.authRefreshInFlight,
     selectedTripStopsQuery,
     selectedTripStreamErrorSemantic,
     streamIssueState,

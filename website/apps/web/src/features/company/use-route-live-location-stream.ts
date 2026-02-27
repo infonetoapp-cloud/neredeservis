@@ -48,6 +48,7 @@ export function useRouteLiveLocationStream(
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [nextRetryAt, setNextRetryAt] = useState<number | null>(null);
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+  const [authRefreshInFlight, setAuthRefreshInFlight] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
   const retryTimerRef = useRef<number | null>(null);
   const lastAuthRefreshAtRef = useRef<number | null>(null);
@@ -63,10 +64,12 @@ export function useRouteLiveLocationStream(
     }
 
     retryAttemptRef.current = 0;
+    let cancelled = false;
     const pathRef = ref(databaseClient, `locations/${routeId}`);
     const unsubscribe = onValue(
       pathRef,
       (eventSnapshot) => {
+        if (cancelled) return;
         const payload = toRecord(eventSnapshot.val());
         if (!payload) {
           setSnapshot(null);
@@ -108,24 +111,49 @@ export function useRouteLiveLocationStream(
         setStatus(sameTrip && hasCoords ? "live" : "mismatch");
       },
       (nextError) => {
+        if (cancelled) return;
         const message = nextError?.message ?? "RTDB stream baglanamadi.";
         setStatus("error");
         setError(message);
 
         const normalized = message.toLowerCase();
+        let tokenRefreshTriggered = false;
         if (normalized.includes("permission_denied") || normalized.includes("permission denied")) {
           const authClient = getFirebaseClientAuth();
           const now = Date.now();
           const lastRefreshAt = lastAuthRefreshAtRef.current ?? 0;
           if (authClient?.currentUser && now - lastRefreshAt > 60_000) {
             lastAuthRefreshAtRef.current = now;
-            authClient.currentUser.getIdToken(true).catch(() => null);
+            tokenRefreshTriggered = true;
+            setAuthRefreshInFlight(true);
+            authClient.currentUser
+              .getIdToken(true)
+              .then(() => {
+                if (cancelled) return;
+                // Retry quickly after a forced token refresh.
+                retryAttemptRef.current = 0;
+                setRetryAttempt(0);
+                setNextRetryAt(null);
+                setStatus("connecting");
+                if (retryTimerRef.current) {
+                  window.clearTimeout(retryTimerRef.current);
+                  retryTimerRef.current = null;
+                }
+                setRetryToken((value) => value + 1);
+              })
+              .catch(() => null)
+              .finally(() => {
+                if (cancelled) return;
+                setAuthRefreshInFlight(false);
+              });
           }
         }
 
         const nextAttempt = Math.min(6, retryAttemptRef.current + 1);
         retryAttemptRef.current = nextAttempt;
-        const delay = Math.min(30_000, 1000 * Math.pow(2, nextAttempt));
+        const delay = tokenRefreshTriggered
+          ? 2_000
+          : Math.min(30_000, 1000 * Math.pow(2, nextAttempt));
         setRetryAttempt(nextAttempt);
         setNextRetryAt(Date.now() + delay);
         if (retryTimerRef.current) {
@@ -141,6 +169,7 @@ export function useRouteLiveLocationStream(
     );
 
     return () => {
+      cancelled = true;
       unsubscribe();
       if (retryTimerRef.current) {
         window.clearTimeout(retryTimerRef.current);
@@ -156,6 +185,7 @@ export function useRouteLiveLocationStream(
       lastEventAt: null as number | null,
       retryAttempt: 0,
       nextRetryAt: null as number | null,
+      authRefreshInFlight: false,
     };
   }
   if (!databaseClient) {
@@ -166,8 +196,9 @@ export function useRouteLiveLocationStream(
       lastEventAt: null as number | null,
       retryAttempt,
       nextRetryAt,
+      authRefreshInFlight: false,
     };
   }
 
-  return { status, error, snapshot, lastEventAt, retryAttempt, nextRetryAt };
+  return { status, error, snapshot, lastEventAt, retryAttempt, nextRetryAt, authRefreshInFlight };
 }

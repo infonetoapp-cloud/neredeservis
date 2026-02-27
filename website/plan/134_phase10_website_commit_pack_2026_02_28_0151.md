@@ -1,8 +1,8 @@
 # Faz 10 Website Commit Pack
 
-Tarih: 2026-02-28 01:52:31
+Tarih: 2026-02-28 01:51:45
 Durum: READY
-Toplam website degisiklik: 69
+Toplam website degisiklik: 61
 
 ## Degisiklik Listesi
 | Status | Path |
@@ -49,29 +49,21 @@ Toplam website degisiklik: 69
 | M | website/plan/126_phase9_app_issue_cards_latest.md |
 | M | website/plan/127_phase9_app_progress_delta_latest.md |
 | M | website/plan/129_phase10_no_admin_readiness_latest.md |
-| D | website/plan/130_phase10_manual_release_window_2026_02_28_0048.md |
 | M | website/plan/130_phase10_manual_release_window_latest.md |
 | M | website/plan/131_phase10_no_admin_closeout_latest.md |
-| D | website/plan/132_phase10_post_release_observe_2026_02_28_0048.md |
 | M | website/plan/132_phase10_post_release_observe_latest.md |
-| D | website/plan/133_phase10_stabilization_pack_2026_02_28_0047.md |
 | M | website/plan/133_phase10_stabilization_pack_latest.md |
-| D | website/plan/134_phase10_website_commit_pack_2026_02_28_0051.md |
-| D | website/plan/134_phase10_website_commit_pack_2026_02_28_0054.md |
 | M | website/plan/134_phase10_website_commit_pack_latest.md |
-| M | website/plan/135_phase10_report_prune_latest.md |
 | M | website/plan/16_master_phase_plan_detailed.md |
 | M | website/plan/29_phase1_first_sprint_backlog.md |
-| D | website/plan/87_phase5_manual_smoke_probe_2026_02_28_0047.md |
-| D | website/plan/87_phase5_manual_smoke_probe_2026_02_28_0048.md |
-| D | website/plan/89_phase5_stg_domain_dns_check_2026_02_28_0047.md |
-| D | website/plan/89_phase5_stg_domain_dns_check_2026_02_28_0048.md |
+| ?? | website/plan/130_phase10_manual_release_window_2026_02_28_0140.md |
 | ?? | website/plan/130_phase10_manual_release_window_2026_02_28_0144.md |
+| ?? | website/plan/132_phase10_post_release_observe_2026_02_28_0143.md |
 | ?? | website/plan/132_phase10_post_release_observe_2026_02_28_0144.md |
 | ?? | website/plan/133_phase10_stabilization_pack_2026_02_28_0144.md |
-| ?? | website/plan/134_phase10_website_commit_pack_2026_02_28_0151.md |
-| ?? | website/plan/135_phase10_report_prune_2026_02_28_0152.md |
+| ?? | website/plan/134_phase10_website_commit_pack_2026_02_28_0145.md |
 | ?? | website/plan/82_phase5_local_gate_run_2026_02_28_0149.md |
+| ?? | website/plan/87_phase5_manual_smoke_probe_2026_02_28_0139.md |
 | ?? | website/plan/87_phase5_manual_smoke_probe_2026_02_28_0140.md |
 | ?? | website/plan/87_phase5_manual_smoke_probe_2026_02_28_0144.md |
 | ?? | website/plan/89_phase5_stg_domain_dns_check_2026_02_28_0140.md |

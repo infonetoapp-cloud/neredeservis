@@ -37,12 +37,13 @@ type LiveOpsMapboxCanvasProps = {
   hoveredTripId: string | null;
   effectiveLiveCoords: EffectiveLiveCoords;
   selectedTripStops: CompanyRouteStopSummary[];
+  maxMarkerCount?: number;
   onSelectTripId: (tripId: string) => void;
 };
 
 const DEFAULT_CENTER: [number, number] = [35.2433, 38.9637];
 const DEFAULT_ZOOM = 5.2;
-const MAX_MAP_MARKERS = 200;
+const DEFAULT_MAX_MAP_MARKERS = 200;
 const SELECTED_STOP_PATH_SOURCE_ID = "selected-stop-path-source";
 const SELECTED_STOP_PATH_LAYER_ID = "selected-stop-path-layer";
 const SELECTED_LIVE_LINK_SOURCE_ID = "selected-live-link-source";
@@ -69,8 +70,9 @@ function toMarkerItems(params: {
   selectedTripId: string | null;
   hoveredTripId: string | null;
   effectiveLiveCoords: EffectiveLiveCoords;
+  maxMarkerCount: number;
 }): MarkerItem[] {
-  const { trips, selectedTripId, hoveredTripId, effectiveLiveCoords } = params;
+  const { trips, selectedTripId, hoveredTripId, effectiveLiveCoords, maxMarkerCount } = params;
   const items: MarkerItem[] = [];
 
   for (const trip of trips) {
@@ -102,7 +104,7 @@ function toMarkerItems(params: {
     items.unshift(selectedItem);
   }
 
-  return items.slice(0, MAX_MAP_MARKERS);
+  return items.slice(0, maxMarkerCount);
 }
 
 function applyMarkerStyle(element: HTMLButtonElement, marker: MarkerItem) {
@@ -236,8 +238,13 @@ export function LiveOpsMapboxCanvas({
   hoveredTripId,
   effectiveLiveCoords,
   selectedTripStops,
+  maxMarkerCount,
   onSelectTripId,
 }: LiveOpsMapboxCanvasProps) {
+  const effectiveMaxMarkerCount =
+    typeof maxMarkerCount === "number" && Number.isFinite(maxMarkerCount)
+      ? Math.max(20, Math.floor(maxMarkerCount))
+      : DEFAULT_MAX_MAP_MARKERS;
   const mapboxToken = getPublicMapboxToken();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -263,8 +270,15 @@ export function LiveOpsMapboxCanvas({
     [mapStylePreset],
   );
   const markerItems = useMemo(
-    () => toMarkerItems({ trips, selectedTripId, hoveredTripId, effectiveLiveCoords }),
-    [effectiveLiveCoords, hoveredTripId, selectedTripId, trips],
+    () =>
+      toMarkerItems({
+        trips,
+        selectedTripId,
+        hoveredTripId,
+        effectiveLiveCoords,
+        maxMarkerCount: effectiveMaxMarkerCount,
+      }),
+    [effectiveLiveCoords, effectiveMaxMarkerCount, hoveredTripId, selectedTripId, trips],
   );
   const hiddenMarkersCount = Math.max(0, trips.length - markerItems.length);
   const selectedStopPoints = useMemo<StopPoint[]>(() => {
@@ -737,7 +751,7 @@ export function LiveOpsMapboxCanvas({
       ) : null}
       {hiddenMarkersCount > 0 ? (
         <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-center text-xs text-amber-800">
-          Performans icin haritada en fazla {MAX_MAP_MARKERS} sefer gosteriliyor. {hiddenMarkersCount} sefer listede
+          Performans icin haritada en fazla {effectiveMaxMarkerCount} sefer gosteriliyor. {hiddenMarkersCount} sefer listede
           gorunmeye devam eder.
         </div>
       ) : null}

@@ -52,6 +52,7 @@ export function LiveOpsCompanyActiveTripsFeature() {
           selectedTripStreamNextRetryAt={liveOps.selectedTripLiveStream.nextRetryAt}
           selectedTripStreamLagSeconds={liveOps.streamLagSeconds}
           selectedTripStreamStaleReason={liveOps.streamStaleReason}
+          selectedTripAuthRefreshInFlight={liveOps.streamAuthRefreshInFlight}
           streamRecoverySummary={liveOps.streamRecoverySummary}
           searchText={liveOps.effectiveSearchText}
           onSearchTextChange={liveOps.handleSearchTextChange}
@@ -90,6 +91,7 @@ export function LiveOpsCompanyActiveTripsFeature() {
           selectedTripStreamRetryAttempt={liveOps.selectedTripLiveStream.retryAttempt}
           selectedTripStreamNextRetryAt={liveOps.selectedTripLiveStream.nextRetryAt}
           selectedTripStreamStaleReason={liveOps.streamStaleReason}
+          selectedTripAuthRefreshInFlight={liveOps.streamAuthRefreshInFlight}
           riskToneFilter={liveOps.effectiveRiskTone}
           onRiskToneFilterChange={liveOps.handleRiskToneChange}
           hideStale={liveOps.effectiveHideStale}
@@ -99,6 +101,7 @@ export function LiveOpsCompanyActiveTripsFeature() {
           mapRiskHiddenByStaleCount={liveOps.mapRiskHiddenByStaleCount}
           mapRiskHiddenByStaleCriticalCount={liveOps.mapRiskHiddenByStaleCriticalCount}
           mapRiskHiddenByStaleWarningCount={liveOps.mapRiskHiddenByStaleWarningCount}
+          mapMarkerLimit={liveOps.mapMarkerLimit}
         />
 
         <LiveOpsSelectedTripDetailPane
