@@ -13,8 +13,10 @@ Future<void> _handleCreateRoute(
   }
 
   try {
+    final companyId = await _resolveDriverCompanyIdForRouteMutation();
     final result = await _commitCreateDriverRouteUseCase.execute(
       CommitCreateDriverRouteCommand(
+        companyId: companyId,
         name: input.name,
         startLat: input.startLat,
         startLng: input.startLng,
@@ -79,9 +81,14 @@ Future<void> _handleUpdateRoute(
   await executeRouterRouteMutationWriteAction(
     context,
     runCommitAndBuildSuccessCommand: () async {
+      final companyId = await _resolveDriverCompanyIdForRouteMutation();
+      final lastKnownUpdateToken =
+          await _resolveRouteLastKnownUpdateToken(input.routeId);
       await _commitUpdateDriverRouteUseCase.execute(
         CommitUpdateDriverRouteCommand(
+          companyId: companyId,
           routeId: input.routeId,
+          lastKnownUpdateToken: lastKnownUpdateToken,
           name: input.name,
           startAddress: input.startAddress,
           startPoint: input.startPoint == null
@@ -136,9 +143,14 @@ Future<void> _handleUpsertStop(
   await executeRouterRouteMutationWriteAction(
     context,
     runCommitAndBuildSuccessCommand: () async {
+      final companyId = await _resolveDriverCompanyIdForRouteMutation();
+      final lastKnownUpdateToken =
+          await _resolveRouteLastKnownUpdateToken(input.routeId);
       final result = await _commitUpsertDriverStopUseCase.execute(
         CommitUpsertDriverStopCommand(
+          companyId: companyId,
           routeId: input.routeId,
+          lastKnownUpdateToken: lastKnownUpdateToken,
           stopId: input.stopId,
           name: input.name,
           lat: input.lat,
@@ -165,10 +177,15 @@ Future<void> _handleDeleteStop(
   await executeRouterRouteMutationWriteAction(
     context,
     runCommitAndBuildSuccessCommand: () async {
+      final companyId = await _resolveDriverCompanyIdForRouteMutation();
+      final lastKnownUpdateToken =
+          await _resolveRouteLastKnownUpdateToken(input.routeId);
       await _commitDeleteDriverStopUseCase.execute(
         CommitDeleteDriverStopCommand(
+          companyId: companyId,
           routeId: input.routeId,
           stopId: input.stopId,
+          lastKnownUpdateToken: lastKnownUpdateToken,
         ),
       );
       return const PlanRouteMutationWriteSuccessHandlingCommand

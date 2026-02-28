@@ -26,7 +26,9 @@ class DriverRouteInlineStopUpsertCommand {
 
 class DriverRouteUpdateCommand {
   const DriverRouteUpdateCommand({
+    this.companyId,
     required this.routeId,
+    this.lastKnownUpdateToken,
     this.name,
     this.startPoint,
     this.startAddress,
@@ -42,7 +44,9 @@ class DriverRouteUpdateCommand {
     this.inlineStopUpserts = const <DriverRouteInlineStopUpsertCommand>[],
   });
 
+  final String? companyId;
   final String routeId;
+  final String? lastKnownUpdateToken;
   final String? name;
   final DriverRouteUpdatePoint? startPoint;
   final String? startAddress;

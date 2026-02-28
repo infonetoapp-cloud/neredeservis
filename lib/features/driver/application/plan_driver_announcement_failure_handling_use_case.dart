@@ -23,6 +23,8 @@ class DriverAnnouncementFailureHandlingPlan {
 
 class PlanDriverAnnouncementFailureHandlingUseCase {
   const PlanDriverAnnouncementFailureHandlingUseCase();
+  static const String _premiumInterceptFeedbackMessage =
+      '${PaywallCopyTr.premiumInterceptBody} ${PaywallCopyTr.premiumInterceptCta}';
 
   DriverAnnouncementFailureHandlingPlan execute(
     PlanDriverAnnouncementFailureHandlingCommand command,
@@ -33,9 +35,8 @@ class PlanDriverAnnouncementFailureHandlingUseCase {
     switch (command.errorCode) {
       case 'permission-denied':
         if (isPremiumEntitlementError) {
-          return DriverAnnouncementFailureHandlingPlan(
-            feedbackMessage:
-                '${PaywallCopyTr.premiumInterceptBody} ${PaywallCopyTr.premiumInterceptCta}',
+          return const DriverAnnouncementFailureHandlingPlan(
+            feedbackMessage: _premiumInterceptFeedbackMessage,
             shouldRedirectToPaywall: true,
           );
         }

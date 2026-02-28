@@ -55,5 +55,22 @@ void main() {
       expect(updateFailure, CoreErrorFeedbackTokens.routeUpdateFailed);
       expect(stopDeleteFailure, CoreErrorFeedbackTokens.stopDeleteFailed);
     });
+
+    test('resolves upgrade required feedback copy', () {
+      final routeUpgrade = useCase.execute(
+        const RouteMutationWriteFeedbackPlan(
+          key: RouteMutationWriteFeedbackKey.routeUpdateUpgradeRequired,
+        ),
+      );
+
+      final stopUpgrade = useCase.execute(
+        const RouteMutationWriteFeedbackPlan(
+          key: RouteMutationWriteFeedbackKey.stopSaveUpgradeRequired,
+        ),
+      );
+
+      expect(routeUpgrade, 'Uygulamayi guncellemeden bu islem yapilamaz.');
+      expect(stopUpgrade, 'Uygulamayi guncellemeden durak kaydedemezsin.');
+    });
   });
 }

@@ -1,6 +1,8 @@
 class DriverStopUpsertCommand {
   const DriverStopUpsertCommand({
+    this.companyId,
     required this.routeId,
+    this.lastKnownUpdateToken,
     required this.name,
     required this.lat,
     required this.lng,
@@ -8,7 +10,9 @@ class DriverStopUpsertCommand {
     this.stopId,
   });
 
+  final String? companyId;
   final String routeId;
+  final String? lastKnownUpdateToken;
   final String? stopId;
   final String name;
   final double lat;
@@ -19,19 +23,25 @@ class DriverStopUpsertCommand {
 class DriverStopUpsertResult {
   const DriverStopUpsertResult({
     this.stopId = '-',
+    this.updatedAt,
   });
 
   final String stopId;
+  final String? updatedAt;
 }
 
 class DriverStopDeleteCommand {
   const DriverStopDeleteCommand({
+    this.companyId,
     required this.routeId,
     required this.stopId,
+    this.lastKnownUpdateToken,
   });
 
+  final String? companyId;
   final String routeId;
   final String stopId;
+  final String? lastKnownUpdateToken;
 }
 
 abstract class DriverStopMutationRepository {

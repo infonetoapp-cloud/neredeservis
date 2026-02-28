@@ -1,24 +1,5 @@
 part of '../app_router.dart';
 
-String _mapJoinBySrvCodeError(FirebaseFunctionsException error) {
-  return _resolveJoinBySrvCodeFailureFeedbackMessageUseCase.execute(
-    errorCode: error.code,
-    errorMessage: error.message,
-  );
-}
-
-String _mapJoinErrorReason(FirebaseFunctionsException error) {
-  return _resolvePassengerJoinFailureRouteReasonUseCase.execute(
-    errorCode: error.code,
-  );
-}
-
-String _mapGuestJoinErrorReason(FirebaseFunctionsException error) {
-  return _resolveGuestJoinFailureRouteReasonUseCase.execute(
-    errorCode: error.code,
-  );
-}
-
 ({
   String title,
   String description,

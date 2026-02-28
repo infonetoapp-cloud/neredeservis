@@ -21,7 +21,7 @@ Future<void> runFlavorEntrypoint(AppFlavor entrypointFlavor) async {
     breadcrumbEnabled: environment.sentryEnabled,
     environment: environment.name,
   );
-  MobileTelemetry.instance.setTestHooks(
+  MobileTelemetry.instance.configureRuntimeSinks(
     recordSink: FirebaseTelemetrySink.instance.handleRecord,
   );
 

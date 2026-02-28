@@ -82,7 +82,7 @@ class CoreThemeBuilder {
           backgroundColor: Colors.transparent,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: CoreColors.surface0,
         surfaceTintColor: Colors.transparent,
         elevation: CoreElevations.level1,

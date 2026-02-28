@@ -39,6 +39,7 @@ GoRouter buildAppRouter({
   required bool Function() readIsSignedIn,
   required UserRole Function() readCurrentRole,
   required bool Function() readHasLocationConsent,
+  required bool Function() readIsForceUpdateRequired,
   required Listenable refreshListenable,
 }) {
   final routeDeps = _AppRouterRouteDeps(
@@ -71,6 +72,10 @@ GoRouter buildAppRouter({
           (location == AppRoutePath.auth ||
               location == AppRoutePath.authEmail ||
               location == AppRoutePath.splash);
+      final isForceUpdateRequired = readIsForceUpdateRequired();
+      if (isForceUpdateRequired && location != AppRoutePath.forceUpdate) {
+        return AppRoutePath.forceUpdate;
+      }
       final isSignedIn = readIsSignedIn();
       final backendRole = readCurrentRole();
       final currentRole = _resolveRoutingRoleWithSessionPreference(

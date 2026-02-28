@@ -95,9 +95,9 @@ class _JoinQrScannerScreenState extends State<JoinQrScannerScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: <Color>[
-                    Colors.black.withOpacity(0.72),
-                    Colors.black.withOpacity(0.56),
-                    Colors.black.withOpacity(0.82),
+                    Colors.black.withValues(alpha: 0.72),
+                    Colors.black.withValues(alpha: 0.56),
+                    Colors.black.withValues(alpha: 0.82),
                   ],
                 ),
               ),
@@ -156,9 +156,9 @@ class _JoinQrScannerScreenState extends State<JoinQrScannerScreen> {
                             height: 74,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withValues(alpha: 0.12),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.35),
+                                color: Colors.white.withValues(alpha: 0.35),
                                 width: 1.2,
                               ),
                             ),
@@ -215,7 +215,7 @@ class _JoinQrScannerScreenState extends State<JoinQrScannerScreen> {
           if (_processing)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.35),
+                color: Colors.black.withValues(alpha: 0.35),
                 alignment: Alignment.center,
                 child: const CircularProgressIndicator(
                   color: Color(0xFFFFFFFF),
@@ -247,9 +247,9 @@ class _CircleIconButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           border: Border.all(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
           ),
         ),
         child: Icon(
@@ -277,7 +277,7 @@ class _ScannerFrame extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.24),
+                  color: Colors.white.withValues(alpha: 0.24),
                   width: 1.2,
                 ),
               ),

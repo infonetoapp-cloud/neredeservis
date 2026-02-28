@@ -39,5 +39,23 @@ void main() {
       expect(plan.action, RouteMutationWriteFailureHandlingAction.showInfoOnly);
       expect(plan.feedbackMessage, CoreErrorFeedbackTokens.stopDeleteFailed);
     });
+
+    test('maps update token mismatch feedback when reason is provided', () {
+      final command = const PlanRouteMutationWriteFailureHandlingCommand
+              .routeUpdateFailure()
+          .withError(
+        errorCode: 'failed-precondition',
+        errorDetails: <String, dynamic>{
+          'reasonCode': 'UPDATE_TOKEN_MISMATCH',
+        },
+      );
+      final plan = useCase.execute(command);
+
+      expect(plan.action, RouteMutationWriteFailureHandlingAction.showInfoOnly);
+      expect(
+        plan.feedbackMessage,
+        'Rota baska bir cihazda degisti. Sayfayi yenileyip tekrar dene.',
+      );
+    });
   });
 }

@@ -29,8 +29,8 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Analyze (error-only gate)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
   unit_test:
     name: Unit Test

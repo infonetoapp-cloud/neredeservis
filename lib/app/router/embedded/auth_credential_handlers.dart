@@ -356,3 +356,92 @@ Future<UserCredential> _signInWithGoogleProviderFallback() {
     ..addScope('profile');
   return _authCredentialGateway.signInWithProvider(provider);
 }
+
+Future<void> _handleMicrosoftSignIn(
+  BuildContext context, {
+  String? nextRole,
+}) async {
+  final normalizedNextRole = _resolveAuthNextRole(nextRole);
+  if (normalizedNextRole == _authNextRolePassenger) {
+    unawaited(_persistSessionRolePreference(UserRole.passenger));
+  } else if (normalizedNextRole == _authNextRoleDriver) {
+    unawaited(_persistSessionRolePreference(UserRole.driver));
+  }
+
+  UserCredential credentialResult;
+  try {
+    credentialResult = await _signInWithMicrosoftProvider();
+  } on FirebaseAuthException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (error.code) {
+      'network-request-failed' =>
+        'Microsoft girisi icin internet baglantini kontrol et.',
+      'operation-not-allowed' => 'Microsoft girisi su an kullanilamiyor.',
+      'invalid-credential' => 'Microsoft giris bilgisi gecersiz. Tekrar dene.',
+      _ => 'Microsoft girisi su an baslatilamadi. Lutfen tekrar dene.',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+    return;
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Microsoft girisi su an baslatilamadi.'),
+      ),
+    );
+    return;
+  }
+
+  if (credentialResult.user == null) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, 'Microsoft hesabi dogrulanamadi.');
+    return;
+  }
+
+  var profileReady = true;
+  var resolvedRole = 'unknown';
+  try {
+    resolvedRole = await _bootstrapCurrentProfile();
+  } on FirebaseFunctionsException catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, CoreErrorFeedbackTokens.profilePrepareFailed);
+    profileReady = false;
+  } catch (_) {
+    if (!context.mounted) {
+      return;
+    }
+    _showInfo(context, CoreErrorFeedbackTokens.profilePrepareFailed);
+    profileReady = false;
+  }
+
+  if (!context.mounted) {
+    return;
+  }
+  if (!profileReady) {
+    context.go(AppRoutePath.roleSelect);
+    return;
+  }
+  await _routeAfterAuth(
+    context,
+    resolvedRole: resolvedRole,
+    nextRole: nextRole,
+  );
+}
+
+Future<UserCredential> _signInWithMicrosoftProvider() {
+  final provider = OAuthProvider('microsoft.com')
+    ..addScope('openid')
+    ..addScope('email')
+    ..addScope('profile');
+  return _authCredentialGateway.signInWithProvider(provider);
+}

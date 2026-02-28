@@ -30,6 +30,7 @@ void main() {
   ) async {
     var forgotTapped = false;
     var googleTapped = false;
+    var microsoftTapped = false;
     var switchTapped = false;
 
     await tester.pumpWidget(
@@ -42,6 +43,9 @@ void main() {
           },
           onGoogleSignInTap: () {
             googleTapped = true;
+          },
+          onMicrosoftSignInTap: () {
+            microsoftTapped = true;
           },
           onSwitchModeTap: () {
             switchTapped = true;
@@ -57,6 +61,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('email_auth_google')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('email_auth_microsoft')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('email_auth_microsoft')));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('email_auth_switch_mode')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('email_auth_switch_mode')));
@@ -64,6 +72,7 @@ void main() {
 
     expect(forgotTapped, isTrue);
     expect(googleTapped, isTrue);
+    expect(microsoftTapped, isTrue);
     expect(switchTapped, isTrue);
   });
 

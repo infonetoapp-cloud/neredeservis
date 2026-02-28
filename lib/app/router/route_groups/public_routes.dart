@@ -36,6 +36,10 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
             nextRole: nextRole,
             environment: deps.environment,
           ),
+          onMicrosoftSignInTap: () => _handleMicrosoftSignIn(
+            context,
+            nextRole: nextRole,
+          ),
         );
       },
     ),
@@ -85,6 +89,12 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
                     context,
                     nextRole: nextRole,
                     environment: deps.environment,
+                  ),
+          onMicrosoftSignInTap: isRegister || isForgot
+              ? null
+              : () => _handleMicrosoftSignIn(
+                    context,
+                    nextRole: nextRole,
                   ),
           onSubmit: (input) {
             if (isRegister) {
@@ -151,8 +161,28 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
             nextRole: nextRole,
             environment: deps.environment,
           ),
+          onMicrosoftSignInTap: () => _handleMicrosoftSignIn(
+            context,
+            nextRole: nextRole,
+          ),
         );
       },
+    ),
+    GoRoute(
+      path: AppRoutePath.forceUpdate,
+      builder: (context, state) => ForceUpdateRequiredScreen(
+        appName: deps.flavorConfig.appName,
+        onUpdateTap: () async {
+          final opened = await _openAppUpdatePage();
+          if (!context.mounted) {
+            return;
+          }
+          if (!opened) {
+            _showInfo(
+                context, 'Store baglantisi acilamadi. Daha sonra tekrar dene.');
+          }
+        },
+      ),
     ),
     GoRoute(
       path: AppRoutePath.roleSelect,

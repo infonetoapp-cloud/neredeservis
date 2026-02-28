@@ -29,7 +29,9 @@ class CommitUpdateDriverRouteInlineStopUpsert {
 
 class CommitUpdateDriverRouteCommand {
   const CommitUpdateDriverRouteCommand({
+    this.companyId,
     required this.routeId,
+    this.lastKnownUpdateToken,
     this.name,
     this.startPoint,
     this.startAddress,
@@ -45,7 +47,9 @@ class CommitUpdateDriverRouteCommand {
     this.inlineStopUpserts = const <CommitUpdateDriverRouteInlineStopUpsert>[],
   });
 
+  final String? companyId;
   final String routeId;
+  final String? lastKnownUpdateToken;
   final String? name;
   final CommitUpdateDriverRoutePoint? startPoint;
   final String? startAddress;
@@ -71,7 +75,9 @@ class CommitUpdateDriverRouteUseCase {
   Future<void> execute(CommitUpdateDriverRouteCommand command) {
     return _updateDriverRouteUseCase.execute(
       DriverRouteUpdateCommand(
+        companyId: command.companyId,
         routeId: command.routeId,
+        lastKnownUpdateToken: command.lastKnownUpdateToken,
         name: command.name,
         startAddress: command.startAddress,
         startPoint: command.startPoint == null

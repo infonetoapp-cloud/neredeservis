@@ -41,14 +41,23 @@ Future<void> executeRouterRouteMutationWriteAction(
       command: successCommand,
       showInfo: showInfo,
     );
-  } on FirebaseFunctionsException catch (_) {
+  } on FirebaseFunctionsException catch (error) {
+    if (context.mounted && _shouldRedirectToForceUpdate(error)) {
+      context.go(AppRoutePath.forceUpdate);
+      return;
+    }
+    final failureCommandWithError = failureCommand.withError(
+      errorCode: error.code,
+      errorMessage: error.message,
+      errorDetails: error.details,
+    );
     if (!context.mounted) {
       return;
     }
     showRouterRouteMutationWriteFailureOutcome(
       context,
       planner: failurePlanner,
-      command: failureCommand,
+      command: failureCommandWithError,
       showInfo: showInfo,
     );
   }
@@ -87,6 +96,10 @@ void executeRouterCreateDriverRouteFailureOutcome(
   required PlanCreateDriverRouteFailureHandlingUseCase planner,
   required RouterShowInfoFeedback showInfo,
 }) {
+  if (_shouldRedirectToForceUpdate(error)) {
+    context.go(AppRoutePath.forceUpdate);
+    return;
+  }
   final failurePlan = planner.execute(
     PlanCreateDriverRouteFailureHandlingCommand(
       code: error.code,
@@ -119,4 +132,38 @@ void showRouterRouteMutationWriteFailureOutcome(
 }) {
   final failurePlan = planner.execute(command);
   showInfo(context, failurePlan.feedbackMessage);
+}
+
+bool _shouldRedirectToForceUpdate(FirebaseFunctionsException error) {
+  final normalizedCode = error.code.trim().toUpperCase();
+  if (normalizedCode == 'UPGRADE_REQUIRED' ||
+      normalizedCode == 'FORCE_UPDATE_REQUIRED') {
+    return true;
+  }
+  final reasonCode = _resolveReasonCode(error.details, error.message);
+  return reasonCode == 'UPGRADE_REQUIRED' ||
+      reasonCode == 'FORCE_UPDATE_REQUIRED';
+}
+
+String? _resolveReasonCode(Object? details, String? message) {
+  if (details is Map<Object?, Object?>) {
+    final detailMap = Map<String, dynamic>.from(details);
+    final reasonFromKey = detailMap['reasonCode'];
+    if (reasonFromKey is String && reasonFromKey.trim().isNotEmpty) {
+      return reasonFromKey.trim().toUpperCase();
+    }
+    final reasonFromAltKey = detailMap['reason'];
+    if (reasonFromAltKey is String && reasonFromAltKey.trim().isNotEmpty) {
+      return reasonFromAltKey.trim().toUpperCase();
+    }
+  }
+
+  final normalizedMessage = (message ?? '').trim().toUpperCase();
+  if (normalizedMessage.contains('FORCE_UPDATE_REQUIRED')) {
+    return 'FORCE_UPDATE_REQUIRED';
+  }
+  if (normalizedMessage.contains('UPGRADE_REQUIRED')) {
+    return 'UPGRADE_REQUIRED';
+  }
+  return null;
 }

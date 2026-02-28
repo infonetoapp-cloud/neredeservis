@@ -6,8 +6,8 @@ enum PassengerRouteLeaveOutcomeHandlingKind {
 
 class PlanPassengerRouteLeaveOutcomeHandlingCommand {
   const PlanPassengerRouteLeaveOutcomeHandlingCommand._({
-    required PassengerRouteLeaveOutcomeHandlingKind kind,
-  }) : kind = kind;
+    required this.kind,
+  });
 
   const PlanPassengerRouteLeaveOutcomeHandlingCommand.success()
       : this._(kind: PassengerRouteLeaveOutcomeHandlingKind.success);

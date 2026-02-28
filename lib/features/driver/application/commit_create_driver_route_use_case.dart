@@ -2,6 +2,7 @@ import 'create_driver_route_use_case.dart';
 
 class CommitCreateDriverRouteCommand {
   const CommitCreateDriverRouteCommand({
+    this.companyId,
     required this.name,
     required this.startLat,
     required this.startLng,
@@ -14,6 +15,7 @@ class CommitCreateDriverRouteCommand {
     required this.allowGuestTracking,
   });
 
+  final String? companyId;
   final String name;
   final double startLat;
   final double startLng;
@@ -47,6 +49,7 @@ class CommitCreateDriverRouteUseCase {
     CommitCreateDriverRouteCommand command,
   ) async {
     final result = await _createDriverRouteUseCase.execute(
+      companyId: command.companyId,
       name: command.name,
       startLat: command.startLat,
       startLng: command.startLng,

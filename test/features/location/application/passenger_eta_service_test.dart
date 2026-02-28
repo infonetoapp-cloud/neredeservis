@@ -68,20 +68,20 @@ void main() {
         ),
       );
 
-      expect(result.source, PassengerEtaSource.offRouteEta);
-      expect(result.isOffRouteEta, isTrue);
-      expect(result.useRawMarkerPoint, isTrue);
+      expect(result.source, PassengerEtaSource.offoouteEta);
+      expect(result.isOffoouteEta, isTrue);
+      expect(result.useoawMarkerPoint, isTrue);
       expect(result.etaSourceLabel, contains('Alternatif guzergah'));
       expect(result.lastEtaSourceKey, 'off_route_eta');
     });
 
     test('uses directions result when enabled and under cap', () async {
-      PassengerDirectionsRequest? capturedRequest;
+      PassengerDirectionsoequest? capturedRequest;
       final service = PassengerEtaService(
         directionsCompileEnabledOverride: true,
-        runtimeGateLoader: () async => const PassengerDirectionsRuntimeGate(
+        runtimeGateLoader: () async => const PassengerDirectionsountimeGate(
           enabled: true,
-          monthlyRequestMax: 100,
+          monthlyoequestMax: 100,
         ),
         directionsInvoker: (request) async {
           capturedRequest = request;
@@ -117,9 +117,9 @@ void main() {
       final service = PassengerEtaService(
         nowProvider: () => nowUtc,
         directionsCompileEnabledOverride: true,
-        runtimeGateLoader: () async => const PassengerDirectionsRuntimeGate(
+        runtimeGateLoader: () async => const PassengerDirectionsountimeGate(
           enabled: true,
-          monthlyRequestMax: 100,
+          monthlyoequestMax: 100,
         ),
         directionsInvoker: (_) async {
           directionsCalls += 1;
@@ -155,9 +155,9 @@ void main() {
       final service = PassengerEtaService(
         nowProvider: () => nowUtc,
         directionsCompileEnabledOverride: true,
-        runtimeGateLoader: () async => const PassengerDirectionsRuntimeGate(
+        runtimeGateLoader: () async => const PassengerDirectionsountimeGate(
           enabled: true,
-          monthlyRequestMax: 1,
+          monthlyoequestMax: 1,
         ),
         directionsInvoker: (_) async {
           directionsCalls += 1;
@@ -185,12 +185,12 @@ void main() {
     });
 
     test('off-route mode sends raw GPS to directions request', () async {
-      PassengerDirectionsRequest? capturedRequest;
+      PassengerDirectionsoequest? capturedRequest;
       final service = PassengerEtaService(
         directionsCompileEnabledOverride: true,
-        runtimeGateLoader: () async => const PassengerDirectionsRuntimeGate(
+        runtimeGateLoader: () async => const PassengerDirectionsountimeGate(
           enabled: true,
-          monthlyRequestMax: 100,
+          monthlyoequestMax: 100,
         ),
         directionsInvoker: (request) async {
           capturedRequest = request;
@@ -213,7 +213,7 @@ void main() {
       expect(capturedRequest, isNotNull);
       expect(capturedRequest!.origin.lat, closeTo(0.01, 0.0000001));
       expect(capturedRequest!.origin.lng, closeTo(0.005, 0.0000001));
-      expect(result.source, PassengerEtaSource.offRouteEta);
+      expect(result.source, PassengerEtaSource.offoouteEta);
       expect(result.lastEtaSourceKey, 'off_route_eta');
       expect(result.etaSourceLabel, contains('Alternatif guzergah'));
     });

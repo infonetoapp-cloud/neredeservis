@@ -84,5 +84,31 @@ void main() {
       expect(plan.key, RouteMutationWriteFeedbackKey.stopDeleteFailed);
       expect(plan.inlineStopUpsertsCount, isNull);
     });
+
+    test('maps token mismatch reason for route update failure', () {
+      final plan = useCase.execute(
+        const PlanRouteMutationWriteFeedbackCommand.routeUpdateFailure(
+          errorCode: 'failed-precondition',
+          errorDetails: <String, dynamic>{
+            'reasonCode': 'UPDATE_TOKEN_MISMATCH',
+          },
+        ),
+      );
+
+      expect(plan.key, RouteMutationWriteFeedbackKey.routeUpdateTokenMismatch);
+    });
+
+    test('maps stop state-invalid reason for upsert failure', () {
+      final plan = useCase.execute(
+        const PlanRouteMutationWriteFeedbackCommand.upsertStopFailure(
+          errorCode: 'failed-precondition',
+          errorDetails: <String, dynamic>{
+            'reasonCode': 'ROUTE_STOP_INVALID_STATE',
+          },
+        ),
+      );
+
+      expect(plan.key, RouteMutationWriteFeedbackKey.stopSaveStateInvalid);
+    });
   });
 }

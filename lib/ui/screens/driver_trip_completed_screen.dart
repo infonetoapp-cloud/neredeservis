@@ -139,15 +139,15 @@ class DriverTripCompletedScreen extends StatelessWidget {
               const SizedBox(height: CoreSpacing.space16),
               const _MiniRoutePreview(),
               const SizedBox(height: CoreSpacing.space20),
-              Row(
+              const Row(
                 children: <Widget>[
-                  const Icon(
+                  Icon(
                     Icons.format_list_bulleted_rounded,
                     size: 20,
                     color: CoreColors.ink900,
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
+                  SizedBox(width: 8),
+                  Text(
                     'Durak Detayları',
                     style: TextStyle(
                       fontFamily: CoreTypography.headingFamily,

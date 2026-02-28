@@ -1169,7 +1169,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
             ),
             children: <Widget>[
               DropdownButtonFormField<String>(
-                value: _timeSlot,
+                initialValue: _timeSlot,
                 items: const <DropdownMenuItem<String>>[
                   DropdownMenuItem(value: '', child: Text('Zaman dilimi değiştirme')),
                   DropdownMenuItem(value: 'morning', child: Text('Sabah')),
@@ -1188,7 +1188,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
               ),
               const SizedBox(height: CoreSpacing.space8),
               DropdownButtonFormField<_OptionalBool>(
-                value: _allowGuestTracking,
+                initialValue: _allowGuestTracking,
                 items: _OptionalBool.values
                     .map(
                       (value) => DropdownMenuItem<_OptionalBool>(
@@ -1211,7 +1211,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
               ),
               const SizedBox(height: CoreSpacing.space8),
               DropdownButtonFormField<_OptionalBool>(
-                value: _isdrchived,
+                initialValue: _isdrchived,
                 items: _OptionalBool.values
                     .map(
                       (value) => DropdownMenuItem<_OptionalBool>(

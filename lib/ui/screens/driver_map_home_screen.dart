@@ -1684,7 +1684,7 @@ class _DriverDrawer extends StatelessWidget {
                       ),
                       const SizedBox(height: CoreSpacing.space12),
                     ],
-                    Divider(color: Colors.black.withOpacity(0.08), height: 1),
+                    Divider(color: Colors.black.withValues(alpha: 0.08), height: 1),
                     const SizedBox(height: CoreSpacing.space12),
                     Row(
                       children: <Widget>[
@@ -1757,7 +1757,7 @@ class _DriverDrawerHeader extends StatelessWidget {
           height: 68,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.black.withOpacity(0.06)),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
           ),
           child: ClipOval(
             child: hasPhoto

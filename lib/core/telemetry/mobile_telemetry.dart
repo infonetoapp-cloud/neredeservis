@@ -50,6 +50,16 @@ class MobileTelemetry {
     _environment = environment.trim().isEmpty ? 'unknown' : environment.trim();
   }
 
+  void configureRuntimeSinks({
+    TelemetryRecordSink? recordSink,
+    TelemetryBreadcrumbSink? breadcrumbSink,
+  }) {
+    _recordSink = recordSink;
+    if (breadcrumbSink != null) {
+      _breadcrumbSink = breadcrumbSink;
+    }
+  }
+
   TelemetryRecord track({
     required String eventName,
     required String category,

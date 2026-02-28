@@ -10,8 +10,8 @@ void main() {
       );
 
       final result = useCase.execute(
-        DriverTripHistoryRawData(
-          tripRows: const <DriverTripHistoryRawTripRow>[
+        const DriverTripHistoryRawData(
+          tripRows: <DriverTripHistoryRawTripRow>[
             DriverTripHistoryRawTripRow(
               tripId: 'trip-completed',
               tripData: <String, dynamic>{
@@ -71,8 +71,8 @@ void main() {
       );
 
       final result = useCase.execute(
-        DriverTripHistoryRawData(
-          tripRows: const <DriverTripHistoryRawTripRow>[
+        const DriverTripHistoryRawData(
+          tripRows: <DriverTripHistoryRawTripRow>[
             DriverTripHistoryRawTripRow(
               tripId: 'trip-1',
               tripData: <String, dynamic>{
@@ -83,7 +83,7 @@ void main() {
               },
             ),
           ],
-          routesById: const <String, Map<String, dynamic>>{
+          routesById: <String, Map<String, dynamic>>{
             'route-1': <String, dynamic>{},
           },
         ),

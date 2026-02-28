@@ -42,7 +42,7 @@ dependencies:
   firebase_storage: 12.4.10
   flutter_riverpod: 2.6.1
   riverpod_annotation: 2.6.1
-  drift: 2.23.1
+  drift: 2.29.0
   sqlite3_flutter_libs: 0.5.41
   path_provider: 2.1.5
   firebase_database: 11.3.10
@@ -81,8 +81,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: 4.0.0
-  build_runner: 2.4.13
-  drift_dev: 2.23.1
+  build_runner: 2.6.1
+  drift_dev: 2.29.0
 
 dependency_overrides:
   geolocator_android: 4.5.0

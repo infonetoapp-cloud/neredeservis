@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/components/sheets/passenger_map_sheet.dart';
 import 'package:neredeservis/ui/screens/passenger_tracking_screen.dart';
-import 'package:neredeservis/ui/tokens/empty_state_tokens.dart';
 import 'package:neredeservis/ui/theme/core_theme.dart';
+import 'package:neredeservis/ui/tokens/empty_state_tokens.dart';
 
 void main() {
   final testStops = <PassengerStopInfo>[

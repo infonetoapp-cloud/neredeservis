@@ -120,7 +120,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       decoration: BoxDecoration(
         color: CoreColors.surface0,
         borderRadius: CoreRadii.radius12,
-        border: Border.all(color: toneColor.withOpacity(0.28)),
+        border: Border.all(color: toneColor.withValues(alpha: 0.28)),
       ),
       child: Padding(
         padding: CoreSpacing.cardPadding,

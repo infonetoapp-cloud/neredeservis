@@ -3,7 +3,9 @@ import 'upsert_driver_stop_use_case.dart';
 
 class CommitUpsertDriverStopCommand {
   const CommitUpsertDriverStopCommand({
+    this.companyId,
     required this.routeId,
+    this.lastKnownUpdateToken,
     required this.name,
     required this.lat,
     required this.lng,
@@ -11,7 +13,9 @@ class CommitUpsertDriverStopCommand {
     this.stopId,
   });
 
+  final String? companyId;
   final String routeId;
+  final String? lastKnownUpdateToken;
   final String? stopId;
   final String name;
   final double lat;
@@ -22,9 +26,11 @@ class CommitUpsertDriverStopCommand {
 class CommitUpsertDriverStopResult {
   const CommitUpsertDriverStopResult({
     required this.stopId,
+    this.updatedAt,
   });
 
   final String stopId;
+  final String? updatedAt;
 }
 
 class CommitUpsertDriverStopUseCase {
@@ -39,7 +45,9 @@ class CommitUpsertDriverStopUseCase {
   ) async {
     final result = await _upsertDriverStopUseCase.execute(
       DriverStopUpsertCommand(
+        companyId: command.companyId,
         routeId: command.routeId,
+        lastKnownUpdateToken: command.lastKnownUpdateToken,
         stopId: command.stopId,
         name: command.name,
         lat: command.lat,
@@ -47,6 +55,9 @@ class CommitUpsertDriverStopUseCase {
         order: command.order,
       ),
     );
-    return CommitUpsertDriverStopResult(stopId: result.stopId);
+    return CommitUpsertDriverStopResult(
+      stopId: result.stopId,
+      updatedAt: result.updatedAt,
+    );
   }
 }

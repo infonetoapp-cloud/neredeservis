@@ -61,6 +61,13 @@ Future<bool> _tryOpenExternalUri(Uri uri) async {
   }
 }
 
+Future<bool> _openAppUpdatePage() {
+  final target = defaultTargetPlatform == TargetPlatform.iOS
+      ? _iosAppUpdateUrl
+      : _androidAppUpdateUrl;
+  return _tryOpenExternalUri(Uri.parse(target));
+}
+
 void _popRouteOrGo(
   BuildContext context, {
   required String fallbackPath,

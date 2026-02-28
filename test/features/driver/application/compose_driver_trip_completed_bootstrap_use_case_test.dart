@@ -10,14 +10,14 @@ void main() {
       );
 
       final result = useCase.execute(
-        DriverTripCompletedBootstrapRawData(
-          routeData: const <String, dynamic>{'passengerCount': 12},
+        const DriverTripCompletedBootstrapRawData(
+          routeData: <String, dynamic>{'passengerCount': 12},
           passengerCountFromRoutePassengersCollection: 3,
-          tripData: const <String, dynamic>{
+          tripData: <String, dynamic>{
             'startedAt': '2026-02-23T10:00:00Z',
             'endedAt': '2026-02-23T10:45:00Z',
           },
-          stops: const <Map<String, dynamic>>[
+          stops: <Map<String, dynamic>>[
             <String, dynamic>{
               'name': 'B',
               'order': 2,
@@ -52,11 +52,11 @@ void main() {
       );
 
       final result = useCase.execute(
-        DriverTripCompletedBootstrapRawData(
-          routeData: const <String, dynamic>{'passengerCount': -1},
+        const DriverTripCompletedBootstrapRawData(
+          routeData: <String, dynamic>{'passengerCount': -1},
           passengerCountFromRoutePassengersCollection: -5,
-          tripData: const <String, dynamic>{},
-          stops: const <Map<String, dynamic>>[
+          tripData: <String, dynamic>{},
+          stops: <Map<String, dynamic>>[
             <String, dynamic>{
               'order': 1,
               'location': <String, dynamic>{'lat': 'bad', 'lng': 29},
@@ -81,8 +81,8 @@ void main() {
       );
 
       final result = useCase.execute(
-        DriverTripCompletedBootstrapRawData(
-          tripData: const <String, dynamic>{
+        const DriverTripCompletedBootstrapRawData(
+          tripData: <String, dynamic>{
             'startedAt': '2026-02-23T11:00:00Z',
             'endedAt': '2026-02-23T10:00:00Z',
           },

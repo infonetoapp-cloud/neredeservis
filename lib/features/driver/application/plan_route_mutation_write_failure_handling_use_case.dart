@@ -14,6 +14,9 @@ enum _RouteMutationWriteFailureHandlingKind {
 class PlanRouteMutationWriteFailureHandlingCommand {
   const PlanRouteMutationWriteFailureHandlingCommand._({
     required _RouteMutationWriteFailureHandlingKind kind,
+    this.errorCode,
+    this.errorMessage,
+    this.errorDetails,
   }) : _kind = kind;
 
   const PlanRouteMutationWriteFailureHandlingCommand.routeUpdateFailure()
@@ -26,6 +29,22 @@ class PlanRouteMutationWriteFailureHandlingCommand {
       : this._(kind: _RouteMutationWriteFailureHandlingKind.deleteStopFailure);
 
   final _RouteMutationWriteFailureHandlingKind _kind;
+  final String? errorCode;
+  final String? errorMessage;
+  final Object? errorDetails;
+
+  PlanRouteMutationWriteFailureHandlingCommand withError({
+    String? errorCode,
+    String? errorMessage,
+    Object? errorDetails,
+  }) {
+    return PlanRouteMutationWriteFailureHandlingCommand._(
+      kind: _kind,
+      errorCode: errorCode,
+      errorMessage: errorMessage,
+      errorDetails: errorDetails,
+    );
+  }
 }
 
 class RouteMutationWriteFailureHandlingPlan {
@@ -60,11 +79,23 @@ class PlanRouteMutationWriteFailureHandlingUseCase {
     final feedbackPlan = _planRouteMutationWriteFeedbackUseCase.execute(
       switch (command._kind) {
         _RouteMutationWriteFailureHandlingKind.routeUpdateFailure =>
-          const PlanRouteMutationWriteFeedbackCommand.routeUpdateFailure(),
+          PlanRouteMutationWriteFeedbackCommand.routeUpdateFailure(
+            errorCode: command.errorCode,
+            errorMessage: command.errorMessage,
+            errorDetails: command.errorDetails,
+          ),
         _RouteMutationWriteFailureHandlingKind.upsertStopFailure =>
-          const PlanRouteMutationWriteFeedbackCommand.upsertStopFailure(),
+          PlanRouteMutationWriteFeedbackCommand.upsertStopFailure(
+            errorCode: command.errorCode,
+            errorMessage: command.errorMessage,
+            errorDetails: command.errorDetails,
+          ),
         _RouteMutationWriteFailureHandlingKind.deleteStopFailure =>
-          const PlanRouteMutationWriteFeedbackCommand.deleteStopFailure(),
+          PlanRouteMutationWriteFeedbackCommand.deleteStopFailure(
+            errorCode: command.errorCode,
+            errorMessage: command.errorMessage,
+            errorDetails: command.errorDetails,
+          ),
       },
     );
 

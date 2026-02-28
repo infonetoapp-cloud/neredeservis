@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/screens/passenger_settings_screen.dart';
-import 'package:neredeservis/ui/tokens/form_validation_tokens.dart';
 import 'package:neredeservis/ui/theme/core_theme.dart';
+import 'package:neredeservis/ui/tokens/form_validation_tokens.dart';
 
 void main() {
   Widget buildTestApp({

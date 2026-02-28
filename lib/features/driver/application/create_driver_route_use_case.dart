@@ -8,6 +8,7 @@ class CreateDriverRouteUseCase {
   final DriverRouteCreateRepository _repository;
 
   Future<DriverRouteCreateResult> execute({
+    String? companyId,
     required String name,
     required double startLat,
     required double startLng,
@@ -21,6 +22,7 @@ class CreateDriverRouteUseCase {
   }) {
     return _repository.createRoute(
       DriverRouteCreateCommand(
+        companyId: companyId,
         name: name,
         startLat: startLat,
         startLng: startLng,

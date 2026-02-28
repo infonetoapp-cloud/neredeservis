@@ -22,6 +22,44 @@ Future<bool> _ensureDriverReadyForRouteMutation(BuildContext context) async {
   return false;
 }
 
+Future<String?> _resolveDriverCompanyIdForRouteMutation() async {
+  try {
+    final uid = _authCredentialGateway.currentUser?.uid;
+    final profile = await _readDriverProfileRecordUseCase.execute(uid);
+    final rawCompanyId = profile?.companyId;
+    if (rawCompanyId == null) {
+      return null;
+    }
+    final normalized = rawCompanyId.trim();
+    return normalized.isEmpty ? null : normalized;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<String?> _resolveRouteLastKnownUpdateToken(String routeId) async {
+  final normalizedRouteId = routeId.trim();
+  if (normalizedRouteId.isEmpty) {
+    return null;
+  }
+  try {
+    final snapshot =
+        await _firestore.collection('routes').doc(normalizedRouteId).get();
+    final data = snapshot.data();
+    if (data == null) {
+      return null;
+    }
+    final rawToken = data['updatedAt'];
+    if (rawToken is! String) {
+      return null;
+    }
+    final normalized = rawToken.trim();
+    return normalized.isEmpty ? null : normalized;
+  } catch (_) {
+    return null;
+  }
+}
+
 void _rememberRecentDriverCreatedRouteFromPlan(
   CreateDriverRouteRecentCacheWritePlan plan,
 ) {

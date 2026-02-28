@@ -32,6 +32,7 @@ class EmailAuthScreen extends StatefulWidget {
     this.onSwitchModeTap,
     this.onBackTap,
     this.onGoogleSignInTap,
+    this.onMicrosoftSignInTap,
     this.onForgotPasswordTap,
   });
 
@@ -45,6 +46,7 @@ class EmailAuthScreen extends StatefulWidget {
   final VoidCallback? onSwitchModeTap;
   final VoidCallback? onBackTap;
   final VoidCallback? onGoogleSignInTap;
+  final VoidCallback? onMicrosoftSignInTap;
   final VoidCallback? onForgotPasswordTap;
 
   @override
@@ -316,6 +318,14 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
                     key: const Key('email_auth_google'),
                     onPressed: _submitting ? null : widget.onGoogleSignInTap,
                   ),
+                  if (widget.onMicrosoftSignInTap != null) ...<Widget>[
+                    SizedBox(height: gap(8, 6, 4)),
+                    _AuthMicrosoftButton(
+                      key: const Key('email_auth_microsoft'),
+                      onPressed:
+                          _submitting ? null : widget.onMicrosoftSignInTap,
+                    ),
+                  ],
                   SizedBox(height: gap(6, 4, 3)),
                   Center(
                     child: _ModeSwitchLine(
@@ -789,6 +799,65 @@ class _AuthGoogleButton extends StatelessWidget {
                 style: _AuthTextStyles.googleButton(context),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AuthMicrosoftButton extends StatelessWidget {
+  const _AuthMicrosoftButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F2),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E4E1)),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F1115),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'M',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Microsoft ile Giris',
+                  style: _AuthTextStyles.googleButton(context),
+                ),
+              ],
+            ),
           ),
         ),
       ),

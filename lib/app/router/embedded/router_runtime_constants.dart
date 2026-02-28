@@ -2,6 +2,8 @@ part of '../app_router.dart';
 
 final Random _idempotencyRandom = Random.secure();
 const String _supportEmailAddress = 'infonetoapp@gmail.com';
+const String _iosAppUpdateUrl = 'https://apps.apple.com';
+const String _androidAppUpdateUrl = 'https://play.google.com/store';
 const String _iosManageSubscriptionUrl =
     'https://apps.apple.com/account/subscriptions';
 const String _androidManageSubscriptionUrl =

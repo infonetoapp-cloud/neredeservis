@@ -1,5 +1,6 @@
 class DriverRouteCreateCommand {
   const DriverRouteCreateCommand({
+    this.companyId,
     required this.name,
     required this.startLat,
     required this.startLng,
@@ -12,6 +13,7 @@ class DriverRouteCreateCommand {
     required this.allowGuestTracking,
   });
 
+  final String? companyId;
   final String name;
   final double startLat;
   final double startLng;
