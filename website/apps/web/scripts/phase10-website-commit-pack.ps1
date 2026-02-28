@@ -11,6 +11,28 @@ $slug = $timestamp.ToString("yyyy_MM_dd_HHmm")
 $latestPath = Join-Path $planDir "134_phase10_website_commit_pack_latest.md"
 $snapshotPath = Join-Path $planDir ("134_phase10_website_commit_pack_" + $slug + ".md")
 
+function Try-WriteFileWithRetry {
+  param(
+    [string]$Path,
+    [object]$Value,
+    [string]$Encoding = "ascii",
+    [int]$Attempts = 30,
+    [int]$DelayMs = 600
+  )
+  for ($i = 1; $i -le $Attempts; $i++) {
+    try {
+      Set-Content -Path $Path -Value $Value -Encoding $Encoding
+      return $true
+    } catch {
+      if ($i -eq $Attempts) {
+        return $false
+      }
+      Start-Sleep -Milliseconds $DelayMs
+    }
+  }
+  return $false
+}
+
 Push-Location $repoRoot
 try {
   $statusLines = git status --porcelain
@@ -55,13 +77,20 @@ if ($websiteRows.Count -gt 0) {
 $lineList.Add("## Commit Komutlari (website-only)") | Out-Null
 $lineList.Add('```powershell') | Out-Null
 $lineList.Add("git add website") | Out-Null
-$lineList.Add("git commit -m 'website: phase10 stabilization pack + env/admin gating'") | Out-Null
+$lineList.Add("git commit -m 'website: update phase scripts, reports, and web parity docs'") | Out-Null
 $lineList.Add('```') | Out-Null
 $lineList.Add("") | Out-Null
 $lineList.Add("Not: Bu paket app tarafina dokunmaz. App-impact register dosyasinda web-only not_required disiplini korunur.") | Out-Null
 
-Set-Content -Path $latestPath -Value $lineList -Encoding ascii
-Set-Content -Path $snapshotPath -Value $lineList -Encoding ascii
+$latestWriteOk = Try-WriteFileWithRetry -Path $latestPath -Value $lineList
+if (-not $latestWriteOk) {
+  Write-Warning ("[PHASE10-COMMIT-PACK] latest file lock edildi: " + $latestPath)
+}
+
+$snapshotWriteOk = Try-WriteFileWithRetry -Path $snapshotPath -Value $lineList
+if (-not $snapshotWriteOk) {
+  throw ("[PHASE10-COMMIT-PACK] snapshot yazilamadi: " + $snapshotPath)
+}
 
 Write-Host ("[PHASE10-COMMIT-PACK] latest -> " + $latestPath) -ForegroundColor Green
 Write-Host ("[PHASE10-COMMIT-PACK] snapshot -> " + $snapshotPath) -ForegroundColor Green

@@ -36,7 +36,6 @@ import {
   buildAdminKpiSnapshot,
   formatLoadTime,
 } from "@/components/admin/admin-operations-helpers";
-import { DashboardFeaturePlaceholder } from "@/components/dashboard/dashboard-feature-placeholder";
 import { DashboardStatePlaceholder } from "@/components/dashboard/dashboard-state-placeholder";
 import { mapCompanyCallableErrorToMessage } from "@/features/company/company-callables";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
@@ -165,6 +164,29 @@ export function AdminOperationsFeature() {
     />
   ) : (
     <div className="space-y-4">
+      <nav className="rounded-2xl border border-line bg-white p-3 shadow-sm">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Hizli Bolum Gecisi</div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            { href: "#admin-release-gate", label: "Release Gate" },
+            { href: "#admin-smoke", label: "Smoke" },
+            { href: "#admin-phase5", label: "Faz 5" },
+            { href: "#admin-security", label: "Guvenlik" },
+            { href: "#admin-risk", label: "Risk" },
+            { href: "#admin-audit", label: "Audit" },
+            { href: "#admin-tenant", label: "Tenant" },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="inline-flex rounded-full border border-line bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
       <AdminOperationsStatusCard
         companyName={activeCompany?.companyName ?? null}
         role={membershipState.role ?? null}
@@ -199,16 +221,24 @@ export function AdminOperationsFeature() {
         </section>
       ) : null}
 
-      <AdminReleaseGateCard />
-      <AdminSmokeChecklistCard />
+      <section id="admin-release-gate" className="scroll-mt-24">
+        <AdminReleaseGateCard />
+      </section>
+      <section id="admin-smoke" className="scroll-mt-24">
+        <AdminSmokeChecklistCard />
+      </section>
       <AdminStagingSmokeRunbookCard />
-      <AdminPhase5SummaryCard
-        readiness={phase5Readiness}
-        freshnessLabel={phase5FreshnessLabel}
-        freshnessTone={phase5FreshnessTone}
-        freshnessUpdatedLabel={phase5FreshnessUpdatedLabel}
-      />
-      <AdminSecurityHardeningCard />
+      <section id="admin-phase5" className="scroll-mt-24">
+        <AdminPhase5SummaryCard
+          readiness={phase5Readiness}
+          freshnessLabel={phase5FreshnessLabel}
+          freshnessTone={phase5FreshnessTone}
+          freshnessUpdatedLabel={phase5FreshnessUpdatedLabel}
+        />
+      </section>
+      <section id="admin-security" className="scroll-mt-24">
+        <AdminSecurityHardeningCard />
+      </section>
       <AdminSecretHygieneCard />
       <AdminCorsAllowlistCard />
       <AdminCostAlertsCard />
@@ -224,7 +254,9 @@ export function AdminOperationsFeature() {
 
       <AdminKpiGrid snapshot={snapshot} />
 
-      <AdminTenantStatePanel status={tenantStateQuery.status} item={tenantStateQuery.item} />
+      <section id="admin-tenant" className="scroll-mt-24">
+        <AdminTenantStatePanel status={tenantStateQuery.status} item={tenantStateQuery.item} />
+      </section>
       <AdminTenantStateMutationCard
         companyId={companyId}
         tenantState={tenantStateQuery.item}
@@ -234,45 +266,49 @@ export function AdminOperationsFeature() {
         }}
       />
 
-      <AdminRiskSection
-        warningCount={riskState.riskSummary.warning}
-        attentionCount={riskState.riskSummary.attention}
-        infoCount={riskState.riskSummary.info}
-        lastUpdatedLabel={formatLoadTime(activeTripsQuery.lastLoadedAt)}
-        selectedSeverity={riskState.riskSeverityFilter}
-        searchQuery={riskState.riskSearchQuery}
-        hasLocalOverride={riskState.hasRiskLocalOverride}
-        hasQueryPreset={riskState.hasRiskQueryPreset}
-        visibleItems={riskState.visibleRiskItems}
-        totalCount={riskState.severityFilteredRiskCount}
-        riskModeLabel={riskState.riskModeLabel}
-        readiness={phase5Readiness}
-        phase5FreshnessLabel={phase5FreshnessLabel}
-        phase5FreshnessTone={phase5FreshnessTone}
-        phase5FreshnessUpdatedLabel={phase5FreshnessUpdatedLabel}
-        onToggleSeverity={(severity) => {
-          riskState.setHasRiskLocalOverride(true);
-          riskState.setRiskSeverityFilterState((prev) => (prev === severity ? "all" : severity));
-        }}
-        onClearSeverity={() => {
-          riskState.setHasRiskLocalOverride(true);
-          riskState.setRiskSeverityFilterState("all");
-        }}
-        onResetToPreset={() => {
-          riskState.setHasRiskLocalOverride(false);
-        }}
-        onClearQueryPreset={riskState.clearRiskQueryPreset}
-        onSearchChange={(value) => {
-          riskState.setHasRiskLocalOverride(true);
-          riskState.setRiskSearchQueryState(value);
-        }}
-        onSearchClear={() => {
-          riskState.setHasRiskLocalOverride(true);
-          riskState.setRiskSearchQueryState("");
-        }}
-      />
+      <section id="admin-risk" className="scroll-mt-24">
+        <AdminRiskSection
+          warningCount={riskState.riskSummary.warning}
+          attentionCount={riskState.riskSummary.attention}
+          infoCount={riskState.riskSummary.info}
+          lastUpdatedLabel={formatLoadTime(activeTripsQuery.lastLoadedAt)}
+          selectedSeverity={riskState.riskSeverityFilter}
+          searchQuery={riskState.riskSearchQuery}
+          hasLocalOverride={riskState.hasRiskLocalOverride}
+          hasQueryPreset={riskState.hasRiskQueryPreset}
+          visibleItems={riskState.visibleRiskItems}
+          totalCount={riskState.severityFilteredRiskCount}
+          riskModeLabel={riskState.riskModeLabel}
+          readiness={phase5Readiness}
+          phase5FreshnessLabel={phase5FreshnessLabel}
+          phase5FreshnessTone={phase5FreshnessTone}
+          phase5FreshnessUpdatedLabel={phase5FreshnessUpdatedLabel}
+          onToggleSeverity={(severity) => {
+            riskState.setHasRiskLocalOverride(true);
+            riskState.setRiskSeverityFilterState((prev) => (prev === severity ? "all" : severity));
+          }}
+          onClearSeverity={() => {
+            riskState.setHasRiskLocalOverride(true);
+            riskState.setRiskSeverityFilterState("all");
+          }}
+          onResetToPreset={() => {
+            riskState.setHasRiskLocalOverride(false);
+          }}
+          onClearQueryPreset={riskState.clearRiskQueryPreset}
+          onSearchChange={(value) => {
+            riskState.setHasRiskLocalOverride(true);
+            riskState.setRiskSearchQueryState(value);
+          }}
+          onSearchClear={() => {
+            riskState.setHasRiskLocalOverride(true);
+            riskState.setRiskSearchQueryState("");
+          }}
+        />
+      </section>
 
-      <AdminAuditPanel status={auditQuery.status} items={auditQuery.items} />
+      <section id="admin-audit" className="scroll-mt-24">
+        <AdminAuditPanel status={auditQuery.status} items={auditQuery.items} />
+      </section>
     </div>
   );
 
@@ -288,18 +324,55 @@ export function AdminOperationsFeature() {
     />
   );
 
+  const headlineMetrics = [
+    { label: "Aktif Sefer", value: snapshot.activeTripsTotal.toString() },
+    { label: "Online Sefer", value: snapshot.activeTripsOnline.toString() },
+    { label: "Uyeler", value: snapshot.membersTotal.toString() },
+    { label: "Araclar", value: snapshot.vehiclesTotal.toString() },
+    { label: "Rotalar", value: snapshot.routesTotal.toString() },
+    {
+      label: "Faz 5 Hazirlik",
+      value: phase5Readiness.isReady ? "Hazir" : phase5ProgressLabel,
+    },
+  ];
+
   return (
-    <DashboardFeaturePlaceholder
-      badge="Admin"
-      title="Admin Surface / Company Operations"
-      description="Bu alan owner/admin operatorleri icin company read-side denetimini toplar: operasyon metrikleri, risk triage kartlari ve hizli aksiyon gecisleri."
-      nextPhaseNotes={[
-        "Audit log read-side v1 (minimal)",
-        "Tenant suspension/lock operasyon kartlari (read-only baseline)",
-        "Internal admin detay ekranlari (Faz 7)",
-      ]}
-      workspace={workspace}
-      sidePanel={sidePanel}
-    />
+    <section className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-sm sm:p-7">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_56%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.1),transparent_48%)]" />
+        <div className="relative z-10 space-y-4">
+          <div className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+            Admin Operations
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Operasyon denetimi, risk triage ve release gate merkezi
+            </h1>
+            <p className="max-w-4xl text-sm leading-6 text-muted">
+              Owner/Admin ekipleri icin audit, tenant-state, checklist ve canlı operasyon metrikleri tek ekranda toplanir.
+              Bu yuzey production release oncesi karar vermeyi hizlandirir ve kritik aksiyonlara dogrudan gecis saglar.
+            </p>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {headlineMetrics.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-2xl border border-white/80 bg-white/75 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+              >
+                <div className="text-[11px] font-medium uppercase tracking-wide text-muted">{metric.label}</div>
+                <div className="mt-1 text-lg font-semibold text-slate-950">{metric.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
+        <div className="min-w-0">{workspace}</div>
+        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">{sidePanel}</aside>
+      </div>
+    </section>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+import type { AdminAuditDensity } from "@/components/admin/use-admin-audit-density";
+
 type AdminAuditToolbarProps = {
   filterSummaryLabel: string;
   filteredRangeLabel: string;
+  density: AdminAuditDensity;
   hasLocalOverride: boolean;
   hasQueryPreset: boolean;
   hasPinnedAuditId: boolean;
@@ -13,6 +16,7 @@ type AdminAuditToolbarProps = {
   onResetToUrlPreset: () => void;
   onClearUrlPreset: () => void;
   onClearPinnedAuditId: () => void;
+  onDensityChange: (next: AdminAuditDensity) => void;
   onCopySummary: () => void;
   onCopyFilterLink: () => void;
   onExportCsv: () => void;
@@ -21,6 +25,7 @@ type AdminAuditToolbarProps = {
 export function AdminAuditToolbar({
   filterSummaryLabel,
   filteredRangeLabel,
+  density,
   hasLocalOverride,
   hasQueryPreset,
   hasPinnedAuditId,
@@ -31,6 +36,7 @@ export function AdminAuditToolbar({
   onResetToUrlPreset,
   onClearUrlPreset,
   onClearPinnedAuditId,
+  onDensityChange,
   onCopySummary,
   onCopyFilterLink,
   onExportCsv,
@@ -42,6 +48,26 @@ export function AdminAuditToolbar({
           Filtre Ozeti: <span className="font-semibold text-slate-900">{filterSummaryLabel}</span>
           <span className="mx-2 text-slate-300">|</span>
           Aralik: <span className="font-semibold text-slate-900">{filteredRangeLabel}</span>
+        </div>
+        <div className="inline-flex items-center gap-1 rounded-lg border border-line bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => onDensityChange("comfortable")}
+            className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              density === "comfortable" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+            }`}
+          >
+            Rahat
+          </button>
+          <button
+            type="button"
+            onClick={() => onDensityChange("compact")}
+            className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              density === "compact" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+            }`}
+          >
+            Kompakt
+          </button>
         </div>
         {hasLocalOverride && hasQueryPreset ? (
           <button

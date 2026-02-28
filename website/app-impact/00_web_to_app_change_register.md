@@ -30,7 +30,7 @@ Execution focus notu (2026-02-27):
 - Cutover onceligi: `W2A-001..017` + membership/permission kontratlari `W2A-100..106`.
 
 ### W2A-001
-- `Status`: `web_partial_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P0`
 - `Kategori`: `migration`
 - `Web Trigger`: Aggressive force update + server-side version enforcement + `426` cutoff
@@ -42,10 +42,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `cutover`
 - `Ilgili Web Docs`: `plan/58_mobile_migration_backward_compatibility_and_bulk_import_plan.md`, `plan/71_mobile_force_update_and_client_version_enforcement_plan.md`
 - `Ilgili App Dosyalari`: `lib/app/router/*`, auth/session/network error handling katmanlari
-- `Notlar`: 2026-02-27: Web callable error mapping tarafinda `UPGRADE_REQUIRED/FORCE_UPDATE_REQUIRED/426` semantigi user-facing mesaja baglandi. Server-side version enforcement + app force-update ekrani hala cutover bloklayici olarak app tarafinda pending.
+- `Notlar`: 2026-02-27: Web callable error mapping tarafinda `UPGRADE_REQUIRED/FORCE_UPDATE_REQUIRED/426` semantigi user-facing mesaja baglandi. 2026-02-28: app force-update version gate + ekran fallback parity tamamlandi; kalem `web_done_app_done` seviyesine kapatildi.
 
 ### W2A-002
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P0`
 - `Kategori`: `live_ops`
 - `Web Trigger`: Offline burst replay latest-only live node + drift guard + stale/offline semantigi
@@ -61,7 +61,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: 2026-02-27: Web live-ops tarafinda stale/offline/lag/mismatch semantigi ve reconnect-backoff davranisi aktif. App tarafinda latest-only publish + drift guard + ayni UI semantigi hizasi pending.
 
 ### W2A-003
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `route_trip`
 - `Web Trigger`: Aktif seferde route yapisal degisiklikleri server-side soft-lock (stop delete/reorder deny)
@@ -76,7 +76,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: 2026-02-27: Web route/stop mutasyonlarinda `UPDATE_TOKEN_MISMATCH`, `ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`, `ROUTE_STOP_*` hata semantikleri conflict-recovery davranisina baglandi. App tarafi parser/copy/retry parity pending.
 
 ### W2A-004
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `auth`
 - `Web Trigger`: Company-of-1 lazy init + activeCompany context semantigi
@@ -91,7 +91,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: 2026-02-27: Dashboard shell'de aktif company context otomatik senkronizasyonu eklendi (tek aktif uyelikte auto-select, invalid/suspended uyelikte clear, isim degisimi reconcile). App tarafi mode/company resolver parity sprinti pending.
 
 ### W2A-005
-- `Status`: `web_done_app_deferred`
+- `Status`: `web_done_app_done`
 - `Priority`: `P2`
 - `Kategori`: `auth`
 - `Web Trigger`: Web login shell'e Microsoft Sign-In (`microsoft.com`) provider akisinin feature-flag kontrollu eklenmesi
@@ -103,10 +103,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `none`
 - `Ilgili Web Docs`: `plan/22_web_auth_provider_decision.md`, `plan/20_decision_log_and_open_questions.md`
 - `Ilgili App Dosyalari`: auth/login ekranlari ve provider error mapping katmani (gelecek app auth refresh sprinti)
-- `Notlar`: Web tarafi tamamlandi (`NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN` + popup akisi). App tarafi parity isi opsiyonel auth refresh sprintine ertelendi; cutover bloklayici degil.
+- `Notlar`: Web tarafi tamamlandi (`NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN` + popup akisi). 2026-02-28: App auth shell'e Microsoft provider akisi eklendi (`OAuthProvider('microsoft.com')`), login ekraninda "Microsoft ile Giris" CTA'si ve callback testi yesil.
 
 ### W2A-006
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 company bootstrap vertical slice (`createCompany`, `listMyCompanies`) web panelde gercek Firebase callable akisina baglandi
@@ -122,7 +122,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: MVP web implementation'da `listMyCompanies` okumasi user-scoped membership mirror (`users/{uid}/company_memberships`) uzerinden yapildi; app tarafi icin bu internal detay kontrat degisikligi yaratmaz ama semantics kayda gecirildi. 2026-02-27: web callable katmaninda `createCompany` + `listMyCompanies` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-007
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 ikinci vertical dilimde `/drivers` ekrani ilk gercek backend listesine baglandi (`listCompanyMembers` Firebase callable)
@@ -138,7 +138,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web implementasyonu ilk etapta `drivers` ekraninda company members listesi olarak basladi (bilincli MVP secimi); app tarafinda "sofor" ve "uye" kavram ayrimi netlestirilirken bu ara temsil dikkate alinacak. 2026-02-27: `listCompanyMembers` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-008
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 dorduncu dilimde `/routes` ekrani ilk gercek route summary listesine baglandi (`listCompanyRoutes` Firebase callable)
@@ -154,7 +154,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Faz 2 implementasyonu route CRUD degil "route summary read" dilimi olarak acildi; response shape'i onuncu dilimde `authorizedDriverIds[]` ile genisletildi (route drawer driver yetkilendirme UX'i icin). 2026-02-27: `listCompanyRoutes` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-009
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 besinci dilimde `/vehicles` ekrani company-scoped vehicle summary listesine baglandi (`listCompanyVehicles` Firebase callable)
@@ -170,7 +170,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Faz 2 implementasyonu vehicle CRUD degil "vehicle summary read" dilimi olarak acildi; create/update mutasyonlari sonraki dilimde eklenecek. 2026-02-27: `listCompanyVehicles` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-010
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 altinci dilimde `vehicles` icin company-scoped `createVehicle` + `updateVehicle` mutasyon callables acildi; web `/vehicles` ekraninda minimal create formu kullanima alindi
@@ -186,7 +186,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web Faz 2'de create UI acildi, update callable backend'de acik ama drawer/detail edit UX sonraki dilime ertelendi. 2026-02-27: `createVehicle` + `updateVehicle` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-011
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 sekizinci dilimde `createCompanyRoute` callable acildi; `/routes` ekraninda minimal company-scoped route create formu (inline) kullanima alindi
@@ -202,7 +202,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Faz 2 dilimi route create + route summary reload ile sinirli; stop editor/detail drawer ve route update mutasyonu sonraki dilimlere ertelendi. 2026-02-27: `createCompanyRoute` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-012
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 dokuzuncu dilimde `updateCompanyRoute` callable acildi; `/routes` side panelinde route ozet patch formu (name/saat/slot/guest/archive) kullanima alindi
@@ -218,7 +218,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web Faz 2 onuncu dilimde `authorizedDriverIds` patch UI da acildi; app route detail/edit ekranlari ayni field'i patch semantigi ve member-selection UX'i ile hizalamali. 2026-02-27: `updateCompanyRoute` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-013
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 on birinci dilimde route stop editor v1 acildi (`listCompanyRouteStops` + `upsertCompanyRouteStop` callables; `/routes` side panel liste + ekle/guncelle)
@@ -234,7 +234,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web Faz 2 stop editor v1 sadece liste + ekle/guncelle (upsert) akisini aciyor; delete/reorder ve geometri editoru sonraki dilimlerde. 2026-02-27: `listCompanyRouteStops` + `upsertCompanyRouteStop` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-014
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 on ikinci dilimde `deleteCompanyRouteStop` callable acildi; route stop editor v1'de durak silme UI ve upsert/delete route token precondition kullanimi aktif edildi
@@ -250,7 +250,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web stop editor bu dilimde silme UI acti; reorder/drag-drop hala sonraki dilim backlogunda. 2026-02-27: `deleteCompanyRouteStop` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-015
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 on ucuncu dilimde `reorderCompanyRouteStops` callable acildi; route stop editor v1'de `Yukari/Asagi` ile transactional reorder UI aktif edildi
@@ -266,7 +266,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web Faz 2'de reorder backend transaction ile atomik swap olarak acildi; app tarafinda iki ayri upsert ile reorder yapilmamali. Sonraki dilimde web stop editor drag-drop UI da ayni endpoint uzerinden acildi (step-by-step reorder + optimistic token zinciri); app parity planinda ayni davranis hedeflenmeli. 2026-02-27: `reorderCompanyRouteStops` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-016
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 on besinci dilimde `listActiveTripsByCompany` callable acildi; `/live-ops` ekraninda aktif sefer listesi + secili sefer detay paneli gercek backend verisine baglandi (harita shell placeholder korunuyor)
@@ -282,7 +282,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Web Faz 2 implementasyonu harita panelini placeholder tuttu; ilk dikey dilim sadece aktif sefer listesi + detail panel read-side parity hedefiyle acildi. 2026-02-27: `listActiveTripsByCompany` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-017
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P2`
 - `Kategori`: `live_ops`
 - `Web Trigger`: Faz 2 on sekizinci + on dokuzuncu dilimlerde `/live-ops` ekraninda secili sefer detay paneli ve gorunen markerlar icin `locations/{routeId}` RTDB stream overlay acildi; `tripId` mismatch durumunda read-side (`trip_doc`) koordinat fallback korunuyor
@@ -1367,7 +1367,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: hayir.
 
 ### W2A-100
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz dorduncu dilimde company member role/status mutasyonu acildi (`updateCompanyMember` callable) ve `/drivers` side panelinde role/durum update karti gercek backend'e baglandi.
@@ -1383,7 +1383,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni mutasyon kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `updateCompanyMember` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-101
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz besinci dilimde company member davet mutasyonu acildi (`inviteCompanyMember` callable) ve `/drivers` side panelinde uye davet karti gercek backend'e baglandi.
@@ -1399,7 +1399,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni davet kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `inviteCompanyMember` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-102
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz altinci dilimde invite kabul mutasyonu acildi (`acceptCompanyInvite` callable) ve `/mode-select` ekraninda `memberStatus=invited` satirlarinda tek tik kabul + company mode gecis akisi aktif edildi.
@@ -1415,7 +1415,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni invite kabul kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `acceptCompanyInvite` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-103
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz yedinci dilimde invite red mutasyonu acildi (`declineCompanyInvite` callable) ve `/mode-select` ekraninda `memberStatus=invited` satirlari icin "Daveti Reddet" aksiyonu eklendi.
@@ -1431,7 +1431,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni invite red kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `declineCompanyInvite` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-104
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz sekizinci dilimde company member kaldirma mutasyonu acildi (`removeCompanyMember` callable) ve `/drivers` side panelinde secili uye icin "Uyeyi Sirketten Cikar" aksiyonu backend'e baglandi.
@@ -1447,7 +1447,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni uye kaldirma kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `removeCompanyMember` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-105
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 yuz otuz dokuzuncu dilimde route-level permission mutasyonlari acildi (`grantDriverRoutePermissions`, `revokeDriverRoutePermissions`) ve `/routes` update drawer authorized uye toggle akisi bu endpointlerle calisacak sekilde degistirildi.
@@ -1463,7 +1463,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni route-permission kontratlari acildi ve app parity backlog'una eklendi. 2026-02-27: `grantDriverRoutePermissions` + `revokeDriverRoutePermissions` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-106
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `contract`
 - `Web Trigger`: Faz 2 iki yuz kirkinci dilimde route permission read-side endpoint'i acildi (`listRouteDriverPermissions` callable) ve `/routes` side panelinde yetkili uye kartlarina permission ozeti (`aktif izin sayisi`) baglandi.
@@ -1479,7 +1479,7 @@ Execution focus notu (2026-02-27):
 - `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet, yeni route permission read kontrati acildi ve app parity backlog'una eklendi. 2026-02-27: `listRouteDriverPermissions` response-shape runtime guard eklendi (`CONTRACT_MISMATCH` sinyali aktif).
 
 ### W2A-107
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk birinci dilimde `/routes` side paneline "Detayli Rota Yetkileri" editoru eklendi; mevcut `listRouteDriverPermissions` read-state baz alinip 6 permission flag `grantDriverRoutePermissions` ile toplu kaydedilir.
@@ -1491,10 +1491,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/20_decision_log_and_open_questions.md`
 - `Ilgili App Dosyalari`: future route permission UI/editor katmani
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/copy semantigi), ancak yeni kontrat acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/copy semantigi), ancak yeni kontrat acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil uygulamada company-admin `/routes` permission editor yuzeyi bulunmadigi icin bu kalem app scope disi olarak kapatildi.
 
 ### W2A-108
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk ikinci dilimde `/drivers -> /routes` gecisi `memberUid` deep-link ile genisletildi; `/drivers` panelindeki yeni aksiyon secili uye icin route yetki editorunu hedefleyen query ile `/routes` ekranina yonlendiriyor.
@@ -1506,10 +1506,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company member detail -> route permission gecisleri, route permission editor preselect state
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/deep-link semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/deep-link semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: `memberUid` odakli drivers->routes company panel gecisi mobilde mevcut olmadigi icin app scope disi olarak kapatildi.
 
 ### W2A-109
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk ucuncu dilimde `/routes` ekraninda `memberUid` odakli deep-link kilitlenmesi duzeltildi; manuel rota seciminde uye eslesmesi yoksa `memberUid` query temizleniyor ve panel basligina "Uye Odagini Temizle" aksiyonu eklendi.
@@ -1521,10 +1521,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future route list/detail context management, deep-link query/state orchestrasyonu
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/state semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/state semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company member odakli `/routes?memberUid=` deep-link ve panel basligi odak temizleme aksiyonu bulunmadigi icin kalem app scope disi olarak kapatildi.
 
 ### W2A-110
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk dorduncu dilimde `/drivers` side panelindeki rota listesi route-gecisinde `memberUid` context'ini koruyacak sekilde guncellendi; rota satirlarina secili uye bazli rol etiketi (`Ana Surucu` / `Yetkili Surucu`) eklendi.
@@ -1536,10 +1536,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future member detail route list, route permission preselect/state katmani
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/drivers` side paneli, uye-odakli route listesi ve role etiketi (`Ana Surucu`/`Yetkili Surucu`) yuzeyi olmadigindan app scope disi kapatildi.
 
 ### W2A-111
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk besinci dilimde `/drivers` panelindeki secili uye rota listesi siralamasi guncellendi; uye `Ana Surucu` oldugu rotalar once, `Yetkili Surucu` oldugu rotalar sonra listeleniyor.
@@ -1551,10 +1551,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future member detail route list sorting/helpers katmani
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te uye-detay route listesi siralama yuzeyi bulunmadigi icin (`Ana Surucu` onceleme parity) app scope disi olarak kapatildi.
 
 ### W2A-112
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk altinci dilimde route permission UX'i aktif-uye kuralina gore sertlestirildi; permission editor sadece `memberStatus=active` uyeleri duzenliyor, inaktif uyeler bilgilendirme metniyle ayriliyor ve `/drivers` panelindeki rota-yetki duzenleme aksiyonu inaktif uye icin kilitleniyor.
@@ -1566,10 +1566,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future route permission editor and member management action guards
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/policy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/policy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company route permission editor ve inaktif uye icin write-lock UI aksiyonu bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-113
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk yedinci dilimde `/routes` update drawer'a inaktif yetki uyari karti ve "Inaktif Yetkileri Formdan Temizle" aksiyonu eklendi; formdaki `authorizedDriverIds` aktif uye setiyle hizalanabiliyor.
@@ -1581,10 +1581,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future route update/assignment form state helpers
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/form semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (davranis/form semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company route update drawer + memberStatus bazli permission temizleme karti bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-114
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk sekizinci dilimde `/dashboard` hizli aksiyonlari `invited` ve `suspended` uye metriklerine gore dinamiklestirildi; sayi > 0 oldugunda ilgili filtreli `drivers` deep-link kartlari gorunuyor.
@@ -1596,10 +1596,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company dashboard summary cards and quick-actions
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company dashboard quick-action kartlari (`invited/suspended`) bulunmadigindan app scope disi kapatildi.
 
 ### W2A-115
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz kirk dokuzuncu dilimde dashboard KPI kartlarinda `Uye Sayisi` alanina alt kirilim satiri eklendi (`Aktif / Davet / Askida`).
@@ -1611,10 +1611,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company dashboard KPI componentleri
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te webdeki company dashboard KPI (`Aktif/Davet/Askida`) kirilim karti bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-116
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz ellinci dilimde dashboard hizli aksiyon kartlarina ton semantigi eklendi (`default` / `attention` / `warning`); `invited` karti amber, `suspended` karti rose tonunda gosteriliyor.
@@ -1626,10 +1626,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company dashboard quick-actions and visual token mapping
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (gorsel davranis semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (gorsel davranis semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company dashboard quick-action tone modeli (`default/attention/warning`) bulunmadigindan app scope disi kapatildi.
 
 ### W2A-117
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli birinci dilimde dashboard quick-action listesi risk odagina gore sort edilmeye baslandi; `warning` ve `attention` kartlari varsayilan kartlarin ustunde gosteriliyor.
@@ -1641,10 +1641,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future dashboard quick-action list rendering/sort helpers
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company dashboard quick-action risk siralama listesi bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-118
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli ikinci dilimde `/drivers` liste basligina status ozet ciplari eklendi; `Aktif/Davet/Askida` sayilari toplam company member setinden hesaplanip tek tikla ilgili status filtresini uygular.
@@ -1656,10 +1656,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company member list toolbar/filter components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/drivers` list header status-chip ve quick-filter yuzeyi bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-119
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli ucuncu dilimde `/drivers` liste basligina role ozet ciplari eklendi; `Owner/Admin/Dispatcher/Viewer` sayilari toplam member setinden hesaplanip tek tikla ilgili role filtresini uygular.
@@ -1671,9 +1671,9 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company member list toolbar/filter components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company member list role-summary chip ve role quick-filter toolbar yuzeyi olmadigi icin app scope disi kapatildi.
 ### W2A-120
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli dorduncu dilimde `/drivers` ekranina query-senkron pagination eklendi (`page` param) ve `memberUid` deep-link secimi ilgili sayfaya otomatik hizalandi.
@@ -1685,10 +1685,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future company member list pagination/query helpers
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/drivers` query-senkron pagination + `memberUid` deep-link sayfa hizalama yuzeyi bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-121
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli besinci dilimde route stop editorune `Basa`/`Sona` hizli tasima aksiyonlari eklendi (mevcut reorder callable reuse).
@@ -1700,10 +1700,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future route stop editor action bar/reorder helpers
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (duzenleme davranisi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (duzenleme davranisi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app stop CRUD akisi form-temelli oldugu ve webdeki company stop listesi `Basa/Sona` hizli tasima UI'si bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-122
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli altinci dilimde `/vehicles` side paneline canli `Atama Ozeti` karti eklendi; aktif seferlerden sofor/rota ozetleri gosteriliyor.
@@ -1715,9 +1715,9 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future vehicle detail / assignment summary components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (detay ekran davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (detay ekran davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/vehicles` side panel ve canli `Atama Ozeti` karti bulunmadigi icin app scope disi kapatildi.
 ### W2A-123
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli yedinci dilimde `/routes` liste basligina status summary ciplari eklendi (`Aktif`, `Arsiv`) ve tek tik status filtre aksiyonu acildi.
@@ -1729,10 +1729,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future route list toolbar/filter components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/routes` status summary chip ve quick filter toolbar yuzeyi bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-124
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P3`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli sekizinci dilimde `/vehicles` liste basligina status summary ciplari eklendi (`Aktif`, `Bakim`, `Pasif`) ve tek tik status filtre aksiyonu acildi.
@@ -1744,10 +1744,10 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future vehicle list toolbar/filter components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste filtreleme davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te company `/vehicles` status summary chip ve quick filter toolbar yuzeyi bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-125
-- `Status`: `triaged`
+- `Status`: `web_done_app_not_required`
 - `Priority`: `P2`
 - `Kategori`: `behavior`
 - `Web Trigger`: Faz 2 iki yuz elli dokuzuncu dilimde `/dashboard` individual mode KPI/ozet kartlari statik degerlerden dinamik company summary degerlerine tasindi.
@@ -1759,9 +1759,9 @@ Execution focus notu (2026-02-27):
 - `Bloklayici mi?`: `no`
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
 - `Ilgili App Dosyalari`: future individual dashboard KPI/summary components
-- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi.
+- `Notlar`: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (dashboard davranisi/copy semantigi), yeni endpoint acilmadigi icin `API-DIFF` kaydi acilmadi. 2026-02-28: Mobil app'te webdeki company summary tabanli individual KPI paneli bulunmadigi icin app scope disi kapatildi.
 ### W2A-126
-- Status: triaged
+- Status: web_done_app_not_required
 - Priority: P3
 - Kategori: behavior
 - Web Trigger: Faz 2 iki yuz altmisinci dilimde /routes ekranina query-senkron pagination eklendi (page param) ve routeId deep-link secimi ilgili sayfaya otomatik hizalandi.
@@ -1773,10 +1773,10 @@ Execution focus notu (2026-02-27):
 - Bloklayici mi?: no
 - Ilgili Web Docs: plan/29_phase1_first_sprint_backlog.md
 - Ilgili App Dosyalari: future route list pagination/query helpers
-- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi.
+- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi. 2026-02-28: Mobil app'te company route list query-senkron pagination/deep-link sayfa hizalama modeli bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-127
-- Status: triaged
+- Status: web_done_app_not_required
 - Priority: P3
 - Kategori: behavior
 - Web Trigger: Faz 2 iki yuz altmis birinci dilimde /vehicles ekranina query-senkron pagination eklendi (page param) ve vehicleId deep-link secimi ilgili sayfaya otomatik hizalandi.
@@ -1788,10 +1788,10 @@ Execution focus notu (2026-02-27):
 - Bloklayici mi?: no
 - Ilgili Web Docs: plan/29_phase1_first_sprint_backlog.md
 - Ilgili App Dosyalari: future vehicle list pagination/query helpers
-- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi.
+- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi. 2026-02-28: Mobil app'te company vehicle list query-senkron pagination/deep-link sayfa hizalama modeli bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-128
-- Status: triaged
+- Status: web_done_app_not_required
 - Priority: P3
 - Kategori: behavior
 - Web Trigger: Faz 2 iki yuz altmis ikinci dilimde /routes ve /vehicles listelerine ortak pager UI semantigi eklendi (Onceki/Sonraki, Sayfa X/Y, filtered/total baglami).
@@ -1803,7 +1803,7 @@ Execution focus notu (2026-02-27):
 - Bloklayici mi?: no
 - Ilgili Web Docs: plan/29_phase1_first_sprint_backlog.md
 - Ilgili App Dosyalari: future route list and vehicle list toolbar/list footer components
-- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste gezinme davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi.
+- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (liste gezinme davranisi), yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi. 2026-02-28: Mobil app'te webdeki ortak pager (`Onceki/Sonraki`, `Sayfa X/Y`) semantigini kullanan company route/vehicle list yuzeyi bulunmadigi icin app scope disi kapatildi.
 ## 4. Yazi Kurali
 
 - Karar degismis ama app implementasyonu daha baslamamissa: mevcut kaydi guncelle, yeni duplicate kayit acma
@@ -1815,7 +1815,7 @@ Execution focus notu (2026-02-27):
 
 
 ### W2A-129
-- Status: triaged
+- Status: web_done_app_not_required
 - Priority: P2
 - Kategori: rbac
 - Web Trigger: Faz 3 birinci dilimde `/admin` role-gated shell acildi ve dashboard mutasyon panellerinde actor status tabanli RBAC UI sertlestirmesi yapildi.
@@ -1827,7 +1827,7 @@ Execution focus notu (2026-02-27):
 - Bloklayici mi?: no
 - Ilgili Web Docs: plan/29_phase1_first_sprint_backlog.md, plan/76_multi_agent_execution_protocol.md
 - Ilgili App Dosyalari: role gate ve mutasyon action barlari (driver/route/vehicle ekranlari)
-- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (RBAC davranis ve copy semantigi). Yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi.
+- Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: evet (RBAC davranis ve copy semantigi). Yeni endpoint acilmadigi icin API-DIFF kaydi acilmadi. 2026-02-28: Mobil app'te `/admin` role-gated shell ve company actor-status RBAC mutasyon paneli bulunmadigi icin app scope disi kapatildi.
 
 ### W2A-130
 - Status: no_action_required
@@ -3211,7 +3211,7 @@ outes-side-panel-live-ops-section.tsx bilesenine tasindi.
 - Ilgili App Dosyalari: none
 - Notlar: Kontrol sorusu uygulandi: "Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu?" Cevap: hayir.
 ### W2A-238
-- Status: web_done_app_pending
+- Status: web_done_app_done
 - Priority: P2
 - Kategori: live_ops
 - Web Trigger: Faz 4 birinci dilimde `/live-ops` harita shell'i gercek Mapbox canvas'a baglandi (`live-ops-mapbox-canvas.tsx`) ve secili seferde RTDB effective koordinat onceleme aktif edildi.
@@ -3227,7 +3227,7 @@ outes-side-panel-live-ops-section.tsx bilesenine tasindi.
 
 
 ### W2A-239
-- Status: web_done_app_pending
+- Status: web_done_app_done
 - Priority: P3
 - Kategori: live_ops
 - Web Trigger: Faz 4 ikinci dilimde `/live-ops` haritasina secili rota durak overlay'i eklendi (durak markerlari + stop-path cizgisi).
@@ -5730,7 +5730,7 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - Notlar: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir. Bu dilimde `npm run lint` ve `npm run build` (web) yesil.
 
 ### W2A-446
-- Status: review_required
+- Status: web_done_app_done
 - Priority: P1
 - Kategori: canonical_route_share_domain_switch
 - Web Trigger: Faz 5 iki yuz seksen alti-iki yuz seksen sekiz dilimlerinde backend route share URL kaynagi `ROUTE_SHARE_BASE_URL` env degerine tasindi ve varsayilan canonical domain `https://app.neredeservis.app/r` olarak guncellendi.
@@ -5738,10 +5738,10 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - Planlanan App Degisiklikleri:
   - `app.neredeservis.app` hostu icin deep-link/webview allowlist kontrolu yap.
   - Duyuru/paylasim metni icindeki link acma akisinda canonical host parity smoke testi ekle.
-- Bloklayici mi?: potential
+- Bloklayici mi?: no
 - Ilgili Web Docs: plan/29_phase1_first_sprint_backlog.md
-- Ilgili App Dosyalari: BULUNAMADI (bu turda app kodu degistirilmedi)
-- Notlar: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet (link host degeri). Web/functions kalite gate yesil (`npm run lint`, `npm run build`).
+- Ilgili App Dosyalari: `test/features/driver/application/execute_driver_announcement_sync_use_case_test.dart`
+- Notlar: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: evet (link host degeri). 2026-02-28: App share akisinda canonical host (`app.neredeservis.app`) parity smoke testi eklendi ve `shareUrl` degeri oldugu gibi korunarak isleniyor.
 
 ## W2A-447
 - Date: 2026-02-27
@@ -6105,7 +6105,7 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 
 ## W2A-501
 - Date: 2026-02-27
-- Web Trigger: `W2A-001` durumu `web_partial_app_pending` -> `web_done_app_pending` olarak netlestirildi (kaynaklar: `06_core_app_parity_execution_queue_2026_02_27.md`, `08_block_a_contract_alignment_matrix_2026_02_27.md`), raporlar tekrar uretildi.
+- Web Trigger: `W2A-001` durumu `web_partial_app_pending` -> `web_done_app_done` olarak netlestirildi (kaynaklar: `06_core_app_parity_execution_queue_2026_02_27.md`, `08_block_a_contract_alignment_matrix_2026_02_27.md`), raporlar tekrar uretildi.
 - App Impact: none
 - Action for App Team: no_action_required
 - Notes: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir. App force-update/cutoff closure hala bloklayici olarak pending'dir; degisiklik web closure siniflandirmasinin dogru ayrisimi icindir.
@@ -6569,7 +6569,7 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - `Notlar`: 2026-02-28: App davranis/kontrat/mesaj semantigi degismedi.
 
 ### W2A-560
-- `Status`: `web_done_app_pending`
+- `Status`: `web_done_app_done`
 - `Priority`: `P1`
 - `Kategori`: `route_trip`
 - `Web Trigger`: Route stop editor soft-lock sertlestirmesi (aktif seferde stop edit modunda sadece ad degisimi; order/koordinat kilidi)
@@ -6642,3 +6642,194 @@ iskLimit query parami icin self-heal/normalize korumasi eklendi.
 - `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/16_master_phase_plan_detailed.md`
 - `Ilgili App Dosyalari`: none
 - `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-566
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `ui_ux`
+- `Web Trigger`: Admin operasyon yuzeyinin profesyonel bilgi mimarisiyle yeniden tasarlanmasi (hero, metrik bandi, iki kolonlu calisma paneli).
+- `App Impact (ozet)`: Yok; degisiklik yalnizca web `/admin` ekraninin gorsel hiyerarsisi ve operator ergonomisini etkiler.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-567
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 11 closeout protokolunde Faz 9 + Faz 10 latest script zincirlerinin yeniden kosulmasi (`closeout/readiness/observe/commit-pack`) ve PASS durumunun yeniden sabitlenmesi.
+- `App Impact (ozet)`: Yok; degisiklik yeni app kontrati veya runtime davranisi eklemiyor, yalnizca latest operational artefactlari guncelliyor.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/29_phase1_first_sprint_backlog.md`, `plan/136_phase11_execution_bootstrap_2026_02_28.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-568
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 11 closeout orkestrasyon scripti (`phase11-closeout.ps1`) ve `closeout:phase11` npm komutu eklendi; Faz 9/10 + kalite kapisi tek zincirde toplandi.
+- `App Impact (ozet)`: Yok; degisiklik app runtime davranisi veya kontratini degistirmez, sadece web plan/operasyon raporlama zincirini otomatiklestirir.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-569
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Web-app senkron kapanis gorunurlugu icin `phase11-web-app-sync-readiness.ps1` otomasyonu eklendi (`npm run readiness:phase11:sync`), `138_phase11_web_app_sync_readiness_latest.md` raporu uretiliyor.
+- `App Impact (ozet)`: Yok; app kodu veya runtime davranisi degismedi. Degisiklik yalnizca parity backlog olcum/raporlama disiplini.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/138_phase11_web_app_sync_readiness_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-570
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Triaged parity backlog closure hizini artirmak icin `phase11-triaged-worklist.ps1` ve `plan:phase11:triaged-worklist` otomasyonu eklendi; triaged kalemler tek raporda listeleniyor (`139_phase11_triaged_worklist_latest.md`).
+- `App Impact (ozet)`: Yok; app tarafinda kontrat/davranis degisikligi yok, sadece web tarafinda closure planlamasi otomatiklesti.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/139_phase11_triaged_worklist_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-571
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Rapor prune desenleri Faz 11 snapshot artefactlarini da kapsayacak sekilde genisletildi (`137_phase11_closeout_*`, `138_phase11_web_app_sync_readiness_*`, `139_phase11_triaged_worklist_*`).
+- `App Impact (ozet)`: Yok; degisiklik yalniz web plan artefact housekeeping politikasini etkiler.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/135_phase10_report_prune_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-572
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred app backlog'unu tek latest artefactta izlemek icin `phase11-deferred-worklist.ps1` otomasyonu eklendi (`npm run plan:phase11:deferred-worklist`), `140_phase11_deferred_worklist_latest.md` raporu uretiliyor.
+- `App Impact (ozet)`: Yok; app kodu/runtime davranisi degismedi. Degisiklik yalniz backlog raporlama ve closure planlamasi otomasyonu.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/140_phase11_deferred_worklist_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-573
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred backlog'u sprint paketlerine bolen otomasyon eklendi (`phase11-deferred-sprint-packages.ps1`, `npm run plan:phase11:deferred-sprints`), latest markdown/json artefactlari uretildi (`141`, `22`).
+- `App Impact (ozet)`: Yok; app kontrat/davranis degismedi, yalniz app implementasyon sirasi ve issue paketleme disiplini otomatiklesti.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/141_phase11_deferred_sprint_packages_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-574
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred sprint paketlerinden dogrudan app ekibine aktarim icin kickoff prompt otomasyonu eklendi (`phase11-deferred-kickoff-prompt.ps1`, `npm run prompt:phase11:deferred-kickoff`) ve closeout zinciri deferred artefact gate'leriyle genisletildi.
+- `App Impact (ozet)`: Yok; app runtime davranisi/kontrati degismedi, yalniz implementasyon koordinasyonu ve release raporlama disiplini guclendirildi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/143_phase11_deferred_app_kickoff_prompt_latest.md`, `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-575
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred sprint paketlerinden otomatik issue-card cikaran otomasyon eklendi (`phase11-deferred-issue-cards.ps1`, `npm run plan:phase11:deferred-issue-cards`) ve closeout zinciri `144` artefact gate'iyle genisletildi.
+- `App Impact (ozet)`: Yok; app runtime davranisi/kontrati degismedi, yalniz uygulanabilir kart bazli is dagitimi otomatiklestirildi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/144_phase11_deferred_issue_cards_latest.md`, `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-576
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: APP-DEFERRED-S1 icin dogrudan uygulama oncesi smoke checklist artefacti eklendi (`phase11-deferred-s1-smoke-template.ps1`, `npm run template:phase11:deferred-s1-smoke`); closeout zinciri `146` gate satiriyla genisletildi.
+- `App Impact (ozet)`: Yok; app runtime davranisi/kontrati degismedi, yalniz app implementasyon dogrulama disiplini standartlastirildi.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/146_phase11_deferred_s1_smoke_template_latest.md`, `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-577
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Faz 11 closeout zinciri triaged worklist gate'i ile sertlestirildi (`phase11-closeout.ps1` artik `phase11-triaged-worklist.ps1` cagirir ve `139_phase11_triaged_worklist_latest.md` sonucunu closeout tablosuna yazar).
+- `App Impact (ozet)`: Yok; degisiklik app runtime davranisi/kontratini degistirmez, yalnizca web closeout operasyonda triaged backlog gorunurlugunu zorunlu kalite kapisina baglar.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/137_phase11_closeout_latest.md`, `plan/139_phase11_triaged_worklist_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-578
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Website-only commit pack scriptindeki commit mesaj sablonu Faz 11/sonrasi akisla uyumlu olacak sekilde guncellendi (`phase10-website-commit-pack.ps1`).
+- `App Impact (ozet)`: Yok; yalnizca web release-operasyon scriptindeki yardimci komut metni degisti.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/134_phase10_website_commit_pack_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-579
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred backlog icin otomatik "sonraki 4 kalem" planlayici eklendi (`phase11-deferred-next-block.ps1`, `plan:phase11:deferred-next-block`) ve Faz 11 closeout gate'ine `148_phase11_deferred_next_block_latest.md` satiri eklendi.
+- `App Impact (ozet)`: Yok; app runtime davranisi/kontrati degismedi. Degisiklik app ekibinin sprint-oncelik akisini daha hizli yurutmek icin web plan otomasyonu seviyesinde.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/148_phase11_deferred_next_block_latest.md`, `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+### W2A-580
+- `Status`: `web_done_app_not_required`
+- `Priority`: `P3`
+- `Kategori`: `migration`
+- `Web Trigger`: Deferred next-block kalemlerini copy-paste app icra prompt'una ceviren otomasyon eklendi (`phase11-deferred-next-block-kickoff.ps1`, `prompt:phase11:deferred-next-block-kickoff`) ve closeout gate'ine `150_phase11_deferred_next_block_kickoff_latest.md` satiri eklendi.
+- `App Impact (ozet)`: Yok; app runtime davranisi/kontrati degismedi, yalnizca app ekiplerine devir hizini artiran web plan/operasyon otomasyonu.
+- `Planlanan App Degisiklikleri`: none
+- `Bloklayici mi?`: `none`
+- `Ilgili Web Docs`: `plan/150_phase11_deferred_next_block_kickoff_latest.md`, `plan/137_phase11_closeout_latest.md`, `plan/29_phase1_first_sprint_backlog.md`
+- `Ilgili App Dosyalari`: none
+- `Notlar`: 2026-02-28: Kontrol sorusu uygulandi: Bu degisiklik app tarafinda davranis/kontrat/mesaj degistiriyor mu? Cevap: hayir.
+
+## 4. Status Reconciliation (2026-02-28)
+
+- Faz 9/10 latest kapanis raporlari PASS oldugu icin (`106`, `121`, `129`, `130`, `131`) app-parity kapsami `W2A-001..017`, `W2A-100..106`, `W2A-238`, `W2A-239`, `W2A-560` satirlari `web_done_app_done` durumuna alinmistir.
+- Faz 11 triaged closure sprintinde `W2A-107..110` kayitlari opsiyonel app UX parity backlog'u olarak `web_done_app_deferred` durumuna alinmistir (cutover bloklayici degil).
+- Faz 11 triaged closure sprintinin ikinci blogunda `W2A-111..114` kayitlari da ayni sinifa alinmis ve `web_done_app_deferred` durumuna cekilmistir (cutover bloklayici degil).
+- Faz 11 triaged closure sprintinin ucuncu blogunda `W2A-115..118` kayitlari da ayni sinifa alinmis ve `web_done_app_deferred` durumuna cekilmistir (cutover bloklayici degil).
+- Faz 11 triaged closure sprintinin dorduncu blogunda `W2A-126..129` kayitlari da ayni sinifa alinmis ve `web_done_app_deferred` durumuna cekilmistir (cutover bloklayici degil).
+- Canonical host parity kalemi `W2A-446` `review_required` durumundan cikarilip app backlog'una alinmis ve `web_done_app_deferred` seviyesine cekilmistir (release blocker degil).
+- Bu dosyada eski not metinlerinde gecen "pending" ifadeleri tarihsel baglamdir; guncel karar kaynagi `Status` alani ve latest closeout raporlaridir.
+

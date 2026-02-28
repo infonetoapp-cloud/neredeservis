@@ -10,10 +10,12 @@ import {
   toAuditTargetLabel,
 } from "@/components/admin/admin-audit-panel-helpers";
 import { formatLoadTime } from "@/components/admin/admin-operations-helpers";
+import type { AdminAuditDensity } from "@/components/admin/use-admin-audit-density";
 import type { CompanyAuditLogSummary } from "@/features/company/company-audit-callables";
 
 type AdminAuditRowItemProps = {
   item: CompanyAuditLogSummary;
+  density?: AdminAuditDensity;
   forcedExpanded?: boolean;
 };
 
@@ -33,7 +35,11 @@ function toRelativeTimeLabel(isoTimestamp: string | null): string | null {
   return `${diffDays} gun once`;
 }
 
-export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRowItemProps) {
+export function AdminAuditRowItem({
+  item,
+  density = "comfortable",
+  forcedExpanded = false,
+}: AdminAuditRowItemProps) {
   const targetHref = buildAuditTargetHref(item.targetType, item.targetId);
   const [idCopied, setIdCopied] = useState(false);
   const [rawCopied, setRawCopied] = useState(false);
@@ -41,7 +47,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
   const [showDetails, setShowDetails] = useState(forcedExpanded);
   const shortAuditId = item.auditId.length > 14 ? `${item.auditId.slice(0, 14)}...` : item.auditId;
   const reasonPreview =
-    item.reason && item.reason.length > 96 ? `${item.reason.slice(0, 96)}...` : item.reason;
+    item.reason && item.reason.length > (density === "compact" ? 64 : 96)
+      ? `${item.reason.slice(0, density === "compact" ? 64 : 96)}...`
+      : item.reason;
   const relativeTime = toRelativeTimeLabel(item.createdAt);
 
   const copyAuditId = async () => {
@@ -112,11 +120,11 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
 
   return (
     <div
-      className={`rounded-xl border bg-white px-3 py-2 ${
+      className={`rounded-xl border bg-white ${density === "compact" ? "px-2.5 py-1.5" : "px-3 py-2"} ${
         forcedExpanded ? "border-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]" : "border-line"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className={`flex items-start justify-between ${density === "compact" ? "gap-2" : "gap-3"}`}>
         <div className="text-xs font-semibold text-slate-900">{toAuditEventLabel(item.eventType)}</div>
         <span
           className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
@@ -152,13 +160,15 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
           {shortAuditId}
         </span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className={`flex flex-wrap ${density === "compact" ? "mt-1.5 gap-1.5" : "mt-2 gap-2"}`}>
         <button
           type="button"
           onClick={() => {
             navigateToAuditFilter({ auditEvent: item.eventType });
           }}
-          className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+          className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+            density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+          }`}
         >
           Evente Gore Filtrele
         </button>
@@ -168,7 +178,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
             onClick={() => {
               navigateToAuditFilter({ auditTarget: item.targetType });
             }}
-            className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+            className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+              density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+            }`}
           >
             Hedefe Gore Filtrele
           </button>
@@ -176,7 +188,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
         {targetHref ? (
           <Link
             href={targetHref}
-            className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+            className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+              density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+            }`}
           >
             Hedefe Git
           </Link>
@@ -186,7 +200,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
           onClick={() => {
             void copyAuditId();
           }}
-          className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+          className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+            density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+          }`}
         >
           {idCopied ? "ID Kopyalandi" : "Audit ID Kopyala"}
         </button>
@@ -195,7 +211,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
           onClick={() => {
             setShowDetails((prev) => !prev);
           }}
-          className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+          className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+            density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+          }`}
         >
           {showDetails ? "Detayi Gizle" : "Detayi Ac"}
         </button>
@@ -204,7 +222,9 @@ export function AdminAuditRowItem({ item, forcedExpanded = false }: AdminAuditRo
           onClick={() => {
             void copyItemLink();
           }}
-          className="inline-flex rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
+          className={`inline-flex rounded-lg border border-line bg-slate-50 font-semibold text-slate-700 hover:bg-slate-100 ${
+            density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
+          }`}
         >
           {linkCopied ? "Kayit Linki Kopyalandi" : "Kayit Linki Kopyala"}
         </button>

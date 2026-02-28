@@ -1,7 +1,7 @@
 # App Regression Smoke Checklist (Phase 9 Cutover)
 
-Tarih: 2026-02-27
-Durum: Active
+Tarih: 2026-02-28
+Durum: Active (Quality Closure Verified)
 
 ## 1) Company Context Smoke
 
@@ -37,3 +37,13 @@ Durum: Active
 - Bu checklist "hazirlik" maddesi olarak acildi.
 - Tum satirlar PASS olmadan final cutover onayi verilmez.
 - Kapanis kaniti: `test/features/company/data/company_contract_parser_smoke_test.dart` + `test/features/company/application/company_phase9_acceptance_smoke_test.dart` + route mutation feedback testleri.
+
+## 7) Phase 11 Quality Closure (2026-02-28)
+
+- [x] App deprecation temizligi tamamlandi (`withOpacity`, dropdown `value` deprecationsi).
+- [x] `flutter analyze` temiz: `No issues found`.
+- [x] Regression odakli hedef testler PASS:
+  - `test/features/driver/application/compose_driver_trip_completed_bootstrap_use_case_test.dart`
+  - `test/features/driver/application/compose_driver_trip_history_item_seeds_use_case_test.dart`
+  - `test/features/passenger/application/compose_passenger_trip_history_item_seeds_use_case_test.dart`
+  - `test/ui/route_update_screen_test.dart`

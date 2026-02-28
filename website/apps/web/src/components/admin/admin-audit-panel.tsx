@@ -19,6 +19,7 @@ import {
   toAuditTargetLabel,
 } from "@/components/admin/admin-audit-panel-helpers";
 import { useAdminAuditFilterState } from "@/components/admin/use-admin-audit-filter-state";
+import { useAdminAuditDensity } from "@/components/admin/use-admin-audit-density";
 import { useAdminAuditToolbarState } from "@/components/admin/use-admin-audit-toolbar-state";
 import { buildAdminAuditStatusSummary, formatLoadTime } from "@/components/admin/admin-operations-helpers";
 import type { CompanyAuditLogSummary } from "@/features/company/company-audit-callables";
@@ -33,6 +34,7 @@ type AdminAuditPanelProps = {
 export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
   const [runbookCopied, setRunbookCopied] = useState(false);
   const [runbookCopiedAt, setRunbookCopiedAt] = useState<string | null>(null);
+  const { density: auditDensity, setDensity: setAuditDensity } = useAdminAuditDensity();
   const pathname = usePathname();
   const {
     auditFilter,
@@ -293,6 +295,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
       <AdminAuditToolbar
         filterSummaryLabel={auditFilterSummaryLabel}
         filteredRangeLabel={filteredAuditRangeLabel}
+        density={auditDensity}
         hasLocalOverride={hasLocalOverride}
         hasQueryPreset={hasQueryPreset}
         hasPinnedAuditId={presetAuditId !== null}
@@ -303,6 +306,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
         onResetToUrlPreset={resetToUrlPreset}
         onClearUrlPreset={clearAuditQueryPreset}
         onClearPinnedAuditId={clearPinnedAuditId}
+        onDensityChange={setAuditDensity}
         onCopySummary={() => {
           void copyAuditSummary();
         }}
@@ -335,6 +339,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
         pagedItems={pagedAuditItems}
         totalSortedCount={sortedAuditItems.length}
         auditActionableOnly={auditActionableOnly}
+        density={auditDensity}
         canLoadMore={canLoadMore}
         pinnedAuditId={presetAuditId}
         onLoadMore={() => {

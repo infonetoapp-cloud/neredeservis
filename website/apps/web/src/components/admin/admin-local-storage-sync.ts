@@ -7,6 +7,7 @@ export const ADMIN_STORAGE_KEYS = {
   security: "nsv:web:admin:security-hardening",
   secrets: "nsv:web:admin:secret-hygiene",
   cors: "nsv:web:admin:cors-allowlist",
+  auditDensity: "nsv:web:admin:audit-density",
 } as const;
 
 const ADMIN_STORAGE_SYNC_EVENT = "nsv:web:admin:storage-sync";

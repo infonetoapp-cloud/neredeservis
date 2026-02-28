@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import type { AdminQuickAction } from "@/components/admin/admin-operations-helpers";
 
@@ -13,6 +14,8 @@ export function AdminQuickActionList({
   items,
   badgeCountByHref,
 }: AdminQuickActionListProps) {
+  const router = useRouter();
+
   return (
     <div className="mt-3 space-y-2">
       {items.map((item) => {
@@ -54,6 +57,7 @@ export function AdminQuickActionList({
               key={item.href}
               className="cursor-not-allowed rounded-xl border border-line bg-slate-50 p-3 opacity-80"
               aria-disabled="true"
+              aria-label={`${item.label}: su an kayit yok`}
               title="Bu aksiyon icin su an kayit bulunmuyor."
             >
               {content}
@@ -67,9 +71,10 @@ export function AdminQuickActionList({
               key={item.href}
               type="button"
               onClick={() => {
-                window.location.assign(item.href);
+                router.push(item.href);
               }}
-              className="block w-full rounded-xl border border-line bg-white p-3 text-left transition hover:bg-slate-50"
+              aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayit` : ""}`}
+              className="block w-full rounded-xl border border-line bg-white p-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
               {content}
             </button>
@@ -80,7 +85,8 @@ export function AdminQuickActionList({
           <Link
             key={item.href}
             href={item.href}
-            className="block rounded-xl border border-line bg-white p-3 transition hover:bg-slate-50"
+            aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayit` : ""}`}
+            className="block rounded-xl border border-line bg-white p-3 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             {content}
           </Link>
