@@ -40,9 +40,9 @@ $fvm = "$env:LOCALAPPDATA\Pub\Cache\bin\fvm.bat"
 
 ## APK Build
 ```powershell
-& $fvm flutter build apk --debug --flavor dev -t lib/main_dev.dart
-& $fvm flutter build apk --debug --flavor stg -t lib/main_stg.dart
-& $fvm flutter build apk --debug --flavor prod -t lib/main_prod.dart
+& $fvm flutter build apk --debug --flavor dev -t lib/main_dev.dart --dart-define=APP_FLAVOR=dev --dart-define-from-file=.env.dev
+& $fvm flutter build apk --debug --flavor stg -t lib/main_stg.dart --dart-define=APP_FLAVOR=stg --dart-define-from-file=.env.staging
+& $fvm flutter build apk --debug --flavor prod -t lib/main_prod.dart --dart-define=APP_FLAVOR=prod --dart-define-from-file=.env.prod
 ```
 
 ## Script Kullanimlari
@@ -65,17 +65,20 @@ macOS/Linux:
   - iOS: `ios/Runner/GoogleService-Info.plist`
 - `lib/firebase/firebase_options_*.dart` dosyalari repoda tutulmaz.
 
-## Mapbox Harita Notu
-- Mobilde gercek harita icin `MAPBOX_PUBLIC_TOKEN` (`pk...`) zorunludur.
-- Degeri yerel `.env.*` dosyana ekle:
+## Harita Anahtari Notu
+- Google Maps entegrasyonunda Android icin `GOOGLE_MAPS_API_KEY` gerekir.
+- Adres onerileri (Rota Olustur / Rota Guncelle) icin Google Cloud tarafinda `Places API` etkin olmalidir.
+- `Places API` kapaliysa veya anahtar yetkisizse ekranlar yerel fallback onerileriyle calismaya devam eder.
+- Anahtari `.env.*` dosyasina ekleyebilirsin (dart-define ile Gradle'a aktarilir):
 ```dotenv
-MAPBOX_PUBLIC_TOKEN=pk.XXXXXXXX
-MAPBOX_TILE_CACHE_MB=256
-MAPBOX_STYLE_PRELOAD_ENABLED=true
+GOOGLE_MAPS_API_KEY=AIzaSy...
 ```
-- `MAPBOX_TILE_CACHE_MB`: cihazdaki tile cache ust limiti (MB).
-- `MAPBOX_STYLE_PRELOAD_ENABLED`: acilista style pack preload ac/kapa.
-- `sk...` secret token istemciye konulmaz; sadece server-side Secret Manager'da kalir.
+- Flavor bazli native override istersen `android/gradle.properties` icine su anahtarlari ekleyebilirsin:
+```properties
+GOOGLE_MAPS_API_KEY_DEV=AIzaSy...
+GOOGLE_MAPS_API_KEY_STG=AIzaSy...
+GOOGLE_MAPS_API_KEY_PROD=AIzaSy...
+```
 
 ## Not
 - iOS icin dev/stg/prod scheme/flavor ayrimi bir sonraki adimda (Mac + Xcode) tamamlanacaktir.

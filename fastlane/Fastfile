@@ -1,0 +1,147 @@
+default_platform(:android)
+
+def canonical_flavor(raw_flavor)
+  value = (raw_flavor || "prod").to_s.downcase
+  return "stg" if value == "staging"
+  return "prod" if value == "production"
+  value
+end
+
+def flutter_target_for(flavor)
+  case flavor
+  when "dev"
+    "lib/main_dev.dart"
+  when "stg"
+    "lib/main_stg.dart"
+  when "prod"
+    "lib/main_prod.dart"
+  else
+    UI.user_error!("Unsupported flavor '#{flavor}'. Use dev/stg/prod.")
+  end
+end
+
+def ios_scheme_for(flavor)
+  case flavor
+  when "dev"
+    "dev"
+  when "stg"
+    "stg"
+  when "prod"
+    "prod"
+  else
+    UI.user_error!("Unsupported iOS flavor '#{flavor}'. Use dev/stg/prod.")
+  end
+end
+
+def dart_define_args_for(flavor)
+  args = "--dart-define=APP_FLAVOR=#{flavor}"
+  env_file = ".env.#{flavor}"
+  args += " --dart-define-from-file=#{env_file}" if File.exist?(env_file)
+  args
+end
+
+def android_aab_path(flavor)
+  "build/app/outputs/bundle/#{flavor}Release/app-#{flavor}-release.aab"
+end
+
+platform :android do
+  desc "Build Android beta (default: stg) and optionally upload to Play internal track"
+  lane :beta_android do |options|
+    flavor = canonical_flavor(options[:flavor] || "stg")
+    target = flutter_target_for(flavor)
+    dart_args = dart_define_args_for(flavor)
+
+    sh("flutter pub get")
+    sh("flutter build appbundle --flavor #{flavor} -t #{target} #{dart_args}")
+
+    unless ENV["PLAY_UPLOAD"] == "1"
+      UI.important("PLAY_UPLOAD!=1, only local build generated: #{android_aab_path(flavor)}")
+      next
+    end
+
+    supply(
+      aab: android_aab_path(flavor),
+      track: options[:track] || "internal",
+      package_name: ENV["PLAY_PACKAGE_NAME"] || "com.neredeservis.app",
+      json_key: ENV["SUPPLY_JSON_KEY"],
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: false
+    )
+  end
+
+  desc "Build Android production bundle and optionally upload to Play production track"
+  lane :release_android do |options|
+    flavor = canonical_flavor(options[:flavor] || "prod")
+    target = flutter_target_for(flavor)
+    dart_args = dart_define_args_for(flavor)
+
+    sh("flutter pub get")
+    sh("flutter build appbundle --release --flavor #{flavor} -t #{target} #{dart_args}")
+
+    unless ENV["PLAY_UPLOAD"] == "1"
+      UI.important("PLAY_UPLOAD!=1, only local release build generated: #{android_aab_path(flavor)}")
+      next
+    end
+
+    supply(
+      aab: android_aab_path(flavor),
+      track: options[:track] || "production",
+      package_name: ENV["PLAY_PACKAGE_NAME"] || "com.neredeservis.app",
+      json_key: ENV["SUPPLY_JSON_KEY"],
+      rollout: options[:rollout] || 0.05,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: false
+    )
+  end
+end
+
+platform :ios do
+  desc "Build iOS beta archive (default: stg) and optionally upload to TestFlight"
+  lane :beta_ios do |options|
+    flavor = canonical_flavor(options[:flavor] || "stg")
+    scheme = ios_scheme_for(flavor)
+    target = flutter_target_for(flavor)
+    dart_args = dart_define_args_for(flavor)
+
+    sh("flutter pub get")
+    sh("flutter build ipa --flavor #{scheme} -t #{target} #{dart_args}")
+
+    unless ENV["IOS_UPLOAD"] == "1"
+      UI.important("IOS_UPLOAD!=1, only local IPA build generated under build/ios/ipa")
+      next
+    end
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+  end
+
+  desc "Build iOS production archive and optionally submit to App Store Connect"
+  lane :release_ios do |options|
+    flavor = canonical_flavor(options[:flavor] || "prod")
+    scheme = ios_scheme_for(flavor)
+    target = flutter_target_for(flavor)
+    dart_args = dart_define_args_for(flavor)
+
+    sh("flutter pub get")
+    sh("flutter build ipa --release --flavor #{scheme} -t #{target} #{dart_args}")
+
+    unless ENV["IOS_UPLOAD"] == "1"
+      UI.important("IOS_UPLOAD!=1, only local release IPA build generated under build/ios/ipa")
+      next
+    end
+
+    deliver(
+      submit_for_review: options[:submit_for_review] || false,
+      automatic_release: false,
+      force: true,
+      skip_metadata: true,
+      skip_screenshots: true
+    )
+  end
+end

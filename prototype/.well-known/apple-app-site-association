@@ -1,0 +1,25 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.neredeservis.app",
+        "paths": [
+          "/r/*"
+        ]
+      },
+      {
+        "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.neredeservis.app.stg",
+        "paths": [
+          "/r/*"
+        ]
+      },
+      {
+        "appID": "REPLACE_WITH_APPLE_TEAM_ID.com.neredeservis.app.dev",
+        "paths": [
+          "/r/*"
+        ]
+      }
+    ]
+  }
+}

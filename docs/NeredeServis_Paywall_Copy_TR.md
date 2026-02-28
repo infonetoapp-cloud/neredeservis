@@ -1,4 +1,4 @@
-# NeredeServis - Paywall Copy Set (TR, Store Uyumlu)
+﻿# NeredeServis - Paywall Copy Set (TR, Store Uyumlu)
 
 **Versiyon:** v1.0  
 **Tarih:** 2026-02-16  
@@ -121,7 +121,7 @@
 | Durum | Mesaj |
 |---|---|
 | Basari (aktif bulundu) | `Satin alimin geri yuklendi. Premium aktif.` |
-| Basari (kayit yok) | `Geri yüklenecek satin alim bulunamadi.` |
+| Basari (kayit yok) | `Geri yuklenecek satin alim bulunamadi.` |
 | Hata | `Geri yukleme su an tamamlanamadi. Lutfen tekrar dene.` |
 
 Buton etiketleri:
@@ -213,4 +213,5 @@ Alternatif guvenli ifadeler:
 - Harici odeme yonlendiren metin yok.
 - Hesap silme akisinda aktif abonelik varsa interceptor metni + `Manage Subscription` linki zorunlu gorunur.
 - Android billing akisi (Adapty SDK + store billing) testte sorunsuz.
-- UTF-8/TR karakterler (`ı, ş, ğ, ü, ö, ç`) paywall ve store metinlerinde bozulmuyor.
+- UTF-8/TR karakterler (`Ä±, ÅŸ, ÄŸ, Ã¼, Ã¶, Ã§`) paywall ve store metinlerinde bozulmuyor.
+

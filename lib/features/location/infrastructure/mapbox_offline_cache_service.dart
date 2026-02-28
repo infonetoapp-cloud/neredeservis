@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
+const _defaultMapStyleUri = 'standard';
 
 class MapboxCachePoint {
   const MapboxCachePoint({
@@ -17,7 +18,7 @@ class MapboxOfflineCacheConfig {
   const MapboxOfflineCacheConfig({
     this.tileCacheMb = 256,
     this.stylePreloadEnabled = true,
-    this.styleUri = MapboxStyles.STANDARD,
+    this.styleUri = _defaultMapStyleUri,
     this.tileRegionId = 'neredeservis-frequent-corridor-v1',
     this.minZoom = 8,
     this.maxZoom = 16,
@@ -59,46 +60,18 @@ abstract class MapboxOfflineCacheBackend {
 }
 
 class MapboxSdkOfflineCacheBackend implements MapboxOfflineCacheBackend {
-  OfflineManager? _offlineManager;
-  TileStore? _tileStore;
-  Future<void>? _setupFuture;
-
-  Future<void> _ensureSetup() async {
-    _setupFuture ??= _setup();
-    await _setupFuture;
-  }
-
-  Future<void> _setup() async {
-    _offlineManager = await OfflineManager.create();
-    _tileStore = await TileStore.createDefault();
-  }
+  @override
+  Future<void> setTileStoreUsageModeReadAndUpdate() async {}
 
   @override
-  Future<void> setTileStoreUsageModeReadAndUpdate() async {
-    MapboxMapsOptions.setTileStoreUsageMode(TileStoreUsageMode.READ_AND_UPDATE);
-  }
-
-  @override
-  Future<void> setDiskQuotaBytes(int bytes) async {
-    await _ensureSetup();
-    _tileStore?.setDiskQuota(bytes);
-  }
+  Future<void> setDiskQuotaBytes(int bytes) async {}
 
   @override
   Future<void> preloadStylePack({
     required String styleUri,
     required bool acceptExpired,
     required Map<String, Object?> metadata,
-  }) async {
-    await _ensureSetup();
-    final loadOptions = StylePackLoadOptions(
-      glyphsRasterizationMode:
-          GlyphsRasterizationMode.IDEOGRAPHS_RASTERIZED_LOCALLY,
-      metadata: metadata,
-      acceptExpired: acceptExpired,
-    );
-    await _offlineManager?.loadStylePack(styleUri, loadOptions, null);
-  }
+  }) async {}
 
   @override
   Future<void> preloadTileRegion({
@@ -109,28 +82,7 @@ class MapboxSdkOfflineCacheBackend implements MapboxOfflineCacheBackend {
     required int maxZoom,
     required bool acceptExpired,
     required Map<String, Object?> metadata,
-  }) async {
-    await _ensureSetup();
-    final loadOptions = TileRegionLoadOptions(
-      geometry: geometry,
-      descriptorsOptions: <TilesetDescriptorOptions?>[
-        TilesetDescriptorOptions(
-          styleURI: styleUri,
-          minZoom: minZoom,
-          maxZoom: maxZoom,
-          stylePackOptions: StylePackLoadOptions(
-            glyphsRasterizationMode:
-                GlyphsRasterizationMode.IDEOGRAPHS_RASTERIZED_LOCALLY,
-            acceptExpired: acceptExpired,
-          ),
-        ),
-      ],
-      metadata: metadata,
-      acceptExpired: acceptExpired,
-      networkRestriction: NetworkRestriction.NONE,
-    );
-    await _tileStore?.loadTileRegion(regionId, loadOptions, null);
-  }
+  }) async {}
 }
 
 class MapboxOfflineCacheService {

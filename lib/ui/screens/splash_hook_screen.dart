@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../components/buttons/amber_buttons.dart';
-import '../tokens/color_tokens.dart';
+import '../components/buttons/core_buttons.dart';
+import '../tokens/core_colors.dart';
+import '../tokens/core_radii.dart';
+import '../tokens/core_spacing.dart';
 import '../tokens/cta_tokens.dart';
 import '../tokens/icon_tokens.dart';
-import '../tokens/radius_tokens.dart';
-import '../tokens/spacing_tokens.dart';
 
 class SplashHookScreen extends StatelessWidget {
   const SplashHookScreen({
@@ -43,7 +43,7 @@ class SplashHookScreen extends StatelessWidget {
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: AmberSpacingTokens.screenPadding,
+              padding: CoreSpacing.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -64,45 +64,45 @@ class SplashHookScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space8),
+                  const SizedBox(height: CoreSpacing.space8),
                   _VideoReadyPosterShell(
                     posterAssetPath: posterAssetPath,
                     policy: policy,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space20),
+                  const SizedBox(height: CoreSpacing.space20),
                   Text(
-                    'Servis nerede? Tek bakista.',
+                    'Servis nerede? Tek bakışta.',
                     style: textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space8),
+                  const SizedBox(height: CoreSpacing.space8),
                   Text(
-                    'Sofor yayinini acinca yolcu tek ekranda ETA ve konumu gorur.',
+                    'Şoför yayınını açınca yolcu tek ekranda ETA ve konumu görür.',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: AmberColorTokens.ink700,
+                      color: CoreColors.ink700,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space16),
+                  const SizedBox(height: CoreSpacing.space16),
                   Text(
                     policy.debugLabel,
                     key: const Key('splash_policy_label'),
                     style: textTheme.bodySmall?.copyWith(
-                      color: AmberColorTokens.ink700,
+                      color: CoreColors.ink700,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space24),
-                  AmberPrimaryButton(
-                    label: AmberCtaTokens.continueLabel,
+                  const SizedBox(height: CoreSpacing.space24),
+                  CorePrimaryButton(
+                    label: CoreCtaTokens.continueLabel,
                     onPressed: onContinueTap,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space12),
+                  const SizedBox(height: CoreSpacing.space12),
                   Text(
-                    'Splash / Router Skeleton ($flavorLabel)',
+                    'Splash / Router İskeleti ($flavorLabel)',
                     textAlign: TextAlign.center,
                     style: textTheme.bodySmall?.copyWith(
-                      color: AmberColorTokens.ink700,
+                      color: CoreColors.ink700,
                     ),
                   ),
                 ],
@@ -129,7 +129,7 @@ class _VideoReadyPosterShell extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: ClipRRect(
-        borderRadius: AmberRadiusTokens.radius20,
+        borderRadius: CoreRadii.radius20,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
@@ -156,22 +156,22 @@ class _VideoReadyPosterShell extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: AmberSpacingTokens.space12,
-              right: AmberSpacingTokens.space12,
-              bottom: AmberSpacingTokens.space12,
+              left: CoreSpacing.space12,
+              right: CoreSpacing.space12,
+              bottom: CoreSpacing.space12,
               child: Row(
                 children: <Widget>[
                   const Icon(
-                    AmberIconTokens.mute,
+                    CoreIconTokens.mute,
                     size: 16,
-                    color: AmberColorTokens.surface0,
+                    color: CoreColors.surface0,
                   ),
-                  const SizedBox(width: AmberSpacingTokens.space8),
+                  const SizedBox(width: CoreSpacing.space8),
                   Expanded(
                     child: Text(
                       policy.videoHint,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AmberColorTokens.surface0,
+                            color: CoreColors.surface0,
                           ),
                     ),
                   ),
@@ -197,15 +197,15 @@ class _PosterFallback extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           const Icon(
-            AmberIconTokens.playCircle,
+            CoreIconTokens.playCircle,
             size: 48,
-            color: AmberColorTokens.amber500,
+            color: CoreColors.amber500,
           ),
-          const SizedBox(height: AmberSpacingTokens.space8),
+          const SizedBox(height: CoreSpacing.space8),
           Text(
-            'Video hazir degil, poster modunda devam.',
+            'Video hazır değil, poster modunda devam.',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AmberColorTokens.ink900,
+                  color: CoreColors.ink900,
                 ),
             textAlign: TextAlign.center,
           ),
@@ -226,16 +226,16 @@ class SplashPlaybackPolicy {
 
   String get debugLabel {
     if (quickTransition) {
-      return 'Hizli gecis modu aktif.';
+      return 'Hızlı geçiş modu aktif.';
     }
-    return 'Autoplay sessiz, ilk acilista max $maxLoopsFirstOpen dongu.';
+      return 'Autoplay sessiz, ilk açılışta max $maxLoopsFirstOpen döngü.';
   }
 
   String get videoHint {
     if (quickTransition) {
-      return 'Sonraki acilislarda hizli gecis.';
+      return 'Sonraki açılışlarda hızlı geçiş.';
     }
-    return 'Ilk acilis politikasi: sessiz autoplay, max 1 dongu.';
+    return 'İlk açılış politikası: sessiz autoplay, max 1 döngü.';
   }
 
   static bool _firstOpenConsumed = false;

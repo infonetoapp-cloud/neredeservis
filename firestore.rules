@@ -29,6 +29,35 @@ service cloud.firestore {
         request.auth.uid in routeDoc(routeId).authorizedDriverIds;
     }
 
+    function isRouteReader(routeId) {
+      return isRouteMember(routeId) || isRouteDriver(routeId) || isAuthorizedDriver(routeId);
+    }
+
+    function currentRouteAllowsDriverRead() {
+      return signedIn() && (
+        resource.data.driverId == request.auth.uid ||
+        (
+          resource.data.authorizedDriverIds is list &&
+          request.auth.uid in resource.data.authorizedDriverIds
+        ) ||
+        (
+          resource.data.memberIds is list &&
+          request.auth.uid in resource.data.memberIds
+        )
+      );
+    }
+
+    function conversationDoc(conversationId) {
+      return get(/databases/$(database)/documents/trip_conversations/$(conversationId)).data;
+    }
+
+    function isConversationParticipant(conversationId) {
+      return signedIn() &&
+        conversationDoc(conversationId) != null &&
+        conversationDoc(conversationId).participantUids is list &&
+        request.auth.uid in conversationDoc(conversationId).participantUids;
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid);
       allow write, delete: if false;
@@ -45,12 +74,25 @@ service cloud.firestore {
     }
 
     match /routes/{routeId} {
-      allow read: if isRouteMember(routeId);
+      // Driver "Seferlerim" queries read routes by driverId / authorizedDriverIds.
+      // These checks must be query-friendly (resource.data based), not routeDoc(get()) only.
+      allow get: if currentRouteAllowsDriverRead();
+      allow list: if signedIn() && (
+        resource.data.driverId == request.auth.uid ||
+        (
+          'authorizedDriverIds' in resource.data &&
+          request.auth.uid in resource.data.authorizedDriverIds
+        ) ||
+        (
+          'memberIds' in resource.data &&
+          request.auth.uid in resource.data.memberIds
+        )
+      );
       allow write: if false;
     }
 
     match /routes/{routeId}/stops/{stopId} {
-      allow read: if isRouteMember(routeId);
+      allow read: if isRouteReader(routeId);
       allow write: if false;
     }
 
@@ -68,21 +110,34 @@ service cloud.firestore {
     }
 
     match /trips/{tripId} {
-      allow read: if signedIn() &&
-        routeDoc(resource.data.routeId).memberIds is list &&
-        request.auth.uid in routeDoc(resource.data.routeId).memberIds;
+      allow read: if signedIn() && (
+        resource.data.driverId == request.auth.uid ||
+        isRouteReader(resource.data.routeId)
+      );
       allow write: if false;
     }
 
     match /announcements/{announcementId} {
-      allow read: if signedIn() &&
-        routeDoc(resource.data.routeId).memberIds is list &&
-        request.auth.uid in routeDoc(resource.data.routeId).memberIds;
+      allow read: if signedIn() && isRouteReader(resource.data.routeId);
+      allow write: if false;
+    }
+
+    match /trip_conversations/{conversationId} {
+      allow read: if isConversationParticipant(conversationId);
+      allow write: if false;
+    }
+
+    match /trip_conversations/{conversationId}/messages/{messageId} {
+      allow read: if isConversationParticipant(conversationId);
       allow write: if false;
     }
 
     match /guest_sessions/{sessionId} {
-      allow read: if signedIn() && request.auth.uid == resource.data.guestUid;
+      allow read: if signedIn() && (
+        request.auth.uid == resource.data.guestUid ||
+        isRouteDriver(resource.data.routeId) ||
+        isAuthorizedDriver(resource.data.routeId)
+      );
       allow write: if false;
     }
 

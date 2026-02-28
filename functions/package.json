@@ -8,16 +8,18 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "check:file-size": "node scripts/check-file-size.mjs",
     "clean": "node -e \"require('fs').rmSync('lib',{ recursive: true, force: true })\"",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "deploy": "npm run build && firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "lint": "eslint --max-warnings=0 \"src/**/*.ts\"",
+    "lint": "npm run check:file-size && eslint --max-warnings=0 \"src/**/*.ts\"",
     "lint:fix": "eslint --fix \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
-    "test:rules:unit": "npm run build && node --test rules-tests/*.test.mjs"
+    "test:rules:unit": "npm run build && node --test rules-tests/*.test.mjs",
+    "test:phase6:acceptance": "npm run build && firebase emulators:exec --only firestore,database \"node --test rules-tests/phase6_acceptance.test.mjs\""
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

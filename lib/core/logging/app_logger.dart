@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../security/pii_redactor.dart';
+import 'runtime_log_buffer.dart';
 
 enum LogLevel {
   debug,
@@ -79,6 +80,10 @@ class DebugAppLogger extends AppLogger {
         ? ''
         : ' | error=${PiiRedactor.redactText(error.toString())}';
     final stackPayload = stackTrace == null ? '' : ' | stack=$stackTrace';
+    RuntimeLogBuffer.instance.add(
+      level: level.name,
+      message: '$sanitizedMessage$contextPayload$errorPayload',
+    );
     _sink(
       '[${level.name.toUpperCase()}] '
       '$sanitizedMessage$contextPayload$errorPayload$stackPayload',

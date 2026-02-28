@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../components/buttons/amber_buttons.dart';
-import '../tokens/color_tokens.dart';
+import '../components/buttons/black_action_button.dart';
+import '../tokens/core_colors.dart';
+import '../tokens/core_radii.dart';
+import '../tokens/core_spacing.dart';
 import '../tokens/cta_tokens.dart';
+import '../tokens/form_validation_tokens.dart';
 import '../tokens/icon_tokens.dart';
-import '../tokens/radius_tokens.dart';
-import '../tokens/spacing_tokens.dart';
 
 enum JoinRole {
   unknown,
@@ -24,6 +25,7 @@ JoinRole joinRoleFromQuery(String? rawRole) {
       return JoinRole.guest;
     case 'driver':
     case 'sofor':
+    case 'şoför':
       return JoinRole.driver;
     default:
       return JoinRole.unknown;
@@ -37,12 +39,24 @@ class JoinScreen extends StatefulWidget {
     this.onJoinByCode,
     this.onScanQrTap,
     this.onContinueDriverTap,
+    this.showAuthCta = false,
+    this.authCtaLabel = 'Giriş yap veya üye ol',
+    this.onAuthTap,
+    this.showRoleChangeCta = true,
+    this.roleChangeCtaLabel = 'Rolü değiştir',
+    this.onRoleChangeTap,
   });
 
   final JoinRole selectedRole;
   final Future<void> Function(JoinBySrvFormInput input)? onJoinByCode;
   final VoidCallback? onScanQrTap;
   final VoidCallback? onContinueDriverTap;
+  final bool showAuthCta;
+  final String authCtaLabel;
+  final VoidCallback? onAuthTap;
+  final bool showRoleChangeCta;
+  final String roleChangeCtaLabel;
+  final VoidCallback? onRoleChangeTap;
 
   @override
   State<JoinScreen> createState() => _JoinScreenState();
@@ -81,6 +95,7 @@ class _JoinScreenState extends State<JoinScreen> {
   }
 
   Future<void> _submitJoinCode() async {
+    final onJoinByCode = widget.onJoinByCode;
     final isGuestJoin = widget.selectedRole == JoinRole.guest;
     final normalizedCode = _normalizeSrvCode(_srvCodeController.text);
     final name = _nameController.text.trim();
@@ -92,27 +107,31 @@ class _JoinScreenState extends State<JoinScreen> {
     String? virtualStopLabel;
 
     if (normalizedCode.isEmpty) {
-      _setError('SRV kodu gir.');
+      _setError(CoreFormValidationTokens.srvCodeRequired);
       return;
     }
     if (!_isSrvCodeFormatValid(normalizedCode)) {
-      _setError('SRV kodu 6 karakter olmali (ornek: 8K2Q7M).');
+      _setError(CoreFormValidationTokens.srvCodeFormat);
+      return;
+    }
+    if (isGuestJoin && name.isNotEmpty && name.length < 2) {
+      _setError(CoreFormValidationTokens.fullNameMin2);
       return;
     }
     if (!isGuestJoin && name.length < 2) {
-      _setError('Ad Soyad en az 2 karakter olmali.');
+      _setError(CoreFormValidationTokens.fullNameMin2);
       return;
     }
     if (!isGuestJoin && phone != null && phone.length < 7) {
-      _setError('Telefon en az 7 karakter olmali.');
+      _setError(CoreFormValidationTokens.phoneMin7);
       return;
     }
     if (!isGuestJoin && boardingArea.isEmpty) {
-      _setError('Binis alani zorunlu.');
+      _setError(CoreFormValidationTokens.boardingAreaRequired);
       return;
     }
     if (!isGuestJoin && !_isValidTime(notificationTime)) {
-      _setError('Bildirim saati HH:mm formatinda olmali.');
+      _setError(CoreFormValidationTokens.notificationTimeFormat);
       return;
     }
     if (!isGuestJoin && _useVirtualStop) {
@@ -121,11 +140,11 @@ class _JoinScreenState extends State<JoinScreen> {
       final virtualStopLng =
           double.tryParse(_virtualStopLngController.text.trim());
       if (virtualStopLat == null || virtualStopLng == null) {
-        _setError('Sanal durak koordinatlari sayisal olmali.');
+        _setError(CoreFormValidationTokens.virtualStopCoordinatesNumeric);
         return;
       }
       if (!_isWithinLatLng(virtualStopLat, virtualStopLng)) {
-        _setError('Sanal durak koordinatlari gecerli aralikta olmali.');
+        _setError(CoreFormValidationTokens.virtualStopCoordinatesRange);
         return;
       }
       virtualStop = JoinVirtualStopInput(
@@ -136,9 +155,14 @@ class _JoinScreenState extends State<JoinScreen> {
       virtualStopLabel = labelRaw.isEmpty ? null : labelRaw;
     }
 
+    if (onJoinByCode == null) {
+      _setError(
+          'Katılım işlemi şu anda kullanılamıyor. Lütfen tekrar deneyin.');
+      return;
+    }
     final input = JoinBySrvFormInput(
       srvCode: normalizedCode,
-      name: isGuestJoin ? 'Misafir' : name,
+      name: name,
       phone: isGuestJoin ? null : phone,
       showPhoneToDriver: _showPhoneToDriver,
       boardingArea: isGuestJoin ? 'guest' : boardingArea,
@@ -152,7 +176,11 @@ class _JoinScreenState extends State<JoinScreen> {
       _formError = null;
     });
     try {
-      await widget.onJoinByCode?.call(input);
+      await onJoinByCode(input);
+    } catch (error) {
+      if (mounted) {
+        _setError(_formatSubmitErrorMessage(error));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -166,6 +194,20 @@ class _JoinScreenState extends State<JoinScreen> {
     setState(() {
       _formError = message;
     });
+  }
+
+  String _formatSubmitErrorMessage(Object error) {
+    final raw = error.toString().trim();
+    if (raw.isEmpty) {
+      return 'Katılım işlemi tamamlanamadı. Lütfen tekrar deneyin.';
+    }
+    const exceptionPrefix = 'Exception:';
+    final normalized = raw.startsWith(exceptionPrefix)
+        ? raw.substring(exceptionPrefix.length).trim()
+        : raw;
+    return normalized.isEmpty
+        ? 'Katılım işlemi tamamlanamadı. Lütfen tekrar deneyin.'
+        : normalized;
   }
 
   bool _isSrvCodeFormatValid(String value) {
@@ -188,57 +230,206 @@ class _JoinScreenState extends State<JoinScreen> {
     return normalized.replaceAll(RegExp(r'[^A-Z0-9]'), '');
   }
 
+  Future<void> _showGuestHelpSheet() async {
+    final textTheme = Theme.of(context).textTheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: CoreColors.surface0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              CoreSpacing.space16,
+              CoreSpacing.space16,
+              CoreSpacing.space16,
+              CoreSpacing.space16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'Misafir Modu Nasıl Çalışır?',
+                  style: textTheme.titleLarge,
+                ),
+                const SizedBox(height: CoreSpacing.space8),
+                Text(
+                  'Misafir modu, uygulamayı günübirlik veya kısa süreli kullanacak kişiler için hızlı takip seçeneğidir.',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: CoreColors.ink700,
+                  ),
+                ),
+                const SizedBox(height: CoreSpacing.space12),
+                const _GuestHelpStep(
+                  number: 1,
+                  text: 'Şoförden veya kurumdan SRV kodunu alın.',
+                ),
+                const _GuestHelpStep(
+                  number: 2,
+                  text: 'Kodu girin ya da QR kodunu tarayın.',
+                ),
+                const _GuestHelpStep(
+                  number: 3,
+                  text: 'Canlı konumu ve varış bilgisini anında takip edin.',
+                ),
+                const SizedBox(height: CoreSpacing.space12),
+                Text(
+                  'Bu mod profil oluşturmadan yalnızca izleme deneyimi sunar.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: CoreColors.ink700,
+                  ),
+                ),
+                const SizedBox(height: CoreSpacing.space12),
+                BlackPrimaryButton(
+                  label: 'Anladım',
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  ButtonStyle _linkButtonStyle() {
+    return TextButton.styleFrom(
+      foregroundColor: const Color(0xFF0E0E0E),
+      textStyle: const TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final navigator = Navigator.of(context);
+    final canNavigateBack = navigator.canPop();
+    final canFallbackToRoleSelect = widget.onRoleChangeTap != null;
+    final isGuestJoin = widget.selectedRole == JoinRole.guest;
     final roleLabel = switch (widget.selectedRole) {
-      JoinRole.driver => 'Sofor modu secili',
-      JoinRole.passenger => 'Yolcu modu secili',
-      JoinRole.guest => 'Misafir modu secili',
-      JoinRole.unknown => 'Rol secimi bekleniyor',
+      JoinRole.driver => 'Şoför modu seçili',
+      JoinRole.passenger => 'Yolcu modu seçili',
+      JoinRole.guest => 'Misafir modu seçili',
+      JoinRole.unknown => 'Rol seçimi bekleniyor',
     };
 
     return Scaffold(
+      floatingActionButton: isGuestJoin
+          ? FloatingActionButton.extended(
+              onPressed: _showGuestHelpSheet,
+              backgroundColor: CoreColors.surface0,
+              foregroundColor: CoreColors.ink900,
+              icon: const Icon(CoreIconTokens.info, size: 18),
+              label: const Text('Yardım'),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: <Color>[
-              Color(0xFFFFF3E7),
-              Color(0xFFF7F8F5),
+              Color(0xFFEAF8F2),
+              Color(0xFFF3F8F5),
+              Color(0xFFFFFFFF),
             ],
           ),
         ),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: AmberSpacingTokens.screenPadding,
+              padding: CoreSpacing.screenPadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      if (canNavigateBack || canFallbackToRoleSelect)
+                        IconButton(
+                          onPressed: _submitting
+                              ? null
+                              : () {
+                                  if (canNavigateBack) {
+                                    navigator.pop();
+                                    return;
+                                  }
+                                  widget.onRoleChangeTap?.call();
+                                },
+                          tooltip: 'Geri',
+                          icon: const Icon(CoreIconTokens.back),
+                        ),
+                      Expanded(
+                        child: Text(
+                          'Katılım',
+                          style: textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: CoreSpacing.space8),
                   Text(
-                    'Servise Katil',
+                    'Servise Katıl',
                     style: textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space8),
+                  const SizedBox(height: CoreSpacing.space8),
                   Text(
-                    'SRV kodu veya QR ile hizli katilim.',
+                    isGuestJoin
+                        ? 'Günübirlik veya kısa süreli kullanım için SRV kodunu girin ya da QR kodunu tarayın.'
+                        : 'SRV kodu veya QR ile hızlı katılım.',
                     style: textTheme.bodyMedium?.copyWith(
-                      color: AmberColorTokens.ink700,
+                      color: CoreColors.ink700,
                     ),
                   ),
-                  const SizedBox(height: AmberSpacingTokens.space8),
-                  _RoleBadge(label: roleLabel),
-                  const SizedBox(height: AmberSpacingTokens.space16),
+                  if (!isGuestJoin) ...<Widget>[
+                    const SizedBox(height: CoreSpacing.space8),
+                    _RoleBadge(label: roleLabel),
+                  ],
+                  if (widget.showAuthCta) ...<Widget>[
+                    const SizedBox(height: CoreSpacing.space8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _submitting ? null : widget.onAuthTap,
+                        style: _linkButtonStyle(),
+                        child: Text(widget.authCtaLabel),
+                      ),
+                    ),
+                  ],
+                  if (widget.showRoleChangeCta) ...<Widget>[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _submitting ? null : widget.onRoleChangeTap,
+                        style: _linkButtonStyle(),
+                        child: Text(widget.roleChangeCtaLabel),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: CoreSpacing.space16),
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AmberColorTokens.surface0,
-                      borderRadius: AmberRadiusTokens.radius20,
-                      border: Border.all(color: AmberColorTokens.line200),
+                      color: CoreColors.surface0,
+                      borderRadius: CoreRadii.radius20,
+                      border: Border.all(color: CoreColors.line200),
+                      boxShadow: const <BoxShadow>[
+                        BoxShadow(
+                          color: Color(0x120A1411),
+                          blurRadius: 12,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
                     ),
                     child: Padding(
-                      padding: AmberSpacingTokens.cardPadding,
+                      padding: CoreSpacing.cardPadding,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
@@ -246,15 +437,15 @@ class _JoinScreenState extends State<JoinScreen> {
                             'SRV Kodu',
                             style: textTheme.titleMedium,
                           ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
+                          const SizedBox(height: CoreSpacing.space8),
                           TextField(
                             controller: _srvCodeController,
                             enabled: !_submitting,
                             textInputAction: TextInputAction.done,
                             decoration: InputDecoration(
-                              hintText: 'Orn: 8K2Q7M',
+                              hintText: 'Örn: 8K2Q7M',
                               errorText: _formError,
-                              prefixIcon: const Icon(AmberIconTokens.qrCode),
+                              prefixIcon: const Icon(CoreIconTokens.qrCode),
                             ),
                             onChanged: (_) {
                               if (_formError != null) {
@@ -267,15 +458,23 @@ class _JoinScreenState extends State<JoinScreen> {
                           ),
                           if (widget.selectedRole ==
                               JoinRole.guest) ...<Widget>[
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             Text(
-                              'Misafir takipte yalnizca SRV kodu yeterli.',
+                              'Misafir kullanımında SRV kodu yeterlidir. İstersen adını ekleyip şoförle chat\'te görünür olabilirsin.',
                               style: textTheme.bodyMedium?.copyWith(
-                                color: AmberColorTokens.ink700,
+                                color: CoreColors.ink700,
+                              ),
+                            ),
+                            const SizedBox(height: CoreSpacing.space8),
+                            TextField(
+                              controller: _nameController,
+                              enabled: !_submitting,
+                              decoration: const InputDecoration(
+                                labelText: 'Adınız (opsiyonel)',
                               ),
                             ),
                           ] else ...<Widget>[
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             TextField(
                               controller: _nameController,
                               enabled: !_submitting,
@@ -283,7 +482,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                 labelText: 'Ad Soyad',
                               ),
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             TextField(
                               controller: _phoneController,
                               enabled: !_submitting,
@@ -292,15 +491,15 @@ class _JoinScreenState extends State<JoinScreen> {
                                 labelText: 'Telefon (opsiyonel)',
                               ),
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             TextField(
                               controller: _boardingAreaController,
                               enabled: !_submitting,
                               decoration: const InputDecoration(
-                                labelText: 'Binis Alani',
+                                labelText: 'Biniş Alanı',
                               ),
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             TextField(
                               controller: _notificationTimeController,
                               enabled: !_submitting,
@@ -308,7 +507,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                 labelText: 'Bildirim Saati (HH:mm)',
                               ),
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             SwitchListTile.adaptive(
                               contentPadding: EdgeInsets.zero,
                               value: _useVirtualStop,
@@ -322,11 +521,11 @@ class _JoinScreenState extends State<JoinScreen> {
                               title:
                                   const Text('Sanal Durak kullan (opsiyonel)'),
                               subtitle: const Text(
-                                'Sanal durak yoksa Binis Alani ile devam edilir.',
+                                'Sanal durak yoksa Biniş Alanı ile devam edilir.',
                               ),
                             ),
                             if (_useVirtualStop) ...<Widget>[
-                              const SizedBox(height: AmberSpacingTokens.space8),
+                              const SizedBox(height: CoreSpacing.space8),
                               TextField(
                                 controller: _virtualStopLabelController,
                                 enabled: !_submitting,
@@ -334,7 +533,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                   labelText: 'Sanal Durak Etiketi (opsiyonel)',
                                 ),
                               ),
-                              const SizedBox(height: AmberSpacingTokens.space8),
+                              const SizedBox(height: CoreSpacing.space8),
                               Row(
                                 children: <Widget>[
                                   Expanded(
@@ -351,8 +550,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(
-                                      width: AmberSpacingTokens.space8),
+                                  const SizedBox(width: CoreSpacing.space8),
                                   Expanded(
                                     child: TextField(
                                       controller: _virtualStopLngController,
@@ -370,7 +568,7 @@ class _JoinScreenState extends State<JoinScreen> {
                                 ],
                               ),
                             ],
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             SwitchListTile.adaptive(
                               contentPadding: EdgeInsets.zero,
                               value: _showPhoneToDriver,
@@ -381,19 +579,20 @@ class _JoinScreenState extends State<JoinScreen> {
                                         _showPhoneToDriver = value;
                                       });
                                     },
-                              title: const Text('Telefonumu sofor gorebilsin'),
+                              title: const Text('Telefonumu şoför görebilsin'),
                             ),
                           ],
-                          const SizedBox(height: AmberSpacingTokens.space12),
-                          AmberPrimaryButton(
+                          const SizedBox(height: CoreSpacing.space12),
+                          BlackPrimaryButton(
                             label: _submitting
-                                ? 'Isleniyor...'
-                                : AmberCtaTokens.joinByCode,
+                                ? 'İşleniyor...'
+                                : CoreCtaTokens.joinByCode,
                             onPressed: _submitting ? null : _submitJoinCode,
                           ),
-                          const SizedBox(height: AmberSpacingTokens.space8),
-                          AmberSecondaryButton(
+                          const SizedBox(height: CoreSpacing.space8),
+                          BlackOutlineButton(
                             label: 'QR Tara',
+                            icon: Icons.qr_code_scanner_rounded,
                             onPressed: _submitting ? null : widget.onScanQrTap,
                           ),
                         ],
@@ -401,32 +600,40 @@ class _JoinScreenState extends State<JoinScreen> {
                     ),
                   ),
                   if (widget.selectedRole == JoinRole.driver) ...<Widget>[
-                    const SizedBox(height: AmberSpacingTokens.space12),
+                    const SizedBox(height: CoreSpacing.space12),
                     DecoratedBox(
                       decoration: BoxDecoration(
-                        color: AmberColorTokens.surface0,
-                        borderRadius: AmberRadiusTokens.radius20,
-                        border: Border.all(color: AmberColorTokens.line200),
+                        color: CoreColors.surface0,
+                        borderRadius: CoreRadii.radius20,
+                        border: Border.all(color: CoreColors.line200),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x120A1411),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
                       ),
                       child: Padding(
-                        padding: AmberSpacingTokens.cardPadding,
+                        padding: CoreSpacing.cardPadding,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
                             Text(
-                              'Sofor hizli gecis',
+                              'Şoför hızlı geçiş',
                               style: textTheme.titleMedium,
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space8),
+                            const SizedBox(height: CoreSpacing.space8),
                             Text(
-                              'Bu cihaz sofordeyse dogrudan panel acilabilir.',
+                              'Bu cihaz şofördeyse doğrudan panel açılabilir.',
                               style: textTheme.bodyMedium?.copyWith(
-                                color: AmberColorTokens.ink700,
+                                color: CoreColors.ink700,
                               ),
                             ),
-                            const SizedBox(height: AmberSpacingTokens.space12),
-                            AmberSecondaryButton(
-                              label: 'Sofor Paneline Gec',
+                            const SizedBox(height: CoreSpacing.space12),
+                            BlackOutlineButton(
+                              label: 'Şoför Paneline Geç',
+                              icon: Icons.arrow_forward_rounded,
                               onPressed: _submitting
                                   ? null
                                   : widget.onContinueDriverTap,
@@ -478,6 +685,54 @@ class JoinVirtualStopInput {
   final double lng;
 }
 
+class _GuestHelpStep extends StatelessWidget {
+  const _GuestHelpStep({
+    required this.number,
+    required this.text,
+  });
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: CoreSpacing.space8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: CoreColors.amber100,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$number',
+              style: textTheme.labelSmall?.copyWith(
+                color: CoreColors.ink900,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: CoreSpacing.space8),
+          Expanded(
+            child: Text(
+              text,
+              style: textTheme.bodyMedium?.copyWith(
+                color: CoreColors.ink900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RoleBadge extends StatelessWidget {
   const _RoleBadge({required this.label});
 
@@ -487,17 +742,17 @@ class _RoleBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AmberSpacingTokens.space12,
-        vertical: AmberSpacingTokens.space8,
+        horizontal: CoreSpacing.space12,
+        vertical: CoreSpacing.space8,
       ),
       decoration: const BoxDecoration(
-        color: AmberColorTokens.amber100,
-        borderRadius: AmberRadiusTokens.radius28,
+        color: CoreColors.amber100,
+        borderRadius: CoreRadii.radius28,
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AmberColorTokens.ink700,
+              color: CoreColors.ink700,
             ),
       ),
     );

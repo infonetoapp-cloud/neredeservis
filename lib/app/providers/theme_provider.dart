@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../ui/theme/theme_amber.dart';
+import '../../ui/theme/core_theme.dart';
 
 final themeModeProvider =
     StateNotifierProvider<ThemeModeController, ThemeMode>((ref) {
   return ThemeModeController();
 });
 
-final amberLightThemeProvider = Provider<ThemeData>((ref) {
-  return AmberTheme.light();
+final coreLightThemeProvider = Provider<ThemeData>((ref) {
+  return CoreTheme.light();
 });
 
 class ThemeModeController extends StateNotifier<ThemeMode> {

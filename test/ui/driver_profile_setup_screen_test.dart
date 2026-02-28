@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/ui/screens/driver_profile_setup_screen.dart';
-import 'package:neredeservis/ui/theme/theme_amber.dart';
+import 'package:neredeservis/ui/theme/core_theme.dart';
 
 void main() {
   Widget buildTestApp({
@@ -9,11 +9,13 @@ void main() {
       String name,
       String phone,
       String plate,
-      bool showPhoneToPassengers,
-    )? onSave,
+      bool showPhoneToPassengers, {
+      String? photoUrl,
+      String? photoPath,
+    })? onSave,
   }) {
     return MaterialApp(
-      theme: AmberTheme.light(),
+      theme: CoreTheme.light(),
       home: DriverProfileSetupScreen(
         onSave: onSave,
       ),
@@ -24,7 +26,7 @@ void main() {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Sofor Profili'), findsOneWidget);
+    expect(find.text('Şoför Profili'), findsOneWidget);
     expect(find.text('Ad Soyad'), findsOneWidget);
     expect(find.text('Telefon'), findsOneWidget);
     expect(find.text('Plaka'), findsOneWidget);
@@ -42,7 +44,14 @@ void main() {
 
     await tester.pumpWidget(
       buildTestApp(
-        onSave: (name, phone, plate, showPhoneToPassengers) async {
+        onSave: (
+          name,
+          phone,
+          plate,
+          showPhoneToPassengers, {
+          photoUrl,
+          photoPath,
+        }) async {
           savedName = name;
           savedPhone = phone;
           savedPlate = plate;

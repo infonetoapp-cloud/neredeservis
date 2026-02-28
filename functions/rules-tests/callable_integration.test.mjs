@@ -1172,12 +1172,12 @@ test("STEP-287 generateRouteShareLink: whatsapp url + system fallback text", asy
 
   assert.equal(result.data.routeId, routeId);
   assert.equal(result.data.srvCode, "WAPP87");
-  assert.equal(result.data.landingUrl, "https://nerede.servis/r/WAPP87");
+  assert.equal(result.data.landingUrl, "https://app.neredeservis.app/r/WAPP87");
   assert.equal(typeof result.data.previewToken, "string");
   assert.equal(result.data.previewToken.length > 16, true);
-  assert.equal(result.data.signedLandingUrl.startsWith("https://nerede.servis/r/WAPP87?t="), true);
+  assert.equal(result.data.signedLandingUrl.startsWith("https://app.neredeservis.app/r/WAPP87?t="), true);
   assert.equal(typeof result.data.previewTokenExpiresAt, "string");
-  assert.equal(result.data.systemShareText.includes("https://nerede.servis/r/WAPP87"), true);
+  assert.equal(result.data.systemShareText.includes("https://app.neredeservis.app/r/WAPP87"), true);
   assert.equal(result.data.whatsappUrl.startsWith("https://wa.me/?text="), true);
   assert.equal(decodeURIComponent(result.data.whatsappUrl.split("text=")[1]).includes("WAPP87"), true);
 

@@ -1,6 +1,6 @@
 # Firebase App Registry
 
-GeneratedAt: 2026-02-17 13:55:00 +03:00
+GeneratedAt: 2026-02-24 23:50:00 +03:00
 
 ## Naming Decision
 - Base package/bundle: `com.neredeservis.app`
@@ -16,6 +16,7 @@ GeneratedAt: 2026-02-17 13:55:00 +03:00
 - Android appId: `1:882097896542:android:df71941b8689ead1db88cf`
 - iOS bundle: `com.neredeservis.app.dev`
 - iOS appId: `1:882097896542:ios:a729dd50b64a442ddb88cf`
+- Web appId: `1:882097896542:web:d4e494db7e55ac1bdb88cf` (created 2026-02-24)
 - Config files:
   - `firebase_app_configs/dev/google-services.json`
   - `firebase_app_configs/dev/GoogleService-Info.plist`
@@ -25,6 +26,7 @@ GeneratedAt: 2026-02-17 13:55:00 +03:00
 - Android appId: `1:691483247415:android:61c42d64a84312938f90b2`
 - iOS bundle: `com.neredeservis.app.stg`
 - iOS appId: `1:691483247415:ios:792bc9b1a3b45a718f90b2`
+- Web appId: `1:691483247415:web:ce31d3a74b92732a8f90b2` (created 2026-02-24)
 - Config files:
   - `firebase_app_configs/stg/google-services.json`
   - `firebase_app_configs/stg/GoogleService-Info.plist`
@@ -34,6 +36,7 @@ GeneratedAt: 2026-02-17 13:55:00 +03:00
 - Android appId: `1:705689926965:android:9c8cd8fa043d295ed7e07c`
 - iOS bundle: `com.neredeservis.app`
 - iOS appId: `1:705689926965:ios:3d3ba8b962fe4a05d7e07c`
+- Web appId: `1:705689926965:web:3e4ea767023c6565d7e07c` (created 2026-02-24)
 - Config files:
   - `firebase_app_configs/prod/google-services.json`
   - `firebase_app_configs/prod/GoogleService-Info.plist`
@@ -41,3 +44,4 @@ GeneratedAt: 2026-02-17 13:55:00 +03:00
 ## Notes
 - Bu dosya app kimliklerinin tek kaynak kaydidir.
 - Flutter tarafinda flavor klasorlerine kopyalama adimi `STEP-020`'de yapilacaktir.
+- Web app registration'lari Firebase Management API (gcloud user token + `x-goog-user-project`) ile olusturuldu.

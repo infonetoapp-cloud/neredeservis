@@ -42,7 +42,7 @@ DriverTripDetailData? _buildDriverTripDetailFromRecentStub({
   required String routeId,
   String? tripId,
 }) {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = _authCredentialGateway.currentUser;
   if (user == null || user.isAnonymous) {
     return null;
   }

@@ -27,7 +27,7 @@ void main() {
     );
 
     initializer.initialize(
-      environment: AppEnvironment(
+      environment: const AppEnvironment(
         flavor: AppFlavor.stg,
         sentryEnabled: true,
         sentryDsn: 'dsn',

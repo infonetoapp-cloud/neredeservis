@@ -32,7 +32,7 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{
         'session_preferred_role': 'not-a-role',
       });
-      final freshStore = const RouterSessionRolePreferenceStore();
+      const freshStore = RouterSessionRolePreferenceStore();
 
       expect(await freshStore.loadPreferredRole(), UserRole.unknown);
     });

@@ -13,6 +13,7 @@ class ConsentGuard {
   static const Set<String> _consentExemptRoutes = <String>{
     AppRoutePath.splash,
     AppRoutePath.auth,
+    AppRoutePath.forceUpdate,
     AppRoutePath.roleSelect,
     AppRoutePath.join,
     AppRoutePath.driverSettings,

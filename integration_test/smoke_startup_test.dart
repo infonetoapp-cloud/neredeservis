@@ -22,6 +22,7 @@ void main() {
             sentryEnabled: false,
             sentryDsn: null,
             appCheckDebugProviderEnabled: true,
+            googleSignInServerClientId: null,
             adaptyEnabled: false,
             adaptyApiKey: null,
             mapboxPublicToken: null,
@@ -35,7 +36,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('NeredeServis Dev'), findsOneWidget);
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
+    expect(find.text('Devam etmek için rolünü seç'), findsOneWidget);
+    expect(find.text('Şoför Olarak Devam Et'), findsOneWidget);
+    expect(find.text('Yolcu Olarak Devam Et'), findsOneWidget);
+    expect(find.text('Misafir Olarak Devam Et'), findsOneWidget);
   });
 }

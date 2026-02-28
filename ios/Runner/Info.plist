@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>GMSApiKey</key>
+	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Sofor seferdeyken yolcularin canli takibi icin konumunu kullaniriz.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -53,6 +55,10 @@
 	<string>Aktif seferde arka planda konum yayini icin izin gerekir.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Aktif seferde arka plan toparlanmasi icin hareket sinyali kullanilir.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>QR kodu tarayarak servise hizli katilabilmeniz icin kamera kullanilir.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Profil fotografinizi secip yukleyebilmeniz icin galeriye erisim gerekir.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.neredeservis.driver.queue.flush</string>

@@ -21,6 +21,7 @@ void main() {
             sentryEnabled: false,
             sentryDsn: null,
             appCheckDebugProviderEnabled: true,
+            googleSignInServerClientId: null,
             adaptyEnabled: false,
             adaptyApiKey: null,
             mapboxPublicToken: null,
@@ -33,9 +34,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('NeredeServis Dev'), findsOneWidget);
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
-    expect(find.text('Teste Gir (Misafir)'), findsOneWidget);
+    expect(find.text('Nas\u0131l Devam Etmek\n\u0130stersin?'), findsOneWidget);
+    expect(find.text('\u015eof\u00f6r Olarak Devam Et'), findsOneWidget);
+    expect(find.text('Yolcu Olarak Devam Et'), findsOneWidget);
+    expect(find.text('Misafir Olarak Devam Et'), findsOneWidget);
   });
 }

@@ -10,8 +10,8 @@ void main() {
       );
 
       final result = useCase.execute(
-        PassengerTripHistoryRawData(
-          tripRows: const <PassengerTripHistoryRawTripRow>[
+        const PassengerTripHistoryRawData(
+          tripRows: <PassengerTripHistoryRawTripRow>[
             PassengerTripHistoryRawTripRow(
               tripId: 'trip-snapshot',
               tripData: <String, dynamic>{

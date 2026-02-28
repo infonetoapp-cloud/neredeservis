@@ -23,7 +23,50 @@
                                        "firebase.json",
                                        "**/.*",
                                        "**/node_modules/**"
-                                   ]
+                                   ],
+                        "rewrites":  [
+                                         {
+                                             "source":  "/r/**",
+                                             "destination":  "/route-preview.html"
+                                         }
+                                     ],
+                        "headers":  [
+                                        {
+                                            "source":  "/route-preview.html",
+                                            "headers":  [
+                                                            {
+                                                                "key":  "Cache-Control",
+                                                                "value":  "no-store"
+                                                            }
+                                                        ]
+                                        },
+                                        {
+                                            "source":  "/.well-known/assetlinks.json",
+                                            "headers":  [
+                                                            {
+                                                                "key":  "Content-Type",
+                                                                "value":  "application/json; charset=utf-8"
+                                                            },
+                                                            {
+                                                                "key":  "Cache-Control",
+                                                                "value":  "public, max-age=300"
+                                                            }
+                                                        ]
+                                        },
+                                        {
+                                            "source":  "/.well-known/apple-app-site-association",
+                                            "headers":  [
+                                                            {
+                                                                "key":  "Content-Type",
+                                                                "value":  "application/json; charset=utf-8"
+                                                            },
+                                                            {
+                                                                "key":  "Cache-Control",
+                                                                "value":  "public, max-age=300"
+                                                            }
+                                                        ]
+                                        }
+                                    ]
                     }
                 ],
     "emulators":  {

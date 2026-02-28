@@ -20,7 +20,7 @@ Future<bool> _ensureStartTripLocationPermission(
 Future<void> _ensureDriverHomeLocationPermissionPrompt(
   BuildContext context,
 ) async {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = _authCredentialGateway.currentUser;
   if (user == null || user.isAnonymous) {
     return;
   }
@@ -52,11 +52,14 @@ Future<bool> _ensureDriverLocationPermissionForTrigger(
   required String readFailureMessage,
   required String requestFailureMessage,
 }) async {
-  final role = await _resolveCurrentUserRole(user.uid);
-  final shouldPrompt = _locationPermissionGate.shouldPromptLocationPermission(
-    role: role,
-    trigger: trigger,
+  final promptPolicy =
+      await _shouldPromptLocationPermissionForUserUseCase.execute(
+    ShouldPromptLocationPermissionForUserCommand(
+      uid: user.uid,
+      trigger: trigger,
+    ),
   );
+  final shouldPrompt = promptPolicy.shouldPrompt;
 
   // 322D: yolcu/misafir rolde konum izni diyalogu hic acilmaz.
   if (!shouldPrompt || kIsWeb) {

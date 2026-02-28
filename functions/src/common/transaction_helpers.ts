@@ -1,8 +1,10 @@
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 
+type Awaitable<T> = T | Promise<T>;
+
 export async function runTransactionVoid(
   db: Firestore,
-  worker: (tx: Transaction) => Promise<void>,
+  worker: (tx: Transaction) => Awaitable<void>,
 ): Promise<void> {
   await db.runTransaction(async (tx) => {
     await worker(tx);
@@ -12,7 +14,7 @@ export async function runTransactionVoid(
 
 export async function runTransactionWithResult<T>(
   db: Firestore,
-  worker: (tx: Transaction) => Promise<T>,
+  worker: (tx: Transaction) => Awaitable<T>,
 ): Promise<T> {
-  return db.runTransaction(async (tx) => worker(tx));
+  return db.runTransaction(async (tx) => await worker(tx));
 }

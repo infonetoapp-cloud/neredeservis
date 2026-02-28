@@ -1,0 +1,53 @@
+{
+    "generatedAt":  "2026-02-28 04:33:35",
+    "status":  "PASS",
+    "totals":  {
+                   "total":  48,
+                   "done":  48,
+                   "open":  0,
+                   "completion":  100,
+                   "p0Open":  0,
+                   "p1Open":  0,
+                   "workcardsOpen":  0
+               },
+    "packages":  [
+                     {
+                         "id":  "APP-SPRINT-1",
+                         "priority":  "P0",
+                         "total":  9,
+                         "done":  9,
+                         "open":  0,
+                         "completion":  100
+                     },
+                     {
+                         "id":  "APP-SPRINT-2",
+                         "priority":  "P0",
+                         "total":  13,
+                         "done":  13,
+                         "open":  0,
+                         "completion":  100
+                     },
+                     {
+                         "id":  "APP-SPRINT-3",
+                         "priority":  "P1",
+                         "total":  14,
+                         "done":  14,
+                         "open":  0,
+                         "completion":  100
+                     },
+                     {
+                         "id":  "APP-SPRINT-4",
+                         "priority":  "P0",
+                         "total":  12,
+                         "done":  12,
+                         "open":  0,
+                         "completion":  100
+                     }
+                 ],
+    "next4":  [
+                  "phase9_closed_keep_regression_green",
+                  "run_manual_acceptance_before_release_window",
+                  "monitor_contract_drift_for_new_endpoints",
+                  "kickoff_next_phase_scope_with_no_admin_expansion"
+              ]
+}

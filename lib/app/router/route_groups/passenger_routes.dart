@@ -7,9 +7,30 @@ List<RouteBase> _buildPassengerRoutes(_AppRouterRouteDeps deps) {
       routes: <RouteBase>[
         GoRoute(
           path: AppRoutePath.passengerHome,
-          builder: (context, state) => const _DoubleBackExitGuard(
-            child: _PassengerHomeEntryGuard(),
-          ),
+          builder: (context, state) {
+            var switchSourceRole = UserRole.unknown;
+            return RouterDoubleBackExitGuard(
+              onBackBlocked: _showDoubleBackExitHint,
+              child: RouterPassengerHomeEntryGuard(
+                resolveTargetLocation: () async {
+                  switchSourceRole = _snapshotRoleSwitchSourceRole();
+                  final user = _authCredentialGateway.currentUser;
+                  if (user == null || user.isAnonymous) {
+                    return _buildAuthRouteWithNextRole(_authNextRolePassenger);
+                  }
+                  return _resolvePassengerHomeDestination(user);
+                },
+                applyNavigation: (context, destination) {
+                  _applyRoleSwitchNavigationPlan(
+                    context,
+                    fromRole: switchSourceRole,
+                    toRole: UserRole.passenger,
+                    targetLocation: destination,
+                  );
+                },
+              ),
+            );
+          },
         ),
         GoRoute(
           path: AppRoutePath.passengerTripHistory,
@@ -22,7 +43,8 @@ List<RouteBase> _buildPassengerRoutes(_AppRouterRouteDeps deps) {
         ),
         GoRoute(
           path: AppRoutePath.passengerTracking,
-          builder: (context, state) => _DoubleBackExitGuard(
+          builder: (context, state) => RouterDoubleBackExitGuard(
+            onBackBlocked: _showDoubleBackExitHint,
             child:
                 _buildPassengerTrackingRoute(context, state, deps.environment),
           ),
@@ -30,41 +52,30 @@ List<RouteBase> _buildPassengerRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.tripChat,
           builder: (context, state) {
-            final routeId =
-                _nullableParam(state.uri.queryParameters['routeId']);
-            final conversationId =
-                _nullableParam(state.uri.queryParameters['conversationId']);
-            final counterpartName =
-                _nullableParam(state.uri.queryParameters['counterpartName']) ??
-                    'Sohbet';
-            final counterpartSubtitle = _nullableParam(
-                state.uri.queryParameters['counterpartSubtitle']);
-            if (routeId == null || conversationId == null) {
+            final query = _TripChatRouteQuery.fromState(state);
+            if (!query.hasRequiredIds) {
               return Scaffold(
                 appBar: AppBar(title: const Text('Sohbet')),
                 body: const Center(
-                  child: Text('Sohbet bilgisi eksik. LÃƒÂ¼tfen tekrar dene.'),
+                  child: Text('Sohbet bilgisi eksik. L?tfen tekrar dene.'),
                 ),
               );
             }
             return TripChatScreen(
-              routeId: routeId,
-              conversationId: conversationId,
-              counterpartName: counterpartName,
-              counterpartSubtitle: counterpartSubtitle,
+              routeId: query.routeId!,
+              conversationId: query.conversationId!,
+              counterpartName: query.counterpartName,
+              counterpartSubtitle: query.counterpartSubtitle,
             );
           },
         ),
         GoRoute(
           path: AppRoutePath.passengerSettings,
           builder: (context, state) {
-            final routeId =
-                _nullableParam(state.uri.queryParameters['routeId']);
-            final routeName =
-                _nullableParam(state.uri.queryParameters['routeName']);
+            final query = _PassengerSettingsRouteQuery.fromState(state);
             return PassengerSettingsScreen(
-              routeId: routeId ?? '',
-              routeName: routeName,
+              routeId: query.routeId ?? '',
+              routeName: query.routeName,
               onSave: (input) => _handleUpdatePassengerSettings(context, input),
             );
           },

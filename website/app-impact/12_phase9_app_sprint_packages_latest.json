@@ -1,0 +1,302 @@
+{
+    "generatedAt":  "2026-02-28 04:33:35",
+    "status":  "PASS",
+    "stats":  {
+                  "total":  48,
+                  "open":  0,
+                  "done":  48
+              },
+    "sources":  {
+                    "parserChecklist":  "website/app-impact/07_app_parser_mapping_checklist_2026_02_27.md",
+                    "cutoverChecklist":  "website/app-impact/03_app_integration_cutover_checklist.md"
+                },
+    "packages":  [
+                     {
+                         "id":  "APP-SPRINT-1",
+                         "title":  "Company Context + Vehicle + Route Base Parser",
+                         "priority":  "P0",
+                         "w2a":  [
+                                     "W2A-004",
+                                     "W2A-006",
+                                     "W2A-007",
+                                     "W2A-008",
+                                     "W2A-009",
+                                     "W2A-010",
+                                     "W2A-011",
+                                     "W2A-012"
+                                 ],
+                         "total":  9,
+                         "done":  9,
+                         "open":  0,
+                         "items":  [
+                                       {
+                                           "done":  true,
+                                           "text":  "`createCompany` response parser (`companyId`, `ownerMember`, `createdAt`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`listMyCompanies` parser (`companyId`, `name`, `role`, `memberStatus`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`listCompanyMembers` parser (`uid`, `role`, `memberStatus`, `displayName/email/phone`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "Active company resolver (login -\u003e mode -\u003e company fallback)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`listCompanyVehicles` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`createVehicle` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`updateVehicle` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`createCompanyRoute` parser (`routeId`, `srvCode`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`updateCompanyRoute` parser + `lastKnownUpdateToken` parity"
+                                       }
+                                   ],
+                         "acceptance":  [
+                                            "Company secimi login sonrasi deterministic fallback ile aciliyor.",
+                                            "Vehicle/Route create-update parser katmaninda crash olmadan isleniyor.",
+                                            "Token mismatch mesaji UI\u0027da anlasilir gosteriliyor."
+                                        ]
+                     },
+                     {
+                         "id":  "APP-SPRINT-2",
+                         "title":  "Route Stops + Live Ops + Critical Error Mapping",
+                         "priority":  "P0",
+                         "w2a":  [
+                                     "W2A-001",
+                                     "W2A-002",
+                                     "W2A-003",
+                                     "W2A-013",
+                                     "W2A-014",
+                                     "W2A-015",
+                                     "W2A-016",
+                                     "W2A-017"
+                                 ],
+                         "total":  13,
+                         "done":  13,
+                         "open":  0,
+                         "items":  [
+                                       {
+                                           "done":  true,
+                                           "text":  "`listCompanyRouteStops` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`upsertCompanyRouteStop` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`deleteCompanyRouteStop` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`reorderCompanyRouteStops` parser (`changed`, `updatedAt`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`listActiveTripsByCompany` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`liveState` (`online|stale`) UI mapping"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`live.source` (`rtdb|trip_doc`) fallback mapping"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "RTDB stream state mapping (`live`, `mismatch`, `error`, `access_denied`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`426 Upgrade Required`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`UPDATE_TOKEN_MISMATCH`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`ROUTE_STOP_INVALID_STATE`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`ROUTE_STOP_REORDER_STATE_INVALID`"
+                                       }
+                                   ],
+                         "acceptance":  [
+                                            "Durak ekle/sil/sirala akislarinda soft-lock senaryolari dogru reason-code ile geri donuyor.",
+                                            "RTDB stream kopma/yeniden baglanma sonrasi fallback semantigi korunuyor.",
+                                            "426 ve conflict kodlari kullaniciya eyleme donuk mesajla gosteriliyor."
+                                        ]
+                     },
+                     {
+                         "id":  "APP-SPRINT-3",
+                         "title":  "Membership/Permission Parser + Guard Error Mapping",
+                         "priority":  "P1",
+                         "w2a":  [
+                                     "W2A-100",
+                                     "W2A-101",
+                                     "W2A-102",
+                                     "W2A-103",
+                                     "W2A-104",
+                                     "W2A-105",
+                                     "W2A-106"
+                                 ],
+                         "total":  14,
+                         "done":  14,
+                         "open":  0,
+                         "items":  [
+                                       {
+                                           "done":  true,
+                                           "text":  "`updateCompanyMember` parser + guard copy mapping"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`inviteCompanyMember` parser + pending state mapping"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`acceptCompanyInvite` parser + invited-\u003eactive transition"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`declineCompanyInvite` parser + invited-\u003esuspended transition"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`removeCompanyMember` parser + owner/self deny mapping"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`grantDriverRoutePermissions` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`revokeDriverRoutePermissions` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`listRouteDriverPermissions` parser"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`OWNER_MEMBER_IMMUTABLE`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`SELF_MEMBER_REMOVE_FORBIDDEN`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`INVITE_EMAIL_NOT_FOUND`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`INVITE_NOT_ACCEPTABLE`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`INVITE_NOT_DECLINABLE`"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`ROUTE_PRIMARY_DRIVER_IMMUTABLE`"
+                                       }
+                                   ],
+                         "acceptance":  [
+                                            "Invite accept/decline ve member update/remove akislari parser seviyesinde deterministik.",
+                                            "Owner/self guard reason-code\u0027lari dogru UI mesajina mapleniyor.",
+                                            "Route permission grant/revoke/list sonuclari role-state tutarli."
+                                        ]
+                     },
+                     {
+                         "id":  "APP-SPRINT-4",
+                         "title":  "Acceptance Smoke + Cutover Checklist Closure",
+                         "priority":  "P0",
+                         "w2a":  [
+                                     "W2A-001",
+                                     "W2A-002",
+                                     "W2A-003",
+                                     "W2A-004"
+                                 ],
+                         "total":  12,
+                         "done":  12,
+                         "open":  0,
+                         "items":  [
+                                       {
+                                           "done":  true,
+                                           "text":  "Parser crash-free smoke (all listed callables)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "Error message mapping smoke (all listed codes)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "Company context recoverability (logout/login + mode switch)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "Route/stop conflict recovery (token mismatch -\u003e reload -\u003e retry)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "Live ops fallback correctness (RTDB yoksa trip_doc, stale semantigi korunur)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`00_web_to_app_change_register.md` icindeki `P0` kayitlar triaged/planned"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "`contract` kategorisindeki kayitlar icin app error mapping karari net"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "force update / `426` fallback davranisi app tarafinda tanimli (`website/app-impact/19_app_runtime_behavior_alignment_contract_2026_02_27.md`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "live ops stale/offline semantigi app + web tutarli (`website/app-impact/19_app_runtime_behavior_alignment_contract_2026_02_27.md`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "route/trip mutasyon lock reason code\u0027lari app tarafinda ele aliniyor (`website/app-impact/19_app_runtime_behavior_alignment_contract_2026_02_27.md`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "cutover oncesi app regression smoke checklist hazir (`website/app-impact/13_app_regression_smoke_checklist_phase9.md`)"
+                                       },
+                                       {
+                                           "done":  true,
+                                           "text":  "\"wont_do_mvp\" kararlar reviewer/plan notlarinda acik"
+                                       }
+                                   ],
+                         "acceptance":  [
+                                            "Parser crash-free smoke tum listedeki callable setinde PASS.",
+                                            "Error mapping smoke listedeki tum zorunlu reason-code\u0027larda PASS.",
+                                            "03 app integration cutover checklist maddeleri eksiksiz kapali."
+                                        ]
+                     }
+                 ]
+}

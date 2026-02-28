@@ -1,4 +1,4 @@
-﻿part of '../app_router.dart';
+part of '../app_router.dart';
 
 class _DriverProfileSetupBootstrapData {
   const _DriverProfileSetupBootstrapData({
@@ -152,20 +152,6 @@ class _PassengerMembershipSummary {
 
   final String routeId;
   final String? routeName;
-}
-
-class _DriverStopSnapshot {
-  const _DriverStopSnapshot({
-    required this.stopId,
-    required this.name,
-    required this.order,
-    required this.point,
-  });
-
-  final String stopId;
-  final String name;
-  final int order;
-  final ActiveTripMapPoint point;
 }
 
 class _DriverTripCompletedBootstrapData {

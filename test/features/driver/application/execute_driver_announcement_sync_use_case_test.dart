@@ -27,6 +27,26 @@ void main() {
       expect(result.errorCode, isNull);
     });
 
+    test('keeps canonical app share host unchanged', () async {
+      final useCase = ExecuteDriverAnnouncementSyncUseCase(
+        executor: (_) async => const TripActionExecutionResult(
+          state: TripActionSyncState.synced,
+          callableName: 'sendDriverAnnouncement',
+          responseData: <String, dynamic>{
+            'shareUrl': 'https://app.neredeservis.app/r/SRV-401?sig=abc'
+          },
+        ),
+      );
+
+      final result = await useCase.execute(command);
+
+      expect(result.state, DriverAnnouncementSyncOutcomeState.synced);
+      expect(
+        result.shareUrl,
+        'https://app.neredeservis.app/r/SRV-401?sig=abc',
+      );
+    });
+
     test('maps synced state with empty shareUrl to null', () async {
       final useCase = ExecuteDriverAnnouncementSyncUseCase(
         executor: (_) async => const TripActionExecutionResult(

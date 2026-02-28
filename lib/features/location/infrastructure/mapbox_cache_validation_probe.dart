@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 
 enum MapboxCacheRequestSource {
   network,
@@ -71,20 +70,6 @@ class MapboxCacheValidationProbe {
     } else {
       _localRequestCount++;
     }
-  }
-
-  void onMapboxResourceEvent(mapbox.ResourceEventData eventData) {
-    final source = eventData.dataSource == mapbox.DataSourceType.NETWORK
-        ? MapboxCacheRequestSource.network
-        : MapboxCacheRequestSource.local;
-    onRequestSource(source);
-  }
-
-  void onMapboxMapLoaded(mapbox.MapLoadedEventData eventData) {
-    final loadDurationMs = eventData.timeInterval.end
-        .difference(eventData.timeInterval.begin)
-        .inMilliseconds;
-    onMapLoaded(loadDurationMs: loadDurationMs);
   }
 
   void onMapLoaded({required int loadDurationMs}) {

@@ -2,6 +2,7 @@ abstract final class AppRoutePath {
   static const String splash = '/splash';
   static const String auth = '/auth';
   static const String authEmail = '/auth/email';
+  static const String forceUpdate = '/force-update';
   static const String roleSelect = '/role/select';
   static const String driverHome = '/driver/home';
   static const String driverProfileSetup = '/driver/profile/setup';

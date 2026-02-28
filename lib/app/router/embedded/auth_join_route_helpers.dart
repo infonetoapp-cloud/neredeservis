@@ -94,7 +94,7 @@ String? _resolveSignedInLandingFromUserRole(UserRole role) {
     case UserRole.guest:
       return _buildJoinRoute(role: JoinRole.guest);
     case UserRole.unknown:
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _authCredentialGateway.currentUser;
       if (user != null && user.isAnonymous) {
         return _buildJoinRoute(role: JoinRole.guest);
       }

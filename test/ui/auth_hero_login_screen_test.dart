@@ -17,9 +17,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
-    expect(find.text('Hesabin yok mu? Uye ol'), findsOneWidget);
+    expect(find.text('Email ile Giriş'), findsOneWidget);
+    expect(find.text('Google ile Giriş'), findsOneWidget);
+    expect(find.text('Email ile Üye Ol'), findsOneWidget);
     expect(find.textContaining('Misafir'), findsNothing);
     expect(find.textContaining('Video'), findsNothing);
   });
@@ -42,12 +42,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
-    expect(find.text('Hesabin yok mu? Uye ol'), findsOneWidget);
+    expect(find.text('Email ile Giriş'), findsOneWidget);
+    expect(find.text('Google ile Giriş'), findsOneWidget);
+    expect(find.text('Email ile Üye Ol'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    final footerRect = tester.getRect(find.text('Hesabin yok mu? Uye ol'));
+    final footerRect = tester.getRect(find.text('Email ile Üye Ol'));
     expect(footerRect.bottom <= logicalSize.height, isTrue);
   });
 
@@ -69,12 +69,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
-    expect(find.text('Hesabin yok mu? Uye ol'), findsOneWidget);
+    expect(find.text('Email ile Giriş'), findsOneWidget);
+    expect(find.text('Google ile Giriş'), findsOneWidget);
+    expect(find.text('Email ile Üye Ol'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    final footerRect = tester.getRect(find.text('Hesabin yok mu? Uye ol'));
+    final footerRect = tester.getRect(find.text('Email ile Üye Ol'));
     expect(footerRect.bottom <= logicalSize.height, isTrue);
   });
 
@@ -96,12 +96,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Giris Yap'), findsOneWidget);
-    expect(find.text('Google ile Giris'), findsOneWidget);
-    expect(find.text('Hesabin yok mu? Uye ol'), findsOneWidget);
+    expect(find.text('Email ile Giriş'), findsOneWidget);
+    expect(find.text('Google ile Giriş'), findsOneWidget);
+    expect(find.text('Email ile Üye Ol'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    final footerRect = tester.getRect(find.text('Hesabin yok mu? Uye ol'));
+    final footerRect = tester.getRect(find.text('Email ile Üye Ol'));
     expect(footerRect.bottom <= logicalSize.height, isTrue);
   });
 

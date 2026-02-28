@@ -106,6 +106,21 @@ class LocationHistorySampleRecord {
 typedef LocationHistoryWriter = Future<void> Function(
   LocationHistorySampleRecord sample,
 );
+typedef LocationPublishMetricListener = void Function(
+  LocationPublishMetric metric,
+);
+
+class LocationPublishMetric {
+  const LocationPublishMetric({
+    required this.outcome,
+    required this.staleReplay,
+    this.publishIntervalMs,
+  });
+
+  final LocationPublishOutcome outcome;
+  final bool staleReplay;
+  final int? publishIntervalMs;
+}
 
 class LocationPublishService {
   LocationPublishService({
@@ -114,21 +129,30 @@ class LocationPublishService {
     LocationHistoryWriter? historyWriter,
     FirebaseDatabase? database,
     DateTime Function()? nowUtc,
+    LocationPublishMetricListener? metricListener,
     this.staleReplayThresholdMs = LocalQueueRepository.staleReplayThresholdMs,
   })  : _liveLocationRepository = liveLocationRepository,
         _localQueueRepository = localQueueRepository,
         _historyWriter = historyWriter ??
             _buildDefaultHistoryWriter(database ?? FirebaseDatabase.instance),
-        _nowUtc = nowUtc ?? (() => DateTime.now().toUtc());
+        _nowUtc = nowUtc ?? (() => DateTime.now().toUtc()),
+        _metricListener = metricListener;
 
   final LiveLocationRepository _liveLocationRepository;
   final LocalQueueRepository _localQueueRepository;
   final LocationHistoryWriter _historyWriter;
   final DateTime Function() _nowUtc;
+  final LocationPublishMetricListener? _metricListener;
   final int staleReplayThresholdMs;
+  DateTime? _lastPublishAtUtc;
 
   Future<LocationPublishResult> publish(LocationPublishInput input) async {
-    final nowMs = _nowUtc().millisecondsSinceEpoch;
+    final nowUtc = _nowUtc().toUtc();
+    final nowMs = nowUtc.millisecondsSinceEpoch;
+    final publishIntervalMs = _lastPublishAtUtc == null
+        ? null
+        : nowUtc.difference(_lastPublishAtUtc!).inMilliseconds;
+    _lastPublishAtUtc = nowUtc;
     final skipLive = LocalQueueRepository.shouldSkipLiveReplay(
       sampledAtMs: input.sampledAtMs,
       nowMs: nowMs,
@@ -136,7 +160,7 @@ class LocationPublishService {
     );
 
     if (skipLive) {
-      return _writeHistoryOnlyOrQueue(
+      final result = await _writeHistoryOnlyOrQueue(
         ownerUid: input.ownerUid,
         routeId: input.routeId,
         tripId: input.tripId,
@@ -149,6 +173,12 @@ class LocationPublishService {
         createdAtMs: input.createdAtMs,
         source: 'offline_replay',
       );
+      _emitPublishMetric(
+        outcome: result.outcome,
+        staleReplay: true,
+        publishIntervalMs: publishIntervalMs,
+      );
+      return result;
     }
 
     try {
@@ -165,9 +195,15 @@ class LocationPublishService {
           driverId: input.ownerUid,
         ),
       );
-      return const LocationPublishResult(
+      const result = LocationPublishResult(
         outcome: LocationPublishOutcome.publishedLive,
       );
+      _emitPublishMetric(
+        outcome: result.outcome,
+        staleReplay: false,
+        publishIntervalMs: publishIntervalMs,
+      );
+      return result;
     } catch (_) {
       final queueId = await _localQueueRepository.enqueueLocationSample(
         ownerUid: input.ownerUid,
@@ -181,10 +217,16 @@ class LocationPublishService {
         sampledAtMs: input.sampledAtMs,
         createdAtMs: input.createdAtMs,
       );
-      return LocationPublishResult(
+      final result = LocationPublishResult(
         outcome: LocationPublishOutcome.queuedForRetry,
         queueId: queueId,
       );
+      _emitPublishMetric(
+        outcome: result.outcome,
+        staleReplay: false,
+        publishIntervalMs: publishIntervalMs,
+      );
+      return result;
     }
   }
 
@@ -359,5 +401,19 @@ class LocationPublishService {
           .push()
           .set(sample.toMap());
     };
+  }
+
+  void _emitPublishMetric({
+    required LocationPublishOutcome outcome,
+    required bool staleReplay,
+    required int? publishIntervalMs,
+  }) {
+    _metricListener?.call(
+      LocationPublishMetric(
+        outcome: outcome,
+        staleReplay: staleReplay,
+        publishIntervalMs: publishIntervalMs,
+      ),
+    );
   }
 }

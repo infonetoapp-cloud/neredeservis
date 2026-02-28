@@ -11,6 +11,7 @@ class AuthGuard {
     AppRoutePath.splash,
     AppRoutePath.auth,
     AppRoutePath.authEmail,
+    AppRoutePath.forceUpdate,
     AppRoutePath.roleSelect,
     AppRoutePath.join,
     AppRoutePath.joinQr,

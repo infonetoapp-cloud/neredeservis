@@ -39,6 +39,14 @@ ios/Flutter/flutter_export_environment.sh
 # Logs
 *.log
 firebase-debug.log
+analysis_output.txt
+build_log.txt
+dart_errors*.txt
+android/gradle_error.txt
+
+# Local tool/runtime cache
+.firebase/
+tmp/
 
 # Env / Secrets
 .env

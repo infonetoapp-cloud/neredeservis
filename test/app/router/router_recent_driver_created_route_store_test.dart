@@ -48,7 +48,7 @@ void main() {
           '{"routeId":"r1"}',
         ],
       });
-      final freshStore = const RouterRecentDriverCreatedRouteStore();
+      const freshStore = RouterRecentDriverCreatedRouteStore();
 
       final result = await freshStore.loadRawItemsForUid(uid: 'driver-1');
       expect(result, isEmpty);
