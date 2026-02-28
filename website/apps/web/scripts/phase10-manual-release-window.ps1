@@ -4,7 +4,8 @@ param(
   [string]$StgDomain = "stg-app.neredeservis.app",
   [string]$VercelScope = "infonetoapp-clouds-projects",
   [switch]$RefreshReadiness,
-  [switch]$SkipStgDnsCheck
+  [switch]$SkipStgDnsCheck,
+  [switch]$Snapshot
 )
 
 $ErrorActionPreference = "Stop"
@@ -158,7 +159,9 @@ if ($overall -eq "PASS") {
 Write-FileWithRetry -Path $latestPath -Value $lines
 Write-Host ("[PHASE10-MANUAL-RELEASE] latest -> " + $latestPath) -ForegroundColor Green
 
-Write-FileWithRetry -Path $snapshotPath -Value $lines
-Write-Host ("[PHASE10-MANUAL-RELEASE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+if ($Snapshot) {
+  Write-FileWithRetry -Path $snapshotPath -Value $lines
+  Write-Host ("[PHASE10-MANUAL-RELEASE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+}
 
 exit 0

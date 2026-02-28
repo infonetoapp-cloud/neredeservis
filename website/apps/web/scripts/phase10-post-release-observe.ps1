@@ -2,7 +2,8 @@ param(
   [string]$StgBaseUrl = "https://stg-app.neredeservis.app",
   [string]$ProdBaseUrl = "https://app.neredeservis.app",
   [int]$Samples = 6,
-  [int]$IntervalSeconds = 300
+  [int]$IntervalSeconds = 300,
+  [switch]$Snapshot
 )
 
 $ErrorActionPreference = "Stop"
@@ -118,11 +119,13 @@ foreach ($row in $rows) {
 $lines.Add("") | Out-Null
 $lines.Add("Not: Bu rapor post-release smoke gozlem turunu otomatik toplar; mutasyon akislari manuel acceptance checklist ile kapanir.") | Out-Null
 
-Set-Content -Path $snapshotPath -Value $lines -Encoding ascii
 Set-Content -Path $latestPath -Value $lines -Encoding ascii
 
 Write-Host ("[PHASE10-OBSERVE] latest -> " + $latestPath) -ForegroundColor Green
-Write-Host ("[PHASE10-OBSERVE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+if ($Snapshot) {
+  Set-Content -Path $snapshotPath -Value $lines -Encoding ascii
+  Write-Host ("[PHASE10-OBSERVE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+}
 
 if ($overall -eq "PASS") {
   exit 0

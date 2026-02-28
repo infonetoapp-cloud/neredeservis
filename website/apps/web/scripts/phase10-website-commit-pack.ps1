@@ -1,4 +1,6 @@
-param()
+param(
+  [switch]$Snapshot
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -87,12 +89,13 @@ if (-not $latestWriteOk) {
   Write-Warning ("[PHASE10-COMMIT-PACK] latest file lock edildi: " + $latestPath)
 }
 
-$snapshotWriteOk = Try-WriteFileWithRetry -Path $snapshotPath -Value $lineList
-if (-not $snapshotWriteOk) {
-  throw ("[PHASE10-COMMIT-PACK] snapshot yazilamadi: " + $snapshotPath)
-}
-
 Write-Host ("[PHASE10-COMMIT-PACK] latest -> " + $latestPath) -ForegroundColor Green
-Write-Host ("[PHASE10-COMMIT-PACK] snapshot -> " + $snapshotPath) -ForegroundColor Green
+if ($Snapshot) {
+  $snapshotWriteOk = Try-WriteFileWithRetry -Path $snapshotPath -Value $lineList
+  if (-not $snapshotWriteOk) {
+    throw ("[PHASE10-COMMIT-PACK] snapshot yazilamadi: " + $snapshotPath)
+  }
+  Write-Host ("[PHASE10-COMMIT-PACK] snapshot -> " + $snapshotPath) -ForegroundColor Green
+}
 
 exit 0

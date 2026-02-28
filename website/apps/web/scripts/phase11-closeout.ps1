@@ -1,7 +1,8 @@
 param(
   [int]$ObserveSamples = 2,
   [int]$ObserveIntervalSeconds = 2,
-  [switch]$FailOnPartial
+  [switch]$FailOnPartial,
+  [switch]$Snapshot
 )
 
 $ErrorActionPreference = "Stop"
@@ -170,8 +171,10 @@ $lines.Add("- PASS durumunda website-only commit paketi korunur, deploy kotasi i
 Write-FileWithRetry -Path $latestReport -Value $lines
 Write-Host ("[PHASE11-CLOSEOUT] latest -> " + $latestReport) -ForegroundColor Green
 
-Write-FileWithRetry -Path $snapshotReport -Value $lines
-Write-Host ("[PHASE11-CLOSEOUT] snapshot -> " + $snapshotReport) -ForegroundColor Green
+if ($Snapshot) {
+  Write-FileWithRetry -Path $snapshotReport -Value $lines
+  Write-Host ("[PHASE11-CLOSEOUT] snapshot -> " + $snapshotReport) -ForegroundColor Green
+}
 
 if ($FailOnPartial -and $overall -ne "PASS") {
   exit 7

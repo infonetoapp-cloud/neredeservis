@@ -1,6 +1,7 @@
 param(
   [switch]$Apply,
-  [int]$KeepPerPattern = 2
+  [int]$KeepPerPattern = 2,
+  [switch]$Snapshot
 )
 
 $ErrorActionPreference = "Stop"
@@ -116,13 +117,14 @@ if (-not $latestWriteOk) {
   Write-Warning ("[PHASE10-PRUNE] latest file lock edildi: " + $latestPath)
 }
 
-$snapshotWriteOk = Try-WriteFileWithRetry -Path $snapshotPath -Value $lines
-if (-not $snapshotWriteOk) {
-  throw ("[PHASE10-PRUNE] snapshot yazilamadi: " + $snapshotPath)
-}
-
 Write-Host ("[PHASE10-PRUNE] latest -> " + $latestPath) -ForegroundColor Green
-Write-Host ("[PHASE10-PRUNE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+if ($Snapshot) {
+  $snapshotWriteOk = Try-WriteFileWithRetry -Path $snapshotPath -Value $lines
+  if (-not $snapshotWriteOk) {
+    throw ("[PHASE10-PRUNE] snapshot yazilamadi: " + $snapshotPath)
+  }
+  Write-Host ("[PHASE10-PRUNE] snapshot -> " + $snapshotPath) -ForegroundColor Green
+}
 Write-Host ("[PHASE10-PRUNE] candidates -> " + $toDelete.Count + " (apply=" + [bool]$Apply + ")") -ForegroundColor Yellow
 
 exit 0
