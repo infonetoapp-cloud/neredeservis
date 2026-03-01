@@ -1,20 +1,22 @@
 import { RouteSharePreviewClient } from "@/components/marketing/route-share-preview-client";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     srvCode: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     t?: string;
-  };
+  }>;
 };
 
-export default function RouteSharePreviewPage({ params, searchParams }: PageProps) {
-  const token = typeof searchParams?.t === "string" ? searchParams.t : "";
+export default async function RouteSharePreviewPage({ params, searchParams }: PageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const token = typeof resolvedSearchParams?.t === "string" ? resolvedSearchParams.t : "";
   return (
     <RouteSharePreviewClient
-      key={`${params.srvCode}:${token}`}
-      srvCode={params.srvCode}
+      key={`${resolvedParams.srvCode}:${token}`}
+      srvCode={resolvedParams.srvCode}
       token={token}
     />
   );
