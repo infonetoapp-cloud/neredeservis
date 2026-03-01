@@ -11,6 +11,7 @@ import {
 import type { User } from "firebase/auth";
 
 import { subscribeAuthState } from "@/features/auth/auth-client";
+import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
 import { getPublicConfigValidation } from "@/lib/env/firebase-public-config";
 
 type AuthSessionStatus = "loading" | "signed_out" | "signed_in" | "disabled";
@@ -30,15 +31,18 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!configReady) {
+      setClientSessionCookie(false);
       return;
     }
 
     const unsubscribe = subscribeAuthState((nextUser) => {
       setUser(nextUser);
       setResolved(true);
+      setClientSessionCookie(Boolean(nextUser));
     });
 
     if (!unsubscribe) {
+      setClientSessionCookie(false);
       return;
     }
 
