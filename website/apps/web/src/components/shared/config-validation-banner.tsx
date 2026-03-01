@@ -12,7 +12,7 @@ export function ConfigValidationBanner({ scopeLabel }: Props) {
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+    <div className="mb-4 rounded-2xl border border-amber-200/85 bg-amber-50/85 p-3 text-sm text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
       <div className="font-semibold">
         Config eksik ({scopeLabel}) - Firebase public env tamamlanmadi
       </div>

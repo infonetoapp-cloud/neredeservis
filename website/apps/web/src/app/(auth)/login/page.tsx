@@ -1,20 +1,20 @@
-import type { Metadata } from "next";
-
-import { LoginPageShell } from "@/components/auth/login-page-shell";
-import { getPanelBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
-
-const panelBaseUrl = getPanelBaseUrl();
-
-export const metadata: Metadata = {
-  title: "Login | NeredeServis",
-  description:
-    "Firma operasyonu ve bireysel sofor paneline giris: e-posta/sifre, Google ve Microsoft ile oturum acin.",
-  robots: { index: false, follow: false },
-  alternates: {
-    canonical: toAbsoluteUrl(panelBaseUrl, "/login"),
-  },
-};
+import { AuthPageShell } from "@/components/auth/auth-page-shell";
+import { LoginForm } from "@/components/auth/login-form";
 
 export default function LoginPage() {
-  return <LoginPageShell />;
+  return (
+    <AuthPageShell
+      scopeLabel="Login"
+      title="Welcome back!"
+      description="Company operasyon paneline giris yapin"
+      topPrompt="Hesabin yok mu?"
+      topLinkLabel="Kayit Ol"
+      topLinkHref="/register"
+      sideImageSrc="/figma/sign-in-reference.png"
+      sideImageAlt="Role based CRM sign in reference"
+      footerHint="Sadece sirket paneli girisi aktif."
+    >
+      <LoginForm />
+    </AuthPageShell>
+  );
 }

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
-  sendPasswordResetEmailForAddress,
+  readCurrentUserWebAccessPolicy,
+  signOutCurrentUser,
   signInWithEmailPassword,
   signInWithGooglePopup,
   signInWithMicrosoftPopup,
@@ -17,7 +19,7 @@ import {
   isGoogleLoginEnabled,
   isMicrosoftLoginEnabled,
 } from "@/lib/env/public-env";
-import { resolvePostLoginPath } from "@/features/mode/mode-preference";
+import { GoogleIcon, MicrosoftIcon } from "@/components/auth/auth-provider-icons";
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -49,6 +51,9 @@ function toFriendlyErrorMessage(error: unknown): string {
     if (code === "auth/network-request-failed") {
       return "Ag hatasi. Baglantiyi kontrol edip tekrar dene.";
     }
+    if (error.message === "DRIVER_MOBILE_ONLY_WEB_BLOCK") {
+      return "Sofor hesaplari sadece mobil uygulamada kullanilabilir.";
+    }
     return code ? `Giris hatasi (${code})` : error.message;
   }
   return "Beklenmeyen hata olustu.";
@@ -61,28 +66,66 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<
-    "email" | "google" | "microsoft" | null
-  >(null);
-  const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [pendingAction, setPendingAction] = useState<"email" | "google" | "microsoft" | null>(null);
   const [isNavigating, startTransition] = useTransition();
 
-  const nextPath = useMemo(
-    () => resolvePostLoginPath(searchParams.get("next")),
-    [searchParams],
-  );
+  const nextPath = searchParams.get("next") || "/select-company";
+  const switchAccountRequested = searchParams.get("switch") === "1";
+  const blockedReason = searchParams.get("reason");
   const emailEnabled = isEmailLoginEnabled();
   const googleEnabled = isGoogleLoginEnabled();
   const microsoftEnabled = isMicrosoftLoginEnabled();
   const fastLoginCreds = useMemo(() => getDevFastLoginCredentials(), []);
+  const [switchAccountError, setSwitchAccountError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === "signed_in") {
+    if (status === "signed_in" && !switchAccountRequested) {
       router.replace(nextPath);
     }
-  }, [nextPath, router, status]);
+  }, [nextPath, router, status, switchAccountRequested]);
+
+  useEffect(() => {
+    if (!switchAccountRequested || status !== "signed_in") {
+      return;
+    }
+    let active = true;
+    setSwitchAccountError(null);
+    signOutCurrentUser()
+      .then(() => {
+        if (!active) {
+          return;
+        }
+        const rawNext = searchParams.get("next");
+        const target = rawNext ? `/login?next=${encodeURIComponent(rawNext)}` : "/login";
+        router.replace(target);
+      })
+      .catch((error) => {
+        if (!active) {
+          return;
+        }
+        setSwitchAccountError(toFriendlyErrorMessage(error));
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router, searchParams, status, switchAccountRequested]);
 
   if (status === "signed_in") {
+    if (switchAccountRequested) {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+            Hesap degistirme icin cikis yapiliyor...
+          </div>
+          {switchAccountError ? (
+            <div className="rounded-2xl border border-rose-200/85 bg-rose-50/85 p-3 text-sm text-rose-900 shadow-sm">
+              {switchAccountError}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
         Oturum acik. Dashboard&apos;a yonlendiriliyor...
@@ -98,10 +141,14 @@ export function LoginForm() {
 
   const submitEmailPassword = async () => {
     setErrorMessage(null);
-    setResetStatus("idle");
     setPendingAction("email");
     try {
       await signInWithEmailPassword({ email, password });
+      const accessPolicy = await readCurrentUserWebAccessPolicy();
+      if (!accessPolicy.allowWebPanel) {
+        await signOutCurrentUser();
+        throw new Error("DRIVER_MOBILE_ONLY_WEB_BLOCK");
+      }
       navigateAfterLogin();
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
@@ -112,10 +159,14 @@ export function LoginForm() {
 
   const submitGoogle = async () => {
     setErrorMessage(null);
-    setResetStatus("idle");
     setPendingAction("google");
     try {
       await signInWithGooglePopup();
+      const accessPolicy = await readCurrentUserWebAccessPolicy();
+      if (!accessPolicy.allowWebPanel) {
+        await signOutCurrentUser();
+        throw new Error("DRIVER_MOBILE_ONLY_WEB_BLOCK");
+      }
       navigateAfterLogin();
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
@@ -126,10 +177,14 @@ export function LoginForm() {
 
   const submitMicrosoft = async () => {
     setErrorMessage(null);
-    setResetStatus("idle");
     setPendingAction("microsoft");
     try {
       await signInWithMicrosoftPopup();
+      const accessPolicy = await readCurrentUserWebAccessPolicy();
+      if (!accessPolicy.allowWebPanel) {
+        await signOutCurrentUser();
+        throw new Error("DRIVER_MOBILE_ONLY_WEB_BLOCK");
+      }
       navigateAfterLogin();
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
@@ -148,74 +203,86 @@ export function LoginForm() {
 
   const busy = pendingAction !== null || isNavigating;
 
-  const triggerPasswordReset = async () => {
-    setErrorMessage(null);
-    setResetStatus("sending");
-    try {
-      await sendPasswordResetEmailForAddress(email);
-      setResetStatus("sent");
-    } catch (error) {
-      setResetStatus("idle");
-      setErrorMessage(toFriendlyErrorMessage(error));
-    }
-  };
-
   return (
     <div className="space-y-4">
+      {blockedReason === "driver_mobile_only" ? (
+        <div className="rounded-2xl border border-amber-200/85 bg-amber-50/85 p-3 text-sm text-amber-900 shadow-sm">
+          Sofor hesaplari web panelde kullanilamaz. Lutfen mobil surucu uygulamasindan giris yap.
+        </div>
+      ) : null}
       {errorMessage ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+        <div className="rounded-2xl border border-rose-200/85 bg-rose-50/85 p-3 text-sm text-rose-900 shadow-sm">
           {errorMessage}
         </div>
       ) : null}
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-800">E-posta</label>
-        <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="ornek@firma.com"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-        />
+      <button
+        type="button"
+        disabled={!googleEnabled || busy}
+        onClick={submitGoogle}
+        className="glass-button w-full rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span className="inline-flex items-center gap-2">
+          <GoogleIcon className="h-4 w-4" />
+          {pendingAction === "google" ? "Google aciliyor..." : "Google ile Giris"}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        disabled={!microsoftEnabled || busy}
+        onClick={submitMicrosoft}
+        className="glass-button w-full rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span className="inline-flex items-center gap-2">
+          <MicrosoftIcon className="h-4 w-4" />
+          {pendingAction === "microsoft" ? "Microsoft aciliyor..." : "Microsoft ile Giris"}
+        </span>
+      </button>
+
+      <div className="relative py-1 text-center">
+        <div className="absolute left-0 right-0 top-1/2 border-t border-line/80" />
+        <span className="relative bg-white px-3 text-xs font-medium tracking-wide text-[#7e8691]">OR</span>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-800">Sifre</label>
-        <input
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="********"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={triggerPasswordReset}
-          disabled={busy || resetStatus === "sending"}
-          className="text-sm font-medium text-muted hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {resetStatus === "sending"
-            ? "Reset e-postasi gonderiliyor..."
-            : "Sifremi Unuttum"}
-        </button>
-
-        {resetStatus === "sent" ? (
-          <span className="text-xs font-medium text-emerald-700">
-            Reset e-postasi gonderildi
-          </span>
-        ) : null}
+      <div className="space-y-4">
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Email</label>
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="ornek@firma.com"
+            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+          />
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label className="block text-sm font-semibold text-[#2f3237]">Password</label>
+            <Link
+              href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"}
+              className="text-sm font-semibold text-[#42505c] transition hover:opacity-75"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="********"
+            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+          />
+        </div>
       </div>
 
       {isDevAppEnv() && fastLoginCreds ? (
         <button
           type="button"
           onClick={applyFastLogin}
-          className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+          className="glass-button w-full rounded-xl border-dashed px-4 py-2 text-sm font-medium"
         >
           Fast Login Bilgilerini Doldur (dev)
         </button>
@@ -225,40 +292,27 @@ export function LoginForm() {
         type="button"
         disabled={!emailEnabled || busy}
         onClick={submitEmailPassword}
-        className="mt-2 w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="glass-button-primary mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Giris Yapiliyor..." : "Giris Yap"}
+        {pendingAction === "email" ? "Signing in..." : "Sign In"}
       </button>
 
-      <button
-        type="button"
-        disabled={!googleEnabled || busy}
-        onClick={submitGoogle}
-        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pendingAction === "google" ? "Google aciliyor..." : "Google ile Giris"}
-      </button>
+      <div className="pt-1 text-center text-sm text-[#66736c]">
+        Hesabin yok mu?{" "}
+        <Link href="/register" className="font-semibold text-[#173f37] hover:opacity-70">
+          Kayit Ol
+        </Link>
+      </div>
 
-      <button
-        type="button"
-        disabled={!microsoftEnabled || busy}
-        onClick={submitMicrosoft}
-        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pendingAction === "microsoft"
-          ? "Microsoft aciliyor..."
-          : "Microsoft ile Giris"}
-      </button>
-
-      <div className="flex flex-wrap gap-2 text-xs text-muted">
+      <div className="flex flex-wrap gap-2 pt-1 text-xs text-[#6e7a74]">
         {!emailEnabled ? (
-          <span className="rounded-full bg-slate-100 px-2 py-1">Email login kapali</span>
+          <span className="glass-chip rounded-full px-2.5 py-1">Email login kapali</span>
         ) : null}
         {!googleEnabled ? (
-          <span className="rounded-full bg-slate-100 px-2 py-1">Google login kapali</span>
+          <span className="glass-chip rounded-full px-2.5 py-1">Google login kapali</span>
         ) : null}
         {!microsoftEnabled ? (
-          <span className="rounded-full bg-slate-100 px-2 py-1">Microsoft login kapali</span>
+          <span className="glass-chip rounded-full px-2.5 py-1">Microsoft login kapali</span>
         ) : null}
       </div>
     </div>

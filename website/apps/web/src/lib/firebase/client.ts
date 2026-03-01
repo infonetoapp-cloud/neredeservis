@@ -3,13 +3,16 @@ import "client-only";
 import { type FirebaseApp, getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getDatabase, type Database } from "firebase/database";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import { getFunctions, type Functions } from "firebase/functions";
 
 import { getFirebasePublicConfigOrNull } from "@/lib/env/firebase-public-config";
+import { getFirebaseFunctionsRegion } from "@/lib/env/public-env";
 
 let authSingleton: Auth | null = null;
-let functionsSingleton: Functions | null = null;
 let databaseSingleton: Database | null = null;
+let firestoreSingleton: Firestore | null = null;
+let functionsSingleton: Functions | null = null;
 
 export function getFirebaseClientApp(): FirebaseApp | null {
   const config = getFirebasePublicConfigOrNull();
@@ -38,20 +41,6 @@ export function getFirebaseClientAuth(): Auth | null {
   return authSingleton;
 }
 
-export function getFirebaseClientFunctions(): Functions | null {
-  if (functionsSingleton) {
-    return functionsSingleton;
-  }
-
-  const app = getFirebaseClientApp();
-  if (!app) {
-    return null;
-  }
-
-  functionsSingleton = getFunctions(app, "europe-west3");
-  return functionsSingleton;
-}
-
 export function getFirebaseClientDatabase(): Database | null {
   if (databaseSingleton) {
     return databaseSingleton;
@@ -64,4 +53,32 @@ export function getFirebaseClientDatabase(): Database | null {
 
   databaseSingleton = getDatabase(app);
   return databaseSingleton;
+}
+
+export function getFirebaseClientFirestore(): Firestore | null {
+  if (firestoreSingleton) {
+    return firestoreSingleton;
+  }
+
+  const app = getFirebaseClientApp();
+  if (!app) {
+    return null;
+  }
+
+  firestoreSingleton = getFirestore(app);
+  return firestoreSingleton;
+}
+
+export function getFirebaseClientFunctions(): Functions | null {
+  if (functionsSingleton) {
+    return functionsSingleton;
+  }
+
+  const app = getFirebaseClientApp();
+  if (!app) {
+    return null;
+  }
+
+  functionsSingleton = getFunctions(app, getFirebaseFunctionsRegion());
+  return functionsSingleton;
 }

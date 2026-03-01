@@ -1,5 +1,5 @@
-import { DashboardModePlaceholder } from "@/components/dashboard/dashboard-mode-placeholder";
+import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  return <DashboardModePlaceholder />;
+export default function LegacyDashboardRedirectPage() {
+  redirect("/select-company");
 }

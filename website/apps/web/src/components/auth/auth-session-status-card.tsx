@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { CheckCircleIcon, ShieldLockIcon, UserIcon } from "@/components/shared/app-icons";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 
 export function AuthSessionStatusCard() {
@@ -18,10 +19,13 @@ export function AuthSessionStatusCard() {
   }, [user]);
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+    <div className="glass-panel rounded-2xl p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-slate-900">Auth Session Smoke</div>
-        <span className="rounded-full border border-line bg-white px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+        <div className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+          <ShieldLockIcon className="h-4 w-4 text-[#406155]" />
+          Auth Session Smoke
+        </div>
+        <span className="glass-chip rounded-full px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
           {status}
         </span>
       </div>
@@ -29,11 +33,17 @@ export function AuthSessionStatusCard() {
       {user ? (
         <div className="space-y-2 text-xs text-slate-700">
           <div>
-            <span className="font-semibold text-slate-900">UID:</span>{" "}
+            <span className="inline-flex items-center gap-1 font-semibold text-slate-900">
+              <UserIcon className="h-3.5 w-3.5" />
+              UID:
+            </span>{" "}
             <span className="font-mono">{user.uid}</span>
           </div>
           <div>
-            <span className="font-semibold text-slate-900">Email:</span>{" "}
+            <span className="inline-flex items-center gap-1 font-semibold text-slate-900">
+              <CheckCircleIcon className="h-3.5 w-3.5" />
+              Email:
+            </span>{" "}
             {user.email ?? "-"}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -42,7 +52,7 @@ export function AuthSessionStatusCard() {
               providerLabels.map((providerId) => (
                 <span
                   key={providerId}
-                  className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-800"
+                  className="glass-chip rounded-full px-2 py-1 font-medium text-slate-800"
                 >
                   {providerId}
                 </span>
