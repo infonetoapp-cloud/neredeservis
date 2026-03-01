@@ -25,6 +25,9 @@ const functionsRegion = (process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION ?? "e
   .trim()
   .toLowerCase();
 const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
+const adminSurfaceFlag = (process.env.NEXT_PUBLIC_ENABLE_ADMIN_SURFACE ?? "false")
+  .trim()
+  .toLowerCase();
 const forceUpdateLockFlag = (process.env.NEXT_PUBLIC_FORCE_UPDATE_LOCK ?? "false")
   .trim()
   .toLowerCase();
@@ -81,6 +84,15 @@ export function getFirebaseFunctionsRegion(): string {
 
 export function getMapboxToken(): string | null {
   return mapboxToken || null;
+}
+
+// Backward-compatible alias used by legacy dashboard components.
+export function getPublicMapboxToken(): string | null {
+  return getMapboxToken();
+}
+
+export function isAdminSurfaceEnabled(): boolean {
+  return adminSurfaceFlag === "true";
 }
 
 export function isForceUpdateLockEnabled(): boolean {
