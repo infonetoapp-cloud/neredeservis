@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { DashboardFeaturePlaceholder } from "@/components/dashboard/dashboard-feature-placeholder";
 import {
   buildRoutesFilterQueryString,
   buildRoutesSelectionQueryString,
@@ -246,37 +245,27 @@ export function RoutesCompanyRoutesFeature() {
   );
 
   return (
-    <DashboardFeaturePlaceholder
-      badge="Operations"
-      title="Routes / Company Route Summaries"
-      description="Routes ekrani company route summary read-side, filtreleme, update ve durak editoru akisini birlikte sunar."
-      nextPhaseNotes={[
-        "route detail + geometry editor",
-        "driver/assignment gorunumleri",
-        "route-level operasyon ozetleri",
-      ]}
-      workspace={workspace}
-      sidePanel={
-        <RoutesSidePanel
-          actorRole={actorRole}
-          actorMemberStatus={actorMemberStatus}
-          selectedRoute={selectedRoute}
-          companyId={companyId}
-          preferredMemberUid={memberUidFromQuery}
-          filteredRoutes={filteredRoutes}
-          members={membersQuery.items}
-          membersLoadStatus={membersQuery.status}
-          activeTrips={selectedRouteTripsQuery.items}
-          activeTripsLoadStatus={selectedRouteTripsQuery.status}
-          selectedRouteId={selectedRouteId}
-          copyLinkState={copyLinkState}
-          routePermissions={routePermissionsQuery.items}
-          routePermissionsLoadStatus={routePermissionsQuery.status}
-          onCopyViewLink={() => void handleCopyViewLink()}
-          onSelectedRouteIdChange={setSelectedRouteIdPreference}
-          onRoutesUpdated={handleRoutesUpdated}
-        />
-      }
-    />
+    <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+      {workspace}
+      <RoutesSidePanel
+        actorRole={actorRole}
+        actorMemberStatus={actorMemberStatus}
+        selectedRoute={selectedRoute}
+        companyId={companyId}
+        preferredMemberUid={memberUidFromQuery}
+        filteredRoutes={filteredRoutes}
+        members={membersQuery.items}
+        membersLoadStatus={membersQuery.status}
+        activeTrips={selectedRouteTripsQuery.items}
+        activeTripsLoadStatus={selectedRouteTripsQuery.status}
+        selectedRouteId={selectedRouteId}
+        copyLinkState={copyLinkState}
+        routePermissions={routePermissionsQuery.items}
+        routePermissionsLoadStatus={routePermissionsQuery.status}
+        onCopyViewLink={() => void handleCopyViewLink()}
+        onSelectedRouteIdChange={setSelectedRouteIdPreference}
+        onRoutesUpdated={handleRoutesUpdated}
+      />
+    </div>
   );
 }

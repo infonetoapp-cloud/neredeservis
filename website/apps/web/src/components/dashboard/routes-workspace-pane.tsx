@@ -3,7 +3,7 @@
 import { type ComponentProps } from "react";
 
 import { DashboardStatePlaceholder } from "@/components/dashboard/dashboard-state-placeholder";
-import { RouteCreateInlineForm } from "@/components/dashboard/route-create-inline-form";
+import { RouteCreateWizardForm } from "@/components/dashboard/route-create-wizard-form";
 import { RoutesListSection } from "@/components/dashboard/routes-list-section";
 import { mapCompanyCallableErrorToMessage } from "@/features/company/company-callables";
 
@@ -56,7 +56,7 @@ export function RoutesWorkspacePane({
       <DashboardStatePlaceholder
         tone="loading"
         title="Rotalar yukleniyor"
-        description="Firebase callable listCompanyRoutes ile route summary listesi getiriliyor."
+        description="Rotalar yukleniyor, lutfen bekleyin."
       />
     );
   }
@@ -89,7 +89,7 @@ export function RoutesWorkspacePane({
           description="Ilk company route olusturuldugunda liste burada gorunur."
         />
         {canMutateRoutes ? (
-          <RouteCreateInlineForm companyId={companyId} onCreated={onRouteCreated} />
+          <RouteCreateWizardForm companyId={companyId} onCreated={onRouteCreated} />
         ) : (
           <DashboardStatePlaceholder
             tone="info"
@@ -104,7 +104,7 @@ export function RoutesWorkspacePane({
   return (
     <div className="space-y-4">
       {canMutateRoutes ? (
-        <RouteCreateInlineForm companyId={companyId} onCreated={onRouteCreated} />
+        <RouteCreateWizardForm companyId={companyId} onCreated={onRouteCreated} />
       ) : (
         <DashboardStatePlaceholder
           tone="info"
