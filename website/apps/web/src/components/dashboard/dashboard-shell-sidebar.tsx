@@ -71,7 +71,7 @@ function SidebarNavSection({
             return (
               <div
                 key={`${title}-${item.label}`}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400"
                 aria-disabled="true"
               >
                 <Icon className="h-4 w-4 flex-shrink-0" />
@@ -86,8 +86,8 @@ function SidebarNavSection({
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-blue-500 text-white shadow-md shadow-blue-500/25"
-                  : "text-slate-400 hover:bg-white/[0.07] hover:text-white"
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />
@@ -112,16 +112,16 @@ export function DashboardShellSidebar() {
   const operationItems = NAV_ITEMS.filter((item) => item.section === "operations");
 
   return (
-    <aside className="flex h-screen flex-col border-b border-slate-800 bg-slate-950 lg:sticky lg:top-0 lg:border-r lg:border-b-0">
+    <aside className="flex h-screen flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0">
       {/* Logo */}
-      <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 shadow-lg shadow-blue-500/30">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#F67366] to-[#E85D50] shadow-sm">
             <RadioTower className="h-4 w-4 text-white" />
           </div>
           <div>
-            <div className="text-[13px] font-bold tracking-tight text-white">NeredeServis</div>
-            <div className="text-[10px] text-slate-500">Yönetim Paneli</div>
+            <div className="text-[13px] font-bold tracking-tight text-slate-800">NeredeServis</div>
+            <div className="text-[10px] text-slate-400">Yönetim Paneli</div>
           </div>
         </div>
         <EnvBadge />
@@ -136,7 +136,7 @@ export function DashboardShellSidebar() {
       </nav>
 
       {/* Active Company Card */}
-      <div className="border-t border-slate-800 px-3 py-3">
+      <div className="border-t border-slate-100 px-3 py-3">
         <ActiveCompanySidebarCard />
       </div>
     </aside>

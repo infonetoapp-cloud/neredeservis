@@ -29,13 +29,13 @@ export function ActiveCompanySidebarCard() {
   return (
     <Link
       href="/mode-select"
-      className="flex items-center gap-3 rounded-xl px-3 py-3 transition-all hover:bg-white/[0.07]"
+      className="flex items-center gap-3 rounded-xl px-3 py-3 transition-all hover:bg-slate-50"
     >
-      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white/10">
-        <Building2 className="h-4 w-4 text-slate-300" />
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
+        <Building2 className="h-4 w-4 text-slate-500" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13px] font-semibold text-slate-100">
+        <div className="truncate text-[13px] font-semibold text-slate-800">
           {companyName ?? "Şirket seçilmedi"}
         </div>
         <div className="text-[11px] text-slate-500">

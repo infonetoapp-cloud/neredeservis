@@ -7,7 +7,7 @@ import { ConfigValidationBanner } from "@/components/shared/config-validation-ba
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,#dbeafe50_0%,transparent_60%),radial-gradient(ellipse_60%_40%_at_100%_100%,#ede9fe40_0%,transparent_60%),#f0f4f8] text-foreground">
+    <div className="min-h-screen bg-[#F8F8F9] text-foreground">
       <div className="flex min-h-screen">
         <div className="hidden lg:block lg:w-[260px] lg:flex-shrink-0">
           <DashboardShellSidebar />
