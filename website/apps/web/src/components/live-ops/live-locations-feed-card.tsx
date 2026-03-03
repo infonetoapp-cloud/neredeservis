@@ -344,14 +344,30 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
                     {toLiveOpsLabel(selectedItem.status)}
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-[#697382]">
-                  Hat: {selectedItem.routeName}
-                  {selectedItem.vehiclePlate ? ` | Plaka: ${selectedItem.vehiclePlate}` : ""}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#697382]">
+                  <span>Hat: {selectedItem.routeName}</span>
+                  {selectedItem.vehiclePlate ? <span>Plaka: {selectedItem.vehiclePlate}</span> : null}
                 </div>
-                <div className="mt-1 text-xs text-[#697382]">
-                  Sofor: {selectedItem.driverName ?? "Bilinmiyor"} | Son konum:{" "}
-                  {toLastSeenLabel(selectedItem.locationTimestampMs)}
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#697382]">
+                  <span>Sofor: {selectedItem.driverName ?? "Bilinmiyor"}</span>
+                  <span>Son konum: {toLastSeenLabel(selectedItem.locationTimestampMs)}</span>
                 </div>
+                {selectedItem.speed != null && selectedItem.speed > 0 ? (
+                  <div className="mt-1 flex items-center gap-1.5 text-xs">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-emerald-700">Hareket halinde · {selectedItem.speed.toFixed(0)} km/s</span>
+                  </div>
+                ) : selectedItem.status === "live" ? (
+                  <div className="mt-1 flex items-center gap-1.5 text-xs">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-sky-500" />
+                    <span className="text-sky-700">Durakta veya beklemede</span>
+                  </div>
+                ) : null}
+                {selectedItem.scheduledTime ? (
+                  <div className="mt-1 text-[11px] text-muted">
+                    Planlanan saat: {selectedItem.scheduledTime}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </section>
@@ -383,12 +399,23 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-[#697382]">Hat: {item.routeName}</div>
-                  <div className="mt-1 text-xs text-[#697382]">
-                    Sofor: {item.driverName ?? "Bilinmiyor"} | Son konum: {toLastSeenLabel(item.locationTimestampMs)}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-[#697382]">
+                    {item.vehiclePlate ? (
+                      <span className="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                        {item.vehiclePlate}
+                      </span>
+                    ) : null}
+                    <span>Sofor: {item.driverName ?? "Bilinmiyor"}</span>
                   </div>
-                  <div className="mt-1 text-xs text-[#697382]">
-                    Sefer: {item.tripId ? "Aktif" : "Beklemede"} | Hiz:{" "}
-                    {item.speed != null ? item.speed.toFixed(1) : "-"}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-[#697382]">
+                    <span>Son: {toLastSeenLabel(item.locationTimestampMs)}</span>
+                    <span>Sefer: {item.tripId ? "Aktif" : "Beklemede"}</span>
+                    {item.speed != null && item.speed > 0 ? (
+                      <span className="text-emerald-600">{item.speed.toFixed(0)} km/s</span>
+                    ) : item.status === "live" ? (
+                      <span className="text-sky-600">Durakta</span>
+                    ) : null}
+                    {item.scheduledTime ? <span>Saat: {item.scheduledTime}</span> : null}
                   </div>
                 </article>
               );

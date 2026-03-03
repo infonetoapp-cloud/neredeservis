@@ -149,20 +149,6 @@ export function CompanyDashboardOverview({ companyId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Figma-style dashboard header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Genel Bakış</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Canlı operasyon durumunu ve özet metrikleri buradan izleyebilirsiniz.
-          </p>
-        </div>
-        <div className="hidden sm:flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-medium text-slate-500 shadow-sm">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          Canlı Güncelleme
-        </div>
-      </div>
-
       <CompanyDashboardKpis
         routesTracked={summary.routesTracked}
         activeTrips={summary.activeTrips}
@@ -170,13 +156,13 @@ export function CompanyDashboardOverview({ companyId }: Props) {
         attentionRoutes={summary.attentionRoutes}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
-        <CompanyDashboardFeed companyId={companyId} items={items} generatedAt={generatedAt} />
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <CompanyDashboardMiniMap
           companyId={companyId}
           items={vehicleFocusedItems}
           totalVehicleCount={companyVehicles.length}
         />
+        <CompanyDashboardFeed companyId={companyId} items={items} generatedAt={generatedAt} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">

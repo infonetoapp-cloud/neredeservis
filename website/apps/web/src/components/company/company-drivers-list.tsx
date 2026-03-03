@@ -10,9 +10,11 @@ import {
   createCompanyDriverAccountForCompany,
   listCompanyDriversForCompany,
   listCompanyRoutesForCompany,
+  listCompanyVehiclesForCompany,
   type CompanyDriverCredentialBundle,
   type CompanyDriverItem,
   type CompanyRouteItem,
+  type CompanyVehicleItem,
   unassignCompanyDriverFromRouteForCompany,
 } from "@/features/company/company-client";
 
@@ -69,6 +71,7 @@ export function CompanyDriversList({ companyId }: Props) {
   const { memberRole } = useCompanyMembership();
   const [drivers, setDrivers] = useState<CompanyDriverItem[] | null>(null);
   const [routes, setRoutes] = useState<CompanyRouteItem[] | null>(null);
+  const [vehicles, setVehicles] = useState<CompanyVehicleItem[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState<number>(0);
@@ -85,6 +88,7 @@ export function CompanyDriversList({ companyId }: Props) {
   const [showCreateValidation, setShowCreateValidation] = useState<boolean>(false);
   const [copyInfoMessage, setCopyInfoMessage] = useState<string | null>(null);
   const [latestCredentials, setLatestCredentials] = useState<CompanyDriverCredentialBundle | null>(null);
+  const [showAdvancedCreate, setShowAdvancedCreate] = useState<boolean>(false);
 
   const canMutate = memberRole === "owner" || memberRole === "admin" || memberRole === "dispatcher";
   const canCreateDriverAccount =
@@ -123,13 +127,15 @@ export function CompanyDriversList({ companyId }: Props) {
     Promise.all([
       listCompanyDriversForCompany({ companyId, limit: 200 }),
       listCompanyRoutesForCompany({ companyId, limit: 200 }),
+      listCompanyVehiclesForCompany({ companyId, limit: 200 }),
     ])
-      .then(([nextDrivers, nextRoutes]) => {
+      .then(([nextDrivers, nextRoutes, nextVehicles]) => {
         if (cancelled) {
           return;
         }
         setDrivers(nextDrivers);
         setRoutes(nextRoutes);
+        setVehicles(nextVehicles);
         setErrorMessage(null);
       })
       .catch((error: unknown) => {
@@ -207,6 +213,22 @@ export function CompanyDriversList({ companyId }: Props) {
     const assignedIds = new Set(selectedDriver.assignedRoutes.map((item) => item.routeId));
     return routes.filter((route) => !route.isArchived && !assignedIds.has(route.routeId));
   }, [routes, selectedDriver]);
+
+  const selectedDriverVehicles = useMemo(() => {
+    if (!selectedDriver || !routes || !vehicles) {
+      return [];
+    }
+    const assignedRouteIds = new Set(selectedDriver.assignedRoutes.map((item) => item.routeId));
+    const vehicleIds = new Set(
+      routes
+        .filter((route) => !route.isArchived && assignedRouteIds.has(route.routeId) && route.vehicleId)
+        .map((route) => route.vehicleId as string),
+    );
+    if (vehicleIds.size === 0) {
+      return [];
+    }
+    return vehicles.filter((vehicle) => vehicleIds.has(vehicle.vehicleId));
+  }, [routes, selectedDriver, vehicles]);
 
   useEffect(() => {
     if (!selectedDriver) {
@@ -373,7 +395,11 @@ export function CompanyDriversList({ companyId }: Props) {
 
         {canCreateDriverAccount ? (
           <div className="space-y-3">
-            <div className="grid gap-2 lg:grid-cols-2">
+            <div className="rounded-xl border border-[#d8e5f3] bg-[#f6f9ff] px-3 py-2 text-[11px] text-[#4e637d]">
+              Sadece sofor adini gir, sistem e-posta ve sifre otomatik olusturur. Detay eklemek icin &quot;Detayli&quot; secenegini ac.
+            </div>
+
+            <div className="grid gap-2 lg:grid-cols-[1fr_auto]">
               <label className="space-y-1 text-xs">
                 <span className="font-semibold text-slate-700">Sofor adi</span>
                 <input
@@ -394,88 +420,77 @@ export function CompanyDriversList({ companyId }: Props) {
                   className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
                 />
               </label>
-              <label className="space-y-1 text-xs">
-                <span className="font-semibold text-slate-700">Telefon (opsiyonel)</span>
-                <input
-                  type="tel"
-                  value={createPhone}
-                  onChange={(event) => {
-                    setCreatePhone(event.target.value);
-                    setShowCreateValidation(false);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") {
-                      return;
-                    }
-                    event.preventDefault();
-                    void handleCreateDriverAccount();
-                  }}
-                  placeholder="+90 5xx xxx xx xx"
-                  className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-                />
-              </label>
-              <label className="space-y-1 text-xs">
-                <span className="font-semibold text-slate-700">Plaka (opsiyonel)</span>
-                <input
-                  type="text"
-                  value={createPlate}
-                  onChange={(event) => {
-                    setCreatePlate(normalizePlateInput(event.target.value));
-                    setShowCreateValidation(false);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") {
-                      return;
-                    }
-                    event.preventDefault();
-                    void handleCreateDriverAccount();
-                  }}
-                  placeholder="34ABC123"
-                  className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-                />
-              </label>
-              <label className="space-y-1 text-xs">
-                <span className="font-semibold text-slate-700">Giris e-postasi (opsiyonel)</span>
-                <input
-                  type="email"
-                  value={createLoginEmail}
-                  onChange={(event) => {
-                    setCreateLoginEmail(event.target.value.trim());
-                    setShowCreateValidation(false);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") {
-                      return;
-                    }
-                    event.preventDefault();
-                    void handleCreateDriverAccount();
-                  }}
-                  placeholder="Bos birakirsan sistem olusturur"
-                  className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-                />
-              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedCreate((prev) => !prev)}
+                  className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                    showAdvancedCreate
+                      ? "border-[#7ac7b6] bg-[#e6f9f4] text-[#0f5a4c]"
+                      : "border-line bg-white text-slate-600"
+                  }`}
+                >
+                  {showAdvancedCreate ? "Basit mod" : "Detayli"}
+                </button>
+              </div>
             </div>
 
-            <label className="block max-w-md space-y-1 text-xs">
-              <span className="font-semibold text-slate-700">Gecici sifre (opsiyonel)</span>
-              <input
-                type="text"
-                value={createTemporaryPassword}
-                onChange={(event) => {
-                  setCreateTemporaryPassword(event.target.value.trim());
-                  setShowCreateValidation(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  void handleCreateDriverAccount();
-                }}
-                placeholder="Bos birakirsan sistem guclu sifre olusturur"
-                className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-              />
-            </label>
+            {showAdvancedCreate ? (
+              <div className="grid gap-2 lg:grid-cols-2">
+                <label className="space-y-1 text-xs">
+                  <span className="font-semibold text-slate-700">Telefon (opsiyonel)</span>
+                  <input
+                    type="tel"
+                    value={createPhone}
+                    onChange={(event) => {
+                      setCreatePhone(event.target.value);
+                      setShowCreateValidation(false);
+                    }}
+                    placeholder="+90 5xx xxx xx xx"
+                    className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+                <label className="space-y-1 text-xs">
+                  <span className="font-semibold text-slate-700">Plaka (opsiyonel)</span>
+                  <input
+                    type="text"
+                    value={createPlate}
+                    onChange={(event) => {
+                      setCreatePlate(normalizePlateInput(event.target.value));
+                      setShowCreateValidation(false);
+                    }}
+                    placeholder="34ABC123"
+                    className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+                <label className="space-y-1 text-xs">
+                  <span className="font-semibold text-slate-700">Giris e-postasi (opsiyonel)</span>
+                  <input
+                    type="email"
+                    value={createLoginEmail}
+                    onChange={(event) => {
+                      setCreateLoginEmail(event.target.value.trim());
+                      setShowCreateValidation(false);
+                    }}
+                    placeholder="Bos birakirsan sistem olusturur"
+                    className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+                <label className="space-y-1 text-xs">
+                  <span className="font-semibold text-slate-700">Gecici sifre (opsiyonel)</span>
+                  <input
+                    type="text"
+                    value={createTemporaryPassword}
+                    onChange={(event) => {
+                      setCreateTemporaryPassword(event.target.value.trim());
+                      setShowCreateValidation(false);
+                    }}
+                    placeholder="Bos birakirsan sistem guclu sifre olusturur"
+                    className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+              </div>
+            ) : null}
 
             {showCreateValidation && createValidationIssues.length > 0 ? (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -495,7 +510,7 @@ export function CompanyDriversList({ companyId }: Props) {
                 disabled={!canCreateDriverNow}
                 className="glass-button-primary inline-flex rounded-xl px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {actionKey === "create_driver_account" ? "Hesap olusturuluyor..." : "Sofor hesabi olustur"}
+                {actionKey === "create_driver_account" ? "Hesap olusturuluyor..." : "Hizli olustur"}
               </button>
               <button
                 type="button"
@@ -740,6 +755,38 @@ export function CompanyDriversList({ companyId }: Props) {
                                   : "Kaldir"}
                               </button>
                             ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-line bg-white p-3">
+                    <div className="mb-2 text-xs font-semibold text-slate-700">Bagli araclar</div>
+                    {selectedDriverVehicles.length === 0 ? (
+                      <div className="text-xs text-muted">Bu soforun rotalarina bagli arac yok.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedDriverVehicles.map((vehicle) => (
+                          <div
+                            key={vehicle.vehicleId}
+                            className="flex items-center justify-between gap-2 rounded-xl border border-line px-2 py-1.5"
+                          >
+                            <div>
+                              <div className="text-xs font-semibold text-slate-900">{vehicle.plate}</div>
+                              <div className="text-[11px] text-muted">
+                                {vehicle.label ?? "Etiket yok"}{vehicle.capacity ? ` · ${vehicle.capacity} kisi` : ""}
+                              </div>
+                            </div>
+                            <div
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                vehicle.isActive
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {vehicle.isActive ? "Aktif" : "Pasif"}
+                            </div>
                           </div>
                         ))}
                       </div>

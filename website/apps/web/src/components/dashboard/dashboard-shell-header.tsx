@@ -42,6 +42,10 @@ const SEGMENT_META: Record<string, { title: string; subtitle: string }> = {
     title: "Üyeler",
     subtitle: "Şirket üyelerini görüntüle ve yönet",
   },
+  settings: {
+    title: "Ayarlar",
+    subtitle: "Şirket profili, bildirimler ve entegrasyonlar",
+  },
 };
 
 const FALLBACK_META = { title: "Panel", subtitle: "NeredeServis Yönetim" };

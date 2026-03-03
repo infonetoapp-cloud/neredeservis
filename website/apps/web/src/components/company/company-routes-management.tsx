@@ -6,6 +6,7 @@ import { useCompanyMembership } from "@/components/company/company-membership-co
 import type { AddressSuggestion } from "@/components/company/routes/place-autocomplete-input";
 import { RouteCreateSection } from "@/components/company/routes/route-create-section";
 import { RouteListSection } from "@/components/company/routes/route-list-section";
+import { RoutePerformanceSummary } from "@/components/company/routes/route-performance-summary";
 import { RouteStopsSection } from "@/components/company/routes/route-stops-section";
 import type { RouteDraft, RouteTimeSlotOption } from "@/components/company/routes/routes-management-types";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
@@ -568,6 +569,12 @@ export function CompanyRoutesManagement({ companyId }: Props) {
         onRefresh={() => setRefreshNonce((prev) => prev + 1)}
         onSaveRoute={handleSaveRoute}
         onSelectRoute={setSelectedRouteId}
+      />
+
+      <RoutePerformanceSummary
+        companyId={companyId}
+        selectedRoute={selectedRoute}
+        sortedRouteStops={sortedRouteStops}
       />
 
       <RouteStopsSection

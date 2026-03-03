@@ -13,10 +13,12 @@ import {
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
   createCompanyVehicleForCompany,
+  listCompanyDriversForCompany,
   listCompanyRoutesForCompany,
   listCompanyVehiclesForCompany,
   updateCompanyRouteForCompany,
   updateCompanyVehicleForCompany,
+  type CompanyDriverItem,
   type CompanyRouteItem,
   type CompanyVehicleItem,
 } from "@/features/company/company-client";
@@ -57,6 +59,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   const { memberRole } = useCompanyMembership();
   const [vehicles, setVehicles] = useState<CompanyVehicleItem[] | null>(null);
   const [routes, setRoutes] = useState<CompanyRouteItem[] | null>(null);
+  const [drivers, setDrivers] = useState<CompanyDriverItem[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState<number>(0);
@@ -84,13 +87,15 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
     Promise.all([
       listCompanyVehiclesForCompany({ companyId, limit: 200 }),
       listCompanyRoutesForCompany({ companyId, limit: 200 }),
+      listCompanyDriversForCompany({ companyId, limit: 200 }),
     ])
-      .then(([nextVehicles, nextRoutes]) => {
+      .then(([nextVehicles, nextRoutes, nextDrivers]) => {
         if (cancelled) {
           return;
         }
         setVehicles(nextVehicles);
         setRoutes(nextRoutes);
+        setDrivers(nextDrivers);
         setErrorMessage(null);
         setInfoMessage(null);
         setDrafts((prev) => {
@@ -193,6 +198,23 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
       .filter((route) => !route.isArchived && route.vehicleId !== selectedVehicle.vehicleId)
       .sort((left, right) => left.name.localeCompare(right.name, "tr"));
   }, [routes, selectedVehicle]);
+
+  const selectedVehicleDrivers = useMemo(() => {
+    if (!selectedVehicle || !drivers || !routes) {
+      return [];
+    }
+    const vehicleRouteIds = new Set(
+      routes
+        .filter((route) => !route.isArchived && route.vehicleId === selectedVehicle.vehicleId)
+        .map((route) => route.routeId),
+    );
+    if (vehicleRouteIds.size === 0) {
+      return [];
+    }
+    return drivers.filter((driver) =>
+      driver.assignedRoutes.some((assignment) => vehicleRouteIds.has(assignment.routeId)),
+    );
+  }, [drivers, routes, selectedVehicle]);
 
   useEffect(() => {
     if (!selectedVehicle) {
@@ -729,6 +751,38 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
                         <div className="rounded-xl border border-line px-3 py-2 text-slate-900">
                           Durum: {selectedVehicle.isActive ? "Aktif" : "Pasif"}
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-line bg-white p-3">
+                    <div className="mb-2 text-xs font-semibold text-slate-700">Bagli soforler</div>
+                    {selectedVehicleDrivers.length === 0 ? (
+                      <div className="text-xs text-muted">Bu aracin rotalarina atanmis sofor yok.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {selectedVehicleDrivers.map((driver) => (
+                          <div
+                            key={driver.driverId}
+                            className="flex items-center justify-between gap-2 rounded-xl border border-line px-2 py-1.5"
+                          >
+                            <div>
+                              <div className="text-xs font-semibold text-slate-900">{driver.name}</div>
+                              <div className="text-[11px] text-muted">
+                                {driver.plateMasked}{driver.phoneMasked ? ` · ${driver.phoneMasked}` : ""}
+                              </div>
+                            </div>
+                            <div
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                driver.status === "active"
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {driver.status === "active" ? "Aktif" : "Pasif"}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

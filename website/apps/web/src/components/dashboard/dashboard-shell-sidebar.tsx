@@ -70,7 +70,7 @@ function buildSections(companyId: string | null, role: string | null): NavSectio
       title: "Yönetim",
       items: [
         { label: "Üyeler", href: `${base}/members`, icon: UsersRound, roles: ["owner", "admin"] },
-        { label: "Ayarlar", href: "/admin", icon: Settings, roles: ["owner", "admin"] },
+        { label: "Ayarlar", href: `${base}/settings`, icon: Settings, roles: ["owner", "admin"] },
       ],
     },
   ];
