@@ -14,9 +14,11 @@ type Props = {
 type KpiCard = {
   label: string;
   value: number;
-  tone: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
   hint: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  iconBg: string;
+  iconColor: string;
+  accent: string;
 };
 
 export function CompanyDashboardKpis({
@@ -27,32 +29,40 @@ export function CompanyDashboardKpis({
 }: Props) {
   const cards: KpiCard[] = [
     {
-      label: "Izlenen Rota",
+      label: "İzlenen Rota",
       value: routesTracked,
       icon: RouteIcon,
-      hint: "Canli izlenen toplam rota",
-      tone: "from-[#ebf5ff] to-[#f8fbff] text-[#1f4b7b]",
+      hint: "Canlı izlenen toplam rota",
+      iconBg: "#EBF3FE",
+      iconColor: "#2563EB",
+      accent: "#2563EB",
     },
     {
       label: "Aktif Sefer",
       value: activeTrips,
       icon: CarIcon,
-      hint: "Su anda seferde olan araclar",
-      tone: "from-[#e8fbf7] to-[#f6fffd] text-[#1f6458]",
+      hint: "Şu anda seferde olan araçlar",
+      iconBg: "#FFF0ED",
+      iconColor: "#F5735A",
+      accent: "#F5735A",
     },
     {
-      label: "Canli Hat",
+      label: "Canlı Hat",
       value: liveRoutes,
       icon: PulseIcon,
       hint: "Son sinyali taze gelenler",
-      tone: "from-[#f0fdf4] to-[#fcfffd] text-[#1f6a3b]",
+      iconBg: "#E8FAF1",
+      iconColor: "#16A34A",
+      accent: "#16A34A",
     },
     {
       label: "Dikkat Gereken",
       value: attentionRoutes,
       icon: PulseIcon,
-      hint: "Konumu geciken veya baglantisi kopanlar",
-      tone: "from-[#fff5ef] to-[#fffbf8] text-[#8a451b]",
+      hint: "Konumu geciken veya bağlantısı kopanlar",
+      iconBg: "#FFF8E7",
+      iconColor: "#D97706",
+      accent: "#D97706",
     },
   ];
 
@@ -61,22 +71,37 @@ export function CompanyDashboardKpis({
       {cards.map((card) => (
         <article
           key={card.label}
-          className={`rounded-2xl border border-line bg-gradient-to-br p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ${card.tone}`}
+          className="group rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition hover:shadow-[0_6px_24px_rgba(15,23,42,0.10)]"
         >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-[11px] font-semibold tracking-[0.14em] uppercase opacity-75">
-                {card.label}
-              </div>
-              <div className="mt-2 text-3xl font-semibold leading-none">{card.value}</div>
+          <div className="flex items-start justify-between gap-3">
+            <div
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: card.iconBg }}
+            >
+              <card.icon className="h-5 w-5" style={{ color: card.iconColor }} />
             </div>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/70 bg-white/70">
-              <card.icon className="h-4.5 w-4.5" />
-            </span>
+            <div
+              className="mt-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-white"
+              style={{ background: card.value > 0 ? card.accent : "#CBD5E1" }}
+            />
           </div>
-          <div className="mt-3 text-xs opacity-80">{card.hint}</div>
+          <div className="mt-4">
+            <div
+              className="text-3xl font-bold leading-none tracking-tight"
+              style={{ color: "#0F172A" }}
+            >
+              {card.value}
+            </div>
+            <div className="mt-1.5 text-[13px] font-semibold text-slate-700">{card.label}</div>
+            <div className="mt-1 text-xs text-slate-400">{card.hint}</div>
+          </div>
+          <div
+            className="mt-3 h-0.5 w-8 rounded-full opacity-60"
+            style={{ background: card.accent }}
+          />
         </article>
       ))}
     </div>
   );
 }
+

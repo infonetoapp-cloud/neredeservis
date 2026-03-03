@@ -97,18 +97,17 @@ export function CompanySidebarNav({ companyId }: Props) {
     : items.filter((item) => item.label !== "Uyeler");
 
   return (
-    <nav className="space-y-2">
-      <div className="mb-2 px-1 text-[11px] font-semibold tracking-[0.12em] text-[#7c8793] uppercase">
-        sekmeler
+    <nav className="space-y-1">
+      <div className="mb-3 px-1 text-[10px] font-semibold tracking-[0.16em] text-white/35 uppercase">
+        Ana Menü
       </div>
-      <div className="mb-3 rounded-xl border border-line bg-[#f8fafc] px-2.5 py-1.5 text-[11px] font-semibold tracking-wide text-[#5a6572] uppercase">
-        rol: {toRoleLabel(memberRole, loading)}
-      </div>
+
       {errorMessage ? (
-        <div className="rounded-xl border border-amber-300/70 bg-amber-50/90 px-2.5 py-2 text-[11px] text-amber-900">
+        <div className="mb-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-2.5 py-2 text-[11px] text-amber-300">
           {errorMessage}
         </div>
       ) : null}
+
       {visibleItems.map((item) => {
         const active = isActivePath(pathname, item.href);
 
@@ -116,25 +115,35 @@ export function CompanySidebarNav({ companyId }: Props) {
           <Link
             key={item.href}
             href={item.href}
-            className={`group flex w-full items-center rounded-2xl border px-3 py-2.5 text-sm font-medium transition ${
+            className={`group flex w-full items-center rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
               active
-                ? "border-[#b5e4e3] bg-[linear-gradient(130deg,#e9f9f7_0%,#f4fbfb_100%)] text-[#0c7f81] shadow-[0_8px_20px_rgba(12,127,129,0.12)]"
-                : "border-transparent bg-transparent text-slate-600 hover:border-line hover:bg-[#f8fafb] hover:text-slate-900"
+                ? "bg-[#F5735A] text-white shadow-[0_4px_14px_rgba(245,115,90,0.35)]"
+                : "text-white/65 hover:bg-white/8 hover:text-white"
             }`}
+            style={active ? {} : undefined}
           >
             <span
-              className={`mr-2.5 inline-flex h-8 w-8 items-center justify-center rounded-xl border ${
+              className={`mr-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                 active
-                  ? "border-[#c8e6e5] bg-white/90 text-[#0c7f81]"
-                  : "border-line bg-[#fafbfc] text-[#6a7380] group-hover:bg-white"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/8 text-white/50 group-hover:bg-white/12 group-hover:text-white/80"
               }`}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-3.5 w-3.5" />
             </span>
             {item.label}
           </Link>
         );
       })}
+
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5">
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F5735A]/20 text-[11px] font-bold text-[#F5735A]">
+            {memberRole ? memberRole[0].toUpperCase() : "?"}
+          </span>
+          <span className="text-[11px] font-medium text-white/50">{toRoleLabel(memberRole, loading)}</span>
+        </div>
+      </div>
     </nav>
   );
 }
