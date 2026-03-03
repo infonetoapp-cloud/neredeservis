@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 
-import { platformListCompanies } from "@/features/platform/platform-callables";
+import {
+  platformListCompanies,
+  platformDeleteCompany,
+} from "@/features/platform/platform-callables";
 import type { PlatformCompanySummary, PlatformCompanyStatus } from "@/features/platform/platform-types";
 
 type StatusFilter = "all" | PlatformCompanyStatus;
@@ -50,6 +53,8 @@ export default function PlatformCompaniesPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
@@ -67,6 +72,19 @@ export default function PlatformCompaniesPage() {
   useEffect(() => {
     void fetchCompanies();
   }, [fetchCompanies]);
+
+  const handleDelete = useCallback(async (companyId: string) => {
+    setDeletingId(companyId);
+    try {
+      await platformDeleteCompany(companyId);
+      setCompanies((prev) => prev.filter((c) => c.id !== companyId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Silme islemi basarisiz oldu.");
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  }, []);
 
   const filtered = companies.filter((c) => {
     if (filter !== "all" && c.status !== filter) return false;
@@ -209,12 +227,39 @@ export default function PlatformCompaniesPage() {
                   {new Date(company.createdAt).toLocaleDateString("tr-TR")}
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/platform/companies/${company.id}`}
-                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 transition"
-                  >
-                    Detay
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/platform/companies/${company.id}`}
+                      className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 transition"
+                    >
+                      Detay
+                    </Link>
+
+                    {confirmDeleteId === company.id ? (
+                      <span className="flex items-center gap-1">
+                        <button
+                          disabled={deletingId === company.id}
+                          onClick={() => void handleDelete(company.id)}
+                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition disabled:opacity-50"
+                        >
+                          {deletingId === company.id ? "Siliniyor…" : "Evet, Sil"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 transition"
+                        >
+                          İptal
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(company.id)}
+                        className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition"
+                      >
+                        Sil
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

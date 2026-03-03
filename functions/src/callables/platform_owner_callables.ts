@@ -511,6 +511,54 @@ export function createPlatformOwnerCallables({ db }: { db: Firestore }) {
     return apiOk<{ loginLink: string }>({ loginLink });
   });
 
+  /**
+   * Şirketi ve tüm alt verilerini kalıcı olarak siler.
+   * companies/{id} (+ tüm subcollection) + üyelerin company_memberships kaydı silinir.
+   */
+  const platformDeleteCompany = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    requirePlatformOwner(auth);
+
+    const input = asRecord(request.data) ?? {};
+    const companyId = pickString(input, 'companyId');
+    if (!companyId) {
+      throw new HttpsError('invalid-argument', 'companyId zorunludur.');
+    }
+
+    const companyRef = db.collection('companies').doc(companyId);
+    const companySnap = await companyRef.get();
+    if (!companySnap.exists) {
+      throw new HttpsError('not-found', 'Sirket bulunamadi.');
+    }
+
+    // 1. Üyeleri al — user membership doc'larını silmek için
+    const membersSnap = await companyRef.collection('members').get();
+    const memberUids = membersSnap.docs.map((d) => d.id);
+
+    // 2. Şirkete ait tüm subcollection + şirket doc'unu sil
+    await db.recursiveDelete(companyRef);
+
+    // 3. Her üyenin users/{uid}/company_memberships/{companyId} doc'unu sil
+    if (memberUids.length > 0) {
+      const batch = db.batch();
+      for (const uid of memberUids) {
+        const membershipRef = db
+          .collection('users')
+          .doc(uid)
+          .collection('company_memberships')
+          .doc(companyId);
+        batch.delete(membershipRef);
+      }
+      await batch.commit();
+    }
+
+    return apiOk<{ companyId: string; deletedAt: string }>({
+      companyId,
+      deletedAt: new Date().toISOString(),
+    });
+  });
+
   return {
     platformListCompanies,
     platformGetCompanyDetail,
@@ -518,5 +566,6 @@ export function createPlatformOwnerCallables({ db }: { db: Firestore }) {
     platformSetVehicleLimit,
     platformSetCompanyStatus,
     platformResetOwnerPassword,
+    platformDeleteCompany,
   };
 }

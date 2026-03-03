@@ -414,3 +414,4 @@ export const platformCreateCompany = platformOwnerCallables.platformCreateCompan
 export const platformSetVehicleLimit = platformOwnerCallables.platformSetVehicleLimit;
 export const platformSetCompanyStatus = platformOwnerCallables.platformSetCompanyStatus;
 export const platformResetOwnerPassword = platformOwnerCallables.platformResetOwnerPassword;
+export const platformDeleteCompany = platformOwnerCallables.platformDeleteCompany;

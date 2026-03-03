@@ -194,3 +194,10 @@ export async function platformResetOwnerPassword(
   >("platformResetOwnerPassword", { companyId });
   return { loginLink: result.data.loginLink };
 }
+
+export async function platformDeleteCompany(companyId: string): Promise<void> {
+  await callFirebaseCallable<
+    { companyId: string },
+    { companyId: string; deletedAt: string }
+  >("platformDeleteCompany", { companyId });
+}
