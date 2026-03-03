@@ -1,10 +1,5 @@
-import { CompanyModeRouteGuard } from "@/components/dashboard/company-mode-route-guard";
-import { DriversCompanyMembersFeature } from "@/components/dashboard/drivers-company-members-feature";
+import { LegacyRouteRedirect } from "@/components/dashboard/legacy-route-redirect";
 
 export default function DriversPage() {
-  return (
-    <CompanyModeRouteGuard routeLabel="Drivers">
-      <DriversCompanyMembersFeature />
-    </CompanyModeRouteGuard>
-  );
+  return <LegacyRouteRedirect segment="drivers" />;
 }

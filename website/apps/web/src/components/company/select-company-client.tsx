@@ -7,17 +7,15 @@ import { useRouter } from "next/navigation";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
   acceptCompanyInviteForCurrentUser,
-  createCompanyForCurrentUser,
   listMyCompaniesForCurrentUser,
   listMyPendingCompanyInvitesForCurrentUser,
   type CompanyInviteItem,
   type CompanyMembershipItem,
 } from "@/features/company/company-client";
-import { ArrowRightIcon, BuildingIcon, RefreshIcon } from "@/components/shared/app-icons";
+import { ArrowRightIcon, RefreshIcon } from "@/components/shared/app-icons";
 import { getDevCompanyIds, isDevAppEnv } from "@/lib/env/public-env";
 
 type ListState = "idle" | "loading" | "ready" | "error";
-type CreateState = "idle" | "creating" | "error";
 
 function toCompanyLabel(companyId: string): string {
   return companyId
@@ -49,10 +47,6 @@ export function SelectCompanyClient() {
   const [refreshNonce, setRefreshNonce] = useState<number>(0);
   const [acceptingCompanyId, setAcceptingCompanyId] = useState<string | null>(null);
   const [acceptErrorMessage, setAcceptErrorMessage] = useState<string | null>(null);
-
-  const [createState, setCreateState] = useState<CreateState>("idle");
-  const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
-  const [companyNameInput, setCompanyNameInput] = useState<string>("");
 
   useEffect(() => {
     if (status !== "signed_in") {
@@ -101,42 +95,10 @@ export function SelectCompanyClient() {
         : listErrorMessage
           ? "error"
           : "ready";
-  const creatingDisabled = companyNameInput.trim().length < 2 || createState === "creating";
   const hasPendingInvites = (pendingInvites ?? []).length > 0;
-  const showNoCompanyOnboarding =
-    listState === "ready" &&
-    !hasLiveMemberships &&
-    fallbackMemberships.length === 0 &&
-    !hasPendingInvites;
 
   const refreshCompanyList = () => {
     setRefreshNonce((prev) => prev + 1);
-  };
-
-  const handleCreateCompany = async () => {
-    if (creatingDisabled) {
-      return;
-    }
-    setCreateState("creating");
-    setCreateErrorMessage(null);
-
-    try {
-      const created = await createCompanyForCurrentUser({
-        name: companyNameInput,
-      });
-      setMemberships((prev) => {
-        const nextBase = prev ?? [];
-        const withoutDuplicate = nextBase.filter((item) => item.companyId !== created.companyId);
-        return [created, ...withoutDuplicate];
-      });
-      setCompanyNameInput("");
-      setCreateState("idle");
-      router.push(`/c/${encodeURIComponent(created.companyId)}/dashboard`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Sirket olusturulamadi.";
-      setCreateErrorMessage(message);
-      setCreateState("error");
-    }
   };
 
   const handleAcceptInvite = async (companyId: string) => {
@@ -168,36 +130,6 @@ export function SelectCompanyClient() {
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel rounded-2xl p-4">
-        <div className="mb-3 text-sm font-semibold text-slate-900">Yeni sirket olustur</div>
-        <p className="mb-3 text-sm text-muted">
-          Ilk kurulumda owner olarak yeni bir sirket olusturup dogrudan paneline gecebilirsin.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            value={companyNameInput}
-            onChange={(event) => setCompanyNameInput(event.target.value)}
-            placeholder="Ornek: Atlas Servis Operasyon"
-            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-          />
-          <button
-            type="button"
-            onClick={handleCreateCompany}
-            disabled={creatingDisabled}
-            className="glass-button-primary inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <BuildingIcon className="h-4 w-4" />
-            {createState === "creating" ? "Olusturuluyor..." : "Sirket Olustur"}
-          </button>
-        </div>
-        {createErrorMessage ? (
-          <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-            {createErrorMessage}
-          </div>
-        ) : null}
-      </div>
-
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <div className="text-sm font-semibold text-slate-900">{liveMembershipsLabel}</div>
@@ -223,26 +155,7 @@ export function SelectCompanyClient() {
         ) : null}
         {!hasLiveMemberships && fallbackMemberships.length === 0 && listState === "ready" ? (
           <div className="mb-3 rounded-xl border border-dashed border-line bg-slate-50 p-3 text-xs text-muted">
-            Uye oldugun sirket bulunamadi. Yeni bir sirket olusturabilir veya bir email daveti bekleyebilirsin.
-          </div>
-        ) : null}
-        {showNoCompanyOnboarding ? (
-          <div className="mb-4 rounded-2xl border border-[#d9d2c8] bg-[#faf8f3] p-4">
-            <div className="text-sm font-semibold text-[#2f2a24]">
-              Hesabin henuz bir sirkete bagli degil
-            </div>
-            <p className="mt-1 text-sm leading-6 text-[#6d655a]">
-              Company paneline girebilmek icin ya yeni bir sirket olustur ya da owner/admin
-              tarafindan email daveti al. Davet geldiginde bu ekran otomatik listeler.
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#e3ddd2] bg-white p-3 text-xs text-[#5e564b]">
-                1) Ustteki &quot;Yeni sirket olustur&quot; formunu doldur.
-              </div>
-              <div className="rounded-xl border border-[#e3ddd2] bg-white p-3 text-xs text-[#5e564b]">
-                2) Davet bekliyorsan &quot;Listeyi Yenile&quot; ile tekrar kontrol et.
-              </div>
-            </div>
+            Üye olduğun şirket bulunamadı. Bir email daveti bekleyebilirsin.
           </div>
         ) : null}
         {acceptErrorMessage ? (

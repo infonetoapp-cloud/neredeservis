@@ -27,7 +27,7 @@ export function ActiveCompanyContextChip() {
   if (!activeCompany) {
     return (
       <Link
-        href="/mode-select"
+        href="/select-company"
         className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
       >
         Firma secimi gerekli
@@ -52,7 +52,7 @@ export function ActiveCompanyContextChip() {
 
   return (
     <Link
-      href="/mode-select"
+      href="/select-company"
       className={`inline-flex min-w-0 items-center gap-2 rounded-xl border px-3 py-2 text-left transition hover:opacity-90 ${toneClass}`}
       title={`${title} (${subtitle})`}
     >

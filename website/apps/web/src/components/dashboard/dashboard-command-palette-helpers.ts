@@ -30,7 +30,7 @@ export const QUICK_ACTIONS: readonly CommandAction[] = [
     id: "mode-select",
     title: "Firma Sec",
     hint: "Firma secim ekrani",
-    path: "/mode-select",
+    path: "/select-company",
     group: "navigation",
   },
   {

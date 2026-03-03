@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, ChevronRight } from "lucide-react";
+import { Building2, ArrowLeftRight } from "lucide-react";
 
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
@@ -28,10 +28,10 @@ export function ActiveCompanySidebarCard() {
 
   return (
     <Link
-      href="/mode-select"
-      className="flex items-center gap-3 rounded-xl px-3 py-3 transition-all hover:bg-slate-50"
+      href="/select-company"
+      className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-all hover:bg-slate-50"
     >
-      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100">
+      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 transition-colors group-hover:bg-slate-200">
         <Building2 className="h-4 w-4 text-slate-500" />
       </div>
       <div className="min-w-0 flex-1">
@@ -46,7 +46,7 @@ export function ActiveCompanySidebarCard() {
               : "Şirket seç"}
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500" />
+      <ArrowLeftRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition-colors group-hover:text-slate-600" />
     </Link>
   );
 }

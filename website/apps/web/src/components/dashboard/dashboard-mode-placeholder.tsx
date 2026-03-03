@@ -77,7 +77,7 @@ export function DashboardModePlaceholder() {
           Paneli kullanmak için önce üye olduğunuz bir şirket seçin.
         </div>
         <Link
-          href="/mode-select"
+          href="/select-company"
           className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
         >
           Şirket Seç
@@ -114,7 +114,7 @@ export function DashboardModePlaceholder() {
           </div>
         </div>
         <Link
-          href="/mode-select"
+          href="/select-company"
           className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50"
         >
           Değiştir

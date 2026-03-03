@@ -115,7 +115,7 @@ export function DashboardCompanySwitcher() {
 
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
             <a
-              href="/mode-select"
+              href="/select-company"
               className="text-xs font-semibold text-blue-700 hover:text-blue-800"
             >
               Firma secim ekranina git

@@ -7,7 +7,7 @@ const APP_HOST = "app.neredeservis.app";
 const PANEL_PATH_PREFIXES = [
   "/giris",
   "/login",
-  "/mode-select",
+  "/select-company",
   "/dashboard",
   "/drivers",
   "/vehicles",

@@ -1,10 +1,5 @@
-import { CompanyModeRouteGuard } from "@/components/dashboard/company-mode-route-guard";
-import { VehiclesCompanyVehiclesFeature } from "@/components/dashboard/vehicles-company-vehicles-feature";
+import { LegacyRouteRedirect } from "@/components/dashboard/legacy-route-redirect";
 
 export default function VehiclesPage() {
-  return (
-    <CompanyModeRouteGuard routeLabel="Vehicles">
-      <VehiclesCompanyVehiclesFeature />
-    </CompanyModeRouteGuard>
-  );
+  return <LegacyRouteRedirect segment="vehicles" />;
 }

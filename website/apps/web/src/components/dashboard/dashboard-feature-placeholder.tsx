@@ -62,7 +62,7 @@ export function DashboardFeaturePlaceholder({
             Dashboard
           </Link>
           <Link
-            href="/mode-select"
+            href="/select-company"
             className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
             Firma Sec

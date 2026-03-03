@@ -3,44 +3,71 @@
 import { usePathname } from "next/navigation";
 
 import { DashboardHeaderActions } from "@/components/auth/dashboard-header-actions";
-import { ActiveCompanyContextChip } from "@/components/dashboard/active-company-context-chip";
-import { DashboardCompanySwitcher } from "@/components/dashboard/dashboard-company-switcher";
 import { DashboardCommandPalette } from "@/components/dashboard/dashboard-command-palette";
 
-const HEADER_META: Record<string, { title: string; subtitle: string }> = {
-  "/dashboard": {
-    title: "Ana Sayfa",
-    subtitle: "Genel durum ve hızlı erişim",
+/* ------------------------------------------------------------------ */
+/*  Page titles — matches both flat and /c/[companyId]/… segments      */
+/* ------------------------------------------------------------------ */
+
+const SEGMENT_META: Record<string, { title: string; subtitle: string }> = {
+  dashboard: {
+    title: "Genel Bakış",
+    subtitle: "Özet istatistikler ve hızlı erişim",
   },
-  "/mode-select": {
+  "select-company": {
     title: "Şirket Seç",
     subtitle: "Üye olduğunuz şirketler arasında geçiş yapın",
   },
-  "/drivers": {
+  drivers: {
     title: "Şoförler",
     subtitle: "Şoför ekle, davet et ve üyelikleri yönet",
   },
-  "/vehicles": {
+  vehicles: {
     title: "Araçlar",
     subtitle: "Filonuzu yönetin; araç ekle, düzenle ve takip et",
   },
-  "/routes": {
+  routes: {
     title: "Rotalar",
     subtitle: "Güzergahları tanımlayın ve düzenleyin",
   },
-  "/live-ops": {
+  "live-ops": {
     title: "Canlı Takip",
     subtitle: "Şu an aktif seferler ve araç konumları",
   },
-  "/admin": {
-    title: "Yönetim",
+  admin: {
+    title: "Ayarlar",
     subtitle: "Şirket ayarları ve erişim kontrolü",
+  },
+  members: {
+    title: "Üyeler",
+    subtitle: "Şirket üyelerini görüntüle ve yönet",
   },
 };
 
+const FALLBACK_META = { title: "Panel", subtitle: "NeredeServis Yönetim" };
+
+function resolveHeaderMeta(pathname: string) {
+  // Try matching the last meaningful segment
+  // For /c/[companyId]/dashboard → "dashboard"
+  // For /drivers → "drivers"
+  const segments = pathname.split("/").filter(Boolean);
+  const lastSegment = segments[segments.length - 1] ?? "";
+
+  if (SEGMENT_META[lastSegment]) {
+    return SEGMENT_META[lastSegment];
+  }
+
+  // For /c/[companyId] root
+  if (segments.length >= 2 && segments[0] === "c") {
+    return SEGMENT_META.dashboard;
+  }
+
+  return FALLBACK_META;
+}
+
 export function DashboardShellHeader() {
-  const pathname = usePathname() ?? "/dashboard";
-  const meta = HEADER_META[pathname] ?? HEADER_META["/dashboard"];
+  const pathname = usePathname() ?? "/";
+  const meta = resolveHeaderMeta(pathname);
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/90 px-5 py-3.5 backdrop-blur-md shadow-sm">
@@ -51,8 +78,6 @@ export function DashboardShellHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <ActiveCompanyContextChip />
-          <DashboardCompanySwitcher />
           <DashboardCommandPalette />
           <DashboardHeaderActions />
         </div>

@@ -27,7 +27,7 @@ export function CompanyModeRouteGuard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/mode-select"
+            href="/select-company"
             className="inline-flex items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
             Firma Secimine Git

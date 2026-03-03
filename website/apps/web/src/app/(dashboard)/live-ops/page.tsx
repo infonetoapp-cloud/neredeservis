@@ -1,10 +1,5 @@
-import { CompanyModeRouteGuard } from "@/components/dashboard/company-mode-route-guard";
-import { LiveOpsCompanyActiveTripsFeature } from "@/components/dashboard/live-ops-company-active-trips-feature";
+import { LegacyRouteRedirect } from "@/components/dashboard/legacy-route-redirect";
 
 export default function LiveOpsPage() {
-  return (
-    <CompanyModeRouteGuard routeLabel="Live Ops">
-      <LiveOpsCompanyActiveTripsFeature />
-    </CompanyModeRouteGuard>
-  );
+  return <LegacyRouteRedirect segment="live-ops" />;
 }
