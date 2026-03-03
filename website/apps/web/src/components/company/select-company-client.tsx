@@ -237,10 +237,10 @@ export function SelectCompanyClient() {
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-[#e3ddd2] bg-white p-3 text-xs text-[#5e564b]">
-                1) Ustteki "Yeni sirket olustur" formunu doldur.
+                1) Ustteki &quot;Yeni sirket olustur&quot; formunu doldur.
               </div>
               <div className="rounded-xl border border-[#e3ddd2] bg-white p-3 text-xs text-[#5e564b]">
-                2) Davet bekliyorsan "Listeyi Yenile" ile tekrar kontrol et.
+                2) Davet bekliyorsan &quot;Listeyi Yenile&quot; ile tekrar kontrol et.
               </div>
             </div>
           </div>

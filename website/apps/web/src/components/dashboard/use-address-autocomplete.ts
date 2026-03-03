@@ -94,18 +94,20 @@ export function useAddressAutocomplete() {
   }, []);
 
   useEffect(() => {
-    if (query.trim().length < MIN_QUERY_LENGTH) {
-      clearSuggestions();
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-
     if (timerRef.current) clearTimeout(timerRef.current);
     if (abortRef.current) abortRef.current.abort();
+    abortRef.current = null;
+
+    if (query.trim().length < MIN_QUERY_LENGTH) {
+      const timer = setTimeout(() => {
+        clearSuggestions();
+        setIsLoading(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
 
     timerRef.current = setTimeout(async () => {
+      setIsLoading(true);
       const controller = new AbortController();
       abortRef.current = controller;
 
