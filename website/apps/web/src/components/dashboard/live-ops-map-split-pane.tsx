@@ -172,48 +172,16 @@ export function LiveOpsMapSplitPane({
               Son Sinyal: {formatLastSignal(selectedTrip.lastLocationAt)}
             </span>
           ) : null}
-          {selectedTripRiskTone ? (
-            <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
-                selectedTripRiskTone === "critical"
-                  ? "border-rose-200 bg-rose-50 text-rose-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
-              }`}
-            >
-              Secili Risk: {selectedTripRiskTone === "critical" ? "Kritik" : "Uyari"}
+          {mapTelemetry.criticalCount > 0 ? (
+            <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700">
+              {mapTelemetry.criticalCount} Kritik
             </span>
           ) : null}
-          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-            {selectedTripStops.length > 0 ? `${selectedTripStops.length} durak` : "Durak yok"}
-          </span>
-          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-            Marker: {mapTelemetry.totalCount}
-          </span>
-          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-            Marker Limiti: {mapMarkerLimit}
-          </span>
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${mapPerfClass}`}>
-            Harita Perf: {mapTelemetry.perfLabel}
-          </span>
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${mapHealthClass}`}>
-            Harita Sagligi: {mapTelemetry.healthLabel}
-          </span>
-          <LiveOpsStreamIssueChip issueState={streamIssueState} />
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
-            Canli: {mapTelemetry.onlineCount}
-          </span>
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
-            Stale: {mapTelemetry.staleCount}
-          </span>
-          <span className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-700">
-            Kritik: {mapTelemetry.criticalCount}
-          </span>
-          <span className="rounded-full border border-yellow-200 bg-yellow-50 px-2.5 py-1 text-[10px] font-semibold text-yellow-700">
-            Uyari: {mapTelemetry.warningCount}
-          </span>
-          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${mapRiskDensityClasses}`}>
-            Risk Yogunlugu: %{mapTelemetry.riskDensityPercent} ({mapTelemetry.riskDensityLabel})
-          </span>
+          {mapTelemetry.warningCount > 0 ? (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
+              {mapTelemetry.warningCount} Uyari
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={() => onRiskToneFilterChange(riskToneFilter === "critical" ? null : "critical")}
@@ -239,19 +207,6 @@ export function LiveOpsMapSplitPane({
             Uyari Odagi ({mapWarningTotal})
           </button>
           {riskToneFilter ? (
-            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">
-              Risk Odagi: {riskToneFilter === "critical" ? "Kritik" : "Uyari"}
-            </span>
-          ) : null}
-          {riskToneFilter ? (
-            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">
-              Odak Toplami: {activeToneTotalCount}
-              {hideStale && activeToneHiddenByStaleCount > 0
-                ? ` (Gorunen ${activeToneVisibleCount} + stale gizli ${activeToneHiddenByStaleCount})`
-                : ""}
-            </span>
-          ) : null}
-          {riskToneFilter ? (
             <button
               type="button"
               onClick={() => onRiskToneFilterChange(null)}
@@ -260,76 +215,18 @@ export function LiveOpsMapSplitPane({
               Odagi Temizle
             </button>
           ) : null}
-          {mapPinnedSelectedOutsideRisk ? (
-            <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-700">
-              Secili sefer baglam icin haritada tutuluyor
-            </span>
-          ) : null}
-          {riskToneFilter && mapRiskExcludedCount > 0 ? (
-            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-700">
-              Risk disi gizlenen: {mapRiskExcludedCount} (%{mapRiskExcludedPercent})
-            </span>
-          ) : null}
-          {riskToneFilter && hideStale && mapRiskHiddenByStaleCount > 0 ? (
-            <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700">
-              Stale gizlenen risk: {mapRiskHiddenByStaleCount}
-            </span>
-          ) : null}
-          {hideStale &&
-          (mapRiskHiddenByStaleCriticalCount > 0 || mapRiskHiddenByStaleWarningCount > 0) ? (
-            <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-700">
-              Stale gizlenen (K/U): {mapRiskHiddenByStaleCriticalCount}/{mapRiskHiddenByStaleWarningCount}
-            </span>
-          ) : null}
-          {riskToneFilter && hideStale && mapRiskHiddenByStaleCount > 0 ? (
-            <button
-              type="button"
-              onClick={onToggleHideStale}
-              className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Stale Gorunurlugunu Ac
-            </button>
-          ) : null}
-          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-            {liveSourceLabel(effectiveLiveCoords?.source ?? null, effectiveLiveCoords?.stale ?? false)}
-          </span>
-          <span
-            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${rtdbConnectionStatusClasses(
-              rtdbConnectionStatus,
-            )}`}
+          <button
+            type="button"
+            onClick={onToggleHideStale}
+            aria-pressed={hideStale}
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
+              hideStale
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                : "border-line bg-white text-slate-700 hover:bg-slate-50"
+            }`}
           >
-            {rtdbConnectionStatusLabel(rtdbConnectionStatus)}
-          </span>
-          <span
-            className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${streamStatusClasses(
-              selectedTripStreamStatus,
-            )}`}
-          >
-            {streamStatusLabel(selectedTripStreamStatus)}
-          </span>
-          {streamLagSeconds != null ? (
-            <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${streamLagToneClasses(
-                streamLagTone,
-              )}`}
-            >
-              Stream Lag: {streamLagSeconds} sn
-            </span>
-          ) : null}
-          {streamRecoverySummary.needsRecovery ? (
-            <span
-              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${streamRecoveryToneClasses(
-                streamRecoverySummary.tone,
-              )}`}
-            >
-              Toparlanma: {streamRecoverySummary.tone === "critical" ? "Kritik" : "Uyari"}
-            </span>
-          ) : null}
-          {selectedTripAuthRefreshInFlight ? (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
-              Token yenileniyor
-            </span>
-          ) : null}
+            {hideStale ? "Belirsiz Gizli" : "Belirsiz Goster"}
+          </button>
         </div>
       </div>
       {showHiddenOnlyRiskHint ? (
@@ -360,21 +257,14 @@ export function LiveOpsMapSplitPane({
         </div>
       ) : null}
       <div className="relative h-[360px] overflow-hidden rounded-xl border border-line bg-gradient-to-br from-slate-100 via-white to-blue-50">
-        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
-          <div className="rounded-xl border border-line bg-white/90 px-3 py-2 text-xs text-slate-700 shadow-sm">
+        <div className="absolute inset-x-4 top-4">
+          <div className="inline-block rounded-xl border border-line bg-white/90 px-3 py-2 text-xs text-slate-700 shadow-sm">
             {selectedTrip
               ? `${selectedTrip.driverPlate ?? "Plaka yok"} secili · ${formatStreamTimestamp(
                   selectedTripStreamSnapshot?.timestampMs ?? null,
                   selectedTripStreamSnapshot?.receivedAt ?? selectedTrip.lastLocationAt,
                 )}`
               : "Secili sefer yok"}
-          </div>
-          <div className="rounded-xl border border-line bg-white/90 px-3 py-2 text-xs text-slate-700 shadow-sm">
-            {resolveLiveOpsStreamContextMessage({
-              streamIssueState,
-              streamStatus: selectedTripStreamStatus,
-              rtdbConnectionStatus,
-            })}
           </div>
         </div>
 
@@ -419,15 +309,6 @@ export function LiveOpsMapSplitPane({
           maxMarkerCount={mapMarkerLimit}
           onSelectTripId={onSelectTripId}
         />
-        <div className="absolute inset-x-6 bottom-6">
-          <div className="h-1.5 rounded-full bg-slate-200">
-            <div
-              className={`h-1.5 rounded-full ${
-                selectedTrip ? "w-[62%] bg-blue-600" : "w-[24%] bg-slate-400"
-              }`}
-            />
-          </div>
-        </div>
       </div>
     </section>
   );

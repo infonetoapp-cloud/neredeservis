@@ -28,8 +28,8 @@ export const QUICK_ACTIONS: readonly CommandAction[] = [
   },
   {
     id: "mode-select",
-    title: "Mod Sec",
-    hint: "Company / Individual sec",
+    title: "Firma Sec",
+    hint: "Firma secim ekrani",
     path: "/mode-select",
     group: "navigation",
   },
@@ -68,20 +68,7 @@ export const QUICK_ACTIONS: readonly CommandAction[] = [
     path: "/admin",
     group: "navigation",
   },
-  {
-    id: "company-mode",
-    title: "Company Mode",
-    hint: "Firma operasyon paneli",
-    path: "/dashboard?mode=company",
-    group: "navigation",
-  },
-  {
-    id: "individual-mode",
-    title: "Individual Mode",
-    hint: "Bireysel sofor akisi",
-    path: "/dashboard?mode=individual",
-    group: "navigation",
-  },
+
 ];
 
 export function liveStateLabel(value: "online" | "stale") {

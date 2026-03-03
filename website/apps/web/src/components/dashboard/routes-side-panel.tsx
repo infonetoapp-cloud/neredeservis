@@ -99,7 +99,7 @@ export function RoutesSidePanel({
     <div className="space-y-4">
       <DashboardDetailDrawerPlaceholder
         title="Secili Rota Detayi"
-        subtitle="Route summary listesi ile senkron detay paneli"
+        subtitle={selectedRoute ? `${selectedRoute.scheduledTime ?? ""} — ${timeSlotLabel(selectedRoute.timeSlot)}` : "Secili rota yok"}
         statusLabel={selectedRoute ? routeStatusLabel(selectedRoute.isArchived) : "Secim Yok"}
         statusTone={selectedRoute?.isArchived ? "warning" : "success"}
         fields={

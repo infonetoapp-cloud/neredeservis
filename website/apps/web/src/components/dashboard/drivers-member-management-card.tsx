@@ -84,31 +84,31 @@ export function DriversMemberManagementCard({
 
   const guardMessage =
     !selectedMember
-      ? "Member secildiginde rol/durum guncelleme burada acilir."
+      ? "Üye seçildiğinde rol ve durum düzenleme açılır."
       : !companyId
-        ? "Aktif company secimi olmadan uye mutasyonu acilamaz."
+        ? "Aktif firma seçimi gerekli."
         : !memberManageEnabled
-          ? "Bu islem icin aktif owner/admin uyeligi gerekir."
+          ? "Bu işlem için yönetici üyeliği gerekir."
           : targetIsOwner
-            ? "Owner uye bu panelden degistirilemez."
+            ? "Sahip üye bu panelden değiştirilemez."
             : patchFieldCount === 0
-              ? "Kaydetmek icin rol veya durumda degisiklik yap."
+              ? "Değişiklik yapmak için rol veya durum seçin."
             : null;
-  const saveDisabledReason = !canSubmit ? guardMessage ?? (pending ? "Islem devam ediyor." : null) : null;
+  const saveDisabledReason = !canSubmit ? guardMessage ?? (pending ? "İşlem devam ediyor." : null) : null;
 
   const removeGuardMessage =
     !selectedMember
-      ? "Uye secildiginde kaldirma aksiyonu acilir."
+      ? "Üye seçildiğinde kaldırma seçeneği açılır."
       : !companyId
-        ? "Aktif company secimi olmadan uye kaldirma acilamaz."
+        ? "Aktif firma seçimi gerekli."
         : !memberManageEnabled
-          ? "Bu islem icin owner veya admin rol gerekir."
+          ? "Bu işlem için sahip veya yönetici rolü gerekir."
           : targetIsOwner
-            ? "Owner uye sirketten kaldirilamaz."
+            ? "Sahip üye çıkarılamaz."
             : selfRemoveAttempt
-              ? "Kendi uyeliginizi bu panelden kaldiramazsiniz."
+              ? "Kendi üyeliğinizi bu panelden kaldıramazsınız."
               : adminRemovingAdmin
-                ? "Admin bir baska admin uyeyi kaldiramaz."
+                ? "Yönetici başka bir yöneticiyi çıkaramaz."
                 : null;
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -126,7 +126,7 @@ export function DriversMemberManagementCard({
         memberUid: selectedMember.uid,
         patch,
       });
-      setSuccessMessage("Uye rolu ve durumu guncellendi.");
+      setSuccessMessage("Üye bilgileri güncellendi.");
       await onMemberUpdated();
     } catch (error) {
       setErrorMessage(mapCompanyCallableErrorToMessage(error));
@@ -144,14 +144,14 @@ export function DriversMemberManagementCard({
     !adminRemovingAdmin &&
     !pending;
   const removeDisabledReason = !canRemove
-    ? removeGuardMessage ?? (pending ? "Islem devam ediyor." : null)
+    ? removeGuardMessage ?? (pending ? "İşlem devam ediyor." : null)
     : null;
 
   const handleRemove = async () => {
     if (!selectedMember || !companyId) return;
     if (!canRemove) return;
     const confirmed = window.confirm(
-      `${selectedMember.displayName} uyeligi sirketten kaldirilacak. Devam etmek istiyor musun?`,
+      `${selectedMember.displayName} üyeliği firmadan kaldırılacak. Devam etmek istiyor musun?`,
     );
     if (!confirmed) return;
 
@@ -163,7 +163,7 @@ export function DriversMemberManagementCard({
         companyId,
         memberUid: selectedMember.uid,
       });
-      setSuccessMessage("Uye sirketten kaldirildi.");
+      setSuccessMessage("Üye firmadan çıkarıldı.");
       await onMemberRemoved();
     } catch (error) {
       setErrorMessage(mapCompanyCallableErrorToMessage(error));
@@ -173,8 +173,8 @@ export function DriversMemberManagementCard({
   };
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-      <div className="mb-2 text-sm font-semibold text-slate-900">Rol / Durum Guncelle</div>
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+      <div className="mb-3 text-[13px] font-semibold text-slate-900">Üye Ayarları</div>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <label className="space-y-1">
           <span className="text-xs font-medium text-slate-700">Rol</span>
@@ -207,7 +207,7 @@ export function DriversMemberManagementCard({
 
         {selfSuspendAttempt ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-            Kendi hesabinizi suspended yapamazsiniz.
+            Kendi hesabınızı askıya alamazsınız.
           </div>
         ) : null}
         {guardMessage ? (
@@ -239,9 +239,9 @@ export function DriversMemberManagementCard({
           type="submit"
           disabled={!canSubmit}
           title={saveDisabledReason ?? undefined}
-          className="w-full rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="w-full rounded-xl bg-brand px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {pending ? "Kaydediliyor..." : "Uye Degisikligini Kaydet"}
+          {pending ? "Kaydediliyor…" : "Değişiklikleri Kaydet"}
         </button>
         {removeGuardMessage ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
@@ -255,7 +255,7 @@ export function DriversMemberManagementCard({
           title={removeDisabledReason ?? undefined}
           className="w-full rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
         >
-          {pending ? "Isleniyor..." : "Uyeyi Sirketten Cikar"}
+          {pending ? "İşleniyor…" : "Üyeyi Çıkar"}
         </button>
       </form>
     </div>

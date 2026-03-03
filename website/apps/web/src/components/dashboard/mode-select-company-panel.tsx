@@ -2,6 +2,19 @@
 
 import type { CompanyMembershipSummary } from "@/features/company/company-types";
 
+const ROLE_LABEL: Record<string, string> = {
+  owner: "Sahip",
+  admin: "Yönetici",
+  dispatcher: "Dispeçer",
+  viewer: "Gözlemci",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  active: "Aktif",
+  invited: "Davet Bekliyor",
+  suspended: "Askıda",
+};
+
 type ModeSelectCompanyPanelProps = {
   authStatus: "loading" | "signed_out" | "signed_in" | "disabled";
   isCompaniesLoading: boolean;
@@ -44,18 +57,14 @@ export function ModeSelectCompanyPanel({
   return (
     <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-slate-900">Company Mode</div>
-        <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-          Faz 2
-        </span>
+        <div className="text-sm font-semibold text-slate-900">Firma Modu</div>
       </div>
       <p className="mb-4 text-sm text-muted">
-        Gercek company membership listesi Firebase callable ile yuklenir. Sirket yoksa buradan
-        olusturabilirsin.
+        Mevcut firma uyeliklerinizden birini sec veya yeni firma olustur. Davet bekleyen uyelikleri de buradan kabul edebilirsin.
       </p>
 
       {authStatus !== "signed_in" ? (
-        <InlineNotice tone="muted">Sirket listesini yuklemek icin once oturum acilmis olmali.</InlineNotice>
+        <InlineNotice tone="muted">Şirket listesini yüklemek için önce oturum açmış olmalısınız.</InlineNotice>
       ) : isCompaniesLoading ? (
         <div className="space-y-2">
           <div className="h-11 animate-pulse rounded-xl border border-line bg-slate-100" />
@@ -92,7 +101,7 @@ export function ModeSelectCompanyPanel({
                   <div>
                     <div className="text-sm font-semibold text-slate-900">{company.name}</div>
                     <div className="mt-1 text-xs text-muted">
-                      {company.role} | {company.memberStatus}
+                      {ROLE_LABEL[company.role] ?? company.role} · {STATUS_LABEL[company.memberStatus] ?? company.memberStatus}
                     </div>
                   </div>
                   <span className="text-xs font-medium text-blue-700">
@@ -159,7 +168,7 @@ export function ModeSelectCompanyPanel({
       ) : (
         <div className="space-y-3">
           <InlineNotice tone="info">
-            Bu hesapla bagli bir sirket bulunamadi. Company Mode icin ilk sirketini olustur.
+            Bu hesapla bağlı bir şirket bulunamadı. İlk şirketinizi oluşturarak başlayabilirsiniz.
           </InlineNotice>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-600">

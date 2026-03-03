@@ -65,7 +65,7 @@ export function DashboardFeaturePlaceholder({
             href="/mode-select"
             className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
-            Mod Sec
+            Firma Sec
           </Link>
           <Link
             href="/live-ops"

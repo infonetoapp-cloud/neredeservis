@@ -157,58 +157,22 @@ export function LiveOpsTripsListToolbar({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-slate-900">Aktif Seferler</div>
-          <div className="text-xs text-muted">Canli sefer listesi (gercek veri)</div>
-          <div className="mt-1 text-[11px] text-muted">
-            Son yenileme: {formatLastRefresh(lastLoadedAt)}
-            {isRefreshing ? " | yenileniyor..." : ""} | density: {density}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">
-            Filtreli: {filteredCount} | Canli: {onlineCount} | Stale: {staleCount} | Ham toplam:{" "}
-            {rawTotalCount}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">
-            Riskli: {riskCount} | Kritik: {criticalRiskCount} | Uyari: {warningRiskCount}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Risk kuyrugu limiti: Top {riskQueueLimit}</div>
-          <div className="mt-1 text-[11px] text-muted">
-            Perf smoke: filtre+sirala {filterDurationMs} ms
-            <span className={`ml-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${perfBadgeClass}`}>
-              {perfTone === "slow" ? "Yavas" : perfTone === "warn" ? "Izle" : "OK"}
-            </span>
-            <LiveOpsStreamIssueChip
-              issueState={streamIssueState}
-              className="ml-2 inline-flex px-2 py-0.5"
-            />
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Stream ozet: {streamContextMessage}</div>
-          {selectedTripAuthRefreshInFlight ? (
-            <div className="mt-1 text-[11px] font-medium text-amber-700">
-              Secili stream token yenileme suruyor. Baglanti hizli retry ile toparlanacak.
-            </div>
-          ) : null}
-          {streamRecoverySummary.staleLabel || selectedTripStreamLagSeconds != null ? (
-            <div className="mt-1 text-[11px] text-muted">
-              Secili stream: {streamRecoverySummary.staleLabel ?? "stale yok"}
-              {selectedTripStreamLagSeconds != null ? (
-                <span
-                  className={`ml-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${streamLagToneClasses(
-                    streamRecoverySummary.tone === "critical"
-                      ? "critical"
-                      : streamRecoverySummary.tone === "warn"
-                        ? "warn"
-                        : "ok",
-                  )}`}
-                >
-                  Lag {selectedTripStreamLagSeconds} sn
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          {streamRecoverySummary.retryLabel ? (
-            <div className="mt-1 text-[11px] text-muted">Backoff: {streamRecoverySummary.retryLabel}</div>
-          ) : null}
-          <div className="mt-1 text-[11px] text-muted">
-            Filtre ozet: {buildLiveOpsFilterContextSummary(filterContext)}
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span>{filteredCount} sefer</span>
+            <span className="text-slate-300">|</span>
+            <span className="text-emerald-600">{onlineCount} canli</span>
+            {staleCount > 0 ? (
+              <>
+                <span className="text-slate-300">|</span>
+                <span className="text-amber-600">{staleCount} belirsiz</span>
+              </>
+            ) : null}
+            {riskCount > 0 ? (
+              <>
+                <span className="text-slate-300">|</span>
+                <span className="text-rose-600">{riskCount} riskli</span>
+              </>
+            ) : null}
           </div>
           {copyViewLinkMessage ? (
             <div className="mt-1 text-[11px] font-medium text-slate-700">{copyViewLinkMessage}</div>
@@ -234,43 +198,16 @@ export function LiveOpsTripsListToolbar({
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            {autoRefreshEnabled ? "Oto Yenileme Acik" : "Oto Yenileme Kapali"}
+            {autoRefreshEnabled ? "Oto Yenileme" : "Yenileme Kapali"}
           </button>
-          <button
-            type="button"
-            onClick={onToggleHideStale}
-            aria-pressed={hideStale}
-            aria-label="Stale seferleri gizle veya goster"
-            className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            {hideStale ? "Stale Goster (Alt+H)" : "Stale Gizle (Alt+H)"}
-          </button>
-          <button
-            type="button"
-            onClick={() => onRiskQueueLimitChange(riskQueueLimit === 4 ? 8 : 4)}
-            aria-label="Risk kuyrugu limitini degistir"
-            className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Risk Kuyrugu: Top {riskQueueLimit}
-          </button>
-          {readModelPressure.level !== "ok" ? (
+          {hideStale ? (
             <button
               type="button"
-              onClick={() => {
-                if (!hideStale) onToggleHideStale();
-                if (sortOption !== "risk_desc") onSortOptionChange("risk_desc");
-                if (riskToneFilter !== "critical") onRiskToneFilterChange("critical");
-                if (riskQueueLimit !== 4) onRiskQueueLimitChange(4);
-              }}
-              disabled={pressureModeActive}
-              aria-label="Yuk modunu uygula"
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                pressureModeActive
-                  ? "cursor-not-allowed border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-line bg-white text-slate-700 hover:bg-slate-50"
-              }`}
+              onClick={onToggleHideStale}
+              aria-pressed={hideStale}
+              className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
-              {pressureModeActive ? "Yuk Modu Aktif" : "Yuk Modu Uygula"}
+              Tum Araclari Goster
             </button>
           ) : null}
           <button
@@ -279,14 +216,13 @@ export function LiveOpsTripsListToolbar({
               onRiskToneFilterChange(riskToneFilter === "critical" ? null : "critical")
             }
             aria-pressed={riskToneFilter === "critical"}
-            aria-label="Kritik risk odagini ac veya kapat"
             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
               riskToneFilter === "critical"
                 ? "border-rose-200 bg-rose-50 text-rose-700"
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            Kritik Odak
+            Kritik
           </button>
           <button
             type="button"
@@ -294,14 +230,13 @@ export function LiveOpsTripsListToolbar({
               onRiskToneFilterChange(riskToneFilter === "warning" ? null : "warning")
             }
             aria-pressed={riskToneFilter === "warning"}
-            aria-label="Uyari risk odagini ac veya kapat"
             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
               riskToneFilter === "warning"
                 ? "border-amber-200 bg-amber-50 text-amber-700"
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            Uyari Odak
+            Uyari
           </button>
           <button
             type="button"

@@ -108,13 +108,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Arac Ekle</h3>
-          <p className="text-xs text-slate-500">
-            Company-scoped vehicle create callable ile ilk arac kaydini olustur.
-          </p>
         </div>
-        <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-          createVehicle
-        </span>
       </div>
 
       <form className="space-y-3" onSubmit={handleSubmit}>

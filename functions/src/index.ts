@@ -13,6 +13,7 @@ import { createCompanyMemberMutationCallables } from './callables/company_member
 import { createCompanyAuditQueryCallables } from './callables/company_audit_query_callables.js';
 import { createCompanyQueryCallables } from './callables/company_query_callables.js';
 import { createRouteDriverPermissionCallables } from './callables/route_driver_permission_callables.js';
+import { createPlatformOwnerCallables } from './callables/platform_owner_callables.js';
 import {
   requireOwnedRoute,
 } from './common/route_membership_helpers.js';
@@ -405,3 +406,11 @@ export const listRouteDriverPermissions = routeDriverPermissionCallables.listRou
 export const grantDriverRoutePermissions = routeDriverPermissionCallables.grantDriverRoutePermissions;
 export const revokeDriverRoutePermissions =
   routeDriverPermissionCallables.revokeDriverRoutePermissions;
+
+const platformOwnerCallables = createPlatformOwnerCallables({ db });
+export const platformListCompanies = platformOwnerCallables.platformListCompanies;
+export const platformGetCompanyDetail = platformOwnerCallables.platformGetCompanyDetail;
+export const platformCreateCompany = platformOwnerCallables.platformCreateCompany;
+export const platformSetVehicleLimit = platformOwnerCallables.platformSetVehicleLimit;
+export const platformSetCompanyStatus = platformOwnerCallables.platformSetCompanyStatus;
+export const platformResetOwnerPassword = platformOwnerCallables.platformResetOwnerPassword;

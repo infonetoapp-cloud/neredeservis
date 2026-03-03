@@ -32,7 +32,7 @@ export function DriversWorkspacePane({
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Company members listesini yuklemek icin aktif oturum gerekir."
+        description="Uye listesini goruntulemek icin giris yapin."
       />
     );
   }
@@ -41,8 +41,8 @@ export function DriversWorkspacePane({
     return (
       <DashboardStatePlaceholder
         tone="empty"
-        title="Aktif company secimi yok"
-        description="Drivers ekrani company context gerektirir. Mode select uzerinden company secildiginde liste burada yuklenecek."
+        title="Firma secilmedi"
+        description="Uye listesini goruntulemek icin once bir firma secin."
       />
     );
   }
@@ -51,8 +51,8 @@ export function DriversWorkspacePane({
     return (
       <DashboardStatePlaceholder
         tone="loading"
-        title="Company members yukleniyor"
-        description="Firebase callable listCompanyMembers uzerinden uye listesi getiriliyor."
+        title="Uyeler yukleniyor"
+        description="Uye listesi yukleniyor, lutfen bekleyin."
       />
     );
   }

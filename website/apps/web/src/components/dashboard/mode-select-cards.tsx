@@ -14,17 +14,18 @@ import {
 import { writeActiveCompanyPreference } from "@/features/company/company-preferences";
 import type { CompanyMembershipSummary } from "@/features/company/company-types";
 import { useMyCompanies } from "@/features/company/use-my-companies";
-import type { PanelMode } from "@/features/mode/mode-preference";
-import { writeStoredPanelMode } from "@/features/mode/mode-preference";
 
 type PendingAction =
-  | `mode:${PanelMode}`
   | `company:${string}`
   | `create:${string}`
   | `accept:${string}`
   | `decline:${string}`
   | null;
 
+/**
+ * Firma seçim / oluşturma / davet kabul kartları.
+ * MVP'de bireysel (individual) mod kaldırıldı — web her zaman company modunda çalışır.
+ */
 export function ModeSelectCards() {
   const router = useRouter();
   const { status: authStatus, user } = useAuthSession();
@@ -37,16 +38,6 @@ export function ModeSelectCards() {
   const companiesQuery = useMyCompanies(authStatus === "signed_in");
   const companies = localCompanies ?? companiesQuery.items;
 
-  const pushMode = (mode: PanelMode) => {
-    writeStoredPanelMode(mode);
-    router.push(`/dashboard?mode=${mode}`);
-  };
-
-  const handleSelectIndividual = () => {
-    setPendingAction("mode:individual");
-    pushMode("individual");
-  };
-
   const handleSelectCompany = (company: CompanyMembershipSummary) => {
     setCompanyActionError(null);
     setPendingAction(`company:${company.companyId}`);
@@ -54,7 +45,7 @@ export function ModeSelectCards() {
       companyId: company.companyId,
       companyName: company.name,
     });
-    pushMode("company");
+    router.push("/dashboard");
   };
 
   const handleAcceptCompanyInvite = async (company: CompanyMembershipSummary) => {
@@ -74,8 +65,7 @@ export function ModeSelectCards() {
         companyId: company.companyId,
         companyName: company.name,
       });
-      writeStoredPanelMode("company");
-      router.push("/dashboard?mode=company");
+      router.push("/dashboard");
     } catch (error) {
       setCompanyActionError(mapCompanyCallableErrorToMessage(error));
       setPendingAction(null);
@@ -134,8 +124,7 @@ export function ModeSelectCards() {
         companyId: created.companyId,
         companyName: name,
       });
-      writeStoredPanelMode("company");
-      router.push("/dashboard?mode=company");
+      router.push("/dashboard");
     } catch (error) {
       setCreateError(mapCompanyCallableErrorToMessage(error));
       setPendingAction(null);
@@ -152,84 +141,30 @@ export function ModeSelectCards() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <ModeCard
-          title="Individual Driver Mode"
-          description="Bireysel sofor dashboard akisi. Kendi rota ve sefer gorunumu icin sade panel deneyimi."
-          cta="Bireysel Mod ile Devam Et"
-          isPrimary={false}
-          pending={pendingAction === "mode:individual"}
-          onClick={handleSelectIndividual}
-          disabled={pendingAction !== null}
-        />
-        <ModeSelectCompanyPanel
-          authStatus={authStatus}
-          isCompaniesLoading={isCompaniesLoading}
-          companiesLoadError={companiesLoadError}
-          companies={companies}
-          pendingAction={pendingAction}
-          companyActionError={companyActionError}
-          newCompanyName={newCompanyName}
-          createError={createError}
-          onRetryCompanies={() => {
-            void companiesQuery.reload();
-          }}
-          onAcceptInvite={(company) => {
-            void handleAcceptCompanyInvite(company);
-          }}
-          onDeclineInvite={(company) => {
-            void handleDeclineCompanyInvite(company);
-          }}
-          onSelectCompany={handleSelectCompany}
-          onCompanyNameChange={setNewCompanyName}
-          onCreateCompany={() => {
-            void handleCreateCompany();
-          }}
-        />
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-line bg-slate-50 p-4 text-sm text-muted">
-        Faz 2 mode/company dilimi: `listMyCompanies`, `createCompany`, `inviteCompanyMember`,
-        `acceptCompanyInvite`, `declineCompanyInvite` gercek callable akisina baglandi. Sonraki adim
-        pending davet onboarding detaylarini policy copy&apos;siyle sertlestirmek.
-      </div>
-    </div>
-  );
-}
-
-function ModeCard({
-  title,
-  description,
-  cta,
-  isPrimary,
-  pending,
-  onClick,
-  disabled,
-}: {
-  title: string;
-  description: string;
-  cta: string;
-  isPrimary: boolean;
-  pending: boolean;
-  onClick: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-      <div className="mb-2 text-sm font-semibold text-slate-900">{title}</div>
-      <p className="mb-4 text-sm text-muted">{description}</p>
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70 ${
-          isPrimary
-            ? "bg-brand text-white hover:bg-blue-700"
-            : "border border-line bg-white text-slate-900 hover:bg-slate-50"
-        }`}
-      >
-        {pending ? "Yonlendiriliyor..." : cta}
-      </button>
+      <ModeSelectCompanyPanel
+        authStatus={authStatus}
+        isCompaniesLoading={isCompaniesLoading}
+        companiesLoadError={companiesLoadError}
+        companies={companies}
+        pendingAction={pendingAction}
+        companyActionError={companyActionError}
+        newCompanyName={newCompanyName}
+        createError={createError}
+        onRetryCompanies={() => {
+          void companiesQuery.reload();
+        }}
+        onAcceptInvite={(company) => {
+          void handleAcceptCompanyInvite(company);
+        }}
+        onDeclineInvite={(company) => {
+          void handleDeclineCompanyInvite(company);
+        }}
+        onSelectCompany={handleSelectCompany}
+        onCompanyNameChange={setNewCompanyName}
+        onCreateCompany={() => {
+          void handleCreateCompany();
+        }}
+      />
     </div>
   );
 }

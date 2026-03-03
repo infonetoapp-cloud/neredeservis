@@ -303,12 +303,12 @@ export function TripsListPane({
         <div className="space-y-2">
           <p className="text-xs text-slate-500">
             {rawTotalCount === 0
-              ? "Aktif sefer bulunamadi. Driver startTrip yaptiginda burada listelenecek."
+              ? "Henuz aktif sefer yok."
               : items.length === 0
-                ? "Arama/filtre kriterlerine uygun sefer bulunamadi."
+                ? "Arama kriterlerine uygun sefer bulunamadi."
                 : riskToneFilter
-                  ? `Risk odagina uyan gorunen sefer yok (Toplam ${riskFilterTotal}${riskHiddenByStaleCount > 0 ? `, stale gizlenen ${riskHiddenByStaleCount}` : ""}).`
-                  : "Filtreye uyan seferler stale oldugu icin gizlendi."}
+                  ? `Filtreye uyan sefer bulunamadi.`
+                  : "Filtreye uyan sefer bulunamadi."}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {riskToneFilter ? (
@@ -395,27 +395,7 @@ export function TripsListPane({
                   <span>Son sinyal: {formatLastSignal(trip.lastLocationAt)}</span>
                   {tripRisk ? (
                     <span className={`font-medium ${riskMetaClasses(tripRisk.tone)}`}>
-                      Risk: {tripRisk.reason}
-                    </span>
-                  ) : null}
-                  {isSelectedTrip && selectedTripStreamLagSeconds != null ? (
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${streamLagToneClasses(
-                        selectedTripLagTone,
-                      )}`}
-                    >
-                      Stream lag: {selectedTripStreamLagSeconds} sn
-                    </span>
-                  ) : null}
-                  {isSelectedTrip && selectedTripStaleReasonLabel ? (
-                    <span className="font-medium text-amber-700">
-                      Stale nedeni: {selectedTripStaleReasonLabel}
-                    </span>
-                  ) : null}
-                  {isSelectedTrip && selectedTripStreamNextRetryAt != null ? (
-                    <span className="font-medium text-slate-600">
-                      Backoff: Deneme {selectedTripStreamRetryAttempt} -{" "}
-                      {formatStreamRetryCountdown(selectedTripStreamNextRetryAt)} sonra
+                      {tripRisk.reason}
                     </span>
                   ) : null}
                 </div>

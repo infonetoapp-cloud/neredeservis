@@ -10,7 +10,6 @@ import type {
   CompanyMemberStatus,
   CompanyMembershipSummary,
 } from "@/features/company/company-types";
-import { useActivePanelMode } from "@/features/mode/use-active-panel-mode";
 
 type ActiveCompanyMembershipStatus = "idle" | "loading" | "success" | "error";
 
@@ -24,9 +23,8 @@ type ActiveCompanyMembershipState = {
 
 export function useActiveCompanyMembership(): ActiveCompanyMembershipState {
   const { status: authStatus } = useAuthSession();
-  const { resolvedMode } = useActivePanelMode();
   const activeCompany = useActiveCompanyPreference();
-  const companyQueryEnabled = authStatus === "signed_in" && resolvedMode === "company";
+  const companyQueryEnabled = authStatus === "signed_in";
   const companiesQuery = useMyCompanies(companyQueryEnabled);
 
   const membership = useMemo<CompanyMembershipSummary | null>(() => {

@@ -37,7 +37,7 @@ export function VehiclesWorkspacePane({
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Vehicle listesi icin aktif oturum gerekir."
+        description="Arac listesini goruntulemek icin giris yapin."
       />
     );
   }
@@ -46,8 +46,8 @@ export function VehiclesWorkspacePane({
     return (
       <DashboardStatePlaceholder
         tone="empty"
-        title="Aktif company secimi yok"
-        description="Vehicles ekrani company context gerektirir. Once company sec."
+        title="Firma secilmedi"
+        description="Arac listesini goruntulemek icin once bir firma secin."
       />
     );
   }
@@ -57,7 +57,7 @@ export function VehiclesWorkspacePane({
       <DashboardStatePlaceholder
         tone="loading"
         title="Araclar yukleniyor"
-        description="Firebase callable listCompanyVehicles ile company-scoped vehicle listesi getiriliyor."
+        description="Arac listesi yukleniyor, lutfen bekleyin."
       />
     );
   }
@@ -87,7 +87,7 @@ export function VehiclesWorkspacePane({
         <DashboardStatePlaceholder
           tone="empty"
           title="Bu firma icin arac bulunamadi"
-          description="Ilk company araci olusturuldugunda liste burada gorunur."
+          description="Henuz kayitli arac yok. Asagidan ilk aracinizi ekleyin."
         />
         {canMutateVehicles ? (
           <VehicleCreateInlineForm companyId={companyId} onCreated={onVehicleCreated} />
@@ -95,7 +95,7 @@ export function VehiclesWorkspacePane({
           <DashboardStatePlaceholder
             tone="info"
             title="Arac olusturma yetkisi yok"
-            description="Arac olusturmak icin aktif owner/admin/dispatcher uyeligi gerekir."
+            description="Arac eklemek icin yonetici veya koordinator yetkisi gerekir."
           />
         )}
       </div>
@@ -109,8 +109,8 @@ export function VehiclesWorkspacePane({
       ) : (
         <DashboardStatePlaceholder
           tone="info"
-          title="Bu hesap salt-okuma modunda"
-          description="Arac mutasyonlari icin aktif owner/admin/dispatcher uyeligi gerekir."
+            title="Salt okuma modunda"
+            description="Arac duzenlemek icin yonetici veya koordinator yetkisi gerekir."
         />
       )}
       <VehiclesListSection {...vehiclesListProps} />

@@ -15,7 +15,6 @@ import {
   type DriverSortOption,
 } from "@/components/dashboard/drivers-company-members-helpers";
 import { DriversListSection } from "@/components/dashboard/drivers-list-section";
-import { DashboardFeaturePlaceholder } from "@/components/dashboard/dashboard-feature-placeholder";
 import { useDriversFilterState } from "@/components/dashboard/use-drivers-filter-state";
 import { useDriversQueryGuards } from "@/components/dashboard/use-drivers-query-guards";
 import { useCopyViewLink } from "@/components/dashboard/use-copy-view-link";
@@ -272,33 +271,21 @@ export function DriversCompanyMembersFeature() {
   );
 
   return (
-    <DashboardFeaturePlaceholder
-      badge="Operations"
-      title="Drivers / Company Members"
-      description="Company context'e gore uye listesi Firebase callable ile cekilir. Filtreleme, secim ve detay paneli ayni akista calisir."
-      nextPhaseNotes={[
-        "Company members + driver profiles birlestirme",
-        "Pending davet kabul/onboarding akisi",
-        "driver-level operasyon metrikleri",
-      ]}
-      workspace={workspace}
-      sidePanel={
-        <DriversSidePanel
-          companyId={companyId}
-          actorUid={user?.uid ?? null}
-          actorRole={actorRole}
-          actorMemberStatus={actorMemberStatus}
-          selectedMember={selectedMember}
-          activeTrips={selectedMemberTripsQuery.items}
-          activeTripsLoadStatus={selectedMemberTripsQuery.status}
-          assignedRoutes={selectedMemberAssignedRoutes}
-          assignedRoutesLoadStatus={routesQuery.status}
-          copyLinkState={copyLinkState}
-          onMemberUpdated={handleMemberUpdated}
-          onMemberRemoved={handleMemberUpdated}
-          onCopyViewLink={() => void handleCopyViewLink()}
-        />
-      }
-    />
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      {workspace}
+      <DriversSidePanel
+        companyId={companyId}
+        actorUid={user?.uid ?? null}
+        actorRole={actorRole}
+        actorMemberStatus={actorMemberStatus}
+        selectedMember={selectedMember}
+        activeTrips={selectedMemberTripsQuery.items}
+        activeTripsLoadStatus={selectedMemberTripsQuery.status}
+        assignedRoutes={selectedMemberAssignedRoutes}
+        assignedRoutesLoadStatus={routesQuery.status}
+        onMemberUpdated={handleMemberUpdated}
+        onMemberRemoved={handleMemberUpdated}
+      />
+    </div>
   );
 }

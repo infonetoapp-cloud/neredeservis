@@ -1,86 +1,46 @@
 "use client";
 
-export type PanelMode = "company" | "individual";
+/**
+ * PanelMode — MVP'de web her zaman "company" modunda çalışır.
+ * Bireysel (individual) mod kaldırıldı. Tip ve yardımcı fonksiyonlar
+ * geriye uyumluluk için korunuyor; localStorage artık kullanılmıyor.
+ */
 
-const STORAGE_KEY = "nsv.activePanelMode";
-const PANEL_MODE_EVENT = "nsv:panel-mode-changed";
+export type PanelMode = "company";
 
-function isPanelMode(value: string | null | undefined): value is PanelMode {
-  return value === "company" || value === "individual";
+/** @deprecated Her zaman "company" döner. */
+export function parsePanelMode(_value: string | null | undefined): PanelMode {
+  return "company";
 }
 
-export function parsePanelMode(value: string | null | undefined): PanelMode | null {
-  return isPanelMode(value) ? value : null;
+/** @deprecated Her zaman "company" döner. */
+export function readStoredPanelMode(): PanelMode {
+  return "company";
 }
 
-export function readStoredPanelMode(): PanelMode | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
+/** @deprecated Noop — localStorage artık kullanılmıyor. */
+export function writeStoredPanelMode(_mode: PanelMode): void {}
 
-  try {
-    return parsePanelMode(window.localStorage.getItem(STORAGE_KEY));
-  } catch {
-    return null;
-  }
+/** @deprecated Noop — subscribe mekanizması kaldırıldı. */
+export function subscribePanelMode(_listener: () => void): () => void {
+  return () => {};
 }
 
-export function writeStoredPanelMode(mode: PanelMode): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(STORAGE_KEY, mode);
-    window.dispatchEvent(new Event(PANEL_MODE_EVENT));
-  } catch {
-    // Ignore storage failures during early bootstrap flow.
-  }
-}
-
-export function subscribePanelMode(listener: () => void): () => void {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === null || event.key === STORAGE_KEY) {
-      listener();
-    }
-  };
-  const onCustom = () => listener();
-
-  window.addEventListener("storage", onStorage);
-  window.addEventListener(PANEL_MODE_EVENT, onCustom);
-
-  return () => {
-    window.removeEventListener("storage", onStorage);
-    window.removeEventListener(PANEL_MODE_EVENT, onCustom);
-  };
-}
-
+/**
+ * Login sonrası yönlendirme yolu. `next` query parametresi varsa onu kullanır,
+ * yoksa `/dashboard` döner.
+ */
 export function resolvePostLoginPath(nextPathRaw: string | null | undefined): string {
-  const fallbackMode = readStoredPanelMode();
-  const fallbackPath = fallbackMode ? `/dashboard?mode=${fallbackMode}` : "/mode-select";
   const nextPath = (nextPathRaw ?? "").trim();
 
-  if (!nextPath) {
-    return fallbackPath;
-  }
-
-  if (!nextPath.startsWith("/")) {
-    return fallbackPath;
-  }
-
-  if (nextPath.startsWith("/dashboard") && !nextPath.includes("mode=") && fallbackMode) {
-    return nextPath.includes("?")
-      ? `${nextPath}&mode=${fallbackMode}`
-      : `${nextPath}?mode=${fallbackMode}`;
+  if (!nextPath || !nextPath.startsWith("/")) {
+    return "/dashboard";
   }
 
   return nextPath;
 }
 
-export function getModeLabel(mode: PanelMode): string {
-  return mode === "individual" ? "individual" : "company";
+/** @deprecated Her zaman "company" döner. */
+export function getModeLabel(_mode: PanelMode): string {
+  return "company";
 }

@@ -76,7 +76,7 @@ export function VehiclesSidePanel({
     <div className="space-y-4">
       <DashboardDetailDrawerPlaceholder
         title="Secili Arac Detayi"
-        subtitle="Vehicle listesi canli; update drawer formu aktif"
+        subtitle={selectedVehicle ? vehicleStatusLabel(selectedVehicle.status) : "Secili arac yok"}
         statusLabel={selectedVehicle ? vehicleStatusLabel(selectedVehicle.status) : "Secim Yok"}
         statusTone={selectedVehicle?.status === "maintenance" ? "warning" : "success"}
         fields={
@@ -103,7 +103,6 @@ export function VehiclesSidePanel({
               ]
             : [
                 { label: "Durum", value: "Secili arac yok" },
-                { label: "Not", value: "Liste dolunca vehicle drawer detayi burada genisleyecek" },
               ]
         }
         actions={["Detay", "Update", "Atama Gecmisi"]}

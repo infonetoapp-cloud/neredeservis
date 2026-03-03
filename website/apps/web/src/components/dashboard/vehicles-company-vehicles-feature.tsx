@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState, type ComponentProps } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { DashboardFeaturePlaceholder } from "@/components/dashboard/dashboard-feature-placeholder";
 import { VehiclesListSection } from "@/components/dashboard/vehicles-list-section";
 import {
   buildVehiclesFilterQueryString,
@@ -240,32 +239,22 @@ export function VehiclesCompanyVehiclesFeature() {
   );
 
   return (
-    <DashboardFeaturePlaceholder
-      badge="Operations"
-      title="Vehicles / Company Vehicle Summaries"
-      description="Vehicles ekrani company-scoped read-side, filtreleme ve mutasyon formlarini tek akista sunar."
-      nextPhaseNotes={[
-        "status / maintenance fields subset",
-        "bakim gecmisi ve denetim notlari",
-        "vehicle detail drawer zenginlestirme",
-      ]}
-      workspace={workspace}
-      sidePanel={
-        <VehiclesSidePanel
-          actorRole={actorRole}
-          actorMemberStatus={actorMemberStatus}
-          selectedVehicle={selectedVehicle}
-          companyId={companyId}
-          activeTrips={selectedVehicleActiveTrips}
-          activeTripsLoadStatus={selectedVehicleTripsQuery.status}
-          filteredVehicles={filteredVehicles}
-          selectedVehicleId={selectedVehicleId}
-          copyLinkState={copyLinkState}
-          onCopyViewLink={() => void handleCopyViewLink()}
-          onSelectedVehicleIdChange={setSelectedVehicleIdPreference}
-          onUpdated={() => vehiclesQuery.reload()}
-        />
-      }
-    />
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      {workspace}
+      <VehiclesSidePanel
+        actorRole={actorRole}
+        actorMemberStatus={actorMemberStatus}
+        selectedVehicle={selectedVehicle}
+        companyId={companyId}
+        activeTrips={selectedVehicleActiveTrips}
+        activeTripsLoadStatus={selectedVehicleTripsQuery.status}
+        filteredVehicles={filteredVehicles}
+        selectedVehicleId={selectedVehicleId}
+        copyLinkState={copyLinkState}
+        onCopyViewLink={() => void handleCopyViewLink()}
+        onSelectedVehicleIdChange={setSelectedVehicleIdPreference}
+        onUpdated={() => vehiclesQuery.reload()}
+      />
+    </div>
   );
 }

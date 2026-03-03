@@ -2,6 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  Truck,
+  MapPin,
+  RadioTower,
+  Settings,
+  Building2,
+  type LucideIcon,
+} from "lucide-react";
 
 import { ActiveCompanySidebarCard } from "@/components/dashboard/active-company-sidebar-card";
 import { EnvBadge } from "@/components/shared/env-badge";
@@ -12,17 +22,18 @@ import { isAdminSurfaceEnabled } from "@/lib/env/public-env";
 type NavItem = {
   label: string;
   href?: string;
+  icon: LucideIcon;
   section: "core" | "operations";
 };
 
 const NAV_ITEMS: readonly NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", section: "core" },
-  { label: "Mod Sec", href: "/mode-select", section: "core" },
-  { label: "Admin", href: "/admin", section: "core" },
-  { label: "Drivers", href: "/drivers", section: "operations" },
-  { label: "Vehicles", href: "/vehicles", section: "operations" },
-  { label: "Routes", href: "/routes", section: "operations" },
-  { label: "Live Ops", href: "/live-ops", section: "operations" },
+  { label: "Ana Sayfa", href: "/dashboard", icon: LayoutDashboard, section: "core" },
+  { label: "Şirket Seç", href: "/mode-select", icon: Building2, section: "core" },
+  { label: "Yönetim", href: "/admin", icon: Settings, section: "core" },
+  { label: "Şoförler", href: "/drivers", icon: Users, section: "operations" },
+  { label: "Araçlar", href: "/vehicles", icon: Truck, section: "operations" },
+  { label: "Rotalar", href: "/routes", icon: MapPin, section: "operations" },
+  { label: "Canlı Takip", href: "/live-ops", icon: RadioTower, section: "operations" },
 ];
 
 function isItemActive(pathname: string, item: NavItem): boolean {
@@ -48,22 +59,22 @@ function SidebarNavSection({
 }) {
   return (
     <div>
-      <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+      <div className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
         {title}
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-0.5">
         {items.map((item) => {
           const active = isItemActive(pathname, item);
-          const commonClass =
-            "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition";
+          const Icon = item.icon;
 
           if (!item.href) {
             return (
               <div
                 key={`${title}-${item.label}`}
-                className={`${commonClass} border border-transparent text-slate-500 hover:bg-slate-50`}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600"
                 aria-disabled="true"
               >
+                <Icon className="h-4 w-4 flex-shrink-0" />
                 <span>{item.label}</span>
               </div>
             );
@@ -73,16 +84,14 @@ function SidebarNavSection({
             <Link
               key={`${title}-${item.label}`}
               href={item.href}
-              className={`${commonClass} ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 active
-                  ? "bg-blue-50 text-blue-700 ring-1 ring-blue-100"
-                  : "text-slate-700 hover:bg-slate-50"
+                  ? "bg-blue-500 text-white shadow-md shadow-blue-500/25"
+                  : "text-slate-400 hover:bg-white/[0.07] hover:text-white"
               }`}
             >
+              <Icon className="h-4 w-4 flex-shrink-0" />
               <span>{item.label}</span>
-              {active ? (
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-600" aria-hidden="true" />
-              ) : null}
             </Link>
           );
         })}
@@ -103,31 +112,32 @@ export function DashboardShellSidebar() {
   const operationItems = NAV_ITEMS.filter((item) => item.section === "operations");
 
   return (
-    <aside className="border-b border-line bg-surface p-4 lg:border-r lg:border-b-0">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold tracking-tight text-slate-900">Neredeservis</div>
-          <div className="text-xs text-muted">Panel shell</div>
+    <aside className="flex h-screen flex-col border-b border-slate-800 bg-slate-950 lg:sticky lg:top-0 lg:border-r lg:border-b-0">
+      {/* Logo */}
+      <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 shadow-lg shadow-blue-500/30">
+            <RadioTower className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <div className="text-[13px] font-bold tracking-tight text-white">NeredeServis</div>
+            <div className="text-[10px] text-slate-500">Yönetim Paneli</div>
+          </div>
         </div>
         <EnvBadge />
       </div>
 
-      <div className="space-y-5">
-        <SidebarNavSection title="Core" items={coreItems} pathname={pathname} />
-        <SidebarNavSection title="Operations" items={operationItems} pathname={pathname} />
-      </div>
-
-      <ActiveCompanySidebarCard />
-
-      <div className="mt-4 rounded-2xl border border-line bg-slate-50 p-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted">Faz 2</div>
-        <div className="mt-1 text-sm font-medium text-slate-900">
-          Company operasyon ekranlari canli
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="space-y-6">
+          <SidebarNavSection title="Genel" items={coreItems} pathname={pathname} />
+          <SidebarNavSection title="Operasyon" items={operationItems} pathname={pathname} />
         </div>
-        <div className="mt-2 text-xs leading-5 text-muted">
-          Drivers, Vehicles, Routes ve Live Ops read-side dilimleri aktif. Sonraki adim detail
-          davranislarini Faz 2 kapanisinda stabilize etmek.
-        </div>
+      </nav>
+
+      {/* Active Company Card */}
+      <div className="border-t border-slate-800 px-3 py-3">
+        <ActiveCompanySidebarCard />
       </div>
     </aside>
   );

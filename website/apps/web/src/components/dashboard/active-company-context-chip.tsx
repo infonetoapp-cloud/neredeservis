@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 import { useMyCompanies } from "@/features/company/use-my-companies";
-import { useActivePanelMode } from "@/features/mode/use-active-panel-mode";
 
 function statusLabel(memberStatus: "active" | "invited" | "suspended") {
   switch (memberStatus) {
@@ -22,17 +21,8 @@ function statusLabel(memberStatus: "active" | "invited" | "suspended") {
 
 export function ActiveCompanyContextChip() {
   const { status: authStatus } = useAuthSession();
-  const { resolvedMode } = useActivePanelMode();
   const activeCompany = useActiveCompanyPreference();
-  const companiesQuery = useMyCompanies(authStatus === "signed_in" && resolvedMode === "company");
-
-  if (resolvedMode !== "company") {
-    return (
-      <div className="hidden rounded-xl border border-line bg-white px-3 py-2 text-xs text-muted xl:block">
-        Bireysel Mod
-      </div>
-    );
-  }
+  const companiesQuery = useMyCompanies(authStatus === "signed_in");
 
   if (!activeCompany) {
     return (
@@ -40,7 +30,7 @@ export function ActiveCompanyContextChip() {
         href="/mode-select"
         className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
       >
-        Company secimi gerekli
+        Firma secimi gerekli
       </Link>
     );
   }

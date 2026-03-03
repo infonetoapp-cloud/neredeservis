@@ -1,16 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import { ArrowRight, RadioTower, Truck, Users, MapPin, Activity, ChevronRight } from "lucide-react";
 
-import { AuthSessionStatusCard } from "@/components/auth/auth-session-status-card";
 import { DashboardKpiGrid } from "@/components/dashboard/dashboard-kpi-grid";
 import {
-  buildCompanyQuickActionItems,
   buildCompanySummary,
   formatLastSignal,
-  type CompanyQuickActionItem,
   type CompanySummary,
 } from "@/components/dashboard/dashboard-mode-placeholder-helpers";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
@@ -20,42 +17,10 @@ import { useCompanyActiveTrips } from "@/features/company/use-company-active-tri
 import { useCompanyMembers } from "@/features/company/use-company-members";
 import { useCompanyRoutes } from "@/features/company/use-company-routes";
 import { useCompanyVehicles } from "@/features/company/use-company-vehicles";
-import {
-  getModeLabel,
-  parsePanelMode,
-  readStoredPanelMode,
-  writeStoredPanelMode,
-  type PanelMode,
-} from "@/features/mode/mode-preference";
-
-function quickActionToneClass(item: CompanyQuickActionItem): string {
-  if (item.tone === "warning") {
-    return "border-rose-200 bg-rose-50 hover:bg-rose-100";
-  }
-  if (item.tone === "attention") {
-    return "border-amber-200 bg-amber-50 hover:bg-amber-100";
-  }
-  return "border-line bg-white hover:bg-slate-50";
-}
 
 export function DashboardModePlaceholder() {
-  const searchParams = useSearchParams();
-  const queryMode = parsePanelMode(searchParams.get("mode"));
-  const [storedMode] = useState<PanelMode | null>(() => readStoredPanelMode());
   const { status: authStatus } = useAuthSession();
   const activeCompany = useActiveCompanyPreference();
-
-  useEffect(() => {
-    if (!queryMode) {
-      return;
-    }
-    writeStoredPanelMode(queryMode);
-  }, [queryMode]);
-
-  const resolvedMode = useMemo<PanelMode | null>(
-    () => queryMode ?? storedMode,
-    [queryMode, storedMode],
-  );
 
   const companyId = activeCompany?.companyId ?? null;
   const dashboardDataEnabled = authStatus === "signed_in" && Boolean(companyId);
@@ -100,152 +65,195 @@ export function DashboardModePlaceholder() {
     vehiclesQuery.items,
     vehiclesQuery.status,
   ]);
-  const individualSummaryItems = useMemo(
-    () => [
-      {
-        label: "Aktif Seferler",
-        value: companyLoading ? "Yukleniyor..." : `${companySummary?.activeTrips ?? 0} sefer`,
-      },
-      {
-        label: "Planli Rotalar",
-        value: companyLoading ? "Yukleniyor..." : `${companySummary?.routes ?? 0} rota`,
-      },
-      {
-        label: "Aktif Araclar",
-        value: companyLoading ? "Yukleniyor..." : `${companySummary?.activeVehicles ?? 0} arac`,
-      },
-    ],
-    [companyLoading, companySummary],
-  );
 
-  if (!resolvedMode) {
+  if (!activeCompany) {
     return (
-      <section className="space-y-6">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Mod secimi bulunamadi. Once mod secim ekranina gidip bir mod sec.
+      <section className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+          <RadioTower className="h-7 w-7 text-slate-400" />
+        </div>
+        <div className="mb-1.5 text-[17px] font-semibold text-slate-900">Şirket seçilmedi</div>
+        <div className="mb-7 text-sm text-slate-500">
+          Paneli kullanmak için önce üye olduğunuz bir şirket seçin.
         </div>
         <Link
           href="/mode-select"
-          className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
         >
-          Mod Secim Ekranina Git
+          Şirket Seç
+          <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
     );
   }
 
-  const modeLabel = getModeLabel(resolvedMode);
+  /* initials for company avatar */
+  const companyInitials = (activeCompany.companyName ?? "?")
+    .trim()
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
 
   return (
-    <section className="space-y-6">
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-xs font-medium text-muted">Aktif Mod</div>
-            <div className="mt-1 text-sm font-semibold text-slate-900">{modeLabel}</div>
-            {resolvedMode === "company" ? (
-              <div className="mt-2 text-xs text-muted">
-                Aktif Company:{" "}
-                <span className="font-semibold text-slate-900">
-                  {activeCompany?.companyName ?? "Secim bekleniyor"}
-                </span>
-              </div>
-            ) : null}
+    <section className="space-y-5">
+      {/* ── Company header ── */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          {/* avatar */}
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white shadow-md shadow-blue-500/25">
+            {companyInitials}
           </div>
-          <Link
-            href="/mode-select"
-            className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
-          >
-            Modu Degistir
-          </Link>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+              Aktif Şirket
+            </div>
+            <div className="text-[17px] font-bold leading-tight text-slate-900">
+              {activeCompany.companyName ?? "Yükleniyor..."}
+            </div>
+          </div>
         </div>
+        <Link
+          href="/mode-select"
+          className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-[13px] font-medium text-slate-600 shadow-sm hover:bg-slate-50"
+        >
+          Değiştir
+        </Link>
       </div>
 
-      {resolvedMode === "company" && companyError ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-          Dashboard verileri yuklenemedi: {mapCompanyCallableErrorToMessage(companyError)}
+      {companyError ? (
+        <div className="rounded-2xl bg-rose-50 px-5 py-3.5 text-sm text-rose-700 ring-1 ring-rose-200">
+          Veriler yüklenemedi: {mapCompanyCallableErrorToMessage(companyError)}
         </div>
       ) : null}
 
-      <DashboardKpiGrid mode={resolvedMode} companySummary={companySummary} loading={companyLoading} />
+      {/* ── KPI grid ── */}
+      <DashboardKpiGrid companySummary={companySummary} loading={companyLoading} />
 
-      <AuthSessionStatusCard />
+      {/* ── Bottom grid ── */}
+      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <div className="mb-3 text-sm font-semibold text-slate-900">
-            {resolvedMode === "individual" ? "Sefer Haritasi Alani" : "Live Ops Onizleme"}
+        {/* Live Ops */}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
+          <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-[13px] font-semibold text-slate-900">Canlı Seferler</span>
+              {activeTripsQuery.items.length > 0 && (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  {activeTripsQuery.items.length}
+                </span>
+              )}
+            </div>
+            {activeTripsQuery.items.length > 0 && (
+              <Link
+                href="/live-ops"
+                className="text-[12px] font-medium text-blue-600 hover:text-blue-700"
+              >
+                Tümünü gör →
+              </Link>
+            )}
           </div>
-          {resolvedMode === "individual" ? (
-            <div className="h-80 rounded-xl border border-line bg-gradient-to-br from-slate-100 to-white" />
-          ) : companyLoading ? (
-            <div className="rounded-xl border border-line bg-white p-4 text-sm text-muted">
-              Live ops ozeti yukleniyor...
-            </div>
-          ) : activeTripsQuery.items.length === 0 ? (
-            <div className="rounded-xl border border-line bg-white p-4 text-sm text-muted">
-              Aktif sefer yok. Sofor sefer baslattiginda burada gorunecek.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {activeTripsQuery.items.slice(0, 5).map((trip) => (
-                <Link
-                  key={trip.tripId}
-                  href={`/live-ops?tripId=${encodeURIComponent(trip.tripId)}&routeId=${encodeURIComponent(
-                    trip.routeId,
-                  )}&driverUid=${encodeURIComponent(trip.driverUid)}&sort=signal_desc`}
-                  className="block rounded-xl border border-line bg-white p-3 hover:bg-slate-50"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-slate-900">
-                      {trip.driverPlate ?? "Plaka yok"} - {trip.routeName}
+
+          <div className="border-t border-slate-100">
+            {companyLoading ? (
+              <div className="px-5 py-10 text-center text-sm text-slate-400">Yükleniyor...</div>
+            ) : activeTripsQuery.items.length === 0 ? (
+              <div className="flex flex-col items-center px-5 py-10 text-center">
+                <Activity className="mb-3 h-6 w-6 text-slate-300" />
+                <div className="text-[13px] font-medium text-slate-500">Aktif sefer yok</div>
+                <div className="mt-1 text-[12px] text-slate-400">
+                  Şoför sefer başlattığında burada görünür
+                </div>
+              </div>
+            ) : (
+              <div>
+                {activeTripsQuery.items.slice(0, 5).map((trip, i) => (
+                  <Link
+                    key={trip.tripId}
+                    href={`/live-ops?tripId=${encodeURIComponent(trip.tripId)}&routeId=${encodeURIComponent(
+                      trip.routeId,
+                    )}&driverUid=${encodeURIComponent(trip.driverUid)}&sort=signal_desc`}
+                    className={`flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-50 ${
+                      i !== 0 ? "border-t border-slate-100" : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold text-slate-900">
+                        {trip.driverPlate ?? "Plaka yok"} &mdash; {trip.routeName}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-slate-500">
+                        {trip.driverName} · Son sinyal {formatLastSignal(trip.lastLocationAt)}
+                      </div>
                     </div>
                     <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`ml-4 flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                         trip.liveState === "online"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                          : "border-amber-200 bg-amber-50 text-amber-800"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
                       }`}
                     >
-                      {trip.liveState === "online" ? "Canli" : "Stale"}
+                      {trip.liveState === "online" ? "Canlı" : "Gecişmeli"}
                     </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted">
-                    {trip.driverName} - Son sinyal {formatLastSignal(trip.lastLocationAt)}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-          <div className="mb-3 text-sm font-semibold text-slate-900">
-            {resolvedMode === "individual" ? "Bugun Ozeti" : "Hizli Aksiyonlar"}
+        {/* Quick nav — iOS settings style */}
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
+          <div className="px-5 py-4">
+            <span className="text-[13px] font-semibold text-slate-900">Hızlı Erişim</span>
           </div>
-          {resolvedMode === "individual" ? (
-            <div className="space-y-3">
-              {individualSummaryItems.map((item) => (
-                <div key={item.label} className="rounded-xl border border-line p-3">
-                  <div className="text-sm font-medium text-slate-900">{item.label}</div>
-                  <div className="mt-1 text-xs text-muted">{item.value}</div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {buildCompanyQuickActionItems(companySummary).map((item) => (
+          <div className="border-t border-slate-100">
+            {([
+              {
+                href: "/drivers",
+                icon: Users,
+                iconBg: "bg-violet-500",
+                label: "Şoförler",
+                sub: companyLoading ? "…" : `${companySummary?.members ?? 0} üye`,
+              },
+              {
+                href: "/vehicles",
+                icon: Truck,
+                iconBg: "bg-blue-500",
+                label: "Araçlar",
+                sub: companyLoading ? "…" : `${companySummary?.activeVehicles ?? 0} aktif`,
+              },
+              {
+                href: "/routes",
+                icon: MapPin,
+                iconBg: "bg-emerald-500",
+                label: "Rotalar",
+                sub: companyLoading ? "…" : `${companySummary?.routes ?? 0} rota`,
+              },
+            ] as const).map((item, i) => {
+              const Icon = item.icon;
+              return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`block rounded-xl border p-3 ${quickActionToneClass(item)}`}
+                  className={`flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 ${
+                    i !== 0 ? "border-t border-slate-100" : ""
+                  }`}
                 >
-                  <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                  <div className="mt-1 text-xs text-muted">{companyLoading ? "Yukleniyor..." : item.meta}</div>
+                  <span
+                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px] ${item.iconBg}`}
+                  >
+                    <Icon className="h-3.5 w-3.5 text-white" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold text-slate-900">{item.label}</div>
+                    <div className="text-[11px] text-slate-400">{item.sub}</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-300" />
                 </Link>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

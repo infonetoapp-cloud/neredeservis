@@ -9,16 +9,14 @@ import {
 } from "@/features/company/company-preferences";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 import { useMyCompanies } from "@/features/company/use-my-companies";
-import { useActivePanelMode } from "@/features/mode/use-active-panel-mode";
 
 export function DashboardCompanyContextSync() {
   const { status: authStatus } = useAuthSession();
-  const { resolvedMode } = useActivePanelMode();
   const activeCompany = useActiveCompanyPreference();
-  const companiesQuery = useMyCompanies(authStatus === "signed_in" && resolvedMode === "company");
+  const companiesQuery = useMyCompanies(authStatus === "signed_in");
 
   useEffect(() => {
-    if (authStatus !== "signed_in" || resolvedMode !== "company") return;
+    if (authStatus !== "signed_in") return;
     if (companiesQuery.status !== "success") return;
 
     const activeMemberships = companiesQuery.items.filter((item) => item.memberStatus === "active");
@@ -54,7 +52,7 @@ export function DashboardCompanyContextSync() {
     if (activeCompany) {
       clearActiveCompanyPreference();
     }
-  }, [activeCompany, authStatus, companiesQuery.items, companiesQuery.status, resolvedMode]);
+  }, [activeCompany, authStatus, companiesQuery.items, companiesQuery.status]);
 
   return null;
 }

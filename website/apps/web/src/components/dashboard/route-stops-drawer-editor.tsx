@@ -375,13 +375,7 @@ export function RouteStopsDrawerEditor({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <p className="text-xs text-slate-500">
-            Faz 2 MVP: `listCompanyRouteStops` + `upsertCompanyRouteStop` + `deleteCompanyRouteStop`.
-          </p>
         </div>
-        <span className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700">
-          Stop Editor v1
-        </span>
       </div>
 
       {!selectedRoute ? (

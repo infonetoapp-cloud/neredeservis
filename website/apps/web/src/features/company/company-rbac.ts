@@ -7,23 +7,25 @@ function isActiveMember(status: Status) {
   return status === "active";
 }
 
-function isCompanyManager(role: Role) {
-  return role === "owner" || role === "admin";
+/**
+ * MVP tek-rol modeli: tüm aktif üyeler eşit yetkiye sahip.
+ * Role parametresi geriye uyumluluk için korunuyor; gating yalnızca
+ * `isActiveMember` kontrolüne dayanır.
+ */
+
+export function canAccessAdminSurface(_role: Role, status: Status) {
+  return isActiveMember(status);
 }
 
-export function canAccessAdminSurface(role: Role, status: Status) {
-  return isActiveMember(status) && isCompanyManager(role);
+export function canManageCompanyMembers(_role: Role, status: Status) {
+  return isActiveMember(status);
 }
 
-export function canManageCompanyMembers(role: Role, status: Status) {
-  return isActiveMember(status) && isCompanyManager(role);
+export function canManageRoutePermissions(_role: Role, status: Status) {
+  return isActiveMember(status);
 }
 
-export function canManageRoutePermissions(role: Role, status: Status) {
-  return isActiveMember(status) && isCompanyManager(role);
-}
-
-export function canMutateCompanyOperations(role: Role, status: Status) {
-  return isActiveMember(status) && (isCompanyManager(role) || role === "dispatcher");
+export function canMutateCompanyOperations(_role: Role, status: Status) {
+  return isActiveMember(status);
 }
 

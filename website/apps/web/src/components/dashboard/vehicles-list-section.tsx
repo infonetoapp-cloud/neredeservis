@@ -1,11 +1,18 @@
 "use client";
 
+import { Truck } from "lucide-react";
 import type { CompanyVehicleSummary } from "@/features/company/company-types";
 import {
   vehicleStatusLabel,
   type VehicleSortOption,
   type VehicleStatusFilter,
 } from "@/components/dashboard/vehicles-company-vehicles-helpers";
+
+const STATUS_DOT: Record<string, string> = {
+  active: "bg-emerald-500",
+  maintenance: "bg-amber-500",
+  inactive: "bg-slate-400",
+};
 
 type VehiclesListSectionProps = {
   activeCompanyName: string | null;
@@ -61,13 +68,12 @@ export function VehiclesListSection({
   return (
     <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">Company Vehicles (Gercek Veri)</div>
-          <div className="text-xs text-muted">
-            Aktif company: {activeCompanyName ?? "-"}
-            {vehicleIdFromQuery ? " - Deep-link secim aktif" : ""}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Truck className="h-4 w-4 text-slate-400" />
+            <span className="text-sm font-semibold text-slate-900">Araclar</span>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             <button
               type="button"
               onClick={() => onStatusFilterChange("active")}
@@ -108,39 +114,26 @@ export function VehiclesListSection({
               <button
                 type="button"
                 onClick={() => onStatusFilterChange("all")}
-                aria-pressed={false}
                 className="rounded-full border border-line bg-white px-2 py-0.5 font-semibold text-slate-700 hover:bg-slate-50"
               >
-                Tum Durumlar
+                Tumunu Goster
               </button>
             ) : null}
           </div>
         </div>
-        <div className="rounded-xl border border-dashed border-line bg-white px-3 py-2 text-xs text-muted">
-          {filteredVehiclesCount} / {totalVehiclesCount} arac | Sayfa {currentPage}/{totalPages} |{" "}
-          {density}
-        </div>
+        <span className="text-xs text-muted">
+          {filteredVehiclesCount} / {totalVehiclesCount}
+        </span>
       </div>
 
-      <div className="mb-3 grid gap-2 md:grid-cols-4">
+      <div className="mb-3 flex gap-2">
         <input
           value={searchText}
           onChange={(event) => onSearchTextChange(event.target.value)}
           aria-label="Arac arama"
           placeholder="Plaka, marka, model ara..."
-          className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
+          className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
         />
-        <select
-          value={statusFilter}
-          onChange={(event) => onStatusFilterChange(event.target.value as VehicleStatusFilter)}
-          aria-label="Durum filtresi"
-          className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
-        >
-          <option value="all">Tum durumlar</option>
-          <option value="active">Aktif</option>
-          <option value="maintenance">Bakim</option>
-          <option value="inactive">Pasif</option>
-        </select>
         <select
           value={sortOption}
           onChange={(event) => onSortOptionChange(event.target.value as VehicleSortOption)}
@@ -152,61 +145,54 @@ export function VehiclesListSection({
           <option value="updated_desc">Son guncellenen</option>
           <option value="status">Duruma gore</option>
         </select>
-        <button
-          type="button"
-          onClick={onResetFilters}
-          disabled={!filtersDirty}
-          title={!filtersDirty ? "Temizlenecek aktif filtre yok." : undefined}
-          className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Filtreyi Temizle
-        </button>
+        {filtersDirty ? (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Temizle
+          </button>
+        ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-line">
-        <div className="grid grid-cols-12 gap-2 border-b border-line bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-          <div className="col-span-3 truncate">Plaka</div>
-          <div className="col-span-3 truncate">Durum</div>
-          <div className="col-span-4 truncate">Tip / Kapasite</div>
-          <div className="col-span-2 truncate text-right">Aksiyon</div>
-        </div>
-        <div className="divide-y divide-line bg-white">
-          {visibleVehicles.length === 0 ? (
-            <div className="px-3 py-4 text-xs text-muted">Filtrelere uygun arac bulunamadi.</div>
-          ) : (
-            visibleVehicles.map((item) => {
-              const isSelected = item.vehicleId === selectedVehicleId;
-              return (
-                <button
-                  key={item.vehicleId}
-                  type="button"
-                  onClick={() => onSelectVehicle(item.vehicleId)}
-                  aria-label={`${item.plate} araci sec`}
-                  className={`grid w-full grid-cols-12 gap-2 text-left text-sm transition ${rowClass} ${
-                    isSelected
-                      ? "bg-blue-50/70 ring-1 ring-inset ring-blue-100"
-                      : "hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="col-span-3 min-w-0">
-                    <div className="truncate font-medium text-slate-900">{item.plate}</div>
-                    <div className="truncate text-[11px] text-muted">{item.vehicleId}</div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        {visibleVehicles.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-xs text-muted">
+            Filtrelere uygun arac bulunamadi.
+          </div>
+        ) : (
+          visibleVehicles.map((item) => {
+            const isSelected = item.vehicleId === selectedVehicleId;
+            return (
+              <button
+                key={item.vehicleId}
+                type="button"
+                onClick={() => onSelectVehicle(item.vehicleId)}
+                aria-label={`${item.plate} araci sec`}
+                className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                  isSelected
+                    ? "border-blue-200 bg-blue-50/70 ring-1 ring-blue-100"
+                    : "border-line bg-white hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                  <Truck className="h-5 w-5 text-slate-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-slate-900">{item.plate}</span>
+                    <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[item.status] ?? "bg-slate-300"}`} />
                   </div>
-                  <div className="col-span-3 truncate text-slate-800">
-                    {vehicleStatusLabel(item.status)}
+                  <div className="mt-0.5 truncate text-xs text-muted">
+                    {[item.brand, item.model].filter(Boolean).join(" ") || vehicleStatusLabel(item.status)}
+                    {item.capacity ? ` · ${item.capacity} kisi` : ""}
                   </div>
-                  <div className="col-span-4 truncate text-slate-800">
-                    {[item.brand, item.model].filter(Boolean).join(" ") || "-"} /{" "}
-                    {item.capacity ?? "-"}
-                  </div>
-                  <div className="col-span-2 text-right text-xs font-semibold text-slate-600">
-                    {isSelected ? "Secili" : "Detay"}
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
       {totalPages > 1 ? (
         <div className="mt-3 flex items-center justify-end gap-2">

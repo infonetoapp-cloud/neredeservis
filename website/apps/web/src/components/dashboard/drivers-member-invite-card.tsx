@@ -47,18 +47,18 @@ export function DriversMemberInviteCard({
 
   const guardMessage = useMemo(() => {
     if (!companyId) {
-      return "Aktif company secimi olmadan davet baslatilamaz.";
+      return "Aktif firma seçimi olmadan davet başlatılamaz.";
     }
     if (!memberInviteEnabled) {
-      return "Davet gondermek icin aktif owner/admin uyeligi gerekir.";
+      return "Davet için aktif yönetici üyeliği gerekir.";
     }
     if (adminInviteBlockedForAdminActor) {
-      return "Admin actor yalniz dispatcher/viewer davet edebilir.";
+      return "Yönetici rolü yalnızca dispeçer/gözlemci davet edebilir.";
     }
     return null;
   }, [adminInviteBlockedForAdminActor, companyId, memberInviteEnabled]);
   const submitDisabledReason = submitBlocked
-    ? guardMessage ?? (!emailLooksValid ? "Gecerli bir e-posta gir." : pending ? "Islem devam ediyor." : null)
+    ? guardMessage ?? (!emailLooksValid ? "Geçerli bir e-posta adresi girin." : pending ? "İşlem devam ediyor." : null)
     : null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -90,8 +90,8 @@ export function DriversMemberInviteCard({
   };
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-      <div className="mb-2 text-sm font-semibold text-slate-900">Uye Daveti</div>
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+      <div className="mb-3 text-[13px] font-semibold text-slate-900">Üye Davet Et</div>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <label className="space-y-1">
           <span className="text-xs font-medium text-slate-700">E-posta</span>
@@ -115,15 +115,15 @@ export function DriversMemberInviteCard({
             disabled={!companyId || !memberInviteEnabled || pending}
             className="w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-0 focus:border-brand-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
           >
-            <option value="admin">Admin</option>
-            <option value="dispatcher">Dispatcher</option>
-            <option value="viewer">Viewer</option>
+            <option value="admin">Yönetici</option>
+            <option value="dispatcher">Dispeçer</option>
+            <option value="viewer">Gözlemci</option>
           </select>
         </label>
 
         {showEmailValidation && !emailLooksValid ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-            Gecerli bir e-posta gir.
+            Geçerli bir e-posta adresi girin.
           </div>
         ) : null}
         {guardMessage ? (
@@ -152,9 +152,9 @@ export function DriversMemberInviteCard({
           type="submit"
           disabled={submitBlocked}
           title={submitDisabledReason ?? undefined}
-          className="w-full rounded-xl bg-brand-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="w-full rounded-xl bg-brand px-3 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {pending ? "Davet Aciliyor..." : "Uye Daveti Gonder"}
+          {pending ? "Davet açılıyor…" : "Davet Gönder"}
         </button>
       </form>
     </div>

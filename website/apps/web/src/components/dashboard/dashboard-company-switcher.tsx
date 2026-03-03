@@ -9,18 +9,12 @@ import {
 } from "@/features/company/company-preferences";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 import { useMyCompanies } from "@/features/company/use-my-companies";
-import { useActivePanelMode } from "@/features/mode/use-active-panel-mode";
 
 export function DashboardCompanySwitcher() {
   const [open, setOpen] = useState(false);
   const { status: authStatus } = useAuthSession();
-  const { resolvedMode } = useActivePanelMode();
   const activeCompany = useActiveCompanyPreference();
-  const companiesQuery = useMyCompanies(authStatus === "signed_in" && resolvedMode === "company");
-
-  if (resolvedMode !== "company") {
-    return null;
-  }
+  const companiesQuery = useMyCompanies(authStatus === "signed_in");
 
   const isLoading = companiesQuery.status === "loading";
   const isError = companiesQuery.status === "error";
@@ -76,7 +70,7 @@ export function DashboardCompanySwitcher() {
             </div>
           ) : !hasCompanies ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Bu hesapta firma uyeligi bulunamadi. Mode selector ekranindan firma olustur.
+              Bu hesapta firma uyeligi bulunamadi. Firma secim ekranindan firma olustur.
             </div>
           ) : (
             <div className="max-h-72 space-y-2 overflow-auto pr-1">
@@ -124,7 +118,7 @@ export function DashboardCompanySwitcher() {
               href="/mode-select"
               className="text-xs font-semibold text-blue-700 hover:text-blue-800"
             >
-              Mod/Firma secim ekranina git
+              Firma secim ekranina git
             </a>
             <button
               type="button"

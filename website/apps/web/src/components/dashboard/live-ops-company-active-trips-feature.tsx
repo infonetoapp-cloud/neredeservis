@@ -1,6 +1,5 @@
 "use client";
 
-import { DashboardFeaturePlaceholder } from "@/components/dashboard/dashboard-feature-placeholder";
 import { LiveOpsMapSplitPane } from "@/components/dashboard/live-ops-map-split-pane";
 import { LiveOpsSelectedTripDetailPane } from "@/components/dashboard/live-ops-selected-trip-detail-pane";
 import { TripsListPane } from "@/components/dashboard/live-ops-trips-list-pane";
@@ -147,37 +146,5 @@ export function LiveOpsCompanyActiveTripsFeature() {
       </div>
     );
 
-  return (
-    <DashboardFeaturePlaceholder
-      title="Live Ops"
-      badge="Operations"
-      description="Company-scoped aktif sefer listesi, RTDB stream overlay ve dispatch aksiyonlari tek ekranda calisir."
-      nextPhaseNotes={[
-        "RTDB stream reconnect/backoff + stale/offline semantigi aktif; pilotta threshold tuning izlenecek",
-        "RTDB company-level aggregate stream (opsiyonel) sadece gercek veri baskisi olursa acilacak",
-        "pilot oncesi live-ops smoke + cost/telemetry checklisti periyodik kosulacak",
-      ]}
-      workspace={workspace}
-      workspaceFullWidth
-      sidePanel={
-        <div className="grid gap-4 lg:grid-cols-3">
-          <DashboardStatePlaceholder
-            tone="info"
-            title="Access / Offline / Stale ayrimi"
-            description="RTDB yetki reddi, RTDB baglanti yok ve trip stale semantikleri UI'da ayri chip/copy ile gosteriliyor."
-          />
-          <DashboardStatePlaceholder
-            tone="loading"
-            title="RTDB route stream overlay aktif"
-            description="Secili rota ve gorunen markerlar icin `locations/{routeId}` RTDB stream fallback/overlay kullaniliyor; lag timeout ve reconnect davranisi da aktif."
-          />
-          <DashboardStatePlaceholder
-            tone="info"
-            title="Reconnect fallback"
-            description="RTDB reconnect + retry backoff semantigi aktif. Access/error/mismatch durumlari panelde ayri olarak triage edilir."
-          />
-        </div>
-      }
-    />
-  );
+  return <>{workspace}</>;
 }

@@ -456,3 +456,80 @@ export interface DeleteUserDataOutput {
   requestedAt: string | null;
   hardDeleteAfter: string | null;
 }
+
+// ─── Platform Owner Callable Types ───────────────────────────────────────────
+
+export interface PlatformCompanyListItem {
+  companyId: string;
+  name: string;
+  status: 'active' | 'suspended';
+  ownerEmail: string | null;
+  ownerUid: string | null;
+  vehicleLimit: number;
+  vehicleCount: number;
+  memberCount: number;
+  routeCount: number;
+  createdAt: string;
+}
+
+export interface PlatformListCompaniesOutput {
+  items: PlatformCompanyListItem[];
+}
+
+export interface PlatformCompanyMemberItem {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  role: string;
+  status: string;
+  joinedAt: string;
+}
+
+export interface PlatformCompanyVehicleItem {
+  vehicleId: string;
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  capacity: number | null;
+  status: string;
+}
+
+export interface PlatformCompanyRouteItem {
+  routeId: string;
+  name: string;
+  stopCount: number;
+  isArchived: boolean;
+}
+
+export interface PlatformGetCompanyDetailOutput {
+  companyId: string;
+  name: string;
+  status: 'active' | 'suspended';
+  ownerEmail: string | null;
+  ownerUid: string | null;
+  vehicleLimit: number;
+  createdAt: string;
+  members: PlatformCompanyMemberItem[];
+  vehicles: PlatformCompanyVehicleItem[];
+  routes: PlatformCompanyRouteItem[];
+}
+
+export interface PlatformCreateCompanyOutput {
+  companyId: string;
+  ownerUid: string;
+  ownerEmail: string;
+  passwordResetLink: string;
+  createdAt: string;
+}
+
+export interface PlatformSetVehicleLimitOutput {
+  companyId: string;
+  vehicleLimit: number;
+  updatedAt: string;
+}
+
+export interface PlatformSetCompanyStatusOutput {
+  companyId: string;
+  status: 'active' | 'suspended';
+  updatedAt: string;
+}

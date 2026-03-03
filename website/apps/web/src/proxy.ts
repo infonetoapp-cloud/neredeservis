@@ -13,6 +13,7 @@ const PANEL_PATH_PREFIXES = [
   "/vehicles",
   "/routes",
   "/live-ops",
+  "/platform",
 ] as const;
 
 function getRequestHost(request: NextRequest): string {

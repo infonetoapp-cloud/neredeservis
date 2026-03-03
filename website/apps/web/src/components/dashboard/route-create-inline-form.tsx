@@ -157,13 +157,7 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Rota Olustur</h3>
-          <p className="text-xs text-slate-500">
-            `createCompanyRoute` ile company-scoped rota kaydi olusturulur.
-          </p>
         </div>
-        <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-          createCompanyRoute
-        </span>
       </div>
 
       <form className="space-y-3" onSubmit={handleSubmit}>
