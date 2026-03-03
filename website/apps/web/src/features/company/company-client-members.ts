@@ -25,10 +25,23 @@ export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembership
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<unknown, ApiOk<{ memberships?: unknown }>>(functions, "listMyCompanies");
+  const callable = httpsCallable<unknown, ApiOk<{ items?: unknown[] }>>(functions, "listMyCompanies");
   try {
     const response = await callable({});
-    return parseMembershipItems(response.data?.data?.memberships);
+    const rawItems = response.data?.data?.items ?? [];
+    // Backend returns { companyId, name, role, memberStatus } — map to CompanyMembershipItem
+    const mapped = rawItems.map((item: unknown) => {
+      const r = item as Record<string, unknown>;
+      return {
+        companyId: r.companyId,
+        companyName: r.name,
+        memberRole: r.role,
+        membershipStatus: r.memberStatus,
+        companyStatus: r.companyStatus ?? "active",
+        billingStatus: r.billingStatus ?? "active",
+      };
+    });
+    return parseMembershipItems(mapped);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
