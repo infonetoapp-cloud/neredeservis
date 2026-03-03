@@ -199,7 +199,7 @@ export function createCompanyQueryCallables({
             ? memberData.companyId
             : doc.id;
         const role = memberData.role;
-        const status = memberData.status;
+        const status = memberData.status ?? memberData.memberStatus;
         if (
           !companyId ||
           !['owner', 'admin', 'dispatcher', 'viewer'].includes(String(role)) ||

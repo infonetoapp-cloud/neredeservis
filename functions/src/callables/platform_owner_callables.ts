@@ -364,7 +364,7 @@ export function createPlatformOwnerCallables({ db }: { db: Firestore }) {
       tx.set(userMembershipRef, {
         companyId,
         role: 'owner',
-        memberStatus: 'active',
+        status: 'active',
         joinedAt: nowIso,
         updatedAt: nowIso,
       });
