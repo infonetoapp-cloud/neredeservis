@@ -17,7 +17,7 @@ export default async function CompanySectionLayout({ children, params }: Props) 
     <CompanyMembershipProvider companyId={companyId}>
       <div className="-mx-4 grid gap-5 sm:-mx-6 lg:grid-cols-[290px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="px-4 sm:px-6 lg:sticky lg:top-[82px] lg:h-[calc(100vh-104px)] lg:overflow-y-auto lg:pr-0">
-          <div className="h-full rounded-none border border-[#0a1929] bg-[#0F2242] p-4 shadow-[0_16px_46px_rgba(10,15,30,0.30)] lg:rounded-3xl">
+          <div className="h-full rounded-none border border-slate-200 bg-white p-4 shadow-sm lg:rounded-2xl">
             <CompanyActiveContextCard />
 
             <CompanySidebarNav companyId={companyId} />

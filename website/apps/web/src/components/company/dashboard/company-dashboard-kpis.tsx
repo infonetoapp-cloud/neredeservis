@@ -71,34 +71,23 @@ export function CompanyDashboardKpis({
       {cards.map((card) => (
         <article
           key={card.label}
-          className="group rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition hover:shadow-[0_6px_24px_rgba(15,23,42,0.10)]"
+          className="group flex items-center gap-4 rounded-[10px] border border-slate-100 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:shadow-[0_4px_16px_rgba(15,23,42,0.08)]"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: card.iconBg }}
-            >
-              <card.icon className="h-5 w-5" style={{ color: card.iconColor }} />
-            </div>
-            <div
-              className="mt-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-white"
-              style={{ background: card.value > 0 ? card.accent : "#CBD5E1" }}
-            />
+          <div
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+            style={{ background: card.iconBg }}
+          >
+            <card.icon className="h-5 w-5" style={{ color: card.iconColor }} />
           </div>
-          <div className="mt-4">
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium text-slate-500">{card.label}</div>
             <div
-              className="text-3xl font-bold leading-none tracking-tight"
+              className="text-2xl font-bold leading-tight tracking-tight"
               style={{ color: "#0F172A" }}
             >
               {card.value}
             </div>
-            <div className="mt-1.5 text-[13px] font-semibold text-slate-700">{card.label}</div>
-            <div className="mt-1 text-xs text-slate-400">{card.hint}</div>
           </div>
-          <div
-            className="mt-3 h-0.5 w-8 rounded-full opacity-60"
-            style={{ background: card.accent }}
-          />
         </article>
       ))}
     </div>

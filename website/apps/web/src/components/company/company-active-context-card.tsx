@@ -8,16 +8,18 @@ export function CompanyActiveContextCard() {
   const displayName = companyName ?? (loading ? "Sirket bilgisi yukleniyor" : "Secili sirket");
 
   return (
-    <div className="mb-5 rounded-2xl border border-white/10 bg-white/8 p-3.5" style={{background:'rgba(255,255,255,0.07)'}}>
-      <div className="text-[10px] font-semibold tracking-[0.16em] text-white/40 uppercase mb-2">Seçili Şirket</div>
-      <div className="flex items-center gap-2.5">
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F5735A] text-white shadow-[0_4px_12px_rgba(245,115,90,0.40)]">
+    <div className="mb-5 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#F67366] to-[#E85D50] text-white shadow-sm">
           <BuildingIcon className="h-4 w-4" />
         </span>
-        <span className="text-sm font-semibold text-white leading-tight max-w-[180px] truncate">{displayName}</span>
+        <div className="min-w-0">
+          <div className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">Şirket</div>
+          <span className="block max-w-[180px] truncate text-sm font-semibold leading-tight text-slate-800">{displayName}</span>
+        </div>
       </div>
       {errorMessage ? (
-        <div className="mt-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-300">
+        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
           Şirket bilgisi doğrulanamadı.
         </div>
       ) : null}

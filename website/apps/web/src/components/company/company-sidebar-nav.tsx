@@ -98,12 +98,12 @@ export function CompanySidebarNav({ companyId }: Props) {
 
   return (
     <nav className="space-y-1">
-      <div className="mb-3 px-1 text-[10px] font-semibold tracking-[0.16em] text-white/35 uppercase">
+      <div className="mb-3 px-1 text-[10px] font-semibold tracking-[0.16em] text-slate-400 uppercase">
         Ana Menü
       </div>
 
       {errorMessage ? (
-        <div className="mb-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-2.5 py-2 text-[11px] text-amber-300">
+        <div className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-700">
           {errorMessage}
         </div>
       ) : null}
@@ -117,16 +117,15 @@ export function CompanySidebarNav({ companyId }: Props) {
             href={item.href}
             className={`group flex w-full items-center rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
               active
-                ? "bg-[#F5735A] text-white shadow-[0_4px_14px_rgba(245,115,90,0.35)]"
-                : "text-white/65 hover:bg-white/8 hover:text-white"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             }`}
-            style={active ? {} : undefined}
           >
             <span
               className={`mr-3 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                 active
                   ? "bg-white/20 text-white"
-                  : "bg-white/8 text-white/50 group-hover:bg-white/12 group-hover:text-white/80"
+                  : "bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600"
               }`}
             >
               <item.icon className="h-3.5 w-3.5" />
@@ -136,12 +135,12 @@ export function CompanySidebarNav({ companyId }: Props) {
         );
       })}
 
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5">
-          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F5735A]/20 text-[11px] font-bold text-[#F5735A]">
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-600">
             {memberRole ? memberRole[0].toUpperCase() : "?"}
           </span>
-          <span className="text-[11px] font-medium text-white/50">{toRoleLabel(memberRole, loading)}</span>
+          <span className="text-[11px] font-medium text-slate-500">{toRoleLabel(memberRole, loading)}</span>
         </div>
       </div>
     </nav>
