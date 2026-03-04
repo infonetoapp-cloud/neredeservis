@@ -10,6 +10,10 @@ import type {
   CreateCompanyOutput,
   ListActiveTripsByCompanyItem,
   ListActiveTripsByCompanyOutput,
+  ListCompanyDriversItem,
+  ListCompanyDriversOutput,
+  ListCompanyInvitesItem,
+  ListCompanyInvitesOutput,
   ListCompanyMembersItem,
   ListCompanyMembersOutput,
   ListCompanyRouteStopsItem,
@@ -20,6 +24,7 @@ import type {
   ListCompanyVehiclesOutput,
   ListMyCompaniesItem,
   ListMyCompaniesOutput,
+  VehicleStatus,
 } from '../common/output_contract_types.js';
 import { readRouteTimeSlot } from '../common/mapbox_route_preview_helpers.js';
 import { parseIsoToMs, pickFiniteNumber, pickString, pickStringArray } from '../common/runtime_value_helpers.js';
@@ -36,6 +41,7 @@ interface CreateCompanyInput {
 
 interface ListCompanyMembersInput {
   companyId: string;
+  limit?: number;
 }
 
 interface ListCompanyRoutesInput {
@@ -53,10 +59,20 @@ interface ListActiveTripsByCompanyInput {
   companyId: string;
   routeId?: string;
   driverUid?: string;
-  pageSize?: number;
+  limit?: number;
 }
 
 interface ListCompanyVehiclesInput {
+  companyId: string;
+  limit?: number;
+}
+
+interface ListCompanyDriversInput {
+  companyId: string;
+  limit?: number;
+}
+
+interface ListCompanyInvitesInput {
   companyId: string;
   limit?: number;
 }
@@ -70,6 +86,8 @@ export function createCompanyQueryCallables({
   listCompanyRouteStopsInputSchema,
   listActiveTripsByCompanyInputSchema,
   listCompanyVehiclesInputSchema,
+  listCompanyDriversInputSchema,
+  listCompanyInvitesInputSchema,
   defaultCompanyTimezone,
   defaultCompanyCountryCode,
   liveOpsOnlineThresholdMs,
@@ -83,6 +101,8 @@ export function createCompanyQueryCallables({
   listCompanyRouteStopsInputSchema: ZodType<unknown>;
   listActiveTripsByCompanyInputSchema: ZodType<unknown>;
   listCompanyVehiclesInputSchema: ZodType<unknown>;
+  listCompanyDriversInputSchema: ZodType<unknown>;
+  listCompanyInvitesInputSchema: ZodType<unknown>;
   defaultCompanyTimezone: string;
   defaultCompanyCountryCode: string;
   liveOpsOnlineThresholdMs: number;
@@ -235,22 +255,37 @@ export function createCompanyQueryCallables({
       }),
     );
 
-    const items = companyDocs
-      .map(({ row, data }) => {
-        const name =
-          typeof data?.name === 'string' && data.name.trim() ? data.name : row.companyNameSnapshot;
-        if (typeof name !== 'string' || !name.trim()) {
-          return null;
-        }
-        return {
-          companyId: row.companyId,
-          name,
-          role: row.role,
-          memberStatus: row.memberStatus,
-        } satisfies ListMyCompaniesItem;
-      })
-      .filter((item): item is ListMyCompaniesItem => item !== null)
-      .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    const items: ListMyCompaniesItem[] = [];
+    for (const { row, data } of companyDocs) {
+      // Company document was deleted — skip this orphan membership
+      if (!data) {
+        continue;
+      }
+      const name =
+        typeof data.name === 'string' && data.name.trim() ? data.name : row.companyNameSnapshot;
+      if (typeof name !== 'string' || !name.trim()) {
+        continue;
+      }
+      const rawCompanyStatus = pickString(data, 'status');
+      const companyStatus: ListMyCompaniesItem['companyStatus'] =
+        rawCompanyStatus === 'suspended' || rawCompanyStatus === 'archived'
+          ? rawCompanyStatus
+          : 'active';
+      const rawBillingStatus = pickString(data, 'billingStatus');
+      const billingStatus: ListMyCompaniesItem['billingStatus'] =
+        rawBillingStatus === 'past_due' || rawBillingStatus === 'suspended_locked'
+          ? rawBillingStatus
+          : 'active';
+      items.push({
+        companyId: row.companyId,
+        name,
+        role: row.role,
+        memberStatus: row.memberStatus,
+        companyStatus,
+        billingStatus,
+      });
+    }
+    items.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
     return apiOk<ListMyCompaniesOutput>({ items });
   });
@@ -266,9 +301,10 @@ export function createCompanyQueryCallables({
     await requireActiveCompanyMemberRole(input.companyId, auth.uid);
 
     const companyRef = db.collection('companies').doc(input.companyId);
+    const memberLimit = input.limit ?? 50;
     const [companySnap, membersSnap] = await Promise.all([
       companyRef.get(),
-      companyRef.collection('members').orderBy('createdAt', 'asc').limit(200).get(),
+      companyRef.collection('members').orderBy('createdAt', 'asc').limit(memberLimit).get(),
     ]);
 
     if (!companySnap.exists) {
@@ -467,8 +503,8 @@ export function createCompanyQueryCallables({
 
     const routeFilterId = input.routeId ?? null;
     const driverFilterUid = input.driverUid ?? null;
-    const pageSize = input.pageSize ?? 50;
-    const overfetchLimit = Math.min(Math.max(pageSize * 4, pageSize), 200);
+    const limit = input.limit ?? 50;
+    const overfetchLimit = Math.min(Math.max(limit * 4, limit), 200);
 
     const tripsSnap = await db
       .collection('trips')
@@ -558,7 +594,7 @@ export function createCompanyQueryCallables({
         const bSort = parseIsoToMs(b.lastLocationAt) ?? parseIsoToMs(b.updatedAt) ?? 0;
         return bSort - aSort;
       })
-      .slice(0, pageSize);
+      .slice(0, limit);
 
     if (candidateTrips.length === 0) {
       return apiOk<ListActiveTripsByCompanyOutput>({ items: [] });
@@ -640,16 +676,23 @@ export function createCompanyQueryCallables({
           return null;
         }
 
+        const rawStatus = pickString(data, 'status');
+        const status: VehicleStatus =
+          rawStatus === 'active' || rawStatus === 'maintenance' || rawStatus === 'inactive'
+            ? rawStatus
+            : 'active';
+
         return {
           vehicleId: doc.id,
           companyId: input.companyId,
           plate,
-          status: pickString(data, 'status') ?? 'active',
+          status,
           brand: pickString(data, 'brand'),
           model: pickString(data, 'model'),
           year: typeof yearRaw === 'number' && Number.isFinite(yearRaw) ? yearRaw : null,
           capacity:
             typeof capacityRaw === 'number' && Number.isFinite(capacityRaw) ? capacityRaw : null,
+          createdAt: pickString(data, 'createdAt'),
           updatedAt: pickString(data, 'updatedAt'),
         } satisfies ListCompanyVehiclesItem;
       })
@@ -663,6 +706,161 @@ export function createCompanyQueryCallables({
     return apiOk<ListCompanyVehiclesOutput>({ items });
   });
 
+  const listCompanyDrivers = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    const input = validateInput(
+      listCompanyDriversInputSchema,
+      request.data,
+    ) as ListCompanyDriversInput;
+
+    await requireActiveCompanyMemberRole(input.companyId, auth.uid);
+
+    const limit = input.limit ?? 100;
+
+    // Fetch drivers that belong to this company
+    const driversSnap = await db
+      .collection('drivers')
+      .where('companyId', '==', input.companyId)
+      .limit(limit)
+      .get();
+
+    // Fetch active routes for the company to build assignment data
+    const routesSnap = await db
+      .collection('routes')
+      .where('companyId', '==', input.companyId)
+      .where('isArchived', '==', false)
+      .limit(200)
+      .get();
+
+    // Build a map: driverId -> assigned routes
+    type RouteRef = { routeId: string; routeName: string; scheduledTime: string | null };
+    const assignedRoutesMap = new Map<string, RouteRef[]>();
+    for (const routeDoc of routesSnap.docs) {
+      const rData = asRecord(routeDoc.data()) ?? {};
+      const routeId = routeDoc.id;
+      const routeName = pickString(rData, 'name') ?? `Route (${routeId.slice(0, 6)})`;
+      const scheduledTime = pickString(rData, 'scheduledTime');
+      const authorizedDriverIds = pickStringArray(rData, 'authorizedDriverIds');
+      const primaryDriverId = pickString(rData, 'driverId');
+
+      const relatedDriverIds = new Set<string>(authorizedDriverIds);
+      if (primaryDriverId) relatedDriverIds.add(primaryDriverId);
+
+      for (const driverId of relatedDriverIds) {
+        const existing = assignedRoutesMap.get(driverId) ?? [];
+        existing.push({ routeId, routeName, scheduledTime: scheduledTime ?? null });
+        assignedRoutesMap.set(driverId, existing);
+      }
+    }
+
+    // Helper: mask a string — show only last N chars
+    function maskString(value: string | null | undefined, keepLast: number): string | null {
+      if (!value || value.length === 0) return null;
+      if (value.length <= keepLast) return value;
+      return '*'.repeat(value.length - keepLast) + value.slice(-keepLast);
+    }
+
+    const drivers: ListCompanyDriversItem[] = [];
+    for (const doc of driversSnap.docs) {
+      const data = asRecord(doc.data()) ?? {};
+      const name = pickString(data, 'name');
+      if (!name) continue;
+
+      const plate = pickString(data, 'plate') ?? '';
+      const phoneFull = pickString(data, 'phone');
+      const plateMasked = maskString(plate, 4) ?? plate;
+      const phoneMasked = phoneFull ? maskString(phoneFull, 4) : null;
+      const driverId = doc.id;
+      const rawRoutes = assignedRoutesMap.get(driverId) ?? [];
+      const assignedRoutes: Array<{ routeId: string; routeName: string; scheduledTime: string | null }> = rawRoutes;
+
+      const docStatus = pickString(data, 'status');
+      const status: 'active' | 'passive' = docStatus === 'passive' ? 'passive' : 'active';
+
+      drivers.push({
+        driverId,
+        name,
+        plateMasked,
+        phoneMasked,
+        status,
+        assignmentStatus: (assignedRoutes.length > 0 ? 'assigned' : 'unassigned') as 'assigned' | 'unassigned',
+        lastSeenAt: pickString(data, 'updatedAt') ?? null,
+        assignedRoutes,
+      });
+    }
+    drivers.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    return apiOk<ListCompanyDriversOutput>({ items: drivers });
+  });
+
+  const listCompanyInvites = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    const input = validateInput(
+      listCompanyInvitesInputSchema,
+      request.data,
+    ) as ListCompanyInvitesInput;
+
+    await requireActiveCompanyMemberRole(input.companyId, auth.uid);
+
+    const companyRef = db.collection('companies').doc(input.companyId);
+    const inviteLimit = input.limit ?? 100;
+
+    const [companySnap, invitesSnap] = await Promise.all([
+      companyRef.get(),
+      companyRef
+        .collection('member_invites')
+        .orderBy('createdAt', 'desc')
+        .limit(inviteLimit)
+        .get(),
+    ]);
+
+    if (!companySnap.exists) {
+      throw new HttpsError('not-found', 'Firma bulunamadi.');
+    }
+
+    const companyData = asRecord(companySnap.data()) ?? {};
+    const companyName = pickString(companyData, 'name') ?? '';
+
+    const invites: ListCompanyInvitesItem[] = invitesSnap.docs
+      .map((doc) => {
+        const data = asRecord(doc.data()) ?? {};
+        const inviteId = pickString(data, 'inviteId') ?? doc.id;
+        const invitedEmail = pickString(data, 'invitedEmail') ?? '';
+        const rawRole = pickString(data, 'role');
+        const role =
+          rawRole === 'admin' || rawRole === 'dispatcher' || rawRole === 'viewer'
+            ? rawRole
+            : 'viewer';
+        const rawStatus = pickString(data, 'status');
+        const status: ListCompanyInvitesItem['status'] =
+          rawStatus === 'pending' ||
+          rawStatus === 'accepted' ||
+          rawStatus === 'declined' ||
+          rawStatus === 'revoked'
+            ? rawStatus
+            : 'pending';
+
+        return {
+          inviteId,
+          companyId: input.companyId,
+          companyName,
+          invitedUid: pickString(data, 'invitedUid') ?? '',
+          invitedEmail,
+          role,
+          status,
+          invitedBy: pickString(data, 'invitedBy'),
+          createdAt: pickString(data, 'createdAt'),
+          updatedAt: pickString(data, 'updatedAt'),
+          expiresAt: pickString(data, 'expiresAt'),
+        } satisfies ListCompanyInvitesItem;
+      })
+      .filter((invite) => invite.invitedEmail !== '');
+
+    return apiOk<ListCompanyInvitesOutput>({ invites });
+  });
+
   return {
     createCompany,
     listMyCompanies,
@@ -671,5 +869,7 @@ export function createCompanyQueryCallables({
     listCompanyRouteStops,
     listActiveTripsByCompany,
     listCompanyVehicles,
+    listCompanyDrivers,
+    listCompanyInvites,
   };
 }

@@ -252,7 +252,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
   );
 
   return (
-    <section className="space-y-4 rounded-3xl border border-line bg-white p-5 shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
+    <section className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-[#768292] uppercase">Canli Operasyon</p>

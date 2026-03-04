@@ -11,6 +11,7 @@ import type {
   DeclineCompanyInviteOutput,
   InviteCompanyMemberOutput,
   RemoveCompanyMemberOutput,
+  RevokeCompanyInviteOutput,
   UpdateCompanyMemberOutput,
 } from '../common/output_contract_types.js';
 import { pickString } from '../common/runtime_value_helpers.js';
@@ -51,6 +52,11 @@ interface RemoveCompanyMemberInput {
   memberUid: string;
 }
 
+interface RevokeCompanyInviteInput {
+  companyId: string;
+  inviteId: string;
+}
+
 function ensureMemberManageRole(actorRole: CompanyMemberRole): void {
   if (actorRole === 'owner' || actorRole === 'admin') return;
   throw new HttpsError('permission-denied', 'Bu islem icin member yonetim yetkisi gerekli.');
@@ -81,6 +87,7 @@ export function createCompanyMemberMutationCallables({
   declineCompanyInviteInputSchema,
   updateCompanyMemberInputSchema,
   removeCompanyMemberInputSchema,
+  revokeCompanyInviteInputSchema,
   requireActiveCompanyMemberRole,
 }: {
   db: Firestore;
@@ -89,6 +96,7 @@ export function createCompanyMemberMutationCallables({
   declineCompanyInviteInputSchema: ZodType<unknown>;
   updateCompanyMemberInputSchema: ZodType<unknown>;
   removeCompanyMemberInputSchema: ZodType<unknown>;
+  revokeCompanyInviteInputSchema: ZodType<unknown>;
   requireActiveCompanyMemberRole: (companyId: string, uid: string) => Promise<CompanyMemberRole>;
 }) {
   const inviteCompanyMember = onCall(async (request: CallableRequest<unknown>) => {
@@ -686,11 +694,135 @@ export function createCompanyMemberMutationCallables({
     return apiOk<RemoveCompanyMemberOutput>(removed);
   });
 
+  const revokeCompanyInvite = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    const input = validateInput(
+      revokeCompanyInviteInputSchema,
+      request.data,
+    ) as RevokeCompanyInviteInput;
+
+    const actorRole = await requireActiveCompanyMemberRole(input.companyId, auth.uid);
+    ensureMemberManageRole(actorRole);
+
+    const companyRef = db.collection('companies').doc(input.companyId);
+    const inviteRef = companyRef.collection('member_invites').doc(input.inviteId);
+    const nowIso = new Date().toISOString();
+
+    const revoked = await runTransactionWithResult(db, async (tx) => {
+      const [companySnap, inviteSnap] = await Promise.all([tx.get(companyRef), tx.get(inviteRef)]);
+      if (!companySnap.exists) {
+        throw new HttpsError('not-found', 'Firma bulunamadi.');
+      }
+      if (!inviteSnap.exists) {
+        throw new HttpsError('not-found', 'Davet bulunamadi.');
+      }
+
+      const companyData = asRecord(companySnap.data()) ?? {};
+      const companyName = pickString(companyData, 'name') ?? '';
+
+      const inviteData = asRecord(inviteSnap.data()) ?? {};
+      const currentStatus = pickString(inviteData, 'status');
+      if (currentStatus !== 'pending') {
+        throw new HttpsError(
+          'failed-precondition',
+          `INVITE_NOT_REVOCABLE: Davet durumu '${currentStatus}', sadece 'pending' iptal edilebilir.`,
+        );
+      }
+
+      const invitedEmail = pickString(inviteData, 'invitedEmail') ?? '';
+      const invitedUid = pickString(inviteData, 'invitedUid') ?? '';
+      const rawRole = pickString(inviteData, 'role');
+      const role: 'admin' | 'dispatcher' | 'viewer' =
+        rawRole === 'admin' || rawRole === 'dispatcher' ? rawRole : 'viewer';
+
+      tx.set(
+        inviteRef,
+        {
+          status: 'revoked',
+          revokedAt: nowIso,
+          revokedBy: auth.uid,
+          updatedAt: nowIso,
+        },
+        { merge: true },
+      );
+
+      // If the invited user has a member doc with status 'invited', revert to 'suspended'
+      if (invitedUid) {
+        const memberRef = companyRef.collection('members').doc(invitedUid);
+        const memberSnap = await tx.get(memberRef);
+        if (memberSnap.exists) {
+          const memberData = asRecord(memberSnap.data()) ?? {};
+          const memberStatus = pickString(memberData, 'status');
+          if (memberStatus === 'invited') {
+            tx.set(
+              memberRef,
+              {
+                status: 'suspended',
+                updatedAt: nowIso,
+              },
+              { merge: true },
+            );
+            const userMembershipRef = db
+              .collection('users')
+              .doc(invitedUid)
+              .collection('company_memberships')
+              .doc(input.companyId);
+            tx.set(
+              userMembershipRef,
+              {
+                status: 'suspended',
+                updatedAt: nowIso,
+              },
+              { merge: true },
+            );
+          }
+        }
+      }
+
+      const auditRef = db.collection('audit_logs').doc();
+      tx.set(auditRef, {
+        companyId: input.companyId,
+        actorUid: auth.uid,
+        actorType: 'company_member',
+        eventType: 'company_member_invite_revoked',
+        targetType: 'company_invite',
+        targetId: input.inviteId,
+        status: 'success',
+        reason: null,
+        metadata: {
+          actorRole,
+          invitedEmail,
+          invitedUid,
+          role,
+        },
+        requestId: createHash('sha256')
+          .update(`revokeCompanyInvite:${auth.uid}:${input.companyId}:${input.inviteId}:${nowIso}`)
+          .digest('hex')
+          .slice(0, 24),
+        createdAt: nowIso,
+      });
+
+      return {
+        inviteId: input.inviteId,
+        companyId: input.companyId,
+        companyName,
+        invitedEmail,
+        role,
+        status: 'revoked',
+        revokedAt: nowIso,
+      } satisfies RevokeCompanyInviteOutput;
+    });
+
+    return apiOk<RevokeCompanyInviteOutput>(revoked);
+  });
+
   return {
     inviteCompanyMember,
     acceptCompanyInvite,
     declineCompanyInvite,
     updateCompanyMember,
     removeCompanyMember,
+    revokeCompanyInvite,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCompanyMembership } from "@/components/company/company-membership-context";
 import type { AddressSuggestion } from "@/components/company/routes/place-autocomplete-input";
@@ -9,6 +9,9 @@ import { RouteListSection } from "@/components/company/routes/route-list-section
 import { RoutePerformanceSummary } from "@/components/company/routes/route-performance-summary";
 import { RouteStopsSection } from "@/components/company/routes/route-stops-section";
 import type { RouteDraft, RouteTimeSlotOption } from "@/components/company/routes/routes-management-types";
+import { RouteCreationMapPreview } from "@/components/dashboard/route-creation-map-preview";
+import type { RouteWaypoint } from "@/components/dashboard/route-distance-helpers";
+import { getPublicMapboxToken } from "@/lib/env/public-env";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
   createCompanyRouteForCompany,
@@ -499,110 +502,240 @@ export function CompanyRoutesManagement({ companyId }: Props) {
     }
   };
 
+  // ─── Unified map waypoints ────────────────────────────────────
+  const unifiedWaypoints = useMemo<RouteWaypoint[]>(() => {
+    // Priority 1: If user selected a route → show its stops + pending suggestion
+    if (selectedRoute && sortedRouteStops.length > 0) {
+      const points: RouteWaypoint[] = sortedRouteStops.map((s, i) => {
+        const total = sortedRouteStops.length;
+        const type: RouteWaypoint["type"] =
+          total === 1 ? "start" : i === 0 ? "start" : i === total - 1 ? "end" : "stop";
+        return {
+          id: s.stopId,
+          label: s.name || `Durak ${s.order}`,
+          lat: s.location.lat,
+          lng: s.location.lng,
+          type,
+        };
+      });
+      if (stopAddressSuggestion) {
+        points.push({
+          id: "__pending__",
+          label: `⊕ ${stopName || stopAddressQuery || "Yeni durak"}`,
+          lat: stopAddressSuggestion.lat,
+          lng: stopAddressSuggestion.lng,
+          type: "stop",
+        });
+      }
+      return points;
+    }
+
+    // Priority 2: Creating a new route → show start/end suggestions
+    const createPoints: RouteWaypoint[] = [];
+    if (createStartSuggestion) {
+      createPoints.push({
+        id: "create-start",
+        label: createStartSuggestion.label,
+        lat: createStartSuggestion.lat,
+        lng: createStartSuggestion.lng,
+        type: "start",
+      });
+    }
+    if (createEndSuggestion) {
+      createPoints.push({
+        id: "create-end",
+        label: createEndSuggestion.label,
+        lat: createEndSuggestion.lat,
+        lng: createEndSuggestion.lng,
+        type: "end",
+      });
+    }
+    return createPoints;
+  }, [
+    selectedRoute,
+    sortedRouteStops,
+    stopAddressSuggestion,
+    stopName,
+    stopAddressQuery,
+    createStartSuggestion,
+    createEndSuggestion,
+  ]);
+
+  // ─── Click-to-add-stop via map click + reverse geocode ───────
+  const handleMapClick = useCallback(
+    async (lat: number, lng: number) => {
+      // Only works when a route is selected and user can mutate
+      if (!selectedRouteId || !canMutate) return;
+
+      const token = getPublicMapboxToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&types=address,poi,place&language=tr&limit=1`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const feature = data?.features?.[0];
+        if (!feature) return;
+
+        const label = (feature.place_name_tr || feature.place_name || "")
+          .replace(/,\s*Türkiye$/i, "")
+          .trim();
+        const center = feature.center as [number, number]; // [lng, lat]
+
+        setStopAddressSuggestion({
+          id: feature.id ?? `${center[1]}_${center[0]}`,
+          label,
+          lat: center[1],
+          lng: center[0],
+          source: "mapbox",
+        });
+        setStopAddressQuery(label.slice(0, ROUTE_ADDRESS_MAX));
+        setStopName("");
+      } catch {
+        // Silently fail on network errors
+      }
+    },
+    [selectedRouteId, canMutate],
+  );
+
   return (
-    <div className="space-y-4">
-      <RouteCreateSection
-        canMutate={canMutate}
-        createName={createName}
-        createScheduledTime={createScheduledTime}
-        createStartAddress={createStartAddress}
-        createEndAddress={createEndAddress}
-        createStartSuggestion={createStartSuggestion}
-        createEndSuggestion={createEndSuggestion}
-        createTimeSlot={createTimeSlot}
-        createAllowGuestTracking={createAllowGuestTracking}
-        createPending={createPending}
-        canCreate={canCreate}
-        showCreateValidation={showCreateValidation}
-        createValidationIssues={createValidationIssues}
-        timeSlotOptions={TIME_SLOT_OPTIONS}
-        onSetCreateName={(value) => {
-          setCreateName(value);
-          setShowCreateValidation(false);
-        }}
-        onSetCreateScheduledTime={(value) => {
-          setCreateScheduledTime(value);
-          setShowCreateValidation(false);
-        }}
-        onSetCreateStartAddress={(value) => {
-          setCreateStartAddress(value.slice(0, ROUTE_ADDRESS_MAX));
-          setCreateStartSuggestion(null);
-          setShowCreateValidation(false);
-        }}
-        onSetCreateEndAddress={(value) => {
-          setCreateEndAddress(value.slice(0, ROUTE_ADDRESS_MAX));
-          setCreateEndSuggestion(null);
-          setShowCreateValidation(false);
-        }}
-        onSelectCreateStartSuggestion={(suggestion) => {
-          setCreateStartSuggestion(suggestion);
-          setCreateStartAddress(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
-          setShowCreateValidation(false);
-        }}
-        onSelectCreateEndSuggestion={(suggestion) => {
-          setCreateEndSuggestion(suggestion);
-          setCreateEndAddress(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
-          setShowCreateValidation(false);
-        }}
-        onSetCreateTimeSlot={(value) => {
-          setCreateTimeSlot(value);
-          setShowCreateValidation(false);
-        }}
-        onSetCreateAllowGuestTracking={(value) => {
-          setCreateAllowGuestTracking(value);
-          setShowCreateValidation(false);
-        }}
-        onCreateRoute={handleCreateRoute}
-        onResetCreateForm={handleResetCreateForm}
-      />
+    <div className="flex flex-col gap-5 lg:flex-row lg:gap-6">
+      {/* ─── Left panel: forms & lists (scrollable) ─── */}
+      <div className="w-full space-y-4 lg:w-[45%] lg:min-w-[380px]">
+        <RouteCreateSection
+          canMutate={canMutate}
+          createName={createName}
+          createScheduledTime={createScheduledTime}
+          createStartAddress={createStartAddress}
+          createEndAddress={createEndAddress}
+          createStartSuggestion={createStartSuggestion}
+          createEndSuggestion={createEndSuggestion}
+          createTimeSlot={createTimeSlot}
+          createAllowGuestTracking={createAllowGuestTracking}
+          createPending={createPending}
+          canCreate={canCreate}
+          showCreateValidation={showCreateValidation}
+          createValidationIssues={createValidationIssues}
+          timeSlotOptions={TIME_SLOT_OPTIONS}
+          onSetCreateName={(value) => {
+            setCreateName(value);
+            setShowCreateValidation(false);
+          }}
+          onSetCreateScheduledTime={(value) => {
+            setCreateScheduledTime(value);
+            setShowCreateValidation(false);
+          }}
+          onSetCreateStartAddress={(value) => {
+            setCreateStartAddress(value.slice(0, ROUTE_ADDRESS_MAX));
+            setCreateStartSuggestion(null);
+            setShowCreateValidation(false);
+          }}
+          onSetCreateEndAddress={(value) => {
+            setCreateEndAddress(value.slice(0, ROUTE_ADDRESS_MAX));
+            setCreateEndSuggestion(null);
+            setShowCreateValidation(false);
+          }}
+          onSelectCreateStartSuggestion={(suggestion) => {
+            setCreateStartSuggestion(suggestion);
+            setCreateStartAddress(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
+            setShowCreateValidation(false);
+          }}
+          onSelectCreateEndSuggestion={(suggestion) => {
+            setCreateEndSuggestion(suggestion);
+            setCreateEndAddress(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
+            setShowCreateValidation(false);
+          }}
+          onSetCreateTimeSlot={(value) => {
+            setCreateTimeSlot(value);
+            setShowCreateValidation(false);
+          }}
+          onSetCreateAllowGuestTracking={(value) => {
+            setCreateAllowGuestTracking(value);
+            setShowCreateValidation(false);
+          }}
+          onCreateRoute={handleCreateRoute}
+          onResetCreateForm={handleResetCreateForm}
+        />
 
-      <RouteListSection
-        routes={routes}
-        sortedRoutes={sortedRoutes}
-        selectedRouteId={selectedRouteId}
-        canMutate={canMutate}
-        drafts={drafts}
-        setDrafts={setDrafts}
-        savingRouteId={savingRouteId}
-        errorMessage={errorMessage}
-        timeSlotOptions={TIME_SLOT_OPTIONS}
-        onRefresh={() => setRefreshNonce((prev) => prev + 1)}
-        onSaveRoute={handleSaveRoute}
-        onSelectRoute={setSelectedRouteId}
-      />
+        <RouteListSection
+          routes={routes}
+          sortedRoutes={sortedRoutes}
+          selectedRouteId={selectedRouteId}
+          canMutate={canMutate}
+          drafts={drafts}
+          setDrafts={setDrafts}
+          savingRouteId={savingRouteId}
+          errorMessage={errorMessage}
+          timeSlotOptions={TIME_SLOT_OPTIONS}
+          onRefresh={() => setRefreshNonce((prev) => prev + 1)}
+          onSaveRoute={handleSaveRoute}
+          onSelectRoute={setSelectedRouteId}
+        />
 
-      <RoutePerformanceSummary
-        companyId={companyId}
-        selectedRoute={selectedRoute}
-        sortedRouteStops={sortedRouteStops}
-      />
+        {selectedRoute && (
+          <RoutePerformanceSummary
+            companyId={companyId}
+            selectedRoute={selectedRoute}
+            sortedRouteStops={sortedRouteStops}
+          />
+        )}
 
-      <RouteStopsSection
-        selectedRoute={selectedRoute}
-        canMutate={canMutate}
-        stopName={stopName}
-        stopAddressQuery={stopAddressQuery}
-        stopAddressSuggestion={stopAddressSuggestion}
-        stopActionPending={stopActionPending}
-        canAddStop={canAddStop}
-        loadingStops={loadingStops}
-        sortedRouteStops={sortedRouteStops}
-        movingStopId={movingStopId}
-        deletingStopId={deletingStopId}
-        onSetStopName={setStopName}
-        onSetStopAddressQuery={(value) => {
-          setStopAddressQuery(value.slice(0, ROUTE_ADDRESS_MAX));
-          setStopAddressSuggestion(null);
-        }}
-        onSelectStopAddressSuggestion={(suggestion) => {
-          setStopAddressSuggestion(suggestion);
-          setStopAddressQuery(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
-        }}
-        onAddStop={handleAddStop}
-        onMoveStop={handleMoveStop}
-        onReorderStops={handleReorderStops}
-        onDeleteStop={handleDeleteStop}
-      />
+        <RouteStopsSection
+          selectedRoute={selectedRoute}
+          canMutate={canMutate}
+          stopName={stopName}
+          stopAddressQuery={stopAddressQuery}
+          stopAddressSuggestion={stopAddressSuggestion}
+          stopActionPending={stopActionPending}
+          canAddStop={canAddStop}
+          loadingStops={loadingStops}
+          sortedRouteStops={sortedRouteStops}
+          movingStopId={movingStopId}
+          deletingStopId={deletingStopId}
+          onSetStopName={setStopName}
+          onSetStopAddressQuery={(value) => {
+            setStopAddressQuery(value.slice(0, ROUTE_ADDRESS_MAX));
+            setStopAddressSuggestion(null);
+          }}
+          onSelectStopAddressSuggestion={(suggestion) => {
+            setStopAddressSuggestion(suggestion);
+            setStopAddressQuery(suggestion.label.slice(0, ROUTE_ADDRESS_MAX));
+          }}
+          onAddStop={handleAddStop}
+          onMoveStop={handleMoveStop}
+          onReorderStops={handleReorderStops}
+          onDeleteStop={handleDeleteStop}
+        />
+      </div>
+
+      {/* ─── Right panel: persistent map ─── */}
+      <div className="order-first w-full lg:order-last lg:w-[55%]">
+        <div className="lg:sticky lg:top-4">
+          {unifiedWaypoints.length > 0 ? (
+            <RouteCreationMapPreview
+              waypoints={unifiedWaypoints}
+              height="calc(100vh - 120px)"
+              onMapClick={selectedRouteId && canMutate ? handleMapClick : undefined}
+            />
+          ) : (
+            <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center"
+              style={{ height: "calc(100vh - 120px)", minHeight: "400px" }}>
+              <div className="space-y-2 px-6">
+                <svg className="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+                </svg>
+                <p className="text-sm font-medium text-slate-400">Harita Önizleme</p>
+                <p className="text-xs text-slate-400">
+                  Rota oluşturun veya listeden bir rota seçin —
+                  <br />harita burada görünecek.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ type ReloadOptions = { background?: boolean };
 type ActiveTripsFilters = {
   routeId?: string | null;
   driverUid?: string | null;
-  pageSize?: number;
+  limit?: number;
 };
 
 export function useCompanyActiveTrips(
@@ -27,7 +27,7 @@ export function useCompanyActiveTrips(
   const inFlightRef = useRef(false);
   const routeId = filters?.routeId ?? null;
   const driverUid = filters?.driverUid ?? null;
-  const pageSize = filters?.pageSize ?? 50;
+  const limit = filters?.limit ?? 50;
 
   const runLoad = useCallback(
     async (options?: ReloadOptions) => {
@@ -54,7 +54,7 @@ export function useCompanyActiveTrips(
           companyId,
           routeId,
           driverUid,
-          pageSize,
+          limit,
         });
         if (requestSeq !== requestSeqRef.current) {
           return;
@@ -76,7 +76,7 @@ export function useCompanyActiveTrips(
         }
       }
     },
-    [companyId, driverUid, enabled, pageSize, routeId],
+    [companyId, driverUid, enabled, limit, routeId],
   );
 
   useEffect(() => {

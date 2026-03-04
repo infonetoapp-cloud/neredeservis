@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { LayoutDashboard } from "lucide-react";
 import { useCompanyMembership } from "@/components/company/company-membership-context";
 import { CompanyDashboardAlerts } from "@/components/company/dashboard/company-dashboard-alerts";
 import { CompanyDashboardFeed } from "@/components/company/dashboard/company-dashboard-feed";
@@ -9,6 +10,8 @@ import { CompanyDashboardKpis } from "@/components/company/dashboard/company-das
 import { CompanyDashboardMiniMap } from "@/components/company/dashboard/company-dashboard-mini-map";
 import { CompanyDashboardQuickActions } from "@/components/company/dashboard/company-dashboard-quick-actions";
 import { useCompanyLiveOpsSnapshot } from "@/components/live-ops/company-live-ops-snapshot-context";
+import { PageHeader } from "@/components/shared/page-header";
+import { ErrorState } from "@/components/shared/error-state";
 import {
   listCompanyDriversForCompany,
   type CompanyDriverItem,
@@ -25,32 +28,34 @@ export function CompanyDashboardOverview({ companyId }: Props) {
   const { memberRole } = useCompanyMembership();
   const [companyVehicles, setCompanyVehicles] = useState<CompanyVehicleItem[]>([]);
   const [companyDrivers, setCompanyDrivers] = useState<CompanyDriverItem[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
+  const fetchData = () => {
+    setDataLoading(true);
+    setDataError(null);
+    Promise.allSettled([
       listCompanyVehiclesForCompany({ companyId, limit: 200 }),
       listCompanyDriversForCompany({ companyId, limit: 200 }),
     ])
-      .then(([vehicles, drivers]) => {
-        if (cancelled) {
-          return;
+      .then(([vehiclesResult, driversResult]) => {
+        setCompanyVehicles(
+          vehiclesResult.status === "fulfilled" ? vehiclesResult.value : [],
+        );
+        setCompanyDrivers(
+          driversResult.status === "fulfilled" ? driversResult.value : [],
+        );
+        // Only surface an error if BOTH failed
+        if (vehiclesResult.status === "rejected" && driversResult.status === "rejected") {
+          const err = vehiclesResult.reason;
+          setDataError(err instanceof Error ? err.message : "Veri yüklenirken bir hata oluştu.");
         }
-        setCompanyVehicles(vehicles);
-        setCompanyDrivers(drivers);
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-        setCompanyVehicles([]);
-        setCompanyDrivers([]);
+        setDataLoading(false);
       });
+  };
 
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchData(); }, [companyId]);
 
   const vehicleFocusedItems = useMemo(() => {
     if (items.length === 0 || companyVehicles.length === 0) {
@@ -148,15 +153,32 @@ export function CompanyDashboardOverview({ companyId }: Props) {
   }, [items]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      <PageHeader
+        eyebrow="OPERASYON MERKEZİ"
+        title="Dashboard"
+        description="Tek bakışta rota, sefer, risk ve canlı konum özetini görüntüleyin."
+        accent="indigo"
+        icon={<LayoutDashboard className="h-4 w-4" />}
+      />
+
+      {dataError ? (
+        <ErrorState
+          message="Veri yüklenemedi"
+          detail={dataError}
+          onRetry={fetchData}
+        />
+      ) : null}
+
       <CompanyDashboardKpis
         routesTracked={summary.routesTracked}
         activeTrips={summary.activeTrips}
         liveRoutes={summary.liveRoutes}
         attentionRoutes={summary.attentionRoutes}
+        loading={dataLoading && status === "loading"}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
         <CompanyDashboardMiniMap
           companyId={companyId}
           items={vehicleFocusedItems}
@@ -165,7 +187,7 @@ export function CompanyDashboardOverview({ companyId }: Props) {
         <CompanyDashboardFeed companyId={companyId} items={items} generatedAt={generatedAt} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
         <CompanyDashboardAlerts snapshotStatus={status} errorMessage={errorMessage} items={items} />
         <CompanyDashboardQuickActions companyId={companyId} memberRole={memberRole} />
       </div>

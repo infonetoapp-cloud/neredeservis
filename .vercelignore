@@ -1,0 +1,28 @@
+# Flutter / mobile — not needed for web deployment
+build/
+android/
+ios/
+/lib/
+/test/
+coverage/
+.dart_tool/
+.fvm/
+_ci_repro/
+tmp/
+functions/
+fastlane/
+integration_test/
+prototype/
+assets/
+
+# Large output files
+*.log
+analysis_output.txt
+build_log.txt
+dart_errors*.txt
+deploy_output*.txt
+deploy_prod.txt
+
+# Node build artifacts already in subdirs
+website/apps/web/.next/
+website/apps/web/node_modules/

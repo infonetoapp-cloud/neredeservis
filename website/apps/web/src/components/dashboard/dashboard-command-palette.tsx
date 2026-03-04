@@ -42,7 +42,7 @@ export function DashboardCommandPalette() {
   const [recentActions, setRecentActions] = useState<CommandAction[]>(() => readRecentActions());
   const queryEnabled = open && authStatus === "signed_in" && Boolean(companyId);
 
-  const liveTripsQuery = useCompanyActiveTrips(companyId, queryEnabled, { pageSize: 12 });
+  const liveTripsQuery = useCompanyActiveTrips(companyId, queryEnabled, { limit: 12 });
   const membersQuery = useCompanyMembers(companyId, queryEnabled);
   const routesQuery = useCompanyRoutes(companyId, queryEnabled);
   const vehiclesQuery = useCompanyVehicles(companyId, queryEnabled);

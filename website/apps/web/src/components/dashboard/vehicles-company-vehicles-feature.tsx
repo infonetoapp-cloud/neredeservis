@@ -132,7 +132,7 @@ export function VehiclesCompanyVehiclesFeature() {
     companyId,
     authStatus === "signed_in" && Boolean(companyId) && Boolean(selectedVehicle),
     {
-      pageSize: 50,
+      limit: 50,
     },
   );
   const actorMembership = useMemo(() => {

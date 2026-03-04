@@ -38,7 +38,7 @@ export function CompanyDashboardMiniMap({ companyId, items, totalVehicleCount }:
   );
 
   return (
-    <section className="rounded-3xl border border-line bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Harita Ozeti</p>
@@ -59,6 +59,8 @@ export function CompanyDashboardMiniMap({ companyId, items, totalVehicleCount }:
         items={mappableItems}
         selectedRouteId={selected?.routeId ?? null}
         onSelectRoute={setSelectedRouteId}
+        className="h-[420px]"
+        allowFullscreen
       />
 
       <div className="mt-3 rounded-2xl border border-line bg-[#fafbfd] p-3">

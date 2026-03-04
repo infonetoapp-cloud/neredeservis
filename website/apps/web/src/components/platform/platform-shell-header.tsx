@@ -13,6 +13,10 @@ const PLATFORM_HEADER_META: Record<string, { title: string; subtitle: string }> 
     title: "Yeni Sirket Olustur",
     subtitle: "Sirket adi ve yetkili e-postasi ile yeni firma kaydi",
   },
+  "/platform/landing": {
+    title: "Ana Sayfa Yonetimi",
+    subtitle: "Landing page iceriklerini duzenle ve yayinla",
+  },
 };
 
 const DEFAULT_META = {

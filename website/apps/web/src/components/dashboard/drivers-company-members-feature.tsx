@@ -151,7 +151,7 @@ export function DriversCompanyMembersFeature() {
     authStatus === "signed_in" && Boolean(companyId) && Boolean(selectedMember),
     {
       driverUid: selectedMember?.uid ?? null,
-      pageSize: 8,
+      limit: 8,
     },
   );
   const selectedMemberAssignedRoutes = useMemo(() => {

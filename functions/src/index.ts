@@ -9,11 +9,15 @@ import { createCleanupScheduledTriggers } from './common/cleanup_scheduled_trigg
 import { createCompanyAccessHelpers } from './common/company_access_helpers.js';
 import { createInputSchemas } from './common/input_schemas.js';
 import { createCompanyMutationCallables } from './callables/company_mutation_callables.js';
+import { createCompanyDriverCallables } from './callables/company_driver_callables.js';
+import { createDriverDocumentCallables } from './callables/driver_document_callables.js';
+import { createCompanySettingsCallables } from './callables/company_settings_callables.js';
 import { createCompanyMemberMutationCallables } from './callables/company_member_mutation_callables.js';
 import { createCompanyAuditQueryCallables } from './callables/company_audit_query_callables.js';
 import { createCompanyQueryCallables } from './callables/company_query_callables.js';
 import { createRouteDriverPermissionCallables } from './callables/route_driver_permission_callables.js';
 import { createPlatformOwnerCallables } from './callables/platform_owner_callables.js';
+import { createPlatformLandingCallables } from './callables/platform_landing_callables.js';
 import {
   requireOwnedRoute,
 } from './common/route_membership_helpers.js';
@@ -128,10 +132,20 @@ const {
   declineCompanyInviteInputSchema,
   updateCompanyMemberInputSchema,
   removeCompanyMemberInputSchema,
+  listCompanyInvitesInputSchema,
+  revokeCompanyInviteInputSchema,
   listCompanyRoutesInputSchema,
   listCompanyRouteStopsInputSchema,
   listActiveTripsByCompanyInputSchema,
   listCompanyVehiclesInputSchema,
+  listCompanyDriversInputSchema,
+  createCompanyDriverAccountInputSchema,
+  assignCompanyDriverToRouteInputSchema,
+  unassignCompanyDriverFromRouteInputSchema,
+  updateCompanyDriverStatusInputSchema,
+  upsertDriverDocumentInputSchema,
+  listDriverDocumentsInputSchema,
+  deleteDriverDocumentInputSchema,
   createCompanyRouteInputSchema,
   updateCompanyRouteInputSchema,
   upsertCompanyRouteStopInputSchema,
@@ -166,6 +180,8 @@ const {
   sendTripMessageInputSchema,
   markTripConversationReadInputSchema,
   searchDriverDirectoryInputSchema,
+  getCompanyProfileInputSchema,
+  updateCompanyProfileInputSchema,
 } = createInputSchemas({
   driverSearchMaxLimit: DRIVER_SEARCH_MAX_LIMIT,
   mapboxDirectionsDefaultMaxWaypoints: MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS,
@@ -324,6 +340,8 @@ const companyQueryCallables = createCompanyQueryCallables({
   listCompanyRouteStopsInputSchema,
   listActiveTripsByCompanyInputSchema,
   listCompanyVehiclesInputSchema,
+  listCompanyDriversInputSchema,
+  listCompanyInvitesInputSchema,
   defaultCompanyTimezone: DEFAULT_COMPANY_TIMEZONE,
   defaultCompanyCountryCode: DEFAULT_COMPANY_COUNTRY_CODE,
   liveOpsOnlineThresholdMs: LIVE_OPS_ONLINE_THRESHOLD_MS,
@@ -336,6 +354,8 @@ export const listCompanyRoutes = companyQueryCallables.listCompanyRoutes;
 export const listCompanyRouteStops = companyQueryCallables.listCompanyRouteStops;
 export const listActiveTripsByCompany = companyQueryCallables.listActiveTripsByCompany;
 export const listCompanyVehicles = companyQueryCallables.listCompanyVehicles;
+export const listCompanyDrivers = companyQueryCallables.listCompanyDrivers;
+export const listCompanyInvites = companyQueryCallables.listCompanyInvites;
 const companyAuditQueryCallables = createCompanyAuditQueryCallables({
   db,
   listCompanyAuditLogsInputSchema: listCompanyMembersInputSchema,
@@ -353,6 +373,7 @@ const companyMemberMutationCallables = createCompanyMemberMutationCallables({
   declineCompanyInviteInputSchema,
   updateCompanyMemberInputSchema,
   removeCompanyMemberInputSchema,
+  revokeCompanyInviteInputSchema,
   requireActiveCompanyMemberRole,
 });
 export const inviteCompanyMember = companyMemberMutationCallables.inviteCompanyMember;
@@ -360,6 +381,7 @@ export const acceptCompanyInvite = companyMemberMutationCallables.acceptCompanyI
 export const declineCompanyInvite = companyMemberMutationCallables.declineCompanyInvite;
 export const updateCompanyMember = companyMemberMutationCallables.updateCompanyMember;
 export const removeCompanyMember = companyMemberMutationCallables.removeCompanyMember;
+export const revokeCompanyInvite = companyMemberMutationCallables.revokeCompanyInvite;
 
 export const healthCheck = onCall(() => {
   return apiOk<HealthCheckOutput>({
@@ -393,6 +415,36 @@ export const upsertCompanyRouteStop = companyMutationCallables.upsertCompanyRout
 export const deleteCompanyRouteStop = companyMutationCallables.deleteCompanyRouteStop;
 export const reorderCompanyRouteStops = companyMutationCallables.reorderCompanyRouteStops;
 export const updateVehicle = companyMutationCallables.updateVehicle;
+const companyDriverCallables = createCompanyDriverCallables({
+  db,
+  createCompanyDriverAccountInputSchema,
+  assignCompanyDriverToRouteInputSchema,
+  unassignCompanyDriverFromRouteInputSchema,
+  updateCompanyDriverStatusInputSchema,
+  requireActiveCompanyMemberRole,
+});
+export const createCompanyDriverAccount = companyDriverCallables.createCompanyDriverAccount;
+export const assignCompanyDriverToRoute = companyDriverCallables.assignCompanyDriverToRoute;
+export const unassignCompanyDriverFromRoute = companyDriverCallables.unassignCompanyDriverFromRoute;
+export const updateCompanyDriverStatus = companyDriverCallables.updateCompanyDriverStatus;
+const driverDocumentCallables = createDriverDocumentCallables({
+  db,
+  upsertDriverDocumentInputSchema,
+  listDriverDocumentsInputSchema,
+  deleteDriverDocumentInputSchema,
+  requireActiveCompanyMemberRole,
+});
+export const upsertDriverDocument = driverDocumentCallables.upsertDriverDocument;
+export const listDriverDocuments = driverDocumentCallables.listDriverDocuments;
+export const deleteDriverDocument = driverDocumentCallables.deleteDriverDocument;
+const companySettingsCallables = createCompanySettingsCallables({
+  db,
+  getCompanyProfileInputSchema,
+  updateCompanyProfileInputSchema,
+  requireActiveCompanyMemberRole,
+});
+export const getCompanyProfile = companySettingsCallables.getCompanyProfile;
+export const updateCompanyProfile = companySettingsCallables.updateCompanyProfile;
 const routeDriverPermissionCallables = createRouteDriverPermissionCallables({
   db,
   grantDriverRoutePermissionsInputSchema,
@@ -415,3 +467,7 @@ export const platformSetVehicleLimit = platformOwnerCallables.platformSetVehicle
 export const platformSetCompanyStatus = platformOwnerCallables.platformSetCompanyStatus;
 export const platformResetOwnerPassword = platformOwnerCallables.platformResetOwnerPassword;
 export const platformDeleteCompany = platformOwnerCallables.platformDeleteCompany;
+
+const platformLandingCallables = createPlatformLandingCallables({ db });
+export const platformGetLandingConfig = platformLandingCallables.platformGetLandingConfig;
+export const platformUpdateLandingConfig = platformLandingCallables.platformUpdateLandingConfig;

@@ -16,8 +16,12 @@ export type CompanyMembershipItem = {
 
 export type CompanyMemberItem = {
   uid: string;
+  displayName: string | null;
+  email: string | null;
+  phone: string | null;
   role: CompanyMemberRole;
   status: CompanyMembershipStatus;
+  companyId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -46,7 +50,7 @@ export type CompanyDriverCredentialBundle = {
   createdAt: string | null;
 };
 
-export type CompanyInviteStatus = "pending" | "accepted" | "revoked";
+export type CompanyInviteStatus = "pending" | "accepted" | "declined" | "revoked";
 
 export type CompanyInviteItem = {
   inviteId: string;
@@ -61,11 +65,20 @@ export type CompanyInviteItem = {
   updatedAt: string | null;
 };
 
+export type VehicleStatus = "active" | "maintenance" | "inactive";
+
 export type CompanyVehicleItem = {
   vehicleId: string;
+  companyId: string | null;
   plate: string;
-  label: string | null;
+  status: VehicleStatus;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
   capacity: number | null;
+  /** Computed: brand + model or plate fallback */
+  label: string | null;
+  /** Computed: status === 'active' */
   isActive: boolean;
   createdAt: string | null;
   updatedAt: string | null;
@@ -75,10 +88,13 @@ export type CompanyRouteTimeSlot = "morning" | "evening" | "midday" | "custom" |
 
 export type CompanyRouteItem = {
   routeId: string;
+  companyId: string | null;
   name: string;
   srvCode: string | null;
   scheduledTime: string | null;
   timeSlot: CompanyRouteTimeSlot;
+  driverId: string | null;
+  authorizedDriverIds: string[];
   vehicleId: string | null;
   vehiclePlate: string | null;
   allowGuestTracking: boolean;
@@ -91,12 +107,15 @@ export type CompanyRouteItem = {
 
 export type CompanyRouteStopItem = {
   stopId: string;
+  routeId: string | null;
+  companyId: string | null;
   name: string;
   location: {
     lat: number;
     lng: number;
   };
   order: number;
+  createdAt: string | null;
   updatedAt: string | null;
 };
 
@@ -175,7 +194,7 @@ function readCompanyBillingStatus(value: unknown): CompanyBillingStatus | null {
 }
 
 function readInviteStatus(value: unknown): CompanyInviteStatus | null {
-  if (value === "pending" || value === "accepted" || value === "revoked") {
+  if (value === "pending" || value === "accepted" || value === "declined" || value === "revoked") {
     return value;
   }
   return null;
@@ -296,14 +315,18 @@ export function parseCompanyMemberItems(value: unknown): CompanyMemberItem[] {
     }
     const uid = readString(record.uid);
     const role = readMemberRole(record.role);
-    const status = readMembershipStatus(record.status);
+    const status = readMembershipStatus(record.memberStatus ?? record.status);
     if (!uid || !role || !status) {
       continue;
     }
     items.push({
       uid,
+      displayName: readString(record.displayName),
+      email: readString(record.email),
+      phone: readString(record.phone),
       role,
       status,
+      companyId: readString(record.companyId),
       createdAt: readString(record.createdAt),
       updatedAt: readString(record.updatedAt),
     });
@@ -438,23 +461,33 @@ export function parseCompanyVehicleItems(value: unknown): CompanyVehicleItem[] {
     }
     const vehicleId = readString(record.vehicleId);
     const plate = readString(record.plate);
-    const label = readString(record.label);
+    const brand = readString(record.brand);
+    const model = readString(record.model);
+    const yearRaw = record.year;
+    const year = typeof yearRaw === "number" && Number.isFinite(yearRaw) ? Math.trunc(yearRaw) : null;
     const capacityRaw = record.capacity;
     const capacity =
       typeof capacityRaw === "number" && Number.isFinite(capacityRaw) ? Math.trunc(capacityRaw) : null;
-    const isActiveRaw = record.isActive;
-    const isActive = typeof isActiveRaw === "boolean" ? isActiveRaw : true;
+    const rawStatus = readString(record.status);
+    const status: VehicleStatus =
+      rawStatus === "active" || rawStatus === "maintenance" || rawStatus === "inactive"
+        ? rawStatus
+        : "active";
+    const label = [brand, model].filter(Boolean).join(" ") || null;
     if (!vehicleId || !plate) {
       continue;
     }
     items.push({
       vehicleId,
+      companyId: readString(record.companyId),
       plate,
-      label,
+      status,
+      brand,
+      model,
+      year,
       capacity,
-      isActive,
-      createdAt: readString(record.createdAt),
-      updatedAt: readString(record.updatedAt),
+      label,
+      isActive: status === "active",      createdAt: readString(record.createdAt),      updatedAt: readString(record.updatedAt),
     });
   }
   return items;
@@ -486,12 +519,19 @@ export function parseCompanyRouteItems(value: unknown): CompanyRouteItem[] {
     const allowGuestTrackingRaw = record.allowGuestTracking;
     const isArchivedRaw = record.isArchived;
     const passengerCountRaw = record.passengerCount;
+    const authorizedDriverIdsRaw = record.authorizedDriverIds;
+    const authorizedDriverIds: string[] = Array.isArray(authorizedDriverIdsRaw)
+      ? authorizedDriverIdsRaw.filter((v): v is string => typeof v === "string" && v.length > 0)
+      : [];
     items.push({
       routeId,
+      companyId: readString(record.companyId),
       name,
       srvCode: readString(record.srvCode),
       scheduledTime: readString(record.scheduledTime),
       timeSlot: readRouteTimeSlot(record.timeSlot),
+      driverId: readString(record.driverId),
+      authorizedDriverIds,
       vehicleId: readString(record.vehicleId),
       vehiclePlate: readString(record.vehiclePlate),
       allowGuestTracking:
@@ -540,12 +580,15 @@ export function parseCompanyRouteStopItems(value: unknown): CompanyRouteStopItem
     }
     items.push({
       stopId,
+      routeId: readString(record.routeId),
+      companyId: readString(record.companyId),
       name,
       location: {
         lat: latRaw,
         lng: lngRaw,
       },
       order: Math.trunc(orderRaw),
+      createdAt: readString(record.createdAt),
       updatedAt: readString(record.updatedAt),
     });
   }

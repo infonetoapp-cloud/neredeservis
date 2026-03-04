@@ -5,6 +5,7 @@ import { getAuth, type Auth } from "firebase/auth";
 import { getDatabase, type Database } from "firebase/database";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getFunctions, type Functions } from "firebase/functions";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 import { getFirebasePublicConfigOrNull } from "@/lib/env/firebase-public-config";
 import { getFirebaseFunctionsRegion } from "@/lib/env/public-env";
@@ -13,6 +14,7 @@ let authSingleton: Auth | null = null;
 let databaseSingleton: Database | null = null;
 let firestoreSingleton: Firestore | null = null;
 let functionsSingleton: Functions | null = null;
+let storageSingleton: FirebaseStorage | null = null;
 
 export function getFirebaseClientApp(): FirebaseApp | null {
   const config = getFirebasePublicConfigOrNull();
@@ -81,4 +83,18 @@ export function getFirebaseClientFunctions(): Functions | null {
 
   functionsSingleton = getFunctions(app, getFirebaseFunctionsRegion());
   return functionsSingleton;
+}
+
+export function getFirebaseClientStorage(): FirebaseStorage | null {
+  if (storageSingleton) {
+    return storageSingleton;
+  }
+
+  const app = getFirebaseClientApp();
+  if (!app) {
+    return null;
+  }
+
+  storageSingleton = getStorage(app);
+  return storageSingleton;
 }

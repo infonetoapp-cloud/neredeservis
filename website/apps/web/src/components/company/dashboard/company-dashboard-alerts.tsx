@@ -72,7 +72,7 @@ export function CompanyDashboardAlerts({ snapshotStatus, errorMessage, items }: 
   }, [errorMessage, items, snapshotStatus]);
 
   return (
-    <section className="rounded-3xl border border-line bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+    <section className="rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Risk Merkezi</p>
       <h2 className="mt-1 text-lg font-semibold text-slate-950">Kritik aciklar ve uyarilar</h2>
       <div className="mt-4 space-y-2.5">

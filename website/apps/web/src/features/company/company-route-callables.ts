@@ -76,7 +76,7 @@ export async function listActiveTripsByCompanyCallable(input: {
   companyId: string;
   routeId?: string | null;
   driverUid?: string | null;
-  pageSize?: number;
+  limit?: number;
 }): Promise<CompanyActiveTripSummary[]> {
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listActiveTripsByCompany",

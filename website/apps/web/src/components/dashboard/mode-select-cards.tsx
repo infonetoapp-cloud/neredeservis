@@ -112,6 +112,8 @@ export function ModeSelectCards() {
         name,
         role: "owner",
         memberStatus: "active",
+        companyStatus: "active",
+        billingStatus: "active",
       };
 
       setLocalCompanies((prev) => {

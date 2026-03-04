@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <DashboardShellHeader />
-          <main className="flex-1 p-5 sm:p-6">
+          <main className="flex-1 p-5 sm:p-8">
             <ConfigValidationBanner scopeLabel="Dashboard Shell" />
             <DashboardAuthGate>{children}</DashboardAuthGate>
           </main>

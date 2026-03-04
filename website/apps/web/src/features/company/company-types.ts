@@ -3,6 +3,8 @@ export type CompanyMembershipSummary = {
   name: string;
   role: "owner" | "admin" | "dispatcher" | "viewer";
   memberStatus: "active" | "invited" | "suspended";
+  companyStatus: "active" | "suspended" | "archived";
+  billingStatus: "active" | "past_due" | "suspended_locked";
 };
 
 export type ListMyCompaniesResponse = {

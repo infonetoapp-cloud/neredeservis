@@ -1,6 +1,6 @@
-import { CompanyModuleShell } from "@/components/company/company-module-shell";
 import { CompanyRoutesManagement } from "@/components/company/company-routes-management";
-import { RouteIcon } from "@/components/shared/app-icons";
+import { PageHeader } from "@/components/shared/page-header";
+import { MapPinned } from "lucide-react";
 
 type Props = {
   params: Promise<{ companyId: string }>;
@@ -10,18 +10,15 @@ export default async function CompanyRoutesPage({ params }: Props) {
   const { companyId } = await params;
 
   return (
-    <CompanyModuleShell
-      eyebrow="ROTALAR"
-      title="Rota ve durak yonetimi"
-      description="Baslangic, bitis ve ara duraklari kolayca ekleyin; kayitli rotalari tek ekranda duzenleyin."
-      icon={<RouteIcon className="h-4 w-4" />}
-      checkpoints={[
-        "Rota listesi ve hizli duzenleme",
-        "Baslangic/bitis secimi ve plan saati",
-        "Durak ekleme, siralama ve silme",
-      ]}
-    >
+    <section className="space-y-5">
+      <PageHeader
+        eyebrow="ROTALAR"
+        title="Rota ve durak yönetimi"
+        description="Başlangıç, bitiş ve ara durakları kolayca ekleyin; kayıtlı rotaları tek ekranda düzenleyin."
+        accent="violet"
+        icon={<MapPinned className="h-4 w-4" />}
+      />
       <CompanyRoutesManagement companyId={companyId} />
-    </CompanyModuleShell>
+    </section>
   );
 }

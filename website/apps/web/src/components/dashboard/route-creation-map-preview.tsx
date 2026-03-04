@@ -16,6 +16,8 @@ type MapboxMarker = import("mapbox-gl").Marker;
 type RouteCreationMapPreviewProps = {
   waypoints: RouteWaypoint[];
   height?: string;
+  /** When provided, map clicks trigger this callback with the clicked coordinate */
+  onMapClick?: (lat: number, lng: number) => void;
 };
 
 const DEFAULT_CENTER: [number, number] = [29.0, 41.01];
@@ -69,11 +71,14 @@ function createMarkerElement(
 export function RouteCreationMapPreview({
   waypoints,
   height = "400px",
+  onMapClick,
 }: RouteCreationMapPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markersRef = useRef<MapboxMarker[]>([]);
   const mapboxRef = useRef<MapboxGL | null>(null);
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -139,6 +144,16 @@ export function RouteCreationMapPreview({
 
           mapRef.current = map;
           setMapReady(true);
+
+          // Click-on-map → add stop
+          map.on("click", (e) => {
+            if (onMapClickRef.current) {
+              onMapClickRef.current(e.lngLat.lat, e.lngLat.lng);
+            }
+          });
+
+          // Change cursor when onMapClick is provided
+          map.getCanvas().style.cursor = onMapClickRef.current ? "crosshair" : "";
         });
       } catch (err) {
         if (!cancelled) {
@@ -230,6 +245,12 @@ export function RouteCreationMapPreview({
       map.flyTo({ center: [waypoints[0].lng, waypoints[0].lat], zoom: 13, duration: 600 });
     }
   }, [waypoints, mapReady]);
+
+  // Update cursor when onMapClick changes
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    mapRef.current.getCanvas().style.cursor = onMapClick ? "crosshair" : "";
+  }, [onMapClick, mapReady]);
 
   if (mapError) {
     return (

@@ -39,7 +39,7 @@ export function RoutePerformanceSummary({ companyId, selectedRoute, sortedRouteS
   const { items: activeTrips, status: tripStatus } = useCompanyActiveTrips(
     companyId,
     !!selectedRoute,
-    selectedRoute ? { routeId: selectedRoute.routeId, pageSize: 5 } : undefined,
+    selectedRoute ? { routeId: selectedRoute.routeId, limit: 5 } : undefined,
   );
 
   if (!selectedRoute) {
@@ -51,7 +51,7 @@ export function RoutePerformanceSummary({ companyId, selectedRoute, sortedRouteS
   const hasVehicle = !!selectedRoute.vehicleId;
 
   return (
-    <section className="glass-panel rounded-2xl p-4">
+    <section className="glass-panel rounded-2xl p-5">
       <div className="mb-3 text-sm font-semibold text-slate-900">
         Rota ozeti — {selectedRoute.name}
       </div>

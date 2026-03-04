@@ -150,6 +150,11 @@ service cloud.firestore {
       allow read, write, delete: if false;
     }
 
+    match /site_config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

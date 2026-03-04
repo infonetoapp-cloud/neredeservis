@@ -288,10 +288,14 @@ export function CompanyMembersManagement({ companyId }: Props) {
       });
       setMembers((prev) => {
         const base = prev ?? [];
-        return base.map((item) => (item.uid === updatedMember.uid ? updatedMember : item));
+        return base.map((item) =>
+          item.uid === updatedMember.uid
+            ? { ...item, role: updatedMember.role, status: updatedMember.status, updatedAt: updatedMember.updatedAt }
+            : item,
+        );
       });
       setErrorMessage(null);
-      setSuccessMessage(`Rol guncellendi: ${formatUid(updatedMember.uid)} -> ${ROLE_LABELS[updatedMember.role]}`);
+      setSuccessMessage(`Rol guncellendi: ${formatUid(memberUid)} -> ${ROLE_LABELS[role]}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Rol guncellenemedi.";
       setErrorMessage(message);
@@ -330,39 +334,39 @@ export function CompanyMembersManagement({ companyId }: Props) {
   return (
     <section className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Toplam uye</div>
           <div className="mt-2 text-2xl font-semibold text-slate-900">{metrics.totalMembers}</div>
         </article>
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Aktif</div>
           <div className="mt-2 text-2xl font-semibold text-emerald-700">{metrics.activeMembers}</div>
         </article>
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Davetli</div>
           <div className="mt-2 text-2xl font-semibold text-amber-700">{metrics.invitedMembers}</div>
         </article>
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Askida</div>
           <div className="mt-2 text-2xl font-semibold text-slate-700">{metrics.suspendedMembers}</div>
         </article>
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Sahip</div>
           <div className="mt-2 text-2xl font-semibold text-[#0f5a4c]">{metrics.owners}</div>
         </article>
-        <article className="glass-panel rounded-2xl p-3">
+        <article className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Bekleyen davet</div>
           <div className="mt-2 text-2xl font-semibold text-[#155dfc]">{metrics.pendingInvites}</div>
         </article>
       </div>
 
-      <div className="glass-panel rounded-2xl p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div className="text-sm font-semibold text-slate-900">Uye operasyon merkezi</div>
           <button
             type="button"
             onClick={() => setRefreshNonce((prev) => prev + 1)}
-            className="glass-button rounded-xl px-3 py-1.5 text-xs font-semibold"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
           >
             Yenile
           </button>
@@ -374,12 +378,12 @@ export function CompanyMembersManagement({ companyId }: Props) {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Kullanici kodu, rol veya durum ile ara"
-            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value as MemberFilter)}
-            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
           >
             <option value="all">Tum uyeler</option>
             <option value="active">Sadece aktif</option>
@@ -390,7 +394,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
             <option value="dispatcher">Rol: {ROLE_LABELS.dispatcher}</option>
             <option value="viewer">Rol: {ROLE_LABELS.viewer}</option>
           </select>
-          <div className="glass-chip inline-flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-slate-700">
+          <div className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
             {filteredMembers.length}/{sortedMembers.length} gorunuyor
           </div>
         </div>
@@ -453,7 +457,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
             </div>
 
             <aside className="space-y-3">
-              <div className="glass-panel-muted rounded-2xl p-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                 {!selectedMember ? (
                   <div className="rounded-xl border border-dashed border-line bg-white p-3 text-xs text-muted">
                     Detay icin bir uye secin.
@@ -487,7 +491,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                                 [selectedMember.uid]: event.target.value as CompanyMemberRole,
                               }))
                             }
-                            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           >
                             {selectedRoleOptions.map((role) => (
                               <option key={role} value={role}>
@@ -501,7 +505,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                             disabled={
                               savingUid === selectedMember.uid || selectedRoleResolved === selectedMember.role
                             }
-                            className="glass-button-primary inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {savingUid === selectedMember.uid ? "Kaydediliyor..." : "Rolu guncelle"}
                           </button>
@@ -512,7 +516,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                 )}
               </div>
 
-              <div className="glass-panel-muted rounded-2xl p-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                 <div className="mb-2 text-xs font-semibold text-slate-700">Yeni uye davet et</div>
                 {actorRole === "admin" ? (
                   <div className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900">
@@ -530,12 +534,12 @@ export function CompanyMembersManagement({ companyId }: Props) {
                       value={inviteEmail}
                       onChange={(event) => setInviteEmail(event.target.value)}
                       placeholder="ornek@firma.com"
-                      className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     />
                     <select
                       value={inviteRole}
                       onChange={(event) => setInviteRole(event.target.value as CompanyMemberRole)}
-                      className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                     >
                       {inviteRoleOptions.map((role) => (
                         <option key={role} value={role}>
@@ -547,7 +551,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                       type="button"
                       onClick={handleInvite}
                       disabled={!canInvite}
-                      className="glass-button-primary inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {invitePending ? "Gonderiliyor..." : "Davet gonder"}
                     </button>
@@ -555,7 +559,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                 )}
               </div>
 
-              <div className="glass-panel-muted rounded-2xl p-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className="text-xs font-semibold text-slate-700">Davetler</div>
                   <label className="inline-flex items-center gap-1 text-[11px] text-slate-600">
@@ -574,7 +578,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                     value={inviteSearchQuery}
                     onChange={(event) => setInviteSearchQuery(event.target.value)}
                     placeholder="E-posta veya rol ile ara"
-                    className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
 
@@ -610,7 +614,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                               type="button"
                               onClick={() => handleRevokeInvite(invite.inviteId)}
                               disabled={revokingInviteId === invite.inviteId}
-                              className="glass-button rounded-lg px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {revokingInviteId === invite.inviteId ? "Iptal ediliyor..." : "Daveti iptal et"}
                             </button>

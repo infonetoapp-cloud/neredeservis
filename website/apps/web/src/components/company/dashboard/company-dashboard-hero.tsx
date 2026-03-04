@@ -8,7 +8,7 @@ export function CompanyDashboardHero() {
   const displayCompany = companyName ?? (loading ? "Sirket bilgisi yukleniyor" : "Secili sirket");
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-line bg-white p-6 shadow-[0_16px_48px_rgba(15,23,42,0.08)] sm:p-7">
+    <div className="relative overflow-hidden rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-7">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_5%_5%,rgba(13,164,164,0.12),transparent_40%),radial-gradient(circle_at_95%_20%,rgba(59,130,246,0.10),transparent_38%)]" />
       <div className="relative">
         <p className="text-xs font-semibold tracking-[0.18em] text-[#6f7884] uppercase">Operasyon Ozeti</p>

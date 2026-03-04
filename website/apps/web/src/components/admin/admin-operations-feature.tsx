@@ -62,7 +62,7 @@ export function AdminOperationsFeature() {
   const membersQuery = useCompanyMembers(companyId, dataEnabled);
   const vehiclesQuery = useCompanyVehicles(companyId, dataEnabled);
   const routesQuery = useCompanyRoutes(companyId, dataEnabled);
-  const activeTripsQuery = useCompanyActiveTrips(companyId, dataEnabled, { pageSize: 30 });
+  const activeTripsQuery = useCompanyActiveTrips(companyId, dataEnabled, { limit: 30 });
   const auditQuery = useCompanyAuditLogs(companyId, dataEnabled);
   const tenantStateQuery = useCompanyAdminTenantState(companyId, dataEnabled);
 

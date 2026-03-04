@@ -1,7 +1,7 @@
-import { CompanyModuleShell } from "@/components/company/company-module-shell";
 import { CompanySettingsPanel } from "@/components/company/settings/company-settings-panel";
 import { CompanyRoleGuard } from "@/components/company/company-role-guard";
-import { SettingsIcon } from "@/components/shared/app-icons";
+import { PageHeader } from "@/components/shared/page-header";
+import { Settings } from "lucide-react";
 
 type Props = {
   params: Promise<{ companyId: string }>;
@@ -12,19 +12,16 @@ export default async function CompanySettingsPage({ params }: Props) {
 
   return (
     <CompanyRoleGuard companyId={companyId} requiredRoles={["owner", "admin"]}>
-      <CompanyModuleShell
-        eyebrow="AYARLAR"
-        title="Şirket ayarları"
-        description="Şirket profilini düzenleyin, bildirim tercihlerini yönetin ve entegrasyon ayarlarını yapılandırın."
-        icon={<SettingsIcon className="h-4 w-4" />}
-        checkpoints={[
-          "Şirket profili: ad, logo ve iletişim bilgileri",
-          "Bildirim tercihleri ve uyarı eşikleri",
-          "API anahtarları ve webhook entegrasyonları",
-        ]}
-      >
+      <section className="space-y-5">
+        <PageHeader
+          eyebrow="AYARLAR"
+          title="Şirket ayarları"
+          description="Şirket profilini düzenleyin, bildirim tercihlerini yönetin ve entegrasyon ayarlarını yapılandırın."
+          accent="orange"
+          icon={<Settings className="h-4 w-4" />}
+        />
         <CompanySettingsPanel companyId={companyId} />
-      </CompanyModuleShell>
+      </section>
     </CompanyRoleGuard>
   );
 }

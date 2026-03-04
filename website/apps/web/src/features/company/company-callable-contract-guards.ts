@@ -38,6 +38,8 @@ type UnknownRecord = Record<string, unknown>;
 const MEMBER_ROLES = new Set(["owner", "admin", "dispatcher", "viewer"]);
 const INVITE_MEMBER_ROLES = new Set(["admin", "dispatcher", "viewer"]);
 const MEMBER_STATUSES = new Set(["active", "invited", "suspended"]);
+const COMPANY_STATUSES = new Set(["active", "suspended", "archived"]);
+const BILLING_STATUSES = new Set(["active", "past_due", "suspended_locked"]);
 const TIME_SLOTS = new Set(["morning", "evening", "midday", "custom"]);
 const VEHICLE_STATUSES = new Set(["active", "maintenance", "inactive"]);
 
@@ -136,6 +138,8 @@ function parseMembershipSummary(value: unknown, callableName: string): CompanyMe
     name: asString(record, "name", callableName) as string,
     role,
     memberStatus,
+    companyStatus: (asEnumValue(record, "companyStatus", COMPANY_STATUSES, callableName) ?? "active") as CompanyMembershipSummary["companyStatus"],
+    billingStatus: (asEnumValue(record, "billingStatus", BILLING_STATUSES, callableName) ?? "active") as CompanyMembershipSummary["billingStatus"],
   };
 }
 

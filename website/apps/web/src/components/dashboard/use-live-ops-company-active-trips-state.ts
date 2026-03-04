@@ -124,7 +124,7 @@ export function useLiveOpsCompanyActiveTripsState() {
   const tripsQuery = useCompanyActiveTrips(companyId, authStatus === "signed_in" && Boolean(companyId), {
     routeId: effectiveRouteFilterId,
     driverUid: effectiveDriverFilterUid,
-    pageSize: 50,
+    limit: 50,
   });
   const reloadActiveTrips = tripsQuery.reload;
   const streamLagRecoveryReloadAtRef = useRef(0);

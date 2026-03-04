@@ -82,7 +82,7 @@ export async function listCompanyMembersForCompany(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ members?: unknown }>>(
+  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
     functions,
     "listCompanyMembers",
   );
@@ -92,7 +92,7 @@ export async function listCompanyMembersForCompany(input: {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyMemberItems(response.data?.data?.members);
+    return parseCompanyMemberItems(response.data?.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -141,22 +141,33 @@ export async function setCompanyMemberRoleForCompany(input: {
   }
 
   const callable = httpsCallable<
-    { companyId: string; memberUid: string; role: CompanyMemberRole },
-    ApiOk<{ member?: unknown }>
-  >(functions, "setCompanyMemberRole");
+    { companyId: string; memberUid: string; patch: { role: CompanyMemberRole } },
+    ApiOk<{ companyId?: string; memberUid?: string; role?: string; memberStatus?: string; updatedAt?: string }>
+  >(functions, "updateCompanyMember");
 
   try {
     const response = await callable({
       companyId: input.companyId.trim(),
       memberUid: input.memberUid.trim(),
-      role: input.role,
+      patch: { role: input.role },
     });
-    const members = parseCompanyMemberItems([response.data?.data?.member]);
-    const member = members[0];
-    if (!member) {
+    const data = response.data?.data;
+    if (!data?.memberUid) {
       throw new Error("SET_COMPANY_MEMBER_ROLE_RESPONSE_INVALID");
     }
-    return member;
+    // Build a partial CompanyMemberItem from the update response
+    const item: CompanyMemberItem = {
+      uid: data.memberUid,
+      displayName: null,
+      email: null,
+      phone: null,
+      role: (data.role as CompanyMemberRole) ?? input.role,
+      status: (data.memberStatus as CompanyMemberItem["status"]) ?? "active",
+      companyId: data.companyId ?? input.companyId,
+      createdAt: null,
+      updatedAt: data.updatedAt ?? null,
+    };
+    return item;
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -171,7 +182,7 @@ export async function listCompanyDriversForCompany(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ drivers?: unknown }>>(
+  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
     functions,
     "listCompanyDrivers",
   );
@@ -181,7 +192,7 @@ export async function listCompanyDriversForCompany(input: {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyDriverItems(response.data?.data?.drivers);
+    return parseCompanyDriverItems(response.data?.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -283,6 +294,32 @@ export async function unassignCompanyDriverFromRouteForCompany(input: {
   }
 }
 
+export async function updateCompanyDriverStatusForCompany(input: {
+  companyId: string;
+  driverId: string;
+  status: "active" | "passive";
+}): Promise<void> {
+  const functions = getFirebaseClientFunctions();
+  if (!functions) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const callable = httpsCallable<
+    { companyId: string; driverId: string; status: "active" | "passive" },
+    ApiOk<{ driverId?: string; status?: string }>
+  >(functions, "updateCompanyDriverStatus");
+
+  try {
+    await callable({
+      companyId: input.companyId.trim(),
+      driverId: input.driverId.trim(),
+      status: input.status,
+    });
+  } catch (error) {
+    throw new Error(toFriendlyErrorMessage(error));
+  }
+}
+
 export async function inviteCompanyMemberByEmailForCompany(input: {
   companyId: string;
   email: string;
@@ -295,8 +332,8 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
 
   const callable = httpsCallable<
     { companyId: string; email: string; role: CompanyMemberRole },
-    ApiOk<{ invite?: unknown }>
-  >(functions, "inviteCompanyMemberByEmail");
+    ApiOk<{ companyId?: string; inviteId?: string; memberUid?: string; invitedEmail?: string; role?: string; status?: string; expiresAt?: string; createdAt?: string }>
+  >(functions, "inviteCompanyMember");
 
   try {
     const response = await callable({
@@ -304,11 +341,23 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
       email: input.email.trim(),
       role: input.role,
     });
-    const invites = parseCompanyInviteItems([response.data?.data?.invite]);
-    const invite = invites[0];
-    if (!invite) {
+    const data = response.data?.data;
+    if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("INVITE_COMPANY_MEMBER_BY_EMAIL_RESPONSE_INVALID");
     }
+    // Map backend field names to frontend CompanyInviteItem
+    const invite: CompanyInviteItem = {
+      inviteId: data.inviteId,
+      companyId: data.companyId ?? input.companyId,
+      companyName: "",
+      email: data.invitedEmail,
+      role: (data.role as CompanyMemberRole) ?? input.role,
+      status: (data.status as CompanyInviteItem["status"]) ?? "pending",
+      targetUid: data.memberUid ?? null,
+      invitedBy: null,
+      createdAt: data.createdAt ?? null,
+      updatedAt: null,
+    };
     return invite;
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
@@ -324,7 +373,7 @@ export async function listCompanyInvitesForCompany(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ invites?: unknown }>>(
+  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ invites?: unknown[] }>>(
     functions,
     "listCompanyInvites",
   );
@@ -334,7 +383,17 @@ export async function listCompanyInvitesForCompany(input: {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyInviteItems(response.data?.data?.invites);
+    const rawInvites = response.data?.data?.invites ?? [];
+    // Map backend fields (invitedEmail→email, invitedUid→targetUid)
+    const mapped = rawInvites.map((item: unknown) => {
+      const r = item as Record<string, unknown>;
+      return {
+        ...r,
+        email: r.email ?? r.invitedEmail,
+        targetUid: r.targetUid ?? r.invitedUid,
+      };
+    });
+    return parseCompanyInviteItems(mapped);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -349,21 +408,32 @@ export async function revokeCompanyInviteForCompany(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; inviteId: string }, ApiOk<{ invite?: unknown }>>(
-    functions,
-    "revokeCompanyInvite",
-  );
+  const callable = httpsCallable<
+    { companyId: string; inviteId: string },
+    ApiOk<{ inviteId?: string; companyId?: string; companyName?: string; invitedEmail?: string; role?: string; status?: string; revokedAt?: string }>
+  >(functions, "revokeCompanyInvite");
 
   try {
     const response = await callable({
       companyId: input.companyId.trim(),
       inviteId: input.inviteId.trim(),
     });
-    const invites = parseCompanyInviteItems([response.data?.data?.invite]);
-    const invite = invites[0];
-    if (!invite) {
+    const data = response.data?.data;
+    if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("REVOKE_COMPANY_INVITE_RESPONSE_INVALID");
     }
+    const invite: CompanyInviteItem = {
+      inviteId: data.inviteId,
+      companyId: data.companyId ?? input.companyId,
+      companyName: data.companyName ?? "",
+      email: data.invitedEmail,
+      role: (data.role as CompanyMemberRole) ?? "viewer",
+      status: "revoked",
+      targetUid: null,
+      invitedBy: null,
+      createdAt: null,
+      updatedAt: data.revokedAt ?? null,
+    };
     return invite;
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));

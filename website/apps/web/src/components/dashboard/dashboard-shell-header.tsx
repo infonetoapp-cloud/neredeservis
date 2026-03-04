@@ -31,8 +31,8 @@ const SEGMENT_META: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Güzergahları tanımlayın ve düzenleyin",
   },
   "live-ops": {
-    title: "Canlı Takip",
-    subtitle: "Şu an aktif seferler ve araç konumları",
+    title: "Canlı Operasyon",
+    subtitle: "Araçlar, şoförler ve aktif seferler tek panelde",
   },
   admin: {
     title: "Ayarlar",
@@ -45,6 +45,14 @@ const SEGMENT_META: Record<string, { title: string; subtitle: string }> = {
   settings: {
     title: "Ayarlar",
     subtitle: "Şirket profili, bildirimler ve entegrasyonlar",
+  },
+  "driver-documents": {
+    title: "Şoför Belgeler",
+    subtitle: "Ehliyet, SRC, psikoteknik ve sağlık raporu takibi",
+  },
+  export: {
+    title: "Dışa Aktarma",
+    subtitle: "Raporları Excel, PDF ve CSV olarak indirin",
   },
 };
 

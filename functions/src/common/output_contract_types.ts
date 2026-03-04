@@ -49,6 +49,49 @@ export interface CreateRouteOutput {
   srvCode: string;
 }
 
+/* ─── Driver Document types ─── */
+
+export type DriverDocType = 'ehliyet' | 'src' | 'psikoteknik' | 'saglik';
+export type DriverDocStatus = 'valid' | 'expiring_soon' | 'expired' | 'not_uploaded';
+
+export interface DriverDocumentItem {
+  driverId: string;
+  docType: DriverDocType;
+  issueDate: string | null;
+  expiryDate: string | null;
+  licenseClass: string | null;
+  note: string | null;
+  status: DriverDocStatus;
+  daysRemaining: number | null;
+  uploadedAt: string | null;
+  uploadedBy: string | null;
+  updatedAt: string | null;
+}
+
+export interface DriverDocumentSummary {
+  driverId: string;
+  driverName: string;
+  overallStatus: 'ok' | 'warning' | 'blocked' | 'missing';
+  documents: DriverDocumentItem[];
+}
+
+export interface ListDriverDocumentsOutput {
+  items: DriverDocumentSummary[];
+}
+
+export interface UpsertDriverDocumentOutput {
+  driverId: string;
+  docType: DriverDocType;
+  status: DriverDocStatus;
+  updatedAt: string;
+}
+
+export interface DeleteDriverDocumentOutput {
+  driverId: string;
+  docType: DriverDocType;
+  deletedAt: string;
+}
+
 export interface CreateCompanyRouteOutput {
   routeId: string;
   srvCode: string;
@@ -69,6 +112,8 @@ export interface ListMyCompaniesItem {
   name: string;
   role: 'owner' | 'admin' | 'dispatcher' | 'viewer';
   memberStatus: 'active' | 'invited' | 'suspended';
+  companyStatus: 'active' | 'suspended' | 'archived';
+  billingStatus: 'active' | 'past_due' | 'suspended_locked';
 }
 
 export interface ListMyCompaniesOutput {
@@ -179,20 +224,42 @@ export interface ListActiveTripsByCompanyOutput {
   items: ListActiveTripsByCompanyItem[];
 }
 
+export type VehicleStatus = 'active' | 'maintenance' | 'inactive';
+
 export interface ListCompanyVehiclesItem {
   vehicleId: string;
   companyId: string;
   plate: string;
-  status: string;
+  status: VehicleStatus;
   brand: string | null;
   model: string | null;
   year: number | null;
   capacity: number | null;
+  createdAt: string | null;
   updatedAt: string | null;
 }
 
 export interface ListCompanyVehiclesOutput {
   items: ListCompanyVehiclesItem[];
+}
+
+export interface ListCompanyDriversItem {
+  driverId: string;
+  name: string;
+  plateMasked: string;
+  phoneMasked: string | null;
+  status: 'active' | 'passive';
+  assignmentStatus: 'assigned' | 'unassigned';
+  lastSeenAt: string | null;
+  assignedRoutes: Array<{
+    routeId: string;
+    routeName: string;
+    scheduledTime: string | null;
+  }>;
+}
+
+export interface ListCompanyDriversOutput {
+  items: ListCompanyDriversItem[];
 }
 
 export interface CreateVehicleOutput {
@@ -220,6 +287,34 @@ export interface RemoveCompanyMemberOutput {
   removedMemberStatus: 'active' | 'invited' | 'suspended';
   removed: true;
   removedAt: string;
+}
+
+export interface ListCompanyInvitesItem {
+  inviteId: string;
+  companyId: string;
+  companyName: string;
+  invitedUid: string;
+  invitedEmail: string;
+  role: 'admin' | 'dispatcher' | 'viewer';
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  invitedBy: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface ListCompanyInvitesOutput {
+  invites: ListCompanyInvitesItem[];
+}
+
+export interface RevokeCompanyInviteOutput {
+  inviteId: string;
+  companyId: string;
+  companyName: string;
+  invitedEmail: string;
+  role: 'admin' | 'dispatcher' | 'viewer';
+  status: 'revoked';
+  revokedAt: string;
 }
 
 export interface UpdateCompanyAdminTenantStateOutput {
@@ -531,5 +626,27 @@ export interface PlatformSetVehicleLimitOutput {
 export interface PlatformSetCompanyStatusOutput {
   companyId: string;
   status: 'active' | 'suspended';
+  updatedAt: string;
+}
+
+// ─── Company Settings Callable Types ─────────────────────────────────────────
+
+export interface GetCompanyProfileOutput {
+  companyId: string;
+  name: string;
+  logoUrl: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  address: string | null;
+  timezone: string;
+  countryCode: string;
+  status: string;
+  vehicleLimit: number;
+  createdAt: string | null;
+}
+
+export interface UpdateCompanyProfileOutput {
+  companyId: string;
+  changedFields: string[];
   updatedAt: string;
 }

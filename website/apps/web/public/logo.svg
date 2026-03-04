@@ -1,0 +1,19 @@
+<svg width="400" height="120" viewBox="0 0 400 120" fill="none" xmlns="http://www.w2.org/2000/svg">
+  <!-- Dynamic Path/Movement Lines -->
+  <path d="M10 50H45" stroke="#3B82F6" stroke-width="6" stroke-linecap="round"/>
+  <path d="M15 70H40" stroke="#3B82F6" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Outer Pin Shape (Stylized) -->
+  <path d="M102 60C102 33.4903 80.5097 12 54 12C27.4903 12 6 33.4903 6 60C6 85 54 108 54 108C54 108 102 85 102 60Z" fill="#3B82F6"/>
+  
+  <!-- Shuttle/Bus Silhouette (Cutout) -->
+  <rect x="34" y="55" width="40" height="25" rx="4" fill="white"/>
+  <rect x="38" y="45" width="32" height="10" rx="2" fill="white"/>
+  <circle cx="42" cy="72" r="3" fill="#1E3A8A"/>
+  <circle cx="66" cy="72" r="3" fill="#1E3A8A"/>
+  
+  <!-- Text: Nerede -->
+  <text x="120" y="75" fill="#1E3A8A" style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 48px; letter-spacing: -2px;">nerede</text>
+  <!-- Text: Servis -->
+  <text x="285" y="75" fill="#3B82F6" style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 48px; letter-spacing: -2px;">servis</text>
+</svg>

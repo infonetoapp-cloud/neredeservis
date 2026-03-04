@@ -177,7 +177,7 @@ export function RoutesCompanyRoutesFeature() {
     authStatus === "signed_in" && Boolean(companyId) && Boolean(selectedRoute),
     {
       routeId: selectedRoute?.routeId ?? null,
-      pageSize: 8,
+      limit: 8,
     },
   );
   const routePermissionsQuery = useRouteDriverPermissions(

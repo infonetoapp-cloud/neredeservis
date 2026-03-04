@@ -55,7 +55,7 @@ export function RouteListSection({
   };
 
   return (
-    <section className="glass-panel rounded-2xl p-4">
+    <section className="glass-panel rounded-2xl p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="text-sm font-semibold text-slate-900">Rota listesi</div>
         <button

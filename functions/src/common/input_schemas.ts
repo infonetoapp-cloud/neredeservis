@@ -42,6 +42,7 @@ export function createInputSchemas({
 
   const listCompanyMembersInputSchema = z.object({
     companyId: z.string().trim().min(1).max(128),
+    limit: z.number().int().min(1).max(500).optional().default(50),
   });
 
   const updateCompanyAdminTenantStateInputSchema = z.object({
@@ -95,10 +96,20 @@ export function createInputSchemas({
     memberUid: z.string().trim().min(1).max(128),
   });
 
+  const listCompanyInvitesInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    limit: z.number().int().min(1).max(500).optional().default(100),
+  });
+
+  const revokeCompanyInviteInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    inviteId: z.string().trim().min(1).max(128),
+  });
+
   const listCompanyRoutesInputSchema = z.object({
     companyId: z.string().trim().min(1).max(128),
     includeArchived: z.boolean().optional().default(false),
-    limit: z.number().int().min(1).max(100).optional().default(50),
+    limit: z.number().int().min(1).max(500).optional().default(50),
   });
 
   const listCompanyRouteStopsInputSchema = z.object({
@@ -110,12 +121,68 @@ export function createInputSchemas({
     companyId: z.string().trim().min(1).max(128),
     routeId: z.string().trim().min(1).max(128).nullable().optional(),
     driverUid: z.string().trim().min(1).max(128).nullable().optional(),
-    pageSize: z.number().int().min(1).max(100).optional().default(50),
+    limit: z.number().int().min(1).max(200).optional().default(50),
   });
 
   const listCompanyVehiclesInputSchema = z.object({
     companyId: z.string().trim().min(1).max(128),
-    limit: z.number().int().min(1).max(100).optional().default(50),
+    limit: z.number().int().min(1).max(500).optional().default(50),
+  });
+
+  const listCompanyDriversInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    limit: z.number().int().min(1).max(500).optional().default(100),
+  });
+
+  const createCompanyDriverAccountInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    name: z.string().trim().min(2).max(80),
+    phone: z.string().trim().min(7).max(24).optional(),
+    plate: z.string().trim().min(2).max(20).optional(),
+    loginEmail: z.string().trim().email().max(254).optional(),
+    temporaryPassword: z.string().trim().min(8).max(64).optional(),
+  });
+
+  const assignCompanyDriverToRouteInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128),
+    routeId: z.string().trim().min(1).max(128),
+  });
+
+  const unassignCompanyDriverFromRouteInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128),
+    routeId: z.string().trim().min(1).max(128),
+  });
+
+  const updateCompanyDriverStatusInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128),
+    status: z.enum(['active', 'passive']),
+  });
+
+  /* ─── Driver Document schemas ─── */
+  const driverDocTypeSchema = z.enum(['ehliyet', 'src', 'psikoteknik', 'saglik']);
+
+  const upsertDriverDocumentInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128),
+    docType: driverDocTypeSchema,
+    issueDate: z.string().trim().min(8).max(32).optional(),
+    expiryDate: z.string().trim().min(8).max(32).optional(),
+    licenseClass: z.string().trim().min(1).max(16).optional(),
+    note: z.string().trim().max(500).optional(),
+  });
+
+  const listDriverDocumentsInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128).optional(),
+  });
+
+  const deleteDriverDocumentInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    driverId: z.string().trim().min(1).max(128),
+    docType: driverDocTypeSchema,
   });
 
   const createCompanyRouteInputSchema = z.object({
@@ -507,6 +574,16 @@ export function createInputSchemas({
     limit: z.number().int().min(1).max(driverSearchMaxLimit).optional().default(5),
   });
 
+  const getCompanyProfileInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+  });
+
+  const updateCompanyProfileInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    name: z.string().trim().min(2).max(120).optional(),
+    logoUrl: z.string().trim().max(1024).optional(),
+  });
+
   return {
     profileInputSchema,
     upsertConsentInputSchema,
@@ -519,10 +596,20 @@ export function createInputSchemas({
     declineCompanyInviteInputSchema,
     updateCompanyMemberInputSchema,
     removeCompanyMemberInputSchema,
+    listCompanyInvitesInputSchema,
+    revokeCompanyInviteInputSchema,
     listCompanyRoutesInputSchema,
     listCompanyRouteStopsInputSchema,
     listActiveTripsByCompanyInputSchema,
     listCompanyVehiclesInputSchema,
+    listCompanyDriversInputSchema,
+    createCompanyDriverAccountInputSchema,
+    assignCompanyDriverToRouteInputSchema,
+    unassignCompanyDriverFromRouteInputSchema,
+    updateCompanyDriverStatusInputSchema,
+    upsertDriverDocumentInputSchema,
+    listDriverDocumentsInputSchema,
+    deleteDriverDocumentInputSchema,
     createCompanyRouteInputSchema,
     updateCompanyRouteInputSchema,
     upsertCompanyRouteStopInputSchema,
@@ -558,5 +645,7 @@ export function createInputSchemas({
     sendTripMessageInputSchema,
     markTripConversationReadInputSchema,
     searchDriverDirectoryInputSchema,
+    getCompanyProfileInputSchema,
+    updateCompanyProfileInputSchema,
   };
 }

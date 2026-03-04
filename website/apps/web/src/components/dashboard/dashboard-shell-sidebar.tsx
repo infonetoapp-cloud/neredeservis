@@ -6,10 +6,13 @@ import {
   LayoutDashboard,
   Users,
   Truck,
+  Bus,
   MapPin,
   RadioTower,
   Settings,
   UsersRound,
+  FileText,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,10 +25,18 @@ import { useActiveCompanyPreference } from "@/features/company/use-active-compan
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
+type AccentTheme = {
+  activeBg: string;
+  activeText: string;
+  iconActiveBg: string;
+  hoverBg: string;
+};
+
 type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  accent: string;
   /** If set, only visible for these roles */
   roles?: readonly string[];
 };
@@ -33,6 +44,67 @@ type NavItem = {
 type NavSection = {
   title: string;
   items: NavItem[];
+};
+
+/* ------------------------------------------------------------------ */
+/*  Accent color system — per-page accent                             */
+/* ------------------------------------------------------------------ */
+
+const ACCENT_THEMES: Record<string, AccentTheme> = {
+  indigo: {
+    activeBg: "bg-indigo-50",
+    activeText: "text-indigo-700",
+    iconActiveBg: "bg-indigo-100 text-indigo-600",
+    hoverBg: "hover:bg-indigo-50/60",
+  },
+  emerald: {
+    activeBg: "bg-emerald-50",
+    activeText: "text-emerald-700",
+    iconActiveBg: "bg-emerald-100 text-emerald-600",
+    hoverBg: "hover:bg-emerald-50/60",
+  },
+  violet: {
+    activeBg: "bg-violet-50",
+    activeText: "text-violet-700",
+    iconActiveBg: "bg-violet-100 text-violet-600",
+    hoverBg: "hover:bg-violet-50/60",
+  },
+  rose: {
+    activeBg: "bg-rose-50",
+    activeText: "text-rose-700",
+    iconActiveBg: "bg-rose-100 text-rose-600",
+    hoverBg: "hover:bg-rose-50/60",
+  },
+  orange: {
+    activeBg: "bg-orange-50",
+    activeText: "text-orange-700",
+    iconActiveBg: "bg-orange-100 text-orange-600",
+    hoverBg: "hover:bg-orange-50/60",
+  },
+  slate: {
+    activeBg: "bg-slate-100",
+    activeText: "text-slate-700",
+    iconActiveBg: "bg-slate-200 text-slate-600",
+    hoverBg: "hover:bg-slate-50",
+  },
+  teal: {
+    activeBg: "bg-teal-50",
+    activeText: "text-teal-700",
+    iconActiveBg: "bg-teal-100 text-teal-600",
+    hoverBg: "hover:bg-teal-50/60",
+  },
+  sky: {
+    activeBg: "bg-sky-50",
+    activeText: "text-sky-700",
+    iconActiveBg: "bg-sky-100 text-sky-600",
+    hoverBg: "hover:bg-sky-50/60",
+  },
+  amber: {
+    activeBg: "bg-amber-50",
+    activeText: "text-amber-700",
+    iconActiveBg: "bg-amber-100 text-amber-600",
+    hoverBg: "hover:bg-amber-50/60",
+  },
 };
 
 /* ------------------------------------------------------------------ */
@@ -54,23 +126,30 @@ function buildSections(companyId: string | null, role: string | null): NavSectio
     {
       title: "",
       items: [
-        { label: "Genel Bakış", href: `${base}/dashboard`, icon: LayoutDashboard },
+        { label: "Genel Bakış", href: `${base}/dashboard`, icon: LayoutDashboard, accent: "indigo" },
       ],
     },
     {
       title: "Operasyon",
       items: [
-        { label: "Canlı Takip", href: `${base}/live-ops`, icon: RadioTower },
-        { label: "Rotalar", href: `${base}/routes`, icon: MapPin },
-        { label: "Araçlar", href: `${base}/vehicles`, icon: Truck },
-        { label: "Şoförler", href: `${base}/drivers`, icon: Users },
+        { label: "Canlı Operasyon", href: `${base}/live-ops`, icon: RadioTower, accent: "emerald" },
+        { label: "Rotalar", href: `${base}/routes`, icon: MapPin, accent: "violet" },
+        { label: "Araçlar", href: `${base}/vehicles`, icon: Bus, accent: "sky" },
+        { label: "Şoförler", href: `${base}/drivers`, icon: Users, accent: "amber" },
       ],
     },
     {
       title: "Yönetim",
       items: [
-        { label: "Üyeler", href: `${base}/members`, icon: UsersRound, roles: ["owner", "admin"] },
-        { label: "Ayarlar", href: `${base}/settings`, icon: Settings, roles: ["owner", "admin"] },
+        { label: "Üyeler", href: `${base}/members`, icon: UsersRound, accent: "rose", roles: ["owner", "admin"] },
+        { label: "Şoför Belgeler", href: `${base}/driver-documents`, icon: FileText, accent: "orange" },
+        { label: "Ayarlar", href: `${base}/settings`, icon: Settings, accent: "slate", roles: ["owner", "admin"] },
+      ],
+    },
+    {
+      title: "",
+      items: [
+        { label: "Dışa Aktarma", href: `${base}/export`, icon: Download, accent: "teal" },
       ],
     },
   ];
@@ -136,20 +215,21 @@ export function DashboardShellSidebar() {
                   {section.items.map((item) => {
                     const active = isItemActive(pathname, item.href);
                     const Icon = item.icon;
+                    const theme = ACCENT_THEMES[item.accent] ?? ACCENT_THEMES.indigo;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                           active
-                            ? "bg-emerald-500 text-white shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            ? `${theme.activeBg} ${theme.activeText}`
+                            : `text-slate-600 ${theme.hoverBg} hover:text-slate-900`
                         }`}
                       >
                         <span
-                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-colors ${
                             active
-                              ? "bg-white/20 text-white"
+                              ? theme.iconActiveBg
                               : "bg-slate-100 text-slate-400"
                           }`}
                         >

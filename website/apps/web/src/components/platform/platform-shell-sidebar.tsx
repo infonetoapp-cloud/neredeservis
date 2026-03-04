@@ -8,12 +8,13 @@ import { EnvBadge } from "@/components/shared/env-badge";
 type PlatformNavItem = {
   label: string;
   href: string;
-  section: "yonetim" | "izleme";
+  section: "yonetim" | "icerik" | "izleme";
 };
 
 const PLATFORM_NAV_ITEMS: readonly PlatformNavItem[] = [
   { label: "Sirketler", href: "/platform/companies", section: "yonetim" },
   { label: "Sirket Olustur", href: "/platform/companies/new", section: "yonetim" },
+  { label: "Ana Sayfa CMS", href: "/platform/landing", section: "icerik" },
   { label: "Dashboard'a Don", href: "/dashboard", section: "izleme" },
 ];
 
@@ -70,6 +71,7 @@ export function PlatformShellSidebar() {
   const pathname = usePathname() ?? "/platform/companies";
 
   const yonetimItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "yonetim");
+  const icerikItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "icerik");
   const izlemeItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "izleme");
 
   return (
@@ -84,6 +86,7 @@ export function PlatformShellSidebar() {
 
       <div className="space-y-5">
         <PlatformNavSection title="Yonetim" items={yonetimItems} pathname={pathname} />
+        <PlatformNavSection title="Icerik" items={icerikItems} pathname={pathname} />
         <PlatformNavSection title="Gezinme" items={izlemeItems} pathname={pathname} />
       </div>
 

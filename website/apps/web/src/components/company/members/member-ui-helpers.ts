@@ -15,6 +15,7 @@ export const ROLE_LABELS: Record<CompanyMemberRole, string> = {
 export const INVITE_STATUS_LABELS: Record<CompanyInviteStatus, string> = {
   pending: "Bekliyor",
   accepted: "Kabul Edildi",
+  declined: "Reddedildi",
   revoked: "Iptal Edildi",
 };
 
@@ -37,6 +38,9 @@ export function getInviteStatusTone(status: CompanyInviteStatus): string {
   }
   if (status === "accepted") {
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  }
+  if (status === "declined") {
+    return "border-rose-200 bg-rose-50 text-rose-800";
   }
   return "border-slate-200 bg-slate-50 text-slate-700";
 }

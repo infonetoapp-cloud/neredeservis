@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { useCompanyLiveOpsSnapshot } from "@/components/live-ops/company-live-ops-snapshot-context";
+import { KpiCard } from "@/components/shared/kpi-card";
 import { type CompanyLiveOpsItem } from "@/features/company/company-client";
 
 type SummaryState = {
@@ -48,45 +49,38 @@ export function LiveOpsSummaryCards() {
   const { status, items } = useCompanyLiveOpsSnapshot();
   const summary = useMemo(() => toSummary(items), [items]);
   const safeSummary = status === "error" ? EMPTY_SUMMARY : summary;
-
-  const cards = useMemo(
-    () => [
-      {
-        label: "Takipteki Hat",
-        value: String(safeSummary.routesTracked),
-        hint: "Sirkete bagli izlenen toplam rota",
-      },
-      {
-        label: "Seferdeki Arac",
-        value: String(safeSummary.activeTrips),
-        hint: "Su anda aktif operasyon yurutenler",
-      },
-      {
-        label: "Canli Konum",
-        value: String(safeSummary.liveRoutes),
-        hint: "Anlik konumu duzenli akan hatlar",
-      },
-      {
-        label: "Takip Gereken",
-        value: String(safeSummary.attentionRoutes),
-        hint: "Konumu geciken veya baglantisi kopanlar",
-      },
-    ],
-    [safeSummary],
-  );
+  const loading = status === "loading";
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {cards.map((card) => (
-        <div
-          key={card.label}
-          className="rounded-2xl border border-line bg-white/95 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]"
-        >
-          <div className="text-xs font-semibold tracking-[0.12em] text-[#748091] uppercase">{card.label}</div>
-          <div className="mt-2 text-3xl font-semibold leading-none text-slate-950">{card.value}</div>
-          <div className="mt-2 text-xs text-[#697382]">{card.hint}</div>
-        </div>
-      ))}
+    <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
+      <KpiCard
+        label="Takipteki Hat"
+        value={safeSummary.routesTracked}
+        hint="Şirkete bağlı izlenen toplam rota"
+        accent="indigo"
+        loading={loading}
+      />
+      <KpiCard
+        label="Seferdeki Araç"
+        value={safeSummary.activeTrips}
+        hint="Şu anda aktif operasyon yürütenler"
+        accent="rose"
+        loading={loading}
+      />
+      <KpiCard
+        label="Canlı Konum"
+        value={safeSummary.liveRoutes}
+        hint="Anlık konumu düzenli akan hatlar"
+        accent="emerald"
+        loading={loading}
+      />
+      <KpiCard
+        label="Takip Gereken"
+        value={safeSummary.attentionRoutes}
+        hint="Konumu geciken veya bağlantısı kopanlar"
+        accent="amber"
+        loading={loading}
+      />
     </div>
   );
 }

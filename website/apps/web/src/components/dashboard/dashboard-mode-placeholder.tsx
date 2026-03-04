@@ -27,7 +27,7 @@ export function DashboardModePlaceholder() {
   const membersQuery = useCompanyMembers(companyId, dashboardDataEnabled);
   const vehiclesQuery = useCompanyVehicles(companyId, dashboardDataEnabled);
   const routesQuery = useCompanyRoutes(companyId, dashboardDataEnabled);
-  const activeTripsQuery = useCompanyActiveTrips(companyId, dashboardDataEnabled, { pageSize: 20 });
+  const activeTripsQuery = useCompanyActiveTrips(companyId, dashboardDataEnabled, { limit: 20 });
 
   const companyLoading =
     dashboardDataEnabled &&
@@ -241,7 +241,7 @@ export function DashboardModePlaceholder() {
                   }`}
                 >
                   <span
-                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px] ${item.iconBg}`}
+                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${item.iconBg}`}
                   >
                     <Icon className="h-3.5 w-3.5 text-white" />
                   </span>

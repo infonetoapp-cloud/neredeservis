@@ -30,6 +30,33 @@ const QUERY_CACHE = new Map<string, { expiresAtMs: number; items: AddressSuggest
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const HISTORY_STORAGE_KEY = "nsv.routes.address_history.v1";
 const HISTORY_LIMIT = 50;
+const SESSION_PROXIMITY_KEY = "nsv.routes.session_proximity.v1";
+// Default: Gebze center (lng, lat)
+const DEFAULT_PROXIMITY = "29.43,40.79";
+
+function readSessionProximity(): string {
+  if (typeof window === "undefined") return DEFAULT_PROXIMITY;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_PROXIMITY_KEY);
+    if (!raw) return DEFAULT_PROXIMITY;
+    const { lng, lat } = JSON.parse(raw) as { lng: number; lat: number };
+    if (typeof lng === "number" && typeof lat === "number") return `${lng.toFixed(5)},${lat.toFixed(5)}`;
+  } catch {
+    // ignore
+  }
+  return DEFAULT_PROXIMITY;
+}
+
+function saveSessionProximity(lat: number, lng: number): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(SESSION_PROXIMITY_KEY, JSON.stringify({ lat, lng }));
+    // Also bust cache so next query uses new proximity
+    QUERY_CACHE.clear();
+  } catch {
+    // ignore
+  }
+}
 
 function normalizeQuery(value: string): string {
   return value.trim().toLocaleLowerCase("tr");
@@ -156,9 +183,13 @@ function normalizeMapboxFeatures(payload: unknown): AddressSuggestion[] {
     ) {
       continue;
     }
+    // Shorten label: drop "Türkiye" at the end, keep 3 segments max
+    const labelParts = placeName.split(",").map((s) => s.trim()).filter(Boolean);
+    const filtered = labelParts.filter((p) => p.toLocaleLowerCase("tr") !== "türkiye");
+    const label = filtered.slice(0, 3).join(", ");
     items.push({
       id,
-      label: placeName,
+      label,
       lat: latRaw,
       lng: lngRaw,
       source: "mapbox",
@@ -177,7 +208,9 @@ async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promi
     return [];
   }
 
-  const cached = QUERY_CACHE.get(normalizedQuery);
+  const proximity = readSessionProximity();
+  const cacheKey = `${normalizedQuery}|${proximity}`;
+  const cached = QUERY_CACHE.get(cacheKey);
   const nowMs = Date.now();
   if (cached && cached.expiresAtMs > nowMs) {
     return cached.items;
@@ -189,8 +222,8 @@ async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promi
     country: "tr",
     language: "tr",
     limit: "6",
-    types: "address,poi,place,neighborhood,locality",
-    proximity: "28.97,41.01",
+    types: "address,poi,place,district,locality,neighborhood",
+    proximity,
   });
 
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?${params.toString()}`;
@@ -207,7 +240,7 @@ async function fetchMapboxSuggestions(query: string, signal: AbortSignal): Promi
 
   const json = (await response.json()) as unknown;
   const suggestions = normalizeMapboxFeatures(json);
-  QUERY_CACHE.set(normalizedQuery, {
+  QUERY_CACHE.set(cacheKey, {
     expiresAtMs: nowMs + QUERY_CACHE_TTL_MS,
     items: suggestions,
   });
@@ -387,6 +420,7 @@ export function AddressAutocompleteInput({
                     event.preventDefault();
                     onSelectSuggestion(suggestion);
                     addSuggestionToHistory(suggestion);
+                    saveSessionProximity(suggestion.lat, suggestion.lng);
                     setHistoryItems(readAddressHistory());
                     setOpen(false);
                   }}

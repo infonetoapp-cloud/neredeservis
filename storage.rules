@@ -16,6 +16,20 @@ service firebase.storage {
         request.resource.contentType.matches('image/.*');
     }
 
+    match /company_logos/{companyId}/{assetName} {
+      allow read: if signedIn();
+      allow write: if signedIn() &&
+        request.resource.size < 2 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    match /site_media/{allPaths=**} {
+      allow read: if true;
+      allow write: if signedIn() &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

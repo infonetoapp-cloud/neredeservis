@@ -26,7 +26,7 @@ export async function listCompanyRoutesForCompany(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ routes?: unknown }>>(
+  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
     functions,
     "listCompanyRoutes",
   );
@@ -36,7 +36,7 @@ export async function listCompanyRoutesForCompany(input: {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyRouteItems(response.data?.data?.routes);
+    return parseCompanyRouteItems(response.data?.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -246,7 +246,7 @@ export async function listCompanyRouteStopsForRoute(input: {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const callable = httpsCallable<{ companyId: string; routeId: string }, ApiOk<{ stops?: unknown }>>(
+  const callable = httpsCallable<{ companyId: string; routeId: string }, ApiOk<{ items?: unknown }>>(
     functions,
     "listCompanyRouteStops",
   );
@@ -256,7 +256,7 @@ export async function listCompanyRouteStopsForRoute(input: {
       companyId: input.companyId.trim(),
       routeId: input.routeId.trim(),
     });
-    return parseCompanyRouteStopItems(response.data?.data?.stops);
+    return parseCompanyRouteStopItems(response.data?.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }

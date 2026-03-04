@@ -1,0 +1,10 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="64" cy="64" r="64" fill="#3B82F6"/>
+  <!-- Location/Bus Icon -->
+  <path d="M84 54C84 42.9543 75.0457 34 64 34C52.9543 34 44 42.9543 44 54C44 65 64 84 64 84C64 84 84 65 84 54Z" fill="white"/>
+  <!-- Bus Headlights/Front -->
+  <rect x="52" y="58" width="24" height="12" rx="2" fill="#3B82F6"/>
+  <rect x="54" y="50" width="20" height="6" rx="1" fill="#3B82F6"/>
+  <circle cx="56" cy="66" r="2" fill="white"/>
+  <circle cx="72" cy="66" r="2" fill="white"/>
+</svg>

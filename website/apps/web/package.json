@@ -67,6 +67,10 @@
     "probe:domains": "powershell -ExecutionPolicy Bypass -File ./scripts/domain-probe.ps1"
   },
   "dependencies": {
+    "@turf/along": "^7.3.4",
+    "@turf/bearing": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
+    "@turf/length": "^7.3.4",
     "firebase": "^12.9.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.576.0",

@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 import { useCompanyMembership } from "@/components/company/company-membership-context";
 import {
   normalizePlateInput,
+  vehicleDraftFromItem,
   type VehicleDraft,
   VEHICLE_CAPACITY_MAX,
   VEHICLE_CAPACITY_MIN,
+  VEHICLE_STATUS_OPTIONS,
 } from "@/components/company/vehicles/vehicle-ui-helpers";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
@@ -21,6 +23,7 @@ import {
   type CompanyDriverItem,
   type CompanyRouteItem,
   type CompanyVehicleItem,
+  type VehicleStatus,
 } from "@/features/company/company-client";
 
 type Props = {
@@ -30,28 +33,10 @@ type Props = {
 const VEHICLE_LABEL_MAX = 80;
 
 function formatDateTime(value: string | null): string {
-  if (!value) {
-    return "BULUNAMADI";
-  }
+  if (!value) return "—";
   const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    return "BULUNAMADI";
-  }
+  if (!Number.isFinite(parsed)) return "—";
   return new Date(parsed).toLocaleString("tr-TR");
-}
-
-function readVehicleDraft(
-  vehicle: CompanyVehicleItem,
-  drafts: Record<string, VehicleDraft>,
-): VehicleDraft {
-  return (
-    drafts[vehicle.vehicleId] ?? {
-      plate: vehicle.plate,
-      label: vehicle.label ?? "",
-      capacity: vehicle.capacity != null ? String(vehicle.capacity) : "",
-      isActive: vehicle.isActive,
-    }
-  );
 }
 
 export function CompanyVehiclesManagement({ companyId }: Props) {
@@ -66,15 +51,19 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   const [savingVehicleId, setSavingVehicleId] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [vehicleSearchQuery, setVehicleSearchQuery] = useState<string>("");
-  const [vehicleStatusFilter, setVehicleStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [vehicleStatusFilter, setVehicleStatusFilter] = useState<"all" | VehicleStatus>("all");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [routeSelectionByVehicle, setRouteSelectionByVehicle] = useState<Record<string, string>>({});
 
-  const [createPlate, setCreatePlate] = useState<string>("");
-  const [createLabel, setCreateLabel] = useState<string>("");
-  const [createCapacity, setCreateCapacity] = useState<string>("");
-  const [createPending, setCreatePending] = useState<boolean>(false);
-  const [showCreateValidation, setShowCreateValidation] = useState<boolean>(false);
+  // Create form state
+  const [createPlate, setCreatePlate] = useState("");
+  const [createBrand, setCreateBrand] = useState("");
+  const [createModel, setCreateModel] = useState("");
+  const [createYear, setCreateYear] = useState("");
+  const [createCapacity, setCreateCapacity] = useState("");
+  const [createPending, setCreatePending] = useState(false);
+  const [showCreateValidation, setShowCreateValidation] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const [drafts, setDrafts] = useState<Record<string, VehicleDraft>>({});
 
@@ -101,12 +90,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
         setDrafts((prev) => {
           const nextDrafts: Record<string, VehicleDraft> = {};
           for (const vehicle of nextVehicles) {
-            nextDrafts[vehicle.vehicleId] = prev[vehicle.vehicleId] ?? {
-              plate: vehicle.plate,
-              label: vehicle.label ?? "",
-              capacity: vehicle.capacity != null ? String(vehicle.capacity) : "",
-              isActive: vehicle.isActive,
-            };
+            nextDrafts[vehicle.vehicleId] = prev[vehicle.vehicleId] ?? vehicleDraftFromItem(vehicle);
           }
           return nextDrafts;
         });
@@ -131,16 +115,13 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   const filteredVehicles = useMemo(() => {
     const query = vehicleSearchQuery.trim().toLocaleLowerCase("tr");
     return sortedVehicles.filter((vehicle) => {
-      if (vehicleStatusFilter === "active" && !vehicle.isActive) {
-        return false;
-      }
-      if (vehicleStatusFilter === "inactive" && vehicle.isActive) {
+      if (vehicleStatusFilter !== "all" && vehicle.status !== vehicleStatusFilter) {
         return false;
       }
       if (!query) {
         return true;
       }
-      const fields = [vehicle.plate, vehicle.label ?? "", vehicle.vehicleId].join(" ").toLocaleLowerCase("tr");
+      const fields = [vehicle.plate, vehicle.label ?? "", vehicle.brand ?? "", vehicle.model ?? "", vehicle.vehicleId].join(" ").toLocaleLowerCase("tr");
       return fields.includes(query);
     });
   }, [sortedVehicles, vehicleSearchQuery, vehicleStatusFilter]);
@@ -148,10 +129,9 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   const metrics = useMemo(() => {
     return {
       total: sortedVehicles.length,
-      active: sortedVehicles.filter((item) => item.isActive).length,
-      inactive: sortedVehicles.filter((item) => !item.isActive).length,
-      capacityDefined: sortedVehicles.filter((item) => item.capacity != null).length,
-      unlabeled: sortedVehicles.filter((item) => !item.label || item.label.trim().length === 0).length,
+      active: sortedVehicles.filter((item) => item.status === "active").length,
+      maintenance: sortedVehicles.filter((item) => item.status === "maintenance").length,
+      inactive: sortedVehicles.filter((item) => item.status === "inactive").length,
       assignedToRoute:
         routes?.filter((route) => !route.isArchived && typeof route.vehicleId === "string" && route.vehicleId.length > 0)
           .length ?? 0,
@@ -178,7 +158,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
     if (!selectedVehicle) {
       return null;
     }
-    return readVehicleDraft(selectedVehicle, drafts);
+    return drafts[selectedVehicle.vehicleId] ?? vehicleDraftFromItem(selectedVehicle);
   }, [drafts, selectedVehicle]);
 
   const selectedVehicleRoutes = useMemo(() => {
@@ -235,29 +215,36 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   }, [assignableRoutes, routeSelectionByVehicle, selectedVehicle]);
 
   const normalizedCreatePlate = normalizePlateInput(createPlate);
-  const normalizedCreateLabel = createLabel.trim();
-  const normalizedCreateCapacityRaw = createCapacity.trim();
   const createValidationIssues: string[] = [];
   if (normalizedCreatePlate.length < 2) {
-    createValidationIssues.push("Plaka en az 2 karakter olmali.");
+    createValidationIssues.push("Plaka en az 2 karakter olmalı.");
   }
-  if (normalizedCreateLabel.length > VEHICLE_LABEL_MAX) {
-    createValidationIssues.push("Arac etiketi en fazla 80 karakter olabilir.");
-  }
-  if (normalizedCreateCapacityRaw.length > 0) {
-    const parsed = Number.parseInt(normalizedCreateCapacityRaw, 10);
+  if (createCapacity.trim().length > 0) {
+    const parsed = Number.parseInt(createCapacity.trim(), 10);
     if (!Number.isFinite(parsed) || parsed < VEHICLE_CAPACITY_MIN || parsed > VEHICLE_CAPACITY_MAX) {
-      createValidationIssues.push("Kapasite 1-120 araliginda olmali.");
+      createValidationIssues.push(`Kapasite ${VEHICLE_CAPACITY_MIN}-${VEHICLE_CAPACITY_MAX} aralığında olmalı.`);
+    }
+  }
+  if (createYear.trim().length > 0) {
+    const parsed = Number.parseInt(createYear.trim(), 10);
+    if (!Number.isFinite(parsed) || parsed < 1900 || parsed > 2100) {
+      createValidationIssues.push("Yıl 1900-2100 aralığında olmalı.");
     }
   }
   const canCreate = createValidationIssues.length === 0 && !createPending;
   const canMutate = memberRole === "owner" || memberRole === "admin" || memberRole === "dispatcher";
 
+  // Auto-dismiss info messages after 3 seconds
+  const showAutoInfo = useCallback((msg: string) => {
+    setInfoMessage(msg);
+    setTimeout(() => setInfoMessage((cur) => (cur === msg ? null : cur)), 3000);
+  }, []);
+
   const handleCreateVehicle = async () => {
     if (!canCreate || !canMutate) {
       if (canMutate) {
         setShowCreateValidation(true);
-        setErrorMessage("Formda eksik veya gecersiz alanlar var.");
+        setErrorMessage("Formda eksik veya geçersiz alanlar var.");
       }
       return;
     }
@@ -266,17 +253,26 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
       (item) => normalizePlateInput(item.plate) === normalizedCreatePlate,
     );
     if (duplicateExists) {
-      setErrorMessage("Ayni plakada kayitli bir arac zaten var.");
+      setErrorMessage("Aynı plakada kayıtlı bir araç zaten var.");
       return;
     }
     let createCapacityValue: number | undefined;
-    if (normalizedCreateCapacityRaw.length > 0) {
-      const parsed = Number.parseInt(normalizedCreateCapacityRaw, 10);
+    if (createCapacity.trim().length > 0) {
+      const parsed = Number.parseInt(createCapacity.trim(), 10);
       if (!Number.isFinite(parsed) || parsed < VEHICLE_CAPACITY_MIN || parsed > VEHICLE_CAPACITY_MAX) {
-        setErrorMessage("Kapasite 1-120 araliginda olmali.");
+        setErrorMessage(`Kapasite ${VEHICLE_CAPACITY_MIN}-${VEHICLE_CAPACITY_MAX} aralığında olmalı.`);
         return;
       }
       createCapacityValue = parsed;
+    }
+    let createYearValue: number | undefined;
+    if (createYear.trim().length > 0) {
+      const parsed = Number.parseInt(createYear.trim(), 10);
+      if (!Number.isFinite(parsed) || parsed < 1900 || parsed > 2100) {
+        setErrorMessage("Yıl 1900-2100 aralığında olmalı.");
+        return;
+      }
+      createYearValue = parsed;
     }
 
     setCreatePending(true);
@@ -284,7 +280,9 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
       const created = await createCompanyVehicleForCompany({
         companyId,
         plate: normalizedCreatePlate,
-        label: normalizedCreateLabel || undefined,
+        brand: createBrand.trim() || undefined,
+        model: createModel.trim() || undefined,
+        year: createYearValue,
         capacity: createCapacityValue,
       });
       setVehicles((prev) => {
@@ -293,22 +291,21 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
       });
       setDrafts((prev) => ({
         ...prev,
-        [created.vehicleId]: {
-          plate: created.plate,
-          label: created.label ?? "",
-          capacity: created.capacity != null ? String(created.capacity) : "",
-          isActive: created.isActive,
-        },
+        [created.vehicleId]: vehicleDraftFromItem(created),
       }));
       setCreatePlate("");
-      setCreateLabel("");
+      setCreateBrand("");
+      setCreateModel("");
+      setCreateYear("");
       setCreateCapacity("");
       setShowCreateValidation(false);
+      setShowCreateForm(false);
       setErrorMessage(null);
-      setInfoMessage("Arac basariyla eklendi.");
+      showAutoInfo("Araç başarıyla eklendi.");
+      setSelectedVehicleId(created.vehicleId);
       setRefreshNonce((prev) => prev + 1);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Arac olusturulamadi.";
+      const message = error instanceof Error ? error.message : "Araç oluşturulamadı.";
       setErrorMessage(message);
     } finally {
       setCreatePending(false);
@@ -317,7 +314,9 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
 
   const handleResetCreateForm = () => {
     setCreatePlate("");
-    setCreateLabel("");
+    setCreateBrand("");
+    setCreateModel("");
+    setCreateYear("");
     setCreateCapacity("");
     setShowCreateValidation(false);
   };
@@ -332,14 +331,14 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
     }
     const normalizedDraftPlate = normalizePlateInput(draft.plate);
     if (normalizedDraftPlate.length < 2) {
-      setErrorMessage("Plaka en az 2 karakter olmali.");
+      setErrorMessage("Plaka en az 2 karakter olmalı.");
       return;
     }
     const duplicateExists = (vehicles ?? []).some(
       (item) => item.vehicleId !== vehicleId && normalizePlateInput(item.plate) === normalizedDraftPlate,
     );
     if (duplicateExists) {
-      setErrorMessage("Bu plaka baska bir arac kaydinda kullaniliyor.");
+      setErrorMessage("Bu plaka başka bir araç kaydında kullanılıyor.");
       return;
     }
     const draftCapacityRaw = draft.capacity.trim();
@@ -347,10 +346,19 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
     if (draftCapacityRaw.length > 0) {
       const parsed = Number.parseInt(draftCapacityRaw, 10);
       if (!Number.isFinite(parsed) || parsed < VEHICLE_CAPACITY_MIN || parsed > VEHICLE_CAPACITY_MAX) {
-        setErrorMessage("Kapasite 1-120 araliginda olmali.");
+        setErrorMessage(`Kapasite ${VEHICLE_CAPACITY_MIN}-${VEHICLE_CAPACITY_MAX} aralığında olmalı.`);
         return;
       }
       draftCapacity = parsed;
+    }
+    let draftYear: number | null = null;
+    if (draft.year.trim().length > 0) {
+      const parsed = Number.parseInt(draft.year.trim(), 10);
+      if (!Number.isFinite(parsed) || parsed < 1900 || parsed > 2100) {
+        setErrorMessage("Yıl 1900-2100 aralığında olmalı.");
+        return;
+      }
+      draftYear = parsed;
     }
 
     setSavingVehicleId(vehicleId);
@@ -359,18 +367,20 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
         companyId,
         vehicleId,
         plate: normalizedDraftPlate,
-        label: draft.label.trim().length > 0 ? draft.label : null,
+        brand: draft.brand.trim().length > 0 ? draft.brand.trim() : null,
+        model: draft.model.trim().length > 0 ? draft.model.trim() : null,
+        year: draftYear,
         capacity: draftCapacity,
-        isActive: draft.isActive,
+        status: draft.status,
       });
       setVehicles((prev) => {
         const base = prev ?? [];
         return base.map((item) => (item.vehicleId === vehicleId ? updated : item));
       });
       setErrorMessage(null);
-      setInfoMessage("Arac kaydi guncellendi.");
+      showAutoInfo("Araç kaydı güncellendi.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Arac guncellenemedi.";
+      const message = error instanceof Error ? error.message : "Araç güncellenemedi.";
       setErrorMessage(message);
     } finally {
       setSavingVehicleId(null);
@@ -381,7 +391,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
     setDrafts((prev) => ({
       ...prev,
       [vehicle.vehicleId]: {
-        ...readVehicleDraft(vehicle, prev),
+        ...(prev[vehicle.vehicleId] ?? vehicleDraftFromItem(vehicle)),
         ...patch,
       },
     }));
@@ -405,7 +415,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
         vehicleId: selectedVehicle.vehicleId,
       });
       setErrorMessage(null);
-      setInfoMessage("Arac rotaya baglandi.");
+      showAutoInfo("Araç rotaya bağlandı.");
       setRefreshNonce((prev) => prev + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Arac rotaya baglanamadi.";
@@ -428,7 +438,7 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
         vehicleId: null,
       });
       setErrorMessage(null);
-      setInfoMessage("Arac rota baglantisindan cikarildi.");
+      showAutoInfo("Araç rota bağlantısından çıkarıldı.");
       setRefreshNonce((prev) => prev + 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Arac rota baglantisi kaldirilamadi.";
@@ -439,405 +449,524 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
   };
 
   return (
-    <section className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Toplam arac</div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900">{metrics.total}</div>
-        </article>
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Aktif</div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-700">{metrics.active}</div>
-        </article>
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Pasif</div>
-          <div className="mt-2 text-2xl font-semibold text-slate-700">{metrics.inactive}</div>
-        </article>
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Kapasite girili</div>
-          <div className="mt-2 text-2xl font-semibold text-[#0f5a4c]">{metrics.capacityDefined}</div>
-        </article>
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Etiketsiz</div>
-          <div className="mt-2 text-2xl font-semibold text-amber-700">{metrics.unlabeled}</div>
-        </article>
-        <article className="glass-panel rounded-2xl p-3">
-          <div className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">Araca bagli rota</div>
-          <div className="mt-2 text-2xl font-semibold text-[#0f5a4c]">{metrics.assignedToRoute}</div>
-        </article>
+    <div className="space-y-5">
+      {/* ─── Metric cards ─── */}
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {[
+          { label: "Toplam", value: metrics.total, color: "text-slate-900" },
+          { label: "Aktif", value: metrics.active, color: "text-emerald-600" },
+          { label: "Bakımda", value: metrics.maintenance, color: "text-amber-600" },
+          { label: "Pasif", value: metrics.inactive, color: "text-slate-500" },
+          { label: "Rotaya Bağlı", value: metrics.assignedToRoute, color: "text-blue-600" },
+        ].map((card) => (
+          <div key={card.label} className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {card.label}
+            </div>
+            <div className={`mt-1 text-2xl font-bold ${card.color}`}>{card.value}</div>
+          </div>
+        ))}
       </div>
 
-      <div className="glass-panel rounded-2xl p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold text-slate-900">Arac operasyon merkezi</div>
-          <button
-            type="button"
-            onClick={() => setRefreshNonce((prev) => prev + 1)}
-            className="glass-button rounded-xl px-3 py-1.5 text-xs font-semibold"
-          >
-            Yenile
+      {/* ─── Toast messages ─── */}
+      {infoMessage && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5">
+          <svg className="h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="text-xs font-medium text-emerald-800">{infoMessage}</span>
+        </div>
+      )}
+      {errorMessage && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5">
+          <span className="text-xs font-medium text-red-800">{errorMessage}</span>
+          <button type="button" onClick={() => setErrorMessage(null)} className="shrink-0 text-red-400 hover:text-red-600">
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
           </button>
         </div>
+      )}
 
-        <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_180px_auto]">
-          <input
-            type="search"
-            value={vehicleSearchQuery}
-            onChange={(event) => setVehicleSearchQuery(event.target.value)}
-            placeholder="Plaka veya etiket ile ara"
-            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-          />
-          <select
-            value={vehicleStatusFilter}
-            onChange={(event) =>
-              setVehicleStatusFilter(event.target.value as "all" | "active" | "inactive")
-            }
-            className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-          >
-            <option value="all">Tum durumlar</option>
-            <option value="active">Sadece aktif</option>
-            <option value="inactive">Sadece pasif</option>
-          </select>
-          <div className="glass-chip inline-flex items-center rounded-xl px-3 py-2 text-xs font-semibold text-slate-700">
-            {filteredVehicles.length}/{sortedVehicles.length} gorunuyor
-          </div>
-        </div>
-
-        <div className="mb-3 flex flex-wrap gap-2 text-xs">
-          <Link
-            href={`/c/${companyId}/live-ops`}
-            className="glass-button inline-flex items-center rounded-xl px-3 py-1.5 font-semibold"
-          >
-            Canli operasyona git
-          </Link>
-          <Link
-            href={`/c/${companyId}/drivers`}
-            className="glass-button inline-flex items-center rounded-xl px-3 py-1.5 font-semibold"
-          >
-            Soforlere git
-          </Link>
-        </div>
-
-        {infoMessage ? (
-          <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-            {infoMessage}
-          </div>
-        ) : null}
-        {errorMessage ? (
-          <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-            {errorMessage}
-          </div>
-        ) : null}
-
-        {canMutate ? (
-          <div className="mb-3 rounded-xl border border-line bg-white p-3">
-            <div className="mb-2 text-xs font-semibold text-slate-700">Yeni arac ekle</div>
-            <div className="mb-2 rounded-xl border border-[#d8e5f3] bg-[#f6f9ff] px-3 py-2 text-[11px] text-[#4e637d]">
-              Plaka otomatik buyuk harfe donusturulur. Kapasite bilgisi opsiyoneldir.
-            </div>
-            <div className="grid gap-2 md:grid-cols-[170px_1fr_120px_110px]">
+      {/* ─── Main split-pane ─── */}
+      <div className="flex flex-col gap-5 lg:flex-row lg:gap-6">
+        {/* ── Left panel: search + list ── */}
+        <div className="w-full space-y-3 lg:w-[45%] lg:min-w-[340px]">
+          {/* Search & filter bar */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
-                type="text"
-                value={createPlate}
-                onChange={(event) => {
-                  setCreatePlate(normalizePlateInput(event.target.value));
-                  setShowCreateValidation(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  void handleCreateVehicle();
-                }}
-                placeholder="34ABC123"
-                className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                type="search"
+                value={vehicleSearchQuery}
+                onChange={(e) => setVehicleSearchQuery(e.target.value)}
+                placeholder="Plaka, marka veya model ara..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
               />
-              <input
-                type="text"
-                value={createLabel}
-                onChange={(event) => {
-                  setCreateLabel(event.target.value);
-                  setShowCreateValidation(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  void handleCreateVehicle();
-                }}
-                placeholder="Servis Minibus 1"
-                className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-              />
-              <input
-                type="number"
-                min={1}
-                max={120}
-                value={createCapacity}
-                onChange={(event) => {
-                  setCreateCapacity(event.target.value);
-                  setShowCreateValidation(false);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") {
-                    return;
-                  }
-                  event.preventDefault();
-                  void handleCreateVehicle();
-                }}
-                placeholder="Kapasite"
-                className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-              />
-              <button
-                type="button"
-                onClick={handleCreateVehicle}
-                disabled={!canCreate}
-                className="glass-button-primary inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {createPending ? "Ekleniyor..." : "Ekle"}
-              </button>
             </div>
-            {showCreateValidation && createValidationIssues.length > 0 ? (
-              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                <div className="font-semibold">Arac eklemeden once tamamlanmasi gerekenler:</div>
-                <div className="mt-1 space-y-1">
-                  {createValidationIssues.map((issue) => (
-                    <div key={issue}>- {issue}</div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={handleResetCreateForm}
-                className="glass-button inline-flex items-center justify-center rounded-xl px-3 py-1.5 text-xs font-semibold"
-              >
-                Formu temizle
-              </button>
-            </div>
+            <select
+              value={vehicleStatusFilter}
+              onChange={(e) => setVehicleStatusFilter(e.target.value as "all" | VehicleStatus)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="all">Tümü</option>
+              <option value="active">Aktif</option>
+              <option value="maintenance">Bakımda</option>
+              <option value="inactive">Pasif</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => setRefreshNonce((p) => p + 1)}
+              className="rounded-lg border border-slate-200 bg-white p-2 text-slate-400 shadow-sm hover:bg-slate-50 hover:text-slate-600"
+              title="Yenile"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
-        ) : (
-          <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-            Bu rolde arac ekleme ve guncelleme kapali. Sadece listeyi goruntuleyebilirsin.
-          </div>
-        )}
 
-        {!vehicles || !routes ? (
-          <div className="rounded-xl border border-dashed border-line bg-slate-50 p-3 text-xs text-muted">
-            Arac ve rota bilgileri yukleniyor...
+          {/* Quick links */}
+          <div className="flex gap-2 text-xs">
+            <Link href={`/c/${companyId}/live-ops`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 shadow-sm hover:bg-slate-50">
+              Canlı Operasyon →
+            </Link>
+            <Link href={`/c/${companyId}/drivers`} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 shadow-sm hover:bg-slate-50">
+              Şoförler →
+            </Link>
+            <span className="ml-auto rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+              {filteredVehicles.length}/{sortedVehicles.length}
+            </span>
           </div>
-        ) : sortedVehicles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line bg-slate-50 p-3 text-xs text-muted">
-            Bu sirkete kayitli arac bulunmuyor.
-          </div>
-        ) : (
-          <div className="grid gap-3 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-2">
-              {filteredVehicles.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line bg-slate-50 p-3 text-xs text-muted">
-                  Arama ve filtreye uygun arac bulunamadi.
-                </div>
+
+          {/* Add vehicle button or form */}
+          {canMutate && (
+            <>
+              {!showCreateForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-blue-200 bg-blue-50/50 px-3 py-2.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                >
+                  <span className="text-base leading-none">+</span> Yeni Araç Ekle
+                </button>
               ) : (
-                filteredVehicles.map((vehicle) => (
-                  <button
-                    key={vehicle.vehicleId}
-                    type="button"
-                    onClick={() => setSelectedVehicleId(vehicle.vehicleId)}
-                    className={`w-full rounded-xl border p-3 text-left ${
-                      selectedVehicleId === vehicle.vehicleId
-                        ? "border-[#7ac7b6] bg-[#f2fcf9]"
-                        : "border-line bg-white"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-sm font-semibold text-slate-900">{vehicle.plate}</div>
-                      <div
-                        className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                          vehicle.isActive
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        {vehicle.isActive ? "Aktif" : "Pasif"}
+                <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50/30 p-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Plaka *</span>
+                      <input
+                        type="text"
+                        value={createPlate}
+                        onChange={(e) => { setCreatePlate(normalizePlateInput(e.target.value)); setShowCreateValidation(false); }}
+                        placeholder="34ABC123"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Marka</span>
+                      <input
+                        type="text"
+                        value={createBrand}
+                        onChange={(e) => setCreateBrand(e.target.value)}
+                        placeholder="Ford"
+                        maxLength={80}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Model</span>
+                      <input
+                        type="text"
+                        value={createModel}
+                        onChange={(e) => setCreateModel(e.target.value)}
+                        placeholder="Transit"
+                        maxLength={80}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Yıl</span>
+                        <input
+                          type="number"
+                          min={1900}
+                          max={2100}
+                          value={createYear}
+                          onChange={(e) => setCreateYear(e.target.value)}
+                          placeholder="2024"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        />
                       </div>
-                    </div>
-                    <div className="mt-1 text-xs text-slate-600">{vehicle.label ?? "Etiket girilmemis"}</div>
-                    <div className="mt-1 text-[11px] text-muted">
-                      Kapasite: {vehicle.capacity ?? "BULUNAMADI"} | Son guncelleme:{" "}
-                      {formatDateTime(vehicle.updatedAt)}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-
-            <aside className="glass-panel-muted rounded-2xl p-3">
-              {!selectedVehicle || !selectedVehicleDraft ? (
-                <div className="rounded-xl border border-dashed border-line bg-white p-3 text-xs text-muted">
-                  Detay icin bir arac secin.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-base font-semibold text-slate-900">{selectedVehicle.plate}</div>
-                    <div className="mt-1 text-xs text-muted">Sistem kimligi: {selectedVehicle.vehicleId}</div>
-                    <div className="mt-1 text-xs text-slate-600">
-                      Olusturma: {formatDateTime(selectedVehicle.createdAt)} | Son guncelleme:{" "}
-                      {formatDateTime(selectedVehicle.updatedAt)}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-line bg-white p-3">
-                    <div className="mb-2 text-xs font-semibold text-slate-700">Arac bilgileri</div>
-                    {canMutate ? (
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={selectedVehicleDraft.plate}
-                          onChange={(event) =>
-                            updateDraft(selectedVehicle, {
-                              plate: normalizePlateInput(event.target.value),
-                            })
-                          }
-                          className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-                        />
-                        <input
-                          type="text"
-                          value={selectedVehicleDraft.label}
-                          onChange={(event) => updateDraft(selectedVehicle, { label: event.target.value })}
-                          placeholder="Arac etiketi"
-                          className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
-                        />
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Kapasite</span>
                         <input
                           type="number"
                           min={1}
-                          max={120}
-                          value={selectedVehicleDraft.capacity}
-                          onChange={(event) => updateDraft(selectedVehicle, { capacity: event.target.value })}
-                          placeholder="Kapasite"
-                          className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                          max={200}
+                          value={createCapacity}
+                          onChange={(e) => setCreateCapacity(e.target.value)}
+                          placeholder="30"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                         />
-                        <label className="glass-input inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-900">
-                          <input
-                            type="checkbox"
-                            checked={selectedVehicleDraft.isActive}
-                            onChange={(event) =>
-                              updateDraft(selectedVehicle, { isActive: event.target.checked })
-                            }
-                          />
-                          Arac aktif
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => handleSaveVehicle(selectedVehicle.vehicleId)}
-                          disabled={savingVehicleId === selectedVehicle.vehicleId}
-                          className="glass-button-primary inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {savingVehicleId === selectedVehicle.vehicleId
-                            ? "Kaydediliyor..."
-                            : "Degisiklikleri kaydet"}
-                        </button>
                       </div>
-                    ) : (
-                      <div className="space-y-2 text-sm">
-                        <div className="rounded-xl border border-line px-3 py-2 text-slate-900">
-                          Etiket: {selectedVehicle.label ?? "Etiket girilmemis"}
+                    </div>
+                  </div>
+                  {showCreateValidation && createValidationIssues.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      {createValidationIssues.map((issue) => (
+                        <div key={issue}>• {issue}</div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCreateVehicle}
+                      disabled={!canCreate}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {createPending ? (
+                        <>
+                          <span className="block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                          Ekleniyor...
+                        </>
+                      ) : (
+                        "Ekle"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { handleResetCreateForm(); setShowCreateForm(false); }}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
+                    >
+                      İptal
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Vehicle list */}
+          {!vehicles || !routes ? (
+            <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-500" />
+              <span className="text-xs text-slate-500">Araçlar yükleniyor...</span>
+            </div>
+          ) : sortedVehicles.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+              <svg className="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3.276a2.25 2.25 0 00-.659-1.591l-2.432-2.432a2.25 2.25 0 00-1.591-.659H13.5V7.5a.75.75 0 00-.75-.75H5.625m7.5 11.25H12m0 0H5.625m0 0H3.375" />
+              </svg>
+              <p className="mt-3 text-sm font-medium text-slate-500">Henüz araç eklenmemiş</p>
+              <p className="mt-1 text-xs text-slate-400">İlk aracınızı ekleyerek filonuzu oluşturun.</p>
+              {canMutate && !showCreateForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className="mt-3 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  <span className="text-base leading-none">+</span> İlk Aracı Ekle
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {filteredVehicles.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                  Arama ve filtreye uygun araç bulunamadı.
+                </div>
+              ) : (
+                filteredVehicles.map((vehicle) => {
+                  const isSelected = selectedVehicleId === vehicle.vehicleId;
+                  const statusOpt = VEHICLE_STATUS_OPTIONS.find((o) => o.value === vehicle.status);
+                  const statusBadge = statusOpt
+                    ? {
+                        active: "border-emerald-200 bg-emerald-50 text-emerald-700",
+                        maintenance: "border-amber-200 bg-amber-50 text-amber-700",
+                        inactive: "border-slate-200 bg-slate-100 text-slate-600",
+                      }[statusOpt.value]
+                    : "border-slate-200 bg-slate-100 text-slate-600";
+
+                  return (
+                    <button
+                      key={vehicle.vehicleId}
+                      type="button"
+                      onClick={() => setSelectedVehicleId(vehicle.vehicleId)}
+                      className={`group w-full rounded-lg border px-3 py-2.5 text-left transition-all ${
+                        isSelected
+                          ? "border-blue-300 bg-blue-50/60 shadow-sm"
+                          : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900">{vehicle.plate}</span>
+                          {vehicle.label && (
+                            <span className="truncate text-xs text-slate-500">{vehicle.label}</span>
+                          )}
                         </div>
-                        <div className="rounded-xl border border-line px-3 py-2 text-slate-900">
-                          Kapasite: {selectedVehicle.capacity ?? "BULUNAMADI"}
-                        </div>
-                        <div className="rounded-xl border border-line px-3 py-2 text-slate-900">
-                          Durum: {selectedVehicle.isActive ? "Aktif" : "Pasif"}
-                        </div>
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusBadge}`}>
+                          {statusOpt?.label ?? "—"}
+                        </span>
                       </div>
+                      <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
+                        {vehicle.year && <span>{vehicle.year}</span>}
+                        {vehicle.capacity != null && <span>{vehicle.capacity} kişi</span>}
+                        <span className="ml-auto">{formatDateTime(vehicle.updatedAt)}</span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Right panel: detail (sticky) ── */}
+        <div className="w-full lg:w-[55%]">
+          <div className="lg:sticky lg:top-4">
+            {!selectedVehicle || !selectedVehicleDraft ? (
+              <div className="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center" style={{ minHeight: "400px" }}>
+                <div className="space-y-2 px-6">
+                  <svg className="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-3.276a2.25 2.25 0 00-.659-1.591l-2.432-2.432a2.25 2.25 0 00-1.591-.659H13.5V7.5a.75.75 0 00-.75-.75H5.625m7.5 11.25H12m0 0H5.625m0 0H3.375" />
+                  </svg>
+                  <p className="text-sm font-medium text-slate-400">Araç Detayı</p>
+                  <p className="text-xs text-slate-400">Listeden bir araç seçin.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Vehicle header */}
+                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">{selectedVehicle.plate}</h2>
+                    {selectedVehicle.label && (
+                      <p className="text-sm text-slate-500">{selectedVehicle.label}</p>
                     )}
                   </div>
+                  {(() => {
+                    const so = VEHICLE_STATUS_OPTIONS.find((o) => o.value === selectedVehicle.status);
+                    const badge = {
+                      active: "border-emerald-200 bg-emerald-50 text-emerald-700",
+                      maintenance: "border-amber-200 bg-amber-50 text-amber-700",
+                      inactive: "border-slate-200 bg-slate-100 text-slate-600",
+                    }[selectedVehicle.status] ?? "border-slate-200 bg-slate-100 text-slate-600";
+                    return (
+                      <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${badge}`}>
+                        {so?.label ?? "—"}
+                      </span>
+                    );
+                  })()}
+                </div>
 
-                  <div className="rounded-xl border border-line bg-white p-3">
-                    <div className="mb-2 text-xs font-semibold text-slate-700">Bagli soforler</div>
-                    {selectedVehicleDrivers.length === 0 ? (
-                      <div className="text-xs text-muted">Bu aracin rotalarina atanmis sofor yok.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedVehicleDrivers.map((driver) => (
-                          <div
-                            key={driver.driverId}
-                            className="flex items-center justify-between gap-2 rounded-xl border border-line px-2 py-1.5"
-                          >
-                            <div>
-                              <div className="text-xs font-semibold text-slate-900">{driver.name}</div>
-                              <div className="text-[11px] text-muted">
-                                {driver.plateMasked}{driver.phoneMasked ? ` · ${driver.phoneMasked}` : ""}
-                              </div>
-                            </div>
-                            <div
-                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                                driver.status === "active"
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                  : "border-slate-200 bg-slate-100 text-slate-500"
+                {/* Edit section */}
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Araç Bilgileri</h3>
+                  {canMutate ? (
+                    <div className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Plaka</span>
+                          <input
+                            type="text"
+                            value={selectedVehicleDraft.plate}
+                            onChange={(e) => updateDraft(selectedVehicle, { plate: normalizePlateInput(e.target.value) })}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Marka</span>
+                          <input
+                            type="text"
+                            value={selectedVehicleDraft.brand}
+                            onChange={(e) => updateDraft(selectedVehicle, { brand: e.target.value })}
+                            placeholder="Ford"
+                            maxLength={80}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Model</span>
+                          <input
+                            type="text"
+                            value={selectedVehicleDraft.model}
+                            onChange={(e) => updateDraft(selectedVehicle, { model: e.target.value })}
+                            placeholder="Transit"
+                            maxLength={80}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Yıl</span>
+                            <input
+                              type="number"
+                              min={1900}
+                              max={2100}
+                              value={selectedVehicleDraft.year}
+                              onChange={(e) => updateDraft(selectedVehicle, { year: e.target.value })}
+                              placeholder="2024"
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Kapasite</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={200}
+                              value={selectedVehicleDraft.capacity}
+                              onChange={(e) => updateDraft(selectedVehicle, { capacity: e.target.value })}
+                              placeholder="30"
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Status segmented control */}
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Durum</span>
+                        <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                          {VEHICLE_STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => updateDraft(selectedVehicle, { status: opt.value })}
+                              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                                selectedVehicleDraft.status === opt.value
+                                  ? opt.value === "active"
+                                    ? "bg-emerald-500 text-white shadow-sm"
+                                    : opt.value === "maintenance"
+                                      ? "bg-amber-500 text-white shadow-sm"
+                                      : "bg-slate-500 text-white shadow-sm"
+                                  : "text-slate-500 hover:text-slate-700"
                               }`}
                             >
-                              {driver.status === "active" ? "Aktif" : "Pasif"}
-                            </div>
-                          </div>
-                        ))}
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleSaveVehicle(selectedVehicle.vehicleId)}
+                        disabled={savingVehicleId === selectedVehicle.vehicleId}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {savingVehicleId === selectedVehicle.vehicleId ? (
+                          <>
+                            <span className="block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            Kaydediliyor...
+                          </>
+                        ) : (
+                          "Değişiklikleri Kaydet"
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2 text-sm sm:grid-cols-2">
+                      {[
+                        { label: "Marka", value: selectedVehicle.brand },
+                        { label: "Model", value: selectedVehicle.model },
+                        { label: "Yıl", value: selectedVehicle.year },
+                        { label: "Kapasite", value: selectedVehicle.capacity != null ? `${selectedVehicle.capacity} kişi` : null },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-lg border border-slate-100 px-3 py-2">
+                          <span className="text-[10px] font-semibold uppercase text-slate-400">{item.label}</span>
+                          <p className="text-sm text-slate-700">{item.value ?? "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex gap-4 text-[11px] text-slate-400">
+                    <span>Oluşturma: {formatDateTime(selectedVehicle.createdAt)}</span>
+                    <span>Güncelleme: {formatDateTime(selectedVehicle.updatedAt)}</span>
                   </div>
+                </div>
 
-                  <div className="rounded-xl border border-line bg-white p-3">
-                    <div className="mb-2 text-xs font-semibold text-slate-700">Rota baglantilari</div>
-                    {selectedVehicleRoutes.length === 0 ? (
-                      <div className="text-xs text-muted">Bu araca bagli aktif rota yok.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {selectedVehicleRoutes.map((route) => (
-                          <div
-                            key={route.routeId}
-                            className="flex items-center justify-between gap-2 rounded-xl border border-line px-2 py-1.5"
-                          >
-                            <div>
-                              <div className="text-xs font-semibold text-slate-900">{route.name}</div>
-                              <div className="text-[11px] text-muted">
-                                Saat: {route.scheduledTime ?? "BULUNAMADI"}
-                              </div>
-                            </div>
-                            {canMutate ? (
-                              <button
-                                type="button"
-                                onClick={() => handleUnassignVehicleFromRoute(route.routeId)}
-                                disabled={actionKey === `unassign:${selectedVehicle.vehicleId}:${route.routeId}`}
-                                className="glass-button rounded-lg px-2 py-1 text-[11px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                {actionKey === `unassign:${selectedVehicle.vehicleId}:${route.routeId}`
-                                  ? "Kaldiriliyor..."
-                                  : "Kaldir"}
-                              </button>
-                            ) : null}
+                {/* Linked drivers */}
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Bağlı Şoförler</h3>
+                  {selectedVehicleDrivers.length === 0 ? (
+                    <p className="text-xs text-slate-400">Bu aracın rotalarına atanmış şoför yok.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {selectedVehicleDrivers.map((driver) => (
+                        <div key={driver.driverId} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2">
+                          <div>
+                            <span className="text-xs font-semibold text-slate-900">{driver.name}</span>
+                            <span className="ml-2 text-[11px] text-slate-400">
+                              {driver.plateMasked}{driver.phoneMasked ? ` · ${driver.phoneMasked}` : ""}
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                            driver.status === "active"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-slate-200 bg-slate-100 text-slate-500"
+                          }`}>
+                            {driver.status === "active" ? "Aktif" : "Pasif"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                    {canMutate ? (
-                      <div className="mt-3">
-                        <div className="mb-2 text-xs font-semibold text-slate-700">Rotaya bagla</div>
+                {/* Route assignments */}
+                <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Rota Bağlantıları</h3>
+                  {selectedVehicleRoutes.length === 0 ? (
+                    <p className="text-xs text-slate-400">Bu araca bağlı aktif rota yok.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {selectedVehicleRoutes.map((route) => (
+                        <div key={route.routeId} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2">
+                          <div>
+                            <span className="text-xs font-semibold text-slate-900">{route.name}</span>
+                            <span className="ml-2 text-[11px] text-slate-400">
+                              Saat: {route.scheduledTime ?? "—"}
+                            </span>
+                          </div>
+                          {canMutate && (
+                            <button
+                              type="button"
+                              onClick={() => handleUnassignVehicleFromRoute(route.routeId)}
+                              disabled={actionKey === `unassign:${selectedVehicle.vehicleId}:${route.routeId}`}
+                              className="rounded-md px-2 py-1 text-[11px] font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {actionKey === `unassign:${selectedVehicle.vehicleId}:${route.routeId}` ? "Kaldırılıyor..." : "Kaldır"}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {canMutate && (
+                    <div className="mt-3 border-t border-slate-100 pt-3">
+                      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-slate-500">Rotaya Bağla</span>
+                      <div className="flex gap-2">
                         <select
                           value={routeSelectionByVehicle[selectedVehicle.vehicleId] ?? ""}
-                          onChange={(event) =>
+                          onChange={(e) =>
                             setRouteSelectionByVehicle((prev) => ({
                               ...prev,
-                              [selectedVehicle.vehicleId]: event.target.value,
+                              [selectedVehicle.vehicleId]: e.target.value,
                             }))
                           }
-                          className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900"
+                          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
                         >
                           {assignableRoutes.length === 0 ? <option value="">Uygun rota yok</option> : null}
                           {assignableRoutes.map((route) => (
                             <option key={route.routeId} value={route.routeId}>
-                              {route.name} {route.vehiclePlate ? `(su an: ${route.vehiclePlate})` : ""}
+                              {route.name} {route.vehiclePlate ? `(şu an: ${route.vehiclePlate})` : ""}
                             </option>
                           ))}
                         </select>
@@ -850,26 +979,22 @@ export function CompanyVehiclesManagement({ companyId }: Props) {
                             actionKey ===
                               `assign:${selectedVehicle.vehicleId}:${routeSelectionByVehicle[selectedVehicle.vehicleId]}`
                           }
-                          className="glass-button-primary mt-2 inline-flex rounded-xl px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {actionKey ===
                           `assign:${selectedVehicle.vehicleId}:${routeSelectionByVehicle[selectedVehicle.vehicleId]}`
-                            ? "Baglaniyor..."
-                            : "Secili rotaya bagla"}
+                            ? "Bağlanıyor..."
+                            : "Bağla"}
                         </button>
                       </div>
-                    ) : (
-                      <div className="mt-2 text-xs text-muted">
-                        Rota baglama islemleri bu rolde kapali (salt okuma).
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </aside>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
