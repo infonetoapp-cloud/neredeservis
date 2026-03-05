@@ -36,6 +36,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https:",
               "style-src 'self' 'unsafe-inline' https:",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+              "frame-src 'self' https://challenges.cloudflare.com",
               "connect-src 'self' https: wss:",
             ].join("; "),
           },

@@ -12,15 +12,15 @@ export function getPublicAppName(): string {
 }
 
 export function isGoogleLoginEnabled(): boolean {
-  const flag = (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN ?? "true").trim().toLowerCase();
-  return flag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN ?? "false").trim().toLowerCase();
+  return flag === "true";
 }
 
 export function isMicrosoftLoginEnabled(): boolean {
-  const flag = (process.env.NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN ?? "true")
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN ?? "false")
     .trim()
     .toLowerCase();
-  return flag !== "false";
+  return flag === "true";
 }
 
 export function isEmailLoginEnabled(): boolean {
@@ -70,6 +70,11 @@ export function getFirebaseFunctionsRegion(): string {
 export function getMapboxToken(): string | null {
   const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
   return mapboxToken || null;
+}
+
+export function getTurnstileSiteKey(): string | null {
+  const siteKey = (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "").trim();
+  return siteKey || null;
 }
 
 // Backward-compatible alias used by legacy dashboard components.
