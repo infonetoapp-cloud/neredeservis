@@ -5,26 +5,20 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { useAuthSession } from "@/features/auth/auth-session-provider";
-import { isPlatformOwner } from "@/lib/env/public-env";
 
 /**
- * Platform Owner Guard — yalnızca NEXT_PUBLIC_PLATFORM_OWNER_UID ile
- * eşleşen giriş yapmış kullanıcıya erişim izni verir.
- * Diğer tüm durumlarda /giris veya /dashboard'a yönlendirir.
+ * Platform shell erişimi için istemci tarafında yalnızca auth kapısı uygulanır.
+ * Yetki kontrolü backend callable katmanında server-side olarak zorunlu kalır.
  */
 export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { status, user } = useAuthSession();
+  const { status } = useAuthSession();
 
- useEffect(() => {
+  useEffect(() => {
     if (status === "signed_out") {
       router.replace("/giris?next=/platform/companies");
     }
-
-    if (status === "signed_in" && !isPlatformOwner(user?.uid)) {
-      router.replace("/dashboard");
-    }
-  }, [status, user, router]);
+  }, [status, router]);
 
   if (status === "loading") {
     return (
@@ -47,14 +41,6 @@ export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         Firebase public env eksik oldugu icin platform guard pasif.
-      </div>
-    );
-  }
-
-  if (!isPlatformOwner(user?.uid)) {
-    return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-        Bu sayfaya erisim yetkiniz yok. Dashboard&apos;a yonlendiriliyorsunuz...
       </div>
     );
   }

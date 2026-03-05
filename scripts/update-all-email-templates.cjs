@@ -4,11 +4,11 @@
  */
 'use strict';
 const auth = require('C:/Users/sinan/AppData/Roaming/npm/node_modules/firebase-tools/lib/auth');
+const api = require('C:/Users/sinan/AppData/Roaming/npm/node_modules/firebase-tools/lib/api');
 const https = require('https');
 const PROJECT = 'neredeservis-prod-01';
-// firebase-tools'un public OAuth client bilgileri
-const CLIENT_ID = '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com';
-const CLIENT_SECRET = 'j9iVZfS8kkCEFUPaAeJV0sAi';
+const CLIENT_ID = process.env.FIREBASE_CLIENT_ID || api.clientId();
+const CLIENT_SECRET = process.env.FIREBASE_CLIENT_SECRET || api.clientSecret();
 
 function postForm(url, data) {
   return new Promise((resolve, reject) => {

@@ -150,7 +150,7 @@ service cloud.firestore {
       allow read, write, delete: if false;
     }
 
-    match /site_config/{docId} {
+    match /site_config/landing_page {
       allow read: if true;
       allow write: if false;
     }
