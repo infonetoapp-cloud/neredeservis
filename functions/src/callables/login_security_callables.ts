@@ -32,6 +32,10 @@ function readTurnstileSecret(): string {
   return (process.env[TURNSTILE_SECRET_ENV] ?? '').trim();
 }
 
+function isTurnstileEnabled(): boolean {
+  return readTurnstileSecret().length > 0;
+}
+
 function normalizeEmail(rawValue: string | null): string | null {
   const normalized = (rawValue ?? '').trim().toLowerCase();
   if (!normalized) {
@@ -175,7 +179,7 @@ export function createLoginSecurityCallables({
       );
     }
 
-    const captchaRequired = state.failedCount >= captchaThreshold;
+    const captchaRequired = isTurnstileEnabled() && state.failedCount >= captchaThreshold;
     if (captchaRequired) {
       if (!captchaToken) {
         throw new HttpsError('failed-precondition', 'Captcha zorunlu. Lutfen dogrulamayi tamamlayin.');
