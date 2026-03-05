@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 import { TurnstileWidget } from "@/components/security/turnstile-widget";
 import {
@@ -54,33 +56,33 @@ function shouldReportFailedLogin(error: unknown): boolean {
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase yapılandırması eksik. Giriş başlatılamadı.";
+      return "Firebase yapilandirmasi eksik. Giris baslatilamadi.";
     }
     const code = readErrorCode(error);
     if (code === "auth/invalid-credential") {
-      return "E-posta veya şifre hatalı.";
+      return "E-posta veya sifre hatali.";
     }
     if (code === "auth/too-many-requests") {
-      return "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.";
+      return "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin.";
     }
     if (code === "auth/network-request-failed") {
-      return "Ağ hatası. Bağlantınızı kontrol edip tekrar deneyin.";
+      return "Ag hatasi. Baglantinizi kontrol edip tekrar deneyin.";
     }
     if (code === "auth/missing-email") {
-      return "Şifre sıfırlama için önce e-posta girin.";
+      return "Sifre sifirlama icin once e-posta girin.";
     }
     if (code === "functions/failed-precondition") {
-      return "Güvenlik doğrulaması gerekli. Captcha adımını tamamlayın.";
+      return "Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.";
     }
     if (code === "functions/permission-denied") {
-      return "Captcha doğrulaması başarısız. Tekrar deneyin.";
+      return "Captcha dogrulamasi basarisiz. Tekrar deneyin.";
     }
     if (code === "functions/resource-exhausted") {
-      return error.message || "Çok fazla başarısız deneme yapıldı. Lütfen biraz sonra tekrar deneyin.";
+      return error.message || "Cok fazla basarisiz deneme. Lutfen biraz sonra tekrar deneyin.";
     }
-    return code ? `Giriş hatası (${code})` : error.message;
+    return code ? `Giris hatasi (${code})` : error.message;
   }
-  return "Beklenmeyen bir hata oluştu.";
+  return "Beklenmeyen bir hata olustu.";
 }
 
 export function LoginForm() {
@@ -90,6 +92,7 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"email" | null>(null);
   const [resetStatus, setResetStatus] = useState<"idle" | "sending" | "sent">("idle");
@@ -98,10 +101,7 @@ export function LoginForm() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [lockSecondsRemaining, setLockSecondsRemaining] = useState(0);
 
-  const nextPath = useMemo(
-    () => resolvePostLoginPath(searchParams.get("next")),
-    [searchParams],
-  );
+  const nextPath = useMemo(() => resolvePostLoginPath(searchParams.get("next")), [searchParams]);
   const emailEnabled = isEmailLoginEnabled();
   const fastLoginCreds = useMemo(() => getDevFastLoginCredentials(), []);
   const turnstileSiteKey = getTurnstileSiteKey();
@@ -160,8 +160,8 @@ export function LoginForm() {
 
   if (status === "signed_in") {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum açık. Yönlendiriliyorsunuz...
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+        Oturum acik. Yonlendiriliyorsunuz...
       </div>
     );
   }
@@ -169,7 +169,7 @@ export function LoginForm() {
   const submitEmailPassword = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !password.trim()) {
-      setErrorMessage("E-posta ve şifre alanları zorunludur.");
+      setErrorMessage("E-posta ve sifre alanlari zorunludur.");
       return;
     }
 
@@ -186,7 +186,7 @@ export function LoginForm() {
       setLockSecondsRemaining(guard.lockSecondsRemaining);
 
       if (guard.captchaRequired && !captchaToken) {
-        setErrorMessage("Güvenlik doğrulaması gerekli. Captcha adımını tamamlayın.");
+        setErrorMessage("Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.");
         return;
       }
 
@@ -208,7 +208,7 @@ export function LoginForm() {
             setCaptchaRequired(true);
           }
         } catch {
-          // no-op: auth error'u bastirmamak icin raporlama hatasi yutulur.
+          // no-op
         }
       }
       setErrorMessage(toFriendlyErrorMessage(error));
@@ -240,95 +240,110 @@ export function LoginForm() {
   return (
     <div className="space-y-4">
       {errorMessage ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900">
           {errorMessage}
         </div>
       ) : null}
 
       {lockSecondsRemaining > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
-          Güvenlik bekleme süresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Guvenlik bekleme suresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <div>
-          <label className="mb-2 block text-[13px] font-semibold text-slate-800">E-posta</label>
+      <div>
+        <label className="mb-2 block text-[15px] font-semibold text-slate-800">E-posta</label>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
           <input
             type="email"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="ornek@firma.com"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50/85 px-4 py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 transition focus:border-brand/55 focus:bg-white focus:ring-4 focus:ring-brand/10"
+            placeholder="ornek@sirket.com"
+            className="w-full rounded-xl border border-[#cfd4df] bg-white py-2.5 pl-10 pr-4 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
+      </div>
 
-        <div>
-          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Şifre</label>
+      <div>
+        <label className="mb-2 block text-[15px] font-semibold text-slate-800">Sifre</label>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="********"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50/85 px-4 py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 transition focus:border-brand/55 focus:bg-white focus:ring-4 focus:ring-brand/10"
+            className="w-full rounded-xl border border-[#cfd4df] bg-white py-2.5 pl-10 pr-10 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((value) => !value)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            aria-label={showPassword ? "Sifreyi gizle" : "Sifreyi goster"}
+          >
+            {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+          </button>
         </div>
       </div>
 
       {showCaptcha ? (
         turnstileSiteKey ? (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-            <p className="mb-2 text-xs font-semibold text-slate-700">
-              Çoklu başarısız giriş algılandı. Lütfen captcha doğrulamasını tamamlayın.
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <p className="mb-2 text-xs font-medium text-slate-700">
+              Coklu basarisiz giris algilandi. Lutfen captcha dogrulamasini tamamlayin.
             </p>
             <TurnstileWidget siteKey={turnstileSiteKey} onTokenChange={handleCaptchaTokenChange} />
           </div>
         ) : (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
-            Captcha anahtarı tanımlı değil. `NEXT_PUBLIC_TURNSTILE_SITE_KEY` gerekli.
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
+            Captcha site key tanimli degil. NEXT_PUBLIC_TURNSTILE_SITE_KEY gerekli.
           </div>
         )
-      ) : null}
-
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={triggerPasswordReset}
-          disabled={isBusy || resetStatus === "sending"}
-          className="text-sm font-medium text-slate-600 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {resetStatus === "sending" ? "Sıfırlama e-postası gönderiliyor..." : "Şifremi unuttum"}
-        </button>
-
-        {resetStatus === "sent" ? (
-          <span className="text-xs font-semibold text-emerald-700">Sıfırlama e-postası gönderildi</span>
-        ) : null}
-      </div>
-
-      {isDevAppEnv() && fastLoginCreds ? (
-        <button
-          type="button"
-          onClick={applyFastLogin}
-          className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
-        >
-          Hızlı doldur
-        </button>
       ) : null}
 
       <button
         type="button"
         disabled={!canSubmitEmail}
         onClick={submitEmailPassword}
-        className="mt-1 w-full rounded-2xl bg-gradient-to-r from-brand to-[#0a3f9f] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_24px_-14px_rgba(10,79,191,0.85)] transition hover:from-[#0b56d4] hover:to-[#083a8f] disabled:cursor-not-allowed disabled:opacity-55"
+        className="w-full rounded-xl bg-[#1f5ef0] px-4 py-2.5 text-base font-semibold text-white transition hover:bg-[#1a4ed2] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Giriş yapılıyor..." : "Giriş yap"}
+        {pendingAction === "email" ? "Giris yapiliyor..." : "Giris yap"}
       </button>
+
+      <div className="flex items-center justify-between text-sm">
+        <button
+          type="button"
+          onClick={triggerPasswordReset}
+          disabled={isBusy || resetStatus === "sending"}
+          className="text-brand hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {resetStatus === "sending" ? "Gonderiliyor..." : "Sifremi unuttum"}
+        </button>
+        <Link href="/" className="text-slate-500 hover:underline">
+          Ana sayfa
+        </Link>
+      </div>
+
+      {resetStatus === "sent" ? (
+        <p className="text-xs text-emerald-700">Sifirlama e-postasi gonderildi.</p>
+      ) : null}
+
+      {isDevAppEnv() && fastLoginCreds ? (
+        <button
+          type="button"
+          onClick={applyFastLogin}
+          className="w-full rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
+        >
+          Hizli doldur
+        </button>
+      ) : null}
 
       {!emailEnabled ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Kurumsal e-posta ile giriş şu an kapalı.
+          Kurumsal e-posta ile giris su an kapali.
         </div>
       ) : null}
     </div>
