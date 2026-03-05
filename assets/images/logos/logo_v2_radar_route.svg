@@ -1,0 +1,27 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="v2-bg-gradient" x1="180" y1="120" x2="884" y2="820" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB93A"/>
+      <stop offset="1" stop-color="#FF6B2D"/>
+    </linearGradient>
+    <linearGradient id="v2-route-gradient" x1="300" y1="600" x2="740" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D2741"/>
+      <stop offset="1" stop-color="#1D4264"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="140" y="100" width="744" height="744" rx="208" fill="url(#v2-bg-gradient)"/>
+
+  <circle cx="512" cy="472" r="252" stroke="#0F2238" stroke-opacity="0.16" stroke-width="24"/>
+  <circle cx="512" cy="472" r="188" stroke="#0F2238" stroke-opacity="0.24" stroke-width="16" stroke-dasharray="20 16"/>
+  <circle cx="512" cy="472" r="122" stroke="#0F2238" stroke-opacity="0.3" stroke-width="12"/>
+
+  <path d="M304 604C374 504 482 510 550 438C606 379 677 355 742 398" stroke="url(#v2-route-gradient)" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="304" cy="604" r="22" fill="#0D2741"/>
+  <circle cx="742" cy="398" r="22" fill="#0D2741"/>
+
+  <path d="M512 296C445.726 296 392 349.726 392 416C392 501.611 512 609 512 609C512 609 632 501.611 632 416C632 349.726 578.274 296 512 296Z" fill="#FDF7EE"/>
+  <path d="M512 352L482 420H520L498 482L552 406H518L542 352H512Z" fill="#FF7A30"/>
+
+  <text x="512" y="958" text-anchor="middle" fill="#1D2B3A" font-family="'Space Grotesk', 'Manrope', sans-serif" font-size="110" font-weight="700" letter-spacing="2">NEREDE SERVIS</text>
+</svg>
