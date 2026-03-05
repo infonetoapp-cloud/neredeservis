@@ -8,107 +8,67 @@ import { ConfigValidationBanner } from "@/components/shared/config-validation-ba
 type LoginPageShellProps = {
   title?: string;
   description?: string;
+  mobilePreviewSrc?: string;
 };
 
-const MAP_MARKERS = [
-  { top: "18%", left: "22%", label: "Araç 24" },
-  { top: "30%", left: "68%", label: "Rota 6" },
-  { top: "52%", left: "40%", label: "Şoför 12" },
-  { top: "66%", left: "74%", label: "Durak 31" },
-] as const;
-
-function MapPreviewPanel() {
+function IPhoneMockup({ mobilePreviewSrc }: { mobilePreviewSrc?: string }) {
   return (
-    <section className="relative h-full min-h-[560px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-[#eaf1ff] via-[#f6f9ff] to-[#edf6ff] p-6 shadow-sm">
+    <div className="relative h-[620px] w-[315px] rounded-[56px] border-8 border-slate-900 bg-slate-900 p-2 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.7)]">
+      <div className="absolute left-1/2 top-0 z-20 h-8 w-40 -translate-x-1/2 rounded-b-3xl bg-slate-900" />
+
+      <div className="relative h-full w-full overflow-hidden rounded-[44px] bg-gradient-to-br from-[#0a4fbf] via-[#0a2d79] to-[#031332]">
+        {mobilePreviewSrc ? (
+          <img
+            src={mobilePreviewSrc}
+            alt="Mobil uygulama önizlemesi"
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center px-8 text-center">
+            <div className="rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-100">
+              Yakında
+            </div>
+            <h3 className="mt-5 text-2xl font-semibold tracking-tight text-white">Mobil uygulama önizleme</h3>
+            <p className="mt-2 text-sm leading-6 text-blue-100/90">
+              Uygulama ekran görüntünüz hazır olduğunda bu alana doğrudan yerleştirebilirsiniz.
+            </p>
+          </div>
+        )}
+
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.18),transparent_35%)]" />
+      </div>
+    </div>
+  );
+}
+
+function MobilePreviewPanel({ mobilePreviewSrc }: { mobilePreviewSrc?: string }) {
+  return (
+    <section className="relative h-full min-h-[620px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-[#eaf1ff] via-[#f5f9ff] to-[#ebf5ff] p-7 shadow-sm">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)] [background-size:32px_32px]"
+        className="pointer-events-none absolute inset-0 opacity-70 [background-image:linear-gradient(to_right,rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.06)_1px,transparent_1px)] [background-size:34px_34px]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-cyan-300/40 blur-3xl"
+        className="pointer-events-none absolute -left-12 bottom-12 h-56 w-56 rounded-full bg-blue-400/20 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-10 bottom-8 h-56 w-56 rounded-full bg-brand/20 blur-3xl"
+        className="pointer-events-none absolute -right-8 top-10 h-48 w-48 rounded-full bg-cyan-300/25 blur-3xl"
       />
 
-      <div className="relative z-10 flex h-full flex-col">
-        <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 backdrop-blur">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Canlı operasyon görünümü</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Rota ve filo akışı tek bakışta</h2>
+      <div className="relative z-10 flex h-full flex-col items-center justify-center">
+        <div className="w-full rounded-2xl border border-white/80 bg-white/85 px-5 py-4 text-center backdrop-blur">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Mobil deneyim</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">Uygulama ekranınız burada</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Giriş sonrası araçlar, rotalar ve canlı hareketler için sade bir kontrol ekranına geçersiniz.
+            Şimdilik mockup görünüyor, mobil uygulama tamamlanınca gerçek ekran görüntüsünü koyabiliriz.
           </p>
         </div>
 
-        <div className="relative mt-5 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-slate-900/90">
-          <svg
-            viewBox="0 0 1000 700"
-            className="absolute inset-0 h-full w-full opacity-95"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <rect width="1000" height="700" fill="#0b1531" />
-            <g stroke="#1f3c73" strokeWidth="1">
-              <path d="M0 100 H1000" />
-              <path d="M0 200 H1000" />
-              <path d="M0 300 H1000" />
-              <path d="M0 400 H1000" />
-              <path d="M0 500 H1000" />
-              <path d="M0 600 H1000" />
-              <path d="M140 0 V700" />
-              <path d="M280 0 V700" />
-              <path d="M420 0 V700" />
-              <path d="M560 0 V700" />
-              <path d="M700 0 V700" />
-              <path d="M840 0 V700" />
-            </g>
-            <path
-              d="M120 510 C230 360, 340 370, 450 280 C560 190, 710 210, 860 120"
-              stroke="#36b2ff"
-              strokeWidth="8"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray="16 16"
-            />
-            <path
-              d="M130 140 C240 220, 380 170, 520 240 C640 300, 730 410, 840 500"
-              stroke="#4de0b8"
-              strokeWidth="7"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray="12 14"
-            />
-          </svg>
-
-          {MAP_MARKERS.map((item) => (
-            <div
-              key={item.label}
-              className="absolute"
-              style={{ top: item.top, left: item.left }}
-            >
-              <div className="flex items-center gap-2 rounded-full border border-cyan-300/40 bg-slate-950/85 px-3 py-1.5 text-xs text-cyan-100 shadow-lg">
-                <span className="h-2 w-2 rounded-full bg-cyan-300" />
-                <span className="font-medium">{item.label}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">Aktif sefer</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">24</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">Canlı araç</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">18</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white/90 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-slate-500">Toplam rota</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">42</p>
-          </div>
+        <div className="mt-7">
+          <IPhoneMockup mobilePreviewSrc={mobilePreviewSrc} />
         </div>
       </div>
     </section>
@@ -117,8 +77,8 @@ function MapPreviewPanel() {
 
 export function LoginPageShell({
   title = "NeredeServis kurumsal giriş",
-  description =
-    "Kurumsal operasyon ekipleri ve platform yöneticileri için güvenli giriş ekranı.",
+  description = "Operasyon ekibinizin paneline güvenli şekilde erişin.",
+  mobilePreviewSrc,
 }: LoginPageShellProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
@@ -160,7 +120,7 @@ export function LoginPageShell({
           </section>
 
           <div className="hidden lg:block">
-            <MapPreviewPanel />
+            <MobilePreviewPanel mobilePreviewSrc={mobilePreviewSrc} />
           </div>
         </div>
       </div>
