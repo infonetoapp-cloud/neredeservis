@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { NsLogo } from "@/components/brand/ns-logo";
 import { getMarketingBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
 
 const marketingBaseUrl = getMarketingBaseUrl();
@@ -9,7 +10,7 @@ const openGraphImageUrl = toAbsoluteUrl(marketingBaseUrl, "/opengraph-image");
 export const metadata: Metadata = {
   title: "İletişim | NeredeServis",
   description:
-    "NeredeServis ile demo talebi, pilot onboarding ve operasyonel destek için iletişime geçin. destek@neredeservis.app",
+    "Kurumsal demo, pilot onboarding, teknik destek ve KVKK/uyum süreçleri için NeredeServis ekibiyle iletişime geçin.",
   robots: { index: true, follow: true },
   alternates: {
     canonical: toAbsoluteUrl(marketingBaseUrl, "/iletisim"),
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "İletişim | NeredeServis",
     description:
-      "Demo talebi, pilot onboarding ve operasyonel destek için NeredeServis ile iletişime geçin.",
+      "Demo planlama, operasyonel onboarding ve kurumsal destek süreçleri için NeredeServis iletişim sayfası.",
     url: toAbsoluteUrl(marketingBaseUrl, "/iletisim"),
     type: "website",
     images: [
@@ -25,13 +26,12 @@ export const metadata: Metadata = {
         url: openGraphImageUrl,
         width: 1200,
         height: 630,
-        alt: "NeredeServis web operasyon paneli",
+        alt: "NeredeServis kurumsal iletişim",
       },
     ],
   },
 };
 
-/* ─── Icon helpers (inline SVG, no extra dependency) ──────────────────────── */
 function IconMail() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
@@ -40,6 +40,7 @@ function IconMail() {
     </svg>
   );
 }
+
 function IconCalendar() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
@@ -49,14 +50,16 @@ function IconCalendar() {
     </svg>
   );
 }
-function IconClock() {
+
+function IconShield() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden>
-      <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10 6v4l2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 2l6 2.5V9c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V4.5L10 2z" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7.2 9.8l1.9 1.9 3.7-3.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
+
 function IconCheck() {
   return (
     <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4 shrink-0" aria-hidden>
@@ -65,6 +68,7 @@ function IconCheck() {
     </svg>
   );
 }
+
 function IconArrow() {
   return (
     <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
@@ -76,28 +80,20 @@ function IconArrow() {
 export default function IletisimPage() {
   return (
     <main className="relative min-h-screen bg-background text-foreground">
-      {/* Background gradient */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px]"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 20% -10%,rgba(37,99,235,0.10),transparent 60%), radial-gradient(ellipse 60% 40% at 80% 0%,rgba(16,185,129,0.07),transparent 55%), linear-gradient(to bottom,rgba(255,255,255,0.98),rgba(245,247,250,1))",
+            "radial-gradient(ellipse 78% 52% at 16% -14%,rgba(10,79,191,0.16),transparent 62%), radial-gradient(ellipse 60% 42% at 84% -8%,rgba(255,122,0,0.14),transparent 60%), linear-gradient(to bottom,rgba(255,255,255,0.98),rgba(245,247,250,1))",
         }}
       />
 
-      <div className="mx-auto w-full max-w-5xl px-6 py-8 sm:py-10">
-        {/* ── Header ── */}
+      <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:py-10">
         <header className="mb-12 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-blue-100 bg-white shadow-sm">
-              <span className="text-sm font-semibold text-blue-700">NS</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold tracking-tight text-slate-950">NeredeServis</div>
-              <div className="text-xs text-muted">Operasyon platformu</div>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center">
+            <NsLogo iconSize={26} wordmarkClass="text-base font-bold tracking-tight" />
+          </Link>
           <div className="flex items-center gap-2">
             <Link
               href="/"
@@ -107,194 +103,183 @@ export default function IletisimPage() {
             </Link>
             <Link
               href="/giris"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong"
             >
               Panel Girişi
             </Link>
           </div>
         </header>
 
-        {/* ── Hero ── */}
-        <section className="mb-14 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
-            İletişim
+        <section className="mb-10 text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand" />
+            Kurumsal İletişim
           </div>
-          <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-[2.75rem]">
-            Nasıl yardımcı olabiliriz?
+          <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-[2.9rem]">
+            Satış, onboarding ve destek süreçlerini birlikte planlayalım
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted">
-            Demo talebi, onboarding soruları veya teknik destek için doğrudan yazın.
-            İlk yanıt hedefimiz aynı iş günüdür.
+          <p className="mx-auto mt-4 max-w-3xl text-base leading-8 text-slate-600">
+            NeredeServis ekibi; demo planlama, pilot geçiş, teknik operasyon ve KVKK uyum başlıklarında
+            kurumsal ekiplerle birlikte çalışır.
           </p>
         </section>
 
-        {/* ── Contact cards ── */}
-        <section className="mb-14 grid gap-4 sm:grid-cols-3">
-          {/* Email */}
-          <div className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
-              <IconMail />
+        <section className="mb-12 grid gap-3 sm:grid-cols-3">
+          {[
+            { label: "İlk yanıt", value: "Aynı iş günü" },
+            { label: "Demo planlama", value: "~30 dakika" },
+            { label: "Pilot geçiş hedefi", value: "48 saat" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{item.label}</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">{item.value}</div>
             </div>
-            <div className="text-sm font-semibold text-slate-950">E-posta</div>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              Her türlü soru ve talep için bize yazın.
+          ))}
+        </section>
+
+        <section className="mb-14 grid gap-4 lg:grid-cols-3">
+          <article className="rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/5 to-white p-6 shadow-sm">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-brand/20 bg-brand/10 text-brand">
+              <IconCalendar />
+            </div>
+            <h2 className="text-base font-semibold text-slate-950">Satış ve Demo</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Operasyon modelinize uygun ürün demosu ve fiyatlandırma çerçevesi için satış ekibiyle görüşün.
             </p>
             <a
-              href="mailto:destek@neredeservis.app"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+              href="mailto:destek@neredeservis.app?subject=Kurumsal%20Demo%20Talebi&body=Merhaba%2C%20kurumsal%20demo%20planlamak%20istiyoruz."
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-strong"
+            >
+              Demo planla
+              <IconArrow />
+            </a>
+          </article>
+
+          <article className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-slate-50 text-slate-700">
+              <IconMail />
+            </div>
+            <h2 className="text-base font-semibold text-slate-950">Operasyon Desteği</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Canlıya geçiş, kullanıcı yetkilendirme, rota/araç veri hazırlığı ve günlük operasyon soruları için yazın.
+            </p>
+            <a
+              href="mailto:destek@neredeservis.app?subject=Operasyonel%20Destek"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-50"
             >
               destek@neredeservis.app
               <IconArrow />
             </a>
-          </div>
+          </article>
 
-          {/* Demo */}
-          <div className="flex flex-col rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-100 text-emerald-700">
-              <IconCalendar />
+          <article className="rounded-2xl border border-accent/30 bg-gradient-to-b from-accent-soft to-white p-6 shadow-sm">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent-soft text-accent">
+              <IconShield />
             </div>
-            <div className="text-sm font-semibold text-slate-950">Demo Talebi</div>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              30 dakikalık canlı panel gösterimi — operasyon senaryonuzla.
+            <h2 className="text-base font-semibold text-slate-950">Güvenlik ve KVKK</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Veri işleme kapsamı, saklama yaklaşımı ve sözleşmesel güvenlik başlıkları için uygunluk sürecini planlayın.
             </p>
             <a
-              href="mailto:destek@neredeservis.app?subject=Demo%20Talebi&body=Merhaba%2C%20demo%20talep%20ediyorum."
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+              href="mailto:destek@neredeservis.app?subject=KVKK%20ve%20Güvenlik%20Süreçleri"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-white px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent-soft"
             >
-              Demo talep et
+              Uyum sürecini başlat
               <IconArrow />
             </a>
-          </div>
-
-          {/* Support hours */}
-          <div className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600">
-              <IconClock />
-            </div>
-            <div className="text-sm font-semibold text-slate-950">Destek Saatleri</div>
-            <p className="mt-1 text-xs leading-5 text-muted">
-              Hafta içi 09:00–18:00 aktif destek. Kritik durumlarda 7/24 öncelikli yanıt.
-            </p>
-            <div className="mt-4 space-y-1">
-              {["Hft. içi: 09:00–18:00", "Kritik: 7/24 öncelikli", "İlk yanıt: aynı iş günü"].map(
-                (item) => (
-                  <div key={item} className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <IconCheck />
-                    {item}
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
+          </article>
         </section>
 
-        {/* ── Two-column: process + what to expect ── */}
-        <section className="mb-16 grid gap-10 lg:grid-cols-2">
-          {/* Process steps */}
-          <div>
-            <div className="mb-6 text-xs font-semibold uppercase tracking-widest text-blue-600">
-              Demo Süreci
+        <section className="mb-14 grid gap-8 lg:grid-cols-2">
+          <div className="rounded-2xl border border-line bg-white p-7 shadow-sm">
+            <div className="mb-5 text-xs font-semibold uppercase tracking-widest text-brand">
+              Süreç Akışı
             </div>
-            <ol className="space-y-6">
+            <ol className="space-y-5">
               {[
                 {
                   step: "01",
-                  title: "Talep ve ön görüşme",
-                  desc: "E-posta ile talebinizi gönderin. Operasyon yapınızı kısaca paylaşın: araç sayısı, rota tipi, mevcut yöntem.",
+                  title: "Ön değerlendirme",
+                  desc: "Filo büyüklüğü, rota yapısı, kullanıcı rolleri ve canlı takip beklentileri netleştirilir.",
                 },
                 {
                   step: "02",
-                  title: "Canlı panel gösterimi",
-                  desc: "30 dakikalık ekran paylaşımlı demo: routes / vehicles / drivers / live-ops akışı senaryonuza göre.",
+                  title: "Canlı demo oturumu",
+                  desc: "Panel akışları (rota, araç, şoför, live-ops) operasyon senaryonuza göre gösterilir.",
                 },
                 {
                   step: "03",
                   title: "Pilot onboarding",
-                  desc: "İlk 48 saatte operasyona geçiş. Sahaya çıkmadan konfigürasyon tamamlanır, ilk seferler sisteme alınır.",
+                  desc: "İlk veri setiyle yapılandırma tamamlanır; yetkilendirme ve temel operasyon kuralları devreye alınır.",
                 },
                 {
                   step: "04",
-                  title: "Canlı destek",
-                  desc: "Pilot süresince doğrudan erişim kanalı. Olay yönetimi runbook tabanlı, kritik / yüksek / normal sınıflamasıyla.",
+                  title: "Canlı kullanım ve destek",
+                  desc: "Pilot sonrası süreçte destek kanalları ve olay yönetim rutinleri ile sürdürülebilir kullanım sağlanır.",
                 },
               ].map(({ step, title, desc }) => (
                 <li key={step} className="flex gap-4">
-                  <div className="shrink-0 text-2xl font-black tracking-tight text-slate-950/10">
+                  <span className="mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
                     {step}
-                  </div>
+                  </span>
                   <div>
                     <div className="text-sm font-semibold text-slate-950">{title}</div>
-                    <p className="mt-1 text-sm leading-6 text-muted">{desc}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{desc}</p>
                   </div>
                 </li>
               ))}
             </ol>
           </div>
 
-          {/* What happens panel */}
-          <div className="rounded-2xl border border-line bg-slate-50 p-8">
-            <div className="mb-6 text-xs font-semibold uppercase tracking-widest text-slate-500">
-              Ne Beklemelisiniz
+          <div className="rounded-2xl border border-line bg-slate-50 p-7 shadow-sm">
+            <div className="mb-5 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              İlk Toplantı Ajandası
             </div>
-
-            <ul className="space-y-4">
+            <ul className="space-y-2.5">
               {[
-                { label: "İlk yanıt süresi", value: "Aynı iş günü" },
-                { label: "Demo süresi", value: "~30 dakika" },
-                { label: "Onboarding hedefi", value: "48 saat" },
-                { label: "Destek kanalı", value: "E-posta + onboarding kanalı" },
-                { label: "Incident sınıflandırma", value: "Kritik / Yüksek / Normal" },
-                { label: "Veri güvenliği", value: "KVKK uyumlu, Türkiye'de barındırma" },
-              ].map(({ label, value }) => (
-                <li key={label} className="flex items-start justify-between gap-4 text-sm">
-                  <span className="text-muted">{label}</span>
-                  <span className="text-right font-medium text-slate-900">{value}</span>
+                "Operasyon kapsamı: şehir, rota tipi, araç adedi, kullanıcı rolleri",
+                "Canlı takip gereksinimi: güncelleme beklentisi, alarm/olay yönetimi",
+                "Veri geçiş planı: mevcut sistemden içe aktarma ihtiyaçları",
+                "Pilot hedefleri: başarı metrikleri, zaman planı, ekip sorumlulukları",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2 text-sm text-slate-700">
+                  <span className="mt-0.5 text-brand"><IconCheck /></span>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-8 rounded-xl border border-blue-200 bg-white p-4">
-              <div className="text-xs font-semibold text-slate-950">Teknik uyum başlıkları</div>
-              <p className="mt-1 text-xs leading-5 text-muted">
-                Onboarding öncesinde mevcut sisteminizle uyum netleştirilir:
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Uygunluk Notu</div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Gizlilik ve KVKK değerlendirmeleri için ilgili doküman seti talep üzerine paylaşılır; süreçler
+                müşteri sözleşmesi kapsamındaki hükümlere göre yürütülür.
               </p>
-              <ul className="mt-2 space-y-1">
-                {[
-                  "Araç ve sürücü veri yapısı",
-                  "Rota / sefer akışı",
-                  "Bildirim ve yolcu paylaşımı tercihleri",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <IconCheck />
-                    {item}
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </section>
 
-        {/* ── CTA strip ── */}
-        <section className="mb-10 flex flex-col items-center gap-4 rounded-2xl border border-line bg-white p-8 text-center shadow-sm sm:flex-row sm:text-left">
-          <div className="flex-1">
-            <div className="text-base font-semibold text-slate-950">Hemen başlayalım</div>
-            <p className="mt-1 text-sm text-muted">
-              Birkaç satır e-posta yeterli. Demo için tarih tercihini veya soru listenizi ekleyin.
-            </p>
+        <section className="mb-12 rounded-3xl border border-line bg-gradient-to-r from-slate-900 via-brand-strong to-brand p-8 text-white shadow-lg sm:p-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">Demo ve pilot planını başlatalım</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-blue-100">
+                Ekibinize uygun bir zaman paylaşın; ürün, operasyon ve uygunluk başlıklarını tek oturumda netleştirelim.
+              </p>
+            </div>
+            <a
+              href="mailto:destek@neredeservis.app?subject=Kurumsal%20Görüşme%20Talebi"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-brand-strong transition hover:bg-blue-50"
+            >
+              destek@neredeservis.app
+              <IconArrow />
+            </a>
           </div>
-          <a
-            href="mailto:destek@neredeservis.app?subject=Demo%20Talebi"
-            className="shrink-0 rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-          >
-            destek@neredeservis.app →
-          </a>
         </section>
 
-        {/* ── Footer note ── */}
         <footer className="border-t border-line pt-6 pb-10">
           <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-muted">
-            <span>© 2025 NeredeServis · Tüm hakları saklıdır.</span>
+            <span>© 2026 NeredeServis · Tüm hakları saklıdır.</span>
             <div className="flex gap-4">
               <Link href="/gizlilik" className="hover:text-slate-700">Gizlilik</Link>
               <Link href="/kvkk" className="hover:text-slate-700">KVKK</Link>

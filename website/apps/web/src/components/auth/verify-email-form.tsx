@@ -16,20 +16,20 @@ function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. E-posta dogrulama tetiklenemiyor.";
+      return "Firebase public config eksik. E-posta doğrulama tetiklenemiyor.";
     }
     if (code === "auth/too-many-requests") {
-      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
+      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
     }
     if (code === "auth/network-request-failed") {
-      return "Ag hatasi. Baglantini kontrol et.";
+      return "Ağ hatası. Bağlantını kontrol et.";
     }
     if (code === "auth/unauthorized-continue-uri" || code === "auth/invalid-continue-uri") {
-      return "Dogrulama linki olusturulamadi. Firebase Auth authorized domains ayarini kontrol et.";
+      return "Doğrulama linki oluşturulamadı. Firebase Auth authorized domains ayarını kontrol et.";
     }
-    return code ? `Dogrulama hatasi (${code})` : error.message;
+    return code ? `Doğrulama hatası (${code})` : error.message;
   }
-  return "Beklenmeyen hata olustu.";
+  return "Beklenmeyen hata oluştu.";
 }
 
 export function VerifyEmailForm() {
@@ -47,7 +47,7 @@ export function VerifyEmailForm() {
   useEffect(() => {
     if (status === "signed_out") {
       const next = `/verify-email?next=${encodeURIComponent(nextPath)}`;
-      router.replace(`/login?next=${encodeURIComponent(next)}`);
+      router.replace(`/giris?next=${encodeURIComponent(next)}`);
       return;
     }
     if (status === "signed_in" && !needsVerification) {
@@ -69,7 +69,7 @@ export function VerifyEmailForm() {
         if (!active) {
           return;
         }
-        setFeedbackMessage("Dogrulama e-postasi otomatik gonderildi. Gelen kutusu ve spam klasorunu kontrol et.");
+        setFeedbackMessage("Doğrulama e-postası otomatik gönderildi. Gelen kutusu ve spam klasörünü kontrol et.");
       })
       .catch((error) => {
         if (!active) {
@@ -90,11 +90,11 @@ export function VerifyEmailForm() {
   }, [autoSendAttempted, needsVerification, status]);
 
   if (status === "loading") {
-    return <div className="text-sm text-[#71695f]">Oturum bilgisi kontrol ediliyor...</div>;
+    return <div className="text-sm text-muted">Oturum bilgisi kontrol ediliyor...</div>;
   }
 
   if (status !== "signed_in") {
-    return <div className="text-sm text-[#71695f]">Giris sayfasina yonlendiriliyor...</div>;
+    return <div className="text-sm text-muted">Giriş sayfasına yönlendiriliyor...</div>;
   }
 
   const handleSendVerification = async () => {
@@ -103,7 +103,7 @@ export function VerifyEmailForm() {
     setPendingAction("send");
     try {
       await sendEmailVerificationForCurrentUser();
-      setFeedbackMessage("Dogrulama e-postasi gonderildi. Gelen kutunu kontrol et.");
+      setFeedbackMessage("Doğrulama e-postası gönderildi. Gelen kutunu kontrol et.");
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
@@ -121,7 +121,7 @@ export function VerifyEmailForm() {
         router.replace(nextPath);
         return;
       }
-      setFeedbackMessage("Dogrulama henuz tamamlanmamis gorunuyor. Mail linkine tiklayip tekrar dene.");
+      setFeedbackMessage("Doğrulama henüz tamamlanmamış görünüyor. Mail linkine tıklayıp tekrar dene.");
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
@@ -136,7 +136,7 @@ export function VerifyEmailForm() {
     try {
       await signOutCurrentUser();
       const query = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
-      router.replace(`/login${query}`);
+      router.replace(`/giris${query}`);
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
@@ -146,9 +146,9 @@ export function VerifyEmailForm() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-line/90 bg-white/70 p-3 text-sm text-[#5f6963]">
-        <div className="font-semibold text-[#1a2720]">Dogrulanacak e-posta</div>
-        <div className="mt-1">{user?.email ?? "E-posta bulunamadi"}</div>
+      <div className="rounded-2xl border border-line bg-slate-50 p-3 text-sm text-slate-700">
+        <div className="font-semibold text-slate-900">Doğrulanacak e-posta</div>
+        <div className="mt-1">{user?.email ?? "E-posta bulunamadı"}</div>
       </div>
 
       {feedbackMessage ? (
@@ -167,15 +167,15 @@ export function VerifyEmailForm() {
         type="button"
         disabled={pendingAction !== null}
         onClick={handleSendVerification}
-        className="glass-button-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pendingAction === "send" ? (
           <>
             <RefreshIcon className="h-4 w-4" />
-            Gonderiliyor...
+            Gönderiliyor...
           </>
         ) : (
-          "Dogrulama E-postasi Gonder"
+          "Doğrulama E-postası Gönder"
         )}
       </button>
 
@@ -183,7 +183,7 @@ export function VerifyEmailForm() {
         type="button"
         disabled={pendingAction !== null}
         onClick={handleRefreshVerification}
-        className="glass-button inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pendingAction === "refresh" ? (
           <>
@@ -193,20 +193,20 @@ export function VerifyEmailForm() {
         ) : (
           <>
             <CheckCircleIcon className="h-4 w-4" />
-            Dogrulamayi Kontrol Et
+            Doğrulamayı Kontrol Et
           </>
         )}
       </button>
 
-      <div className="pt-1 text-center text-sm text-[#66736c]">
-        Yanlis hesapla mi girdin?{" "}
+      <div className="pt-1 text-center text-sm text-muted">
+        Yanlış hesapla mı girdin?{" "}
         <button
           type="button"
           disabled={pendingAction !== null}
           onClick={handleSwitchAccount}
-          className="font-semibold text-[#173f37] hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50"
+          className="font-semibold text-brand hover:text-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {pendingAction === "switch" ? "Cikis yapiliyor..." : "Cikis yap ve giris sayfasina don"}
+          {pendingAction === "switch" ? "Çıkış yapılıyor..." : "Çıkış yap ve giriş sayfasına dön"}
         </button>
       </div>
     </div>

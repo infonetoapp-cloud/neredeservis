@@ -1,0 +1,20 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="v4-shield-gradient" x1="256" y1="128" x2="768" y2="768" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+    <linearGradient id="v4-accent-gradient" x1="390" y1="280" x2="642" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A3E635"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M512 120L768 260V564C768 702 678 809 512 892C346 809 256 702 256 564V260L512 120Z" fill="url(#v4-shield-gradient)"/>
+  <path d="M512 176L714 286V560C714 675 640 760 512 834C384 760 310 675 310 560V286L512 176Z" stroke="#4B5563" stroke-width="12"/>
+
+  <path d="M382 642V336H448L574 510V336H642V642H576L450 466V642H382Z" fill="#F9FAFB"/>
+  <path d="M638 388C608 360 568 344 520 344C442 344 386 391 386 462C386 531 440 576 516 576C549 576 577 570 600 559V519H510V463H674V594C628 627 574 644 512 644C398 644 312 565 312 462C312 356 403 276 522 276C591 276 650 299 694 344L638 388Z" fill="url(#v4-accent-gradient)"/>
+
+  <text x="512" y="972" text-anchor="middle" fill="#111827" font-family="'Space Grotesk', 'Manrope', sans-serif" font-size="106" font-weight="700" letter-spacing="2">NEREDE SERVIS</text>
+</svg>

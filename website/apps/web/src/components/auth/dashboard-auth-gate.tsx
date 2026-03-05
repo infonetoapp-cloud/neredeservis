@@ -16,7 +16,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === "signed_out") {
       const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
-      router.replace(`/login${next}`);
+      router.replace(`/giris${next}`);
       return;
     }
     if (status === "signed_in" && isPlatformOwner(user?.uid)) {
@@ -36,7 +36,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   if (status === "signed_out") {
     return (
       <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-sm">
-        Giris sayfasina yonlendiriliyor...
+        Giriş sayfasına yönlendiriliyor...
       </div>
     );
   }
@@ -44,7 +44,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   if (status === "disabled") {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Firebase public env eksik oldugu icin dashboard auth gate pasif.
+        Firebase public env eksik olduğu için dashboard auth gate pasif.
       </div>
     );
   }

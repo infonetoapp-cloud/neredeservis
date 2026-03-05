@@ -30,6 +30,7 @@ import { createRouteWithSrvCode } from './common/route_creation_helpers.js';
 import { createAccountSupportCallables } from './callables/account_support_callables.js';
 import { createDriverRouteCallables } from './callables/driver_route_callables.js';
 import { createDriverRouteCreationCallables } from './callables/driver_route_creation_callables.js';
+import { createLoginSecurityCallables } from './callables/login_security_callables.js';
 import { createMapboxPreviewCallables } from './callables/mapbox_preview_callables.js';
 import { createPassengerMembershipCallables } from './callables/passenger_membership_callables.js';
 import { createPassengerOpsCallables } from './callables/passenger_ops_callables.js';
@@ -114,6 +115,10 @@ const SUPPORT_REPORT_MAX_NOTE_LENGTH = 600;
 const SUPPORT_REPORT_MAX_LOG_SUMMARY_LENGTH = 2500;
 const DEFAULT_COMPANY_TIMEZONE = 'Europe/Istanbul';
 const DEFAULT_COMPANY_COUNTRY_CODE = 'TR';
+const WEB_LOGIN_FAILURE_WINDOW_MS = 15 * 60_000;
+const WEB_LOGIN_CAPTCHA_THRESHOLD = 3;
+const WEB_LOGIN_HARD_LOCK_THRESHOLD = 8;
+const WEB_LOGIN_HARD_LOCK_MS = 15 * 60_000;
 const ROUTE_SHARE_BASE_URL = (
   process.env.ROUTE_SHARE_BASE_URL ?? 'https://app.neredeservis.app/r'
 )
@@ -246,6 +251,16 @@ export const getSubscriptionState = accountSupportCallables.getSubscriptionState
 export const deleteUserData = accountSupportCallables.deleteUserData;
 export const sendDriverAnnouncement = accountSupportCallables.sendDriverAnnouncement;
 export const submitSupportReport = accountSupportCallables.submitSupportReport;
+const loginSecurityCallables = createLoginSecurityCallables({
+  db,
+  failureWindowMs: WEB_LOGIN_FAILURE_WINDOW_MS,
+  captchaThreshold: WEB_LOGIN_CAPTCHA_THRESHOLD,
+  hardLockThreshold: WEB_LOGIN_HARD_LOCK_THRESHOLD,
+  hardLockMs: WEB_LOGIN_HARD_LOCK_MS,
+});
+export const prepareCorporateLoginAttempt = loginSecurityCallables.prepareCorporateLoginAttempt;
+export const reportCorporateLoginResult = loginSecurityCallables.reportCorporateLoginResult;
+export const resolveCorporateLoginContext = loginSecurityCallables.resolveCorporateLoginContext;
 export const searchDriverDirectory = createSearchDriverDirectoryCallable({
   db,
   searchDriverDirectoryInputSchema,

@@ -103,6 +103,7 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/google_logo.png
+    - assets/images/logos/
 
   fonts:
     - family: Space Grotesk

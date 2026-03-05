@@ -36,7 +36,7 @@ export function ProfileOnboardingForm() {
   useEffect(() => {
     if (status === "signed_out") {
       const next = `/onboarding/profile?next=${encodeURIComponent(nextPath)}`;
-      router.replace(`/login?next=${encodeURIComponent(next)}`);
+      router.replace(`/giris?next=${encodeURIComponent(next)}`);
       return;
     }
     if (status === "signed_in" && !needsOnboarding) {

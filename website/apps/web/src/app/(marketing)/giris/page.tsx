@@ -6,20 +6,20 @@ import { getPanelBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
 const panelBaseUrl = getPanelBaseUrl();
 
 export const metadata: Metadata = {
-  title: "Giris | NeredeServis",
+  title: "Kurumsal Giris | NeredeServis",
   description:
-    "NeredeServis web paneline giris: kurumsal operasyon ve bireysel sofor akislarini ayni oturum katmanindan baslatin.",
+    "NeredeServis kurumsal web paneline giris: sirket operasyon ekipleri ve platform owner ayni guvenli giris katmanindan ilerler.",
   robots: { index: false, follow: false },
   alternates: {
-    canonical: toAbsoluteUrl(panelBaseUrl, "/login"),
+    canonical: toAbsoluteUrl(panelBaseUrl, "/giris"),
   },
 };
 
 export default function GirisPage() {
   return (
     <LoginPageShell
-      title="NeredeServis web paneline giris"
-      description="Kurumsal operasyon ve bireysel sofor akislarini tek giris katmanindan baslatin."
+      title="NeredeServis kurumsal web paneli girisi"
+      description="Sadece kurumsal operasyon ekipleri ve platform owner hesabi icin tasarlanmis guvenli giris sayfasi."
     />
   );
 }

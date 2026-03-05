@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 
 import { FirebaseClientBootstrapProbe } from "@/components/auth/firebase-client-bootstrap-probe";
 import { LoginForm } from "@/components/auth/login-form";
+import { NsLogo } from "@/components/brand/ns-logo";
 import { ConfigValidationBanner } from "@/components/shared/config-validation-banner";
 import { EnvBadge } from "@/components/shared/env-badge";
 import { getPublicAppEnv } from "@/lib/env/public-env";
@@ -31,8 +32,9 @@ function resolveLoginShellEnv(hostname: string): string {
 }
 
 export async function LoginPageShell({
-  title = "Firma operasyonu ve bireysel sofor paneli",
-  description = "Google, Microsoft ve e-posta/sifre giris akislari bu panelden baslatilir.",
+  title = "NeredeServis kurumsal giris",
+  description =
+    "Tum kurum kullanicilari ve platform owner hesabi ayni guvenli giris katmanindan devam eder.",
 }: LoginPageShellProps) {
   const requestHeaders = await headers();
   const rawHost = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
@@ -45,22 +47,22 @@ export async function LoginPageShell({
         <section className="hidden lg:block">
           <div className="rounded-3xl border border-line bg-surface p-8 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
-              <span className="text-sm font-semibold tracking-tight">Neredeservis Web</span>
+              <NsLogo iconSize={22} wordmarkClass="text-sm font-bold tracking-tight" />
               <EnvBadge env={resolvedEnv} />
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950">{title}</h1>
             <p className="mt-4 max-w-md text-sm leading-6 text-muted">{description}</p>
             <div className="mt-8 space-y-3">
               <div className="rounded-2xl border border-line p-4">
-                <div className="text-xs font-medium text-muted">Company Mode</div>
+                <div className="text-xs font-medium text-muted">Kurumsal Operasyon</div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">
-                  Operasyon, rota, arac, live ops
+                  Dashboard, rota, arac, surucu ve canli operasyon yonetimi
                 </div>
               </div>
               <div className="rounded-2xl border border-line p-4">
-                <div className="text-xs font-medium text-muted">Individual Driver</div>
+                <div className="text-xs font-medium text-muted">Platform Owner</div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">
-                  Kendi rota ve sefer gorunumu
+                  Owner hesapla dogrudan platform paneli (/platform/companies)
                 </div>
               </div>
             </div>
@@ -69,7 +71,7 @@ export async function LoginPageShell({
 
         <section className="rounded-3xl border border-line bg-surface p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-900">Giris Yap</span>
+            <span className="text-sm font-semibold text-slate-900">Kurumsal Giris</span>
             <EnvBadge env={resolvedEnv} />
           </div>
 
@@ -82,9 +84,9 @@ export async function LoginPageShell({
 
           <div className="mt-6 flex items-center justify-between text-sm">
             <span className="text-xs text-muted">
-              Sifre sifirlama akisi bu form uzerinden tetiklenir.
+              Coklu basarisiz denemede otomatik rate-limit ve captcha devreye girer.
             </span>
-            <Link href="/" className="font-medium text-slate-900 hover:text-blue-700">
+            <Link href="/" className="font-medium text-slate-900 hover:text-brand">
               Ana sayfa
             </Link>
           </div>

@@ -33,7 +33,7 @@ export function DashboardHeaderActions() {
       await signOutCurrentUser();
       const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";
       startTransition(() => {
-        router.replace(`/login${next}`);
+        router.replace(`/giris${next}`);
       });
     } catch (error) {
       const code = (error as { code?: string } | null)?.code;

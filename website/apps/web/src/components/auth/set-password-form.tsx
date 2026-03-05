@@ -50,8 +50,8 @@ export function SetPasswordForm() {
             yeni bir davet linki isteyin.
           </div>
           <a
-            href="/login"
-            className="block rounded-2xl bg-brand px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700"
+            href="/giris"
+            className="block rounded-2xl bg-brand px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-brand-strong"
           >
             Giriş sayfasına dön
           </a>
@@ -68,8 +68,8 @@ export function SetPasswordForm() {
             Şifreniz başarıyla belirlendi. Artık giriş yapabilirsiniz.
           </div>
           <a
-            href="/login"
-            className="block rounded-2xl bg-brand px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700"
+            href="/giris"
+            className="block rounded-2xl bg-brand px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-brand-strong"
           >
             Giriş Yap
           </a>
@@ -107,7 +107,7 @@ export function SetPasswordForm() {
         setDone(true);
         // Kısa gecikme sonrası login sayfasına yönlendir
         setTimeout(() => {
-          router.replace("/login");
+          router.replace("/giris");
         }, 2500);
       } catch (err) {
         setError(toFriendlyError(err));
@@ -152,7 +152,7 @@ export function SetPasswordForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="En az 8 karakter"
-              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
             />
           </div>
 
@@ -166,7 +166,7 @@ export function SetPasswordForm() {
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
               placeholder="Şifreyi tekrar girin"
-              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
             />
           </div>
 
@@ -174,7 +174,7 @@ export function SetPasswordForm() {
             type="button"
             disabled={isPending}
             onClick={handleSubmit}
-            className="w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? "Kaydediliyor..." : "Şifreyi Belirle ve Giriş Yap"}
           </button>

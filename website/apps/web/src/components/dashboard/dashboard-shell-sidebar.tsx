@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  Truck,
   Bus,
   MapPin,
   RadioTower,
@@ -16,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { NsLogo } from "@/components/brand/ns-logo";
 import { ActiveCompanySidebarCard } from "@/components/dashboard/active-company-sidebar-card";
 import { EnvBadge } from "@/components/shared/env-badge";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
@@ -181,14 +181,11 @@ export function DashboardShellSidebar() {
     <aside className="flex h-screen flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0">
       {/* Logo */}
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#F67366] to-[#E85D50] shadow-sm">
-            <RadioTower className="h-4 w-4 text-white" />
+        <div>
+          <div className="flex items-center">
+            <NsLogo iconSize={20} wordmarkClass="text-[13px] font-bold tracking-tight" />
           </div>
-          <div>
-            <div className="text-[13px] font-bold tracking-tight text-slate-800">NeredeServis</div>
-            <div className="text-[10px] text-slate-400">Yönetim Paneli</div>
-          </div>
+          <div className="pl-8 text-[10px] text-slate-400">Yonetim Paneli</div>
         </div>
         <EnvBadge />
       </div>

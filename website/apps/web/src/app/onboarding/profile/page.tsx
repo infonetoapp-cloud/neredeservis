@@ -9,7 +9,7 @@ export default function ProfileOnboardingPage() {
       description="Sirket panelinde gorunecek temel profil bilgisini tamamla"
       topPrompt="Zaten tamamladin mi?"
       topLinkLabel="Giris Yap"
-      topLinkHref="/login"
+      topLinkHref="/giris"
       sideImageSrc="/figma/sign-up-reference.png"
       sideImageAlt="Role based CRM profile setup reference"
       footerHint="Bu bilgi tum sirket modullerinde gorunur."
