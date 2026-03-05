@@ -238,53 +238,55 @@ export function LoginForm() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {errorMessage ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
           {errorMessage}
         </div>
       ) : null}
 
       {lockSecondsRemaining > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
           Guvenlik bekleme suresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
         </div>
       ) : null}
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-800">Kurumsal E-posta</label>
-        <input
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="ornek@firma.com"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
-        />
-      </div>
+      <div className="space-y-4">
+        <div>
+          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Kurumsal E-posta</label>
+          <input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="ornek@firma.com"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50/85 px-4 py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 transition focus:border-brand/55 focus:bg-white focus:ring-4 focus:ring-brand/10"
+          />
+        </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-slate-800">Sifre</label>
-        <input
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="********"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
-        />
+        <div>
+          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Sifre</label>
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="********"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50/85 px-4 py-3.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 transition focus:border-brand/55 focus:bg-white focus:ring-4 focus:ring-brand/10"
+          />
+        </div>
       </div>
 
       {showCaptcha ? (
         turnstileSiteKey ? (
-          <div className="rounded-2xl border border-line bg-slate-50 p-3">
-            <p className="mb-2 text-xs font-medium text-slate-700">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <p className="mb-2 text-xs font-semibold text-slate-700">
               Coklu basarisiz giris algilandi. Lutfen captcha dogrulamasini tamamlayin.
             </p>
             <TurnstileWidget siteKey={turnstileSiteKey} onTokenChange={handleCaptchaTokenChange} />
           </div>
         ) : (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
             Captcha site key tanimli degil. NEXT_PUBLIC_TURNSTILE_SITE_KEY degeri gerekli.
           </div>
         )
@@ -295,13 +297,13 @@ export function LoginForm() {
           type="button"
           onClick={triggerPasswordReset}
           disabled={isBusy || resetStatus === "sending"}
-          className="text-sm font-medium text-muted hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-sm font-medium text-slate-600 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {resetStatus === "sending" ? "Reset e-postasi gonderiliyor..." : "Sifremi Unuttum"}
+          {resetStatus === "sending" ? "Reset e-postasi gonderiliyor..." : "Sifremi unuttum"}
         </button>
 
         {resetStatus === "sent" ? (
-          <span className="text-xs font-medium text-emerald-700">Reset e-postasi gonderildi</span>
+          <span className="text-xs font-semibold text-emerald-700">Reset e-postasi gonderildi</span>
         ) : null}
       </div>
 
@@ -309,7 +311,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={applyFastLogin}
-          className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+          className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
         >
           Fast Login Bilgilerini Doldur (dev)
         </button>
@@ -319,14 +321,32 @@ export function LoginForm() {
         type="button"
         disabled={!canSubmitEmail}
         onClick={submitEmailPassword}
-        className="mt-2 w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-1 w-full rounded-2xl bg-gradient-to-r from-brand to-[#0a3f9f] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_24px_-14px_rgba(10,79,191,0.85)] transition hover:from-[#0b56d4] hover:to-[#083a8f] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {pendingAction === "email" ? "Giris Yapiliyor..." : "Kurumsal Giris"}
+        {pendingAction === "email" ? "Giris yapiliyor..." : "Kurumsal giris"}
       </button>
 
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3">
+        <div className="flex items-start gap-2.5 text-xs leading-5 text-slate-600">
+          <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/12 text-brand">
+            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 1.667 3.334 4.63v4.447c0 4.39 2.847 8.49 6.666 9.257 3.82-.767 6.667-4.866 6.667-9.257V4.63L10 1.667Zm-1.12 11.226 4.293-4.294 1.178 1.179-5.47 5.47-3.014-3.015 1.178-1.178 1.835 1.838Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </span>
+          <p>
+            Giris katmani brute-force korumasi, rate-limit ve captcha kurallariyla korunur. Tum kritik giris
+            olaylari guvenlik gunlugune yazilir.
+          </p>
+        </div>
+      </div>
+
       {!emailEnabled ? (
-        <div className="text-xs text-muted">
-          <span className="rounded-full bg-slate-100 px-2 py-1">Kurumsal email login kapali</span>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Kurumsal email login kapali.
         </div>
       ) : null}
     </div>
