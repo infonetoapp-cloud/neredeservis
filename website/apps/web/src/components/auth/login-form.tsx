@@ -54,33 +54,33 @@ function shouldReportFailedLogin(error: unknown): boolean {
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Giris tetiklenemiyor.";
+      return "Firebase yapılandırması eksik. Giriş başlatılamadı.";
     }
     const code = readErrorCode(error);
     if (code === "auth/invalid-credential") {
-      return "E-posta veya sifre hatali.";
+      return "E-posta veya şifre hatalı.";
     }
     if (code === "auth/too-many-requests") {
-      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
+      return "Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.";
     }
     if (code === "auth/network-request-failed") {
-      return "Ag hatasi. Baglantiyi kontrol edip tekrar dene.";
+      return "Ağ hatası. Bağlantınızı kontrol edip tekrar deneyin.";
     }
     if (code === "auth/missing-email") {
-      return "Sifre sifirlama icin once e-posta gir.";
+      return "Şifre sıfırlama için önce e-posta girin.";
     }
     if (code === "functions/failed-precondition") {
-      return "Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.";
+      return "Güvenlik doğrulaması gerekli. Captcha adımını tamamlayın.";
     }
     if (code === "functions/permission-denied") {
-      return "Captcha dogrulamasi basarisiz. Tekrar deneyin.";
+      return "Captcha doğrulaması başarısız. Tekrar deneyin.";
     }
     if (code === "functions/resource-exhausted") {
-      return error.message || "Cok fazla basarisiz deneme. Biraz sonra tekrar deneyin.";
+      return error.message || "Çok fazla başarısız deneme yapıldı. Lütfen biraz sonra tekrar deneyin.";
     }
-    return code ? `Giris hatasi (${code})` : error.message;
+    return code ? `Giriş hatası (${code})` : error.message;
   }
-  return "Beklenmeyen hata olustu.";
+  return "Beklenmeyen bir hata oluştu.";
 }
 
 export function LoginForm() {
@@ -161,7 +161,7 @@ export function LoginForm() {
   if (status === "signed_in") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum acik. Yonlendiriliyor...
+        Oturum açık. Yönlendiriliyorsunuz...
       </div>
     );
   }
@@ -169,7 +169,7 @@ export function LoginForm() {
   const submitEmailPassword = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !password.trim()) {
-      setErrorMessage("E-posta ve sifre alanlari zorunludur.");
+      setErrorMessage("E-posta ve şifre alanları zorunludur.");
       return;
     }
 
@@ -186,7 +186,7 @@ export function LoginForm() {
       setLockSecondsRemaining(guard.lockSecondsRemaining);
 
       if (guard.captchaRequired && !captchaToken) {
-        setErrorMessage("Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.");
+        setErrorMessage("Güvenlik doğrulaması gerekli. Captcha adımını tamamlayın.");
         return;
       }
 
@@ -238,7 +238,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {errorMessage ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
           {errorMessage}
@@ -247,13 +247,13 @@ export function LoginForm() {
 
       {lockSecondsRemaining > 0 ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
-          Guvenlik bekleme suresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
+          Güvenlik bekleme süresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
         </div>
       ) : null}
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Kurumsal E-posta</label>
+          <label className="mb-2 block text-[13px] font-semibold text-slate-800">E-posta</label>
           <input
             type="email"
             autoComplete="email"
@@ -265,7 +265,7 @@ export function LoginForm() {
         </div>
 
         <div>
-          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Sifre</label>
+          <label className="mb-2 block text-[13px] font-semibold text-slate-800">Şifre</label>
           <input
             type="password"
             autoComplete="current-password"
@@ -281,13 +281,13 @@ export function LoginForm() {
         turnstileSiteKey ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
             <p className="mb-2 text-xs font-semibold text-slate-700">
-              Coklu basarisiz giris algilandi. Lutfen captcha dogrulamasini tamamlayin.
+              Çoklu başarısız giriş algılandı. Lütfen captcha doğrulamasını tamamlayın.
             </p>
             <TurnstileWidget siteKey={turnstileSiteKey} onTokenChange={handleCaptchaTokenChange} />
           </div>
         ) : (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-3 text-sm text-rose-900">
-            Captcha site key tanimli degil. NEXT_PUBLIC_TURNSTILE_SITE_KEY degeri gerekli.
+            Captcha anahtarı tanımlı değil. `NEXT_PUBLIC_TURNSTILE_SITE_KEY` gerekli.
           </div>
         )
       ) : null}
@@ -299,11 +299,11 @@ export function LoginForm() {
           disabled={isBusy || resetStatus === "sending"}
           className="text-sm font-medium text-slate-600 transition hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {resetStatus === "sending" ? "Reset e-postasi gonderiliyor..." : "Sifremi unuttum"}
+          {resetStatus === "sending" ? "Sıfırlama e-postası gönderiliyor..." : "Şifremi unuttum"}
         </button>
 
         {resetStatus === "sent" ? (
-          <span className="text-xs font-semibold text-emerald-700">Reset e-postasi gonderildi</span>
+          <span className="text-xs font-semibold text-emerald-700">Sıfırlama e-postası gönderildi</span>
         ) : null}
       </div>
 
@@ -313,7 +313,7 @@ export function LoginForm() {
           onClick={applyFastLogin}
           className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900 transition hover:bg-amber-100"
         >
-          Fast Login Bilgilerini Doldur (dev)
+          Hızlı doldur
         </button>
       ) : null}
 
@@ -323,30 +323,12 @@ export function LoginForm() {
         onClick={submitEmailPassword}
         className="mt-1 w-full rounded-2xl bg-gradient-to-r from-brand to-[#0a3f9f] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_24px_-14px_rgba(10,79,191,0.85)] transition hover:from-[#0b56d4] hover:to-[#083a8f] disabled:cursor-not-allowed disabled:opacity-55"
       >
-        {pendingAction === "email" ? "Giris yapiliyor..." : "Kurumsal giris"}
+        {pendingAction === "email" ? "Giriş yapılıyor..." : "Giriş yap"}
       </button>
-
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3">
-        <div className="flex items-start gap-2.5 text-xs leading-5 text-slate-600">
-          <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/12 text-brand">
-            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
-              <path
-                fillRule="evenodd"
-                d="M10 1.667 3.334 4.63v4.447c0 4.39 2.847 8.49 6.666 9.257 3.82-.767 6.667-4.866 6.667-9.257V4.63L10 1.667Zm-1.12 11.226 4.293-4.294 1.178 1.179-5.47 5.47-3.014-3.015 1.178-1.178 1.835 1.838Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </span>
-          <p>
-            Giris katmani brute-force korumasi, rate-limit ve captcha kurallariyla korunur. Tum kritik giris
-            olaylari guvenlik gunlugune yazilir.
-          </p>
-        </div>
-      </div>
 
       {!emailEnabled ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Kurumsal email login kapali.
+          Kurumsal e-posta ile giriş şu an kapalı.
         </div>
       ) : null}
     </div>
