@@ -10,15 +10,15 @@ import { isPlatformOwner } from "@/lib/env/public-env";
 /**
  * Platform Owner Guard — yalnızca NEXT_PUBLIC_PLATFORM_OWNER_UID ile
  * eşleşen giriş yapmış kullanıcıya erişim izni verir.
- * Diğer tüm durumlarda /login veya /dashboard'a yönlendirir.
+ * Diğer tüm durumlarda /giris veya /dashboard'a yönlendirir.
  */
 export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { status, user } = useAuthSession();
 
-  useEffect(() => {
+ useEffect(() => {
     if (status === "signed_out") {
-      router.replace("/login?next=/platform/companies");
+      router.replace("/giris?next=/platform/companies");
     }
 
     if (status === "signed_in" && !isPlatformOwner(user?.uid)) {

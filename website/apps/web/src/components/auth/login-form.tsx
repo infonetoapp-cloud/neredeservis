@@ -23,36 +23,36 @@ import { isPlatformOwner } from "@/lib/env/public-env";
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Login tetiklenemiyor.";
+      return "Firebase public config eksik. Giriş tetiklenemiyor.";
     }
     const code = (error as { code?: string }).code;
     if (code === "auth/invalid-credential") {
-      return "E-posta veya sifre hatali.";
+      return "E-posta veya şifre hatalı.";
     }
     if (code === "auth/popup-closed-by-user") {
-      return "Google giris penceresi kapatildi.";
+      return "Google giriş penceresi kapatıldı.";
     }
     if (code === "auth/popup-blocked") {
-      return "Popup engellendi. Tarayici popup iznini acip tekrar dene.";
+      return "Popup engellendi. Tarayıcı popup iznini açıp tekrar dene.";
     }
     if (code === "auth/unauthorized-domain") {
-      return "Bu domain Firebase Auth icin yetkili degil (authorized domains).";
+      return "Bu domain Firebase Auth için yetkili değil (authorized domains).";
     }
     if (code === "auth/operation-not-allowed") {
-      return "Bu giris yontemi su anda aktif degil.";
+      return "Bu giriş yöntemi şu anda aktif değil.";
     }
     if (code === "auth/missing-email") {
-      return "Sifre sifirlama icin once e-posta gir.";
+      return "Şifre sıfırlama için önce e-posta gir.";
     }
     if (code === "auth/too-many-requests") {
-      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
+      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
     }
     if (code === "auth/network-request-failed") {
-      return "Ag hatasi. Baglantiyi kontrol edip tekrar dene.";
+      return "Ağ hatası. Bağlantıyı kontrol edip tekrar dene.";
     }
-    return code ? `Giris hatasi (${code})` : error.message;
+    return code ? `Giriş hatası (${code})` : error.message;
   }
-  return "Beklenmeyen hata olustu.";
+  return "Beklenmeyen hata oluştu.";
 }
 
 export function LoginForm() {
@@ -90,7 +90,7 @@ export function LoginForm() {
   if (status === "signed_in") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum acik. Yonlendiriliyor...
+        Oturum açık. Yönlendiriliyor...
       </div>
     );
   }
@@ -181,19 +181,19 @@ export function LoginForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="ornek@firma.com"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-800">Sifre</label>
+        <label className="mb-2 block text-sm font-medium text-slate-800">Şifre</label>
         <input
           type="password"
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="********"
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
         />
       </div>
 
@@ -205,13 +205,13 @@ export function LoginForm() {
           className="text-sm font-medium text-muted hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {resetStatus === "sending"
-            ? "Reset e-postasi gonderiliyor..."
-            : "Sifremi Unuttum"}
+            ? "Reset e-postası gönderiliyor..."
+            : "Şifremi Unuttum"}
         </button>
 
         {resetStatus === "sent" ? (
           <span className="text-xs font-medium text-emerald-700">
-            Reset e-postasi gonderildi
+            Reset e-postası gönderildi
           </span>
         ) : null}
       </div>
@@ -230,9 +230,9 @@ export function LoginForm() {
         type="button"
         disabled={!emailEnabled || busy}
         onClick={submitEmailPassword}
-        className="mt-2 w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2 w-full rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Giris Yapiliyor..." : "Giris Yap"}
+        {pendingAction === "email" ? "Giriş Yapılıyor..." : "Giriş Yap"}
       </button>
 
       {googleEnabled ? (
@@ -242,7 +242,7 @@ export function LoginForm() {
           onClick={submitGoogle}
           className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {pendingAction === "google" ? "Google aciliyor..." : "Google ile Giris"}
+          {pendingAction === "google" ? "Google açılıyor..." : "Google ile Giriş"}
         </button>
       ) : null}
 
@@ -254,14 +254,14 @@ export function LoginForm() {
           className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pendingAction === "microsoft"
-            ? "Microsoft aciliyor..."
-            : "Microsoft ile Giris"}
+            ? "Microsoft açılıyor..."
+            : "Microsoft ile Giriş"}
         </button>
       ) : null}
 
       {!emailEnabled ? (
         <div className="text-xs text-muted">
-          <span className="rounded-full bg-slate-100 px-2 py-1">Email login kapali</span>
+          <span className="rounded-full bg-slate-100 px-2 py-1">Email login kapalı</span>
         </div>
       ) : null}
     </div>

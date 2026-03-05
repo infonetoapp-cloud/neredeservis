@@ -9,7 +9,7 @@ const openGraphImageUrl = toAbsoluteUrl(marketingBaseUrl, "/opengraph-image");
 export const metadata: Metadata = {
   title: "KVKK | NeredeServis",
   description:
-    "NeredeServis KVKK aydinlatma ozetinde veri sorumlusu kapsami, islenen veri kategorileri ve basvuru adimlari aciklanir.",
+    "NeredeServis KVKK aydınlatma özetinde veri sorumlusu kapsamı, işlenen veri kategorileri ve başvuru adımları açıklanır.",
   robots: { index: true, follow: true },
   alternates: {
     canonical: toAbsoluteUrl(marketingBaseUrl, "/kvkk"),
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "KVKK | NeredeServis",
     description:
-      "KVKK kapsaminda veri sorumlusu kapsami, islenen veri kategorileri ve basvuru adimlari icin NeredeServis ozeti.",
+      "KVKK kapsamında veri sorumlusu kapsamı, işlenen veri kategorileri ve başvuru adımları için NeredeServis özeti.",
     url: toAbsoluteUrl(marketingBaseUrl, "/kvkk"),
     type: "website",
     images: [
@@ -35,43 +35,43 @@ export default function KvkkPage() {
   return (
     <MarketingContentPage
       badge="KVKK"
-      title="KVKK Aydinlatma Ozeti"
-      description="6698 sayili KVKK kapsaminda, veri isleme sureclerine iliskin urun seviyesinde temel bilgilendirme ozetini bu sayfada sunuyoruz."
+      title="KVKK Aydınlatma Özeti"
+      description="6698 sayılı KVKK kapsamında, veri işleme süreçlerine ilişkin ürün seviyesinde temel bilgilendirme özetini bu sayfada sunuyoruz."
       sections={[
         {
-          heading: "Veri Sorumlusu ve Amac",
-          body: "Platformda islenen veriler; kimliklendirme, operasyon yonetimi, canli izleme ve guvenlik surecleri kapsaminda kullanilir.",
+          heading: "Veri Sorumlusu ve Amaç",
+          body: "Platformda işlenen veriler; kimliklendirme, operasyon yönetimi, canlı izleme ve güvenlik süreçleri kapsamında kullanılır.",
           items: [
-            "Hizmetin sunulmasi ve surekliliginin saglanmasi",
-            "Yetki ve erisim kontrollerinin uygulanmasi",
-            "Operasyonel kayit ve denetim izi olusturulmasi",
+            "Hizmetin sunulması ve sürekliliğinin sağlanması",
+            "Yetki ve erişim kontrollerinin uygulanması",
+            "Operasyonel kayıt ve denetim izi oluşturulması",
           ],
         },
         {
-          heading: "Islenen Veri Kategorileri",
-          body: "Kimlik/iletisim, operasyon, rota/durak ve canli konum verileri; urun fonksiyonlariyla sinirli olarak islenir.",
+          heading: "İşlenen Veri Kategorileri",
+          body: "Kimlik/iletişim, operasyon, rota/durak ve canlı konum verileri; ürün fonksiyonlarıyla sınırlı olarak işlenir.",
           items: [
-            "Kimlik ve iletisim bilgileri",
-            "Rota, durak, sefer ve arac iliskili operasyon kayitlari",
-            "Canli konum ve baglanti durumu semantik verileri",
+            "Kimlik ve iletişim bilgileri",
+            "Rota, durak, sefer ve araç ilişkili operasyon kayıtları",
+            "Canlı konum ve bağlantı durumu semantik verileri",
           ],
         },
         {
-          heading: "Haklar ve Basvuru",
-          body: "KVKK kapsamindaki haklar icin basvuru kanallari ve cevap surecleri tanimlidir; talepler kayda alinarak degerlendirilir.",
+          heading: "Haklar ve Başvuru",
+          body: "KVKK kapsamındaki haklar için başvuru kanalları ve cevap süreçleri tanımlıdır; talepler kayda alınarak değerlendirilir.",
           items: [
-            "Basvuru kanali: support@neredeservis.app",
-            "Kimlik dogrulama sonrasi talep isleme",
-            "Yanit ve kayit sureclerinde izlenebilirlik",
+            "Başvuru kanalı: support@neredeservis.app",
+            "Kimlik doğrulama sonrası talep işleme",
+            "Yanıt ve kayıt süreçlerinde izlenebilirlik",
           ],
         },
       ]}
       quickLinks={[
-        { label: "Gizlilik Ozeti", href: "/gizlilik" },
-        { label: "Iletisim", href: "/iletisim" },
+        { label: "Gizlilik Özeti", href: "/gizlilik" },
+        { label: "İletişim", href: "/iletisim" },
         { label: "Ana Sayfa", href: "/" },
       ]}
-      note="Bu icerik KVKK ozet bilgilendirmesidir. Nihai hukuki metin yayini sonrasinda resmi metne yonlendirme bu sayfaya eklenir."
+      note="Bu içerik KVKK özet bilgilendirmesidir. Nihai hukuki metin yayını sonrasında resmi metne yönlendirme bu sayfaya eklenir."
     />
   );
 }

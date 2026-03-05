@@ -19,7 +19,7 @@ interface Props {
  */
 export function LandingPageRenderer({ config }: Props) {
   return (
-    <main className="min-h-screen bg-white text-slate-900 selection:bg-teal-200/60">
+    <main className="min-h-screen bg-white text-slate-900 selection:bg-brand/20">
       <LandingNavbar navbar={config.navbar} />
       <LandingHero hero={config.hero} />
       <LandingStats stats={config.stats} />

@@ -11,8 +11,8 @@ export function LandingHowItWorks({ howItWorks }: Props) {
       <div className="mx-auto max-w-7xl px-6">
         {/* Header */}
         <div className="text-center">
-          <p className="text-sm font-semibold tracking-widest text-teal-600 uppercase">
-            Nasıl Çalışır
+          <p className="text-sm font-semibold tracking-widest text-brand uppercase">
+            Nasil Calisir
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
             {howItWorks.sectionTitle}
@@ -30,11 +30,11 @@ export function LandingHowItWorks({ howItWorks }: Props) {
             const Icon = resolveIcon(step.icon);
             return (
               <div key={i} className="relative text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 ring-1 ring-teal-200">
-                  <Icon className="h-6 w-6 text-teal-600" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/20">
+                  <Icon className="h-6 w-6 text-brand" />
                 </div>
-                <div className="mt-2 text-xs font-bold tracking-widest text-teal-500 uppercase">
-                  Adım {String(i + 1).padStart(2, "0")}
+                <div className="mt-2 text-xs font-bold tracking-widest text-brand/80 uppercase">
+                  Adim {String(i + 1).padStart(2, "0")}
                 </div>
                 <h3 className="mt-3 text-lg font-semibold text-slate-900">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-500">

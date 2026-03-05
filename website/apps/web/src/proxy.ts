@@ -49,10 +49,10 @@ export function proxy(request: NextRequest): NextResponse {
     return redirectToHost(request, APP_HOST);
   }
 
-  if (host === APP_HOST && (pathname === "/" || pathname === "/giris")) {
-    // Panel root should land on auth entry (auth gate will route onward).
+  if (host === APP_HOST && (pathname === "/" || pathname === "/login")) {
+    // Panel root and legacy login route should land on canonical auth entry.
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/giris";
     url.protocol = "https:";
     return NextResponse.redirect(url, 308);
   }

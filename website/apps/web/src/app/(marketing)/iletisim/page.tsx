@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { NsLogo } from "@/components/brand/ns-logo";
 import { getMarketingBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
 
 const marketingBaseUrl = getMarketingBaseUrl();
@@ -89,15 +90,9 @@ export default function IletisimPage() {
       <div className="mx-auto w-full max-w-5xl px-6 py-8 sm:py-10">
         {/* ── Header ── */}
         <header className="mb-12 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-blue-100 bg-white shadow-sm">
-              <span className="text-sm font-semibold text-blue-700">NS</span>
-            </div>
-            <div>
-              <div className="text-sm font-semibold tracking-tight text-slate-950">NeredeServis</div>
-              <div className="text-xs text-muted">Operasyon platformu</div>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center">
+            <NsLogo iconSize={26} wordmarkClass="text-base font-bold tracking-tight" />
+          </Link>
           <div className="flex items-center gap-2">
             <Link
               href="/"
@@ -107,7 +102,7 @@ export default function IletisimPage() {
             </Link>
             <Link
               href="/giris"
-              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong"
             >
               Panel Girişi
             </Link>
@@ -116,8 +111,8 @@ export default function IletisimPage() {
 
         {/* ── Hero ── */}
         <section className="mb-14 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand" />
             İletişim
           </div>
           <h1 className="mx-auto max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-[2.75rem]">
@@ -133,7 +128,7 @@ export default function IletisimPage() {
         <section className="mb-14 grid gap-4 sm:grid-cols-3">
           {/* Email */}
           <div className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-brand/20 bg-brand/10 text-brand">
               <IconMail />
             </div>
             <div className="text-sm font-semibold text-slate-950">E-posta</div>
@@ -142,7 +137,7 @@ export default function IletisimPage() {
             </p>
             <a
               href="mailto:destek@neredeservis.app"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand/10 px-3 py-2 text-xs font-semibold text-brand transition hover:bg-brand/15"
             >
               destek@neredeservis.app
               <IconArrow />
@@ -150,8 +145,8 @@ export default function IletisimPage() {
           </div>
 
           {/* Demo */}
-          <div className="flex flex-col rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-100 text-emerald-700">
+          <div className="flex flex-col rounded-2xl border border-accent/30 bg-gradient-to-br from-accent-soft to-white p-6 shadow-sm">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/30 bg-accent-soft text-accent">
               <IconCalendar />
             </div>
             <div className="text-sm font-semibold text-slate-950">Demo Talebi</div>
@@ -160,7 +155,7 @@ export default function IletisimPage() {
             </p>
             <a
               href="mailto:destek@neredeservis.app?subject=Demo%20Talebi&body=Merhaba%2C%20demo%20talep%20ediyorum."
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
             >
               Demo talep et
               <IconArrow />
@@ -254,7 +249,7 @@ export default function IletisimPage() {
               ))}
             </ul>
 
-            <div className="mt-8 rounded-xl border border-blue-200 bg-white p-4">
+            <div className="mt-8 rounded-xl border border-brand/20 bg-white p-4">
               <div className="text-xs font-semibold text-slate-950">Teknik uyum başlıkları</div>
               <p className="mt-1 text-xs leading-5 text-muted">
                 Onboarding öncesinde mevcut sisteminizle uyum netleştirilir:
@@ -285,7 +280,7 @@ export default function IletisimPage() {
           </div>
           <a
             href="mailto:destek@neredeservis.app?subject=Demo%20Talebi"
-            className="shrink-0 rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+            className="shrink-0 rounded-full bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong"
           >
             destek@neredeservis.app →
           </a>

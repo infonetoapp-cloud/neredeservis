@@ -20,30 +20,30 @@ import { GoogleIcon, MicrosoftIcon } from "@/components/auth/auth-provider-icons
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Kayit tetiklenemiyor.";
+      return "Firebase public config eksik. Kayıt tetiklenemiyor.";
     }
     const code = (error as { code?: string }).code;
     if (code === "auth/email-already-in-use") {
       return "Bu e-posta ile zaten bir hesap var.";
     }
     if (code === "auth/invalid-email") {
-      return "E-posta formati gecersiz.";
+      return "E-posta formatı geçersiz.";
     }
     if (code === "auth/weak-password") {
-      return "Sifre en az 6 karakter olmali.";
+      return "Şifre en az 6 karakter olmalı.";
     }
     if (code === "auth/popup-closed-by-user") {
-      return "Sosyal giris penceresi kapatildi.";
+      return "Sosyal giriş penceresi kapatıldı.";
     }
     if (code === "auth/popup-blocked") {
-      return "Popup engellendi. Tarayici popup iznini acip tekrar dene.";
+      return "Popup engellendi. Tarayıcı popup iznini açıp tekrar dene.";
     }
     if (code === "auth/operation-not-allowed") {
-      return "Bu kayit yontemi su anda aktif degil.";
+      return "Bu kayıt yöntemi şu anda aktif değil.";
     }
-    return code ? `Kayit hatasi (${code})` : error.message;
+    return code ? `Kayıt hatası (${code})` : error.message;
   }
-  return "Beklenmeyen hata olustu.";
+  return "Beklenmeyen hata oluştu.";
 }
 
 export function RegisterForm() {
@@ -72,7 +72,7 @@ export function RegisterForm() {
   if (status === "signed_in") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum acik. Sirket secimine yonlendiriliyor...
+        Oturum açık. Şirket seçimine yönlendiriliyor...
       </div>
     );
   }
@@ -88,11 +88,11 @@ export function RegisterForm() {
   const submitEmailRegistration = async () => {
     setErrorMessage(null);
     if (password.length < 6) {
-      setErrorMessage("Sifre en az 6 karakter olmali.");
+      setErrorMessage("Şifre en az 6 karakter olmalı.");
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage("Sifreler ayni olmali.");
+      setErrorMessage("Şifreler aynı olmalı.");
       return;
     }
 
@@ -145,11 +145,11 @@ export function RegisterForm() {
         type="button"
         disabled={!googleEnabled || busy}
         onClick={submitGoogle}
-        className="glass-button w-full rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="inline-flex items-center gap-2">
           <GoogleIcon className="h-4 w-4" />
-          {pendingAction === "google" ? "Google aciliyor..." : "Google ile Kayit Ol"}
+          {pendingAction === "google" ? "Google açılıyor..." : "Google ile Kayıt Ol"}
         </span>
       </button>
 
@@ -157,62 +157,62 @@ export function RegisterForm() {
         type="button"
         disabled={!microsoftEnabled || busy}
         onClick={submitMicrosoft}
-        className="glass-button w-full rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="inline-flex items-center gap-2">
           <MicrosoftIcon className="h-4 w-4" />
-          {pendingAction === "microsoft" ? "Microsoft aciliyor..." : "Microsoft ile Kayit Ol"}
+          {pendingAction === "microsoft" ? "Microsoft açılıyor..." : "Microsoft ile Kayıt Ol"}
         </span>
       </button>
 
       <div className="relative py-1 text-center">
         <div className="absolute left-0 right-0 top-1/2 border-t border-line/80" />
-        <span className="relative bg-white px-3 text-xs font-medium tracking-wide text-[#7e8691]">OR</span>
+        <span className="relative bg-white px-3 text-xs font-medium tracking-wide text-slate-500">VEYA</span>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Ad Soyad (opsiyonel)</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">Ad Soyad (opsiyonel)</label>
           <input
             type="text"
             autoComplete="name"
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
             placeholder="Ad Soyad"
-            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+            className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Email</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">E-posta</label>
           <input
             type="email"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="ornek@firma.com"
-            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+            className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Password</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">Şifre</label>
           <input
             type="password"
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="En az 6 karakter"
-            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+            className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Confirm Password</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">Şifre (Tekrar)</label>
           <input
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="Sifreyi tekrar gir"
-            className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+            placeholder="Şifreyi tekrar gir"
+            className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
           />
         </div>
       </div>
@@ -221,15 +221,15 @@ export function RegisterForm() {
         type="button"
         disabled={!emailEnabled || busy}
         onClick={submitEmailRegistration}
-        className="glass-button-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Signing up..." : "Sign Up"}
+        {pendingAction === "email" ? "Kayıt yapılıyor..." : "Kayıt Ol"}
       </button>
 
-      <div className="pt-1 text-center text-sm text-[#66736c]">
-        Zaten hesabin var mi?{" "}
-        <Link href="/login" className="font-semibold text-[#173f37] hover:opacity-70">
-          Giris Yap
+      <div className="pt-1 text-center text-sm text-muted">
+        Zaten hesabın var mı?{" "}
+        <Link href="/giris" className="font-semibold text-brand hover:text-brand-strong">
+          Giriş Yap
         </Link>
       </div>
     </div>

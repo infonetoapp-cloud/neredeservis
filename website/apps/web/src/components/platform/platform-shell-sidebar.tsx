@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NsLogo } from "@/components/brand/ns-logo";
 import { EnvBadge } from "@/components/shared/env-badge";
 
 type PlatformNavItem = {
@@ -78,7 +79,9 @@ export function PlatformShellSidebar() {
     <aside className="border-b border-line bg-surface p-4 lg:border-r lg:border-b-0">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <div className="text-sm font-semibold tracking-tight text-slate-900">NeredeServis</div>
+          <div className="flex items-center">
+            <NsLogo iconSize={20} wordmarkClass="text-sm font-bold tracking-tight" />
+          </div>
           <div className="text-xs text-indigo-600 font-medium">Platform Yonetimi</div>
         </div>
         <EnvBadge />

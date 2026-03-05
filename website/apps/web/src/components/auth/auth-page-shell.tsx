@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { FirebaseClientBootstrapProbe } from "@/components/auth/firebase-client-bootstrap-probe";
+import { NsLogo } from "@/components/brand/ns-logo";
 import { ArrowRightIcon } from "@/components/shared/app-icons";
 import { ConfigValidationBanner } from "@/components/shared/config-validation-banner";
 
@@ -41,20 +42,22 @@ export function AuthPageShell({
         <section className="grid w-full overflow-hidden rounded-[22px] border border-line bg-white shadow-[0_3px_14px_rgba(16,24,40,0.08)] lg:grid-cols-[1.08fr_0.92fr]">
           <div className="fade-slide-in p-6 sm:p-10 lg:p-12">
             <div className="mb-10 flex items-center justify-between text-sm">
-              <div className="text-base font-bold text-[#0f9ea0]">NeredeServis</div>
-              <div className="text-right text-[#8b9098]">
+              <Link href="/" className="flex items-center">
+                <NsLogo iconSize={24} wordmarkClass="text-base font-bold tracking-tight" />
+              </Link>
+              <div className="text-right text-muted">
                 {topPrompt}{" "}
-                <Link href={topLinkHref} className="font-semibold text-[#2f3237] hover:opacity-75">
+                <Link href={topLinkHref} className="font-semibold text-slate-800 hover:text-brand">
                   {topLinkLabel}
                 </Link>
               </div>
             </div>
 
             <div className="mx-auto max-w-[420px]">
-              <h1 className="text-center text-[40px] font-semibold tracking-tight text-[#2f3237] sm:text-[46px]">
+              <h1 className="text-center text-[40px] font-semibold tracking-tight text-slate-900 sm:text-[46px]">
                 {title}
               </h1>
-              <p className="mt-2 text-center text-base text-[#7f8691]">{description}</p>
+              <p className="mt-2 text-center text-base text-muted">{description}</p>
 
               <div className="mt-6">
                 <ConfigValidationBanner scopeLabel={scopeLabel} />
@@ -65,10 +68,10 @@ export function AuthPageShell({
               </div>
 
               <div className="mt-6 flex items-center justify-between text-sm">
-                <span className="text-xs text-[#8b9098]">{footerHint}</span>
+                <span className="text-xs text-muted">{footerHint}</span>
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-1 font-semibold text-[#4c5561] transition hover:opacity-75"
+                  className="inline-flex items-center gap-1 font-semibold text-slate-700 transition hover:text-brand"
                 >
                   Ana sayfa
                   <ArrowRightIcon className="h-4 w-4" />
@@ -77,7 +80,7 @@ export function AuthPageShell({
             </div>
           </div>
 
-          <div className="relative hidden min-h-[700px] border-l border-line bg-[#eceff2] lg:block">
+          <div className="relative hidden min-h-[700px] border-l border-line bg-slate-100 lg:block">
             <Image src={sideImageSrc} alt={sideImageAlt} fill className="object-cover object-right" priority />
             {sideQuote ? (
               <div className="absolute bottom-6 left-6 right-6 rounded-xl border border-white/45 bg-black/25 p-4 text-white backdrop-blur-sm">

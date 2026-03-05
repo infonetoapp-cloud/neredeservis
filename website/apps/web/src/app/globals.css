@@ -2,12 +2,15 @@
 @import "mapbox-gl/dist/mapbox-gl.css";
 
 :root {
-  --background: #f0f4f8;
+  --background: #f3f6fb;
   --foreground: #0f172a;
   --surface: #ffffff;
   --muted: #64748b;
   --line: #d8e0ed;
-  --brand: #2563eb;
+  --brand: #0a4fbf;
+  --brand-strong: #083a8f;
+  --accent: #ff7a00;
+  --accent-soft: #fff4e8;
 }
 
 @theme inline {
@@ -17,6 +20,9 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-geist-mono);
   /* upgraded shadows for depth */

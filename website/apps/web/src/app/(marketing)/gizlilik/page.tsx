@@ -9,7 +9,7 @@ const openGraphImageUrl = toAbsoluteUrl(marketingBaseUrl, "/opengraph-image");
 export const metadata: Metadata = {
   title: "Gizlilik | NeredeServis",
   description:
-    "NeredeServis gizlilik politikasi ozetinde veri isleme kapsami, erisim modeli ve saklama/silme yaklasimi yer alir.",
+    "NeredeServis gizlilik politikası özetinde veri işleme kapsamı, erişim modeli ve saklama/silme yaklaşımı yer alır.",
   robots: { index: true, follow: true },
   alternates: {
     canonical: toAbsoluteUrl(marketingBaseUrl, "/gizlilik"),
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Gizlilik | NeredeServis",
     description:
-      "Veri isleme kapsami, erisim modeli ve saklama/silme yaklasimi icin NeredeServis gizlilik ozeti.",
+      "Veri işleme kapsamı, erişim modeli ve saklama/silme yaklaşımı için NeredeServis gizlilik özeti.",
     url: toAbsoluteUrl(marketingBaseUrl, "/gizlilik"),
     type: "website",
     images: [
@@ -35,43 +35,43 @@ export default function GizlilikPage() {
   return (
     <MarketingContentPage
       badge="Gizlilik"
-      title="Gizlilik Politikasi Ozeti"
-      description="NeredeServis, platformda islenen verileri operasyonel hizmet sunumu, guvenlik ve yasal yukumluluklar kapsaminda isler. Asagida urun seviyesi ozet bulunur."
+      title="Gizlilik Politikası Özeti"
+      description="NeredeServis, platformda işlenen verileri operasyonel hizmet sunumu, güvenlik ve yasal yükümlülükler kapsamında işler. Aşağıda ürün seviyesi özet bulunur."
       sections={[
         {
-          heading: "Veri Isleme Kapsami",
-          body: "Hesap, operasyon ve konum verileri; canli takip, rota yonetimi ve hizmet devamliiligi icin gerekli oldugu olcude islenir.",
+          heading: "Veri İşleme Kapsamı",
+          body: "Hesap, operasyon ve konum verileri; canlı takip, rota yönetimi ve hizmet devamlılığı için gerekli olduğu ölçüde işlenir.",
           items: [
             "Hesap verileri: ad, e-posta, rol/membership",
-            "Operasyon verileri: rota, durak, sefer ve audit kayitlari",
-            "Canli veri: RTDB tabanli anlik konum akis semantikleri",
+            "Operasyon verileri: rota, durak, sefer ve audit kayıtları",
+            "Canlı veri: RTDB tabanlı anlık konum akış semantikleri",
           ],
         },
         {
-          heading: "Yetki ve Erisim",
-          body: "Tenant izolasyonu, rol tabanli yetki modeli ve server-side policy dogrulamasi urunun temel guvenlik katmanlaridir.",
+          heading: "Yetki ve Erişim",
+          body: "Tenant izolasyonu, rol tabanlı yetki modeli ve server-side policy doğrulaması ürünün temel güvenlik katmanlarıdır.",
           items: [
-            "Cross-tenant veri erisimi policy ile engellenir",
+            "Cross-tenant veri erişimi policy ile engellenir",
             "Kritik mutasyonlar audit event ile izlenir",
-            "Callable response kontratlari runtime guard ile korunur",
+            "Callable response kontratları runtime guard ile korunur",
           ],
         },
         {
           heading: "Saklama ve Silme",
-          body: "Veri saklama ve silme yaklasimi retention planlari ve uyum sureci ile yonetilir. Isleme amaci sona eren veriler icin temizleme adimlari uygulanir.",
+          body: "Veri saklama ve silme yaklaşımı retention planları ve uyum süreci ile yönetilir. İşleme amacı sona eren veriler için temizleme adımları uygulanır.",
           items: [
-            "Saklama sureleri urun/pilot politikalarina gore belirlenir",
-            "Silme talepleri kayit altinda islenir",
-            "Kritik degisikliklerde karar kaydi tutulur",
+            "Saklama süreleri ürün/pilot politikalarına göre belirlenir",
+            "Silme talepleri kayıt altında işlenir",
+            "Kritik değişikliklerde karar kaydı tutulur",
           ],
         },
       ]}
       quickLinks={[
-        { label: "KVKK Ozeti", href: "/kvkk" },
-        { label: "Iletisim", href: "/iletisim" },
-        { label: "Panele Giris", href: "/giris" },
+        { label: "KVKK Özeti", href: "/kvkk" },
+        { label: "İletişim", href: "/iletisim" },
+        { label: "Panele Giriş", href: "/giris" },
       ]}
-      note="Bu sayfa urun seviyesinde bilgilendirme ozetidir; hukuki baglayici nihai metinler yayinlandiginda burada baglanti olarak sunulur."
+      note="Bu sayfa ürün seviyesinde bilgilendirme özetidir; hukuki bağlayıcı nihai metinler yayınlandığında burada bağlantı olarak sunulur."
     />
   );
 }

@@ -11,23 +11,23 @@ function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Sifre sifirlama tetiklenemiyor.";
+      return "Firebase public config eksik. Şifre sıfırlama tetiklenemiyor.";
     }
     if (code === "auth/missing-email") {
-      return "Lutfen e-posta alanini doldur.";
+      return "Lütfen e-posta alanını doldur.";
     }
     if (code === "auth/invalid-email") {
-      return "E-posta formati gecersiz.";
+      return "E-posta formatı geçersiz.";
     }
     if (code === "auth/user-not-found") {
-      return "Bu e-posta ile kayitli hesap bulunamadi.";
+      return "Bu e-posta ile kayıtlı hesap bulunamadı.";
     }
     if (code === "auth/too-many-requests") {
-      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
+      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
     }
-    return code ? `Sifre sifirlama hatasi (${code})` : error.message;
+    return code ? `Şifre sıfırlama hatası (${code})` : error.message;
   }
-  return "Beklenmeyen hata olustu.";
+  return "Beklenmeyen hata oluştu.";
 }
 
 export function ForgotPasswordForm() {
@@ -61,19 +61,19 @@ export function ForgotPasswordForm() {
 
       {status === "sent" ? (
         <div className="rounded-2xl border border-emerald-200/85 bg-emerald-50/80 p-3 text-sm text-emerald-900">
-          Reset e-postasi gonderildi. Gelen kutunu kontrol et.
+          Reset e-postası gönderildi. Gelen kutunu kontrol et.
         </div>
       ) : null}
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Email</label>
+        <label className="mb-2 block text-sm font-semibold text-slate-800">E-posta</label>
         <input
           type="email"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="ornek@firma.com"
-          className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
         />
       </div>
 
@@ -81,22 +81,22 @@ export function ForgotPasswordForm() {
         type="button"
         disabled={busy}
         onClick={submitReset}
-        className="glass-button-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
           <>
             <RefreshIcon className="h-4 w-4" />
-            Gonderiliyor...
+            Gönderiliyor...
           </>
         ) : (
-          "Reset Linki Gonder"
+          "Reset Linki Gönder"
         )}
       </button>
 
-      <div className="pt-1 text-center text-sm text-[#66736c]">
-        Sifreyi hatirladin mi?{" "}
-        <Link href="/login" className="font-semibold text-[#173f37] hover:opacity-70">
-          Giris Yap
+      <div className="pt-1 text-center text-sm text-muted">
+        Şifreyi hatırladın mı?{" "}
+        <Link href="/giris" className="font-semibold text-brand hover:text-brand-strong">
+          Giriş Yap
         </Link>
       </div>
     </div>
