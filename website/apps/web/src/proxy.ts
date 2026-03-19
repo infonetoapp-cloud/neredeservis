@@ -53,6 +53,7 @@ export function proxy(request: NextRequest): NextResponse {
   if (host === APP_HOST && (pathname === "/" || pathname === "/login")) {
     // Panel root and legacy login route should land on canonical auth entry.
     const url = request.nextUrl.clone();
+    url.hostname = APP_HOST;
     url.pathname = "/giris";
     url.protocol = "https:";
     url.port = "";
