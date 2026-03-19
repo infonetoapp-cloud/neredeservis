@@ -38,6 +38,26 @@ export async function readJsonBody(request, options = {}) {
   }
 }
 
+export async function readBufferBody(request, options = {}) {
+  const maxBytes = Number.isFinite(options.maxBytes) ? options.maxBytes : 64 * 1024;
+  const chunks = [];
+  let totalBytes = 0;
+
+  for await (const chunk of request) {
+    totalBytes += chunk.length;
+    if (totalBytes > maxBytes) {
+      throw new HttpError(413, "payload-too-large", "Istek govdesi cok buyuk.");
+    }
+    chunks.push(chunk);
+  }
+
+  if (chunks.length === 0) {
+    return Buffer.alloc(0);
+  }
+
+  return Buffer.concat(chunks);
+}
+
 export function sendJson(response, statusCode, payload) {
   const body = JSON.stringify(payload);
   response.writeHead(statusCode, {

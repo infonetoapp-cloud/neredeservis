@@ -26,9 +26,15 @@ Varsayilan port: `3001`
 
 - Port: `3001`
 - Dockerfile: `backend/api/Dockerfile`
+- Logo upload icin persistent volume onerilir:
+  - volume mount: `/app/data/uploads`
+  - `UPLOAD_STORAGE_ROOT=/app/data/uploads`
+  - opsiyonel `UPLOAD_PUBLIC_BASE_URL=https://api.neredeservis.app`
 - Ilk deployment sonrasi test:
   - `/healthz`
   - `/version`
+  - `PUT /api/companies/:companyId/logo`
+  - `GET /media/company-logos/:companyId/:fileName`
 
 ## Sonraki saglikli adim
 

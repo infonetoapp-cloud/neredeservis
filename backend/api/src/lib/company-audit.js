@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -75,4 +77,157 @@ export async function getCompanyAdminTenantState(db, companyId) {
     updatedAt: pickString(companyData, "updatedAt"),
     createdAt: pickString(companyData, "createdAt"),
   };
+}
+
+function normalizeCompanyStatus(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === "active" || value === "suspended" || value === "archived") {
+    return value;
+  }
+  throw new HttpError(400, "invalid-argument", "companyStatus gecersiz.");
+}
+
+function normalizeBillingStatus(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === "active" || value === "past_due" || value === "suspended_locked") {
+    return value;
+  }
+  throw new HttpError(400, "invalid-argument", "billingStatus gecersiz.");
+}
+
+function normalizeBillingValidUntil(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  throw new HttpError(400, "invalid-argument", "billingValidUntil gecersiz.");
+}
+
+export async function updateCompanyAdminTenantState(db, actorUid, actorRole, input) {
+  if (actorRole !== "owner" && actorRole !== "admin") {
+    throw new HttpError(
+      403,
+      "permission-denied",
+      "Bu islem icin owner veya admin rolu gereklidir.",
+    );
+  }
+
+  const rawPatch = asRecord(input?.patch);
+  if (!rawPatch) {
+    throw new HttpError(400, "invalid-argument", "Gecerli bir patch govdesi bekleniyor.");
+  }
+
+  const nextCompanyStatus = normalizeCompanyStatus(rawPatch.companyStatus);
+  const nextBillingStatus = normalizeBillingStatus(rawPatch.billingStatus);
+  const nextBillingValidUntil = normalizeBillingValidUntil(rawPatch.billingValidUntil);
+  const patchReason = pickString(rawPatch, "reason");
+  const companyId = pickString(input, "companyId");
+  if (!companyId) {
+    throw new HttpError(400, "invalid-argument", "companyId gecersiz.");
+  }
+
+  const nowIso = new Date().toISOString();
+  const companyRef = db.collection("companies").doc(companyId);
+
+  return db.runTransaction(async (transaction) => {
+    const companySnapshot = await transaction.get(companyRef);
+    if (!companySnapshot.exists) {
+      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
+    }
+
+    const companyData = asRecord(companySnapshot.data()) ?? {};
+    const currentCompanyStatus = readCompanyStatus(pickString(companyData, "status"));
+    const currentBillingStatus = readBillingStatus(pickString(companyData, "billingStatus"));
+    const currentBillingValidUntil = pickString(companyData, "billingValidUntil");
+
+    const updatePatch = {
+      updatedAt: nowIso,
+      updatedBy: actorUid,
+    };
+    const changedFields = [];
+
+    if (nextCompanyStatus !== undefined && currentCompanyStatus !== nextCompanyStatus) {
+      updatePatch.status = nextCompanyStatus;
+      changedFields.push("companyStatus");
+    }
+    if (nextBillingStatus !== undefined && currentBillingStatus !== nextBillingStatus) {
+      updatePatch.billingStatus = nextBillingStatus;
+      changedFields.push("billingStatus");
+    }
+    if (
+      nextBillingValidUntil !== undefined &&
+      (currentBillingValidUntil ?? null) !== nextBillingValidUntil
+    ) {
+      updatePatch.billingValidUntil = nextBillingValidUntil;
+      changedFields.push("billingValidUntil");
+    }
+
+    if (changedFields.length === 0) {
+      throw new HttpError(400, "invalid-argument", "TENANT_STATE_NO_CHANGES");
+    }
+
+    transaction.update(companyRef, updatePatch);
+
+    const auditRef = db.collection("audit_logs").doc();
+    transaction.set(auditRef, {
+      companyId,
+      actorUid,
+      actorType: "company_member",
+      eventType: "company_tenant_state_updated",
+      targetType: "company",
+      targetId: companyId,
+      status: "success",
+      reason: null,
+      metadata: {
+        actorRole,
+        changedFields,
+        patchReason: patchReason ?? null,
+        previous: {
+          companyStatus: currentCompanyStatus,
+          billingStatus: currentBillingStatus,
+          billingValidUntil: currentBillingValidUntil ?? null,
+        },
+        next: {
+          companyStatus: updatePatch.status ?? currentCompanyStatus,
+          billingStatus: updatePatch.billingStatus ?? currentBillingStatus,
+          billingValidUntil:
+            updatePatch.billingValidUntil === undefined
+              ? currentBillingValidUntil ?? null
+              : updatePatch.billingValidUntil,
+        },
+      },
+      requestId: createHash("sha256")
+        .update(`updateCompanyAdminTenantState:${actorUid}:${companyId}:${nowIso}`)
+        .digest("hex")
+        .slice(0, 24),
+      createdAt: nowIso,
+    });
+
+    return {
+      companyId,
+      companyStatus: readCompanyStatus(
+        typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
+      ),
+      billingStatus: readBillingStatus(
+        typeof updatePatch.billingStatus === "string"
+          ? updatePatch.billingStatus
+          : currentBillingStatus,
+      ),
+      billingValidUntil:
+        updatePatch.billingValidUntil === undefined
+          ? currentBillingValidUntil ?? null
+          : updatePatch.billingValidUntil,
+      updatedAt: nowIso,
+      changedFields,
+    };
+  });
 }

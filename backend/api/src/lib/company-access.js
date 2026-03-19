@@ -3,6 +3,8 @@ import { asRecord, pickString } from "./runtime-value.js";
 
 const VALID_MEMBER_ROLES = new Set(["owner", "admin", "dispatcher", "viewer"]);
 const VEHICLE_WRITE_ROLES = new Set(["owner", "admin", "dispatcher"]);
+const ROUTE_WRITE_ROLES = new Set(["owner", "admin", "dispatcher"]);
+const DRIVER_WRITE_ROLES = new Set(["owner", "admin", "dispatcher"]);
 
 export async function requireActiveCompanyMemberRole(db, companyId, uid) {
   const memberSnapshot = await db
@@ -31,6 +33,30 @@ export async function requireActiveCompanyMemberRole(db, companyId, uid) {
 
 export function requireCompanyVehicleWriteRole(role) {
   if (VEHICLE_WRITE_ROLES.has(role ?? "")) {
+    return;
+  }
+
+  throw new HttpError(
+    403,
+    "permission-denied",
+    "Bu islem icin owner, admin veya dispatcher rolu gereklidir.",
+  );
+}
+
+export function requireCompanyRouteWriteRole(role) {
+  if (ROUTE_WRITE_ROLES.has(role ?? "")) {
+    return;
+  }
+
+  throw new HttpError(
+    403,
+    "permission-denied",
+    "Bu islem icin owner, admin veya dispatcher rolu gereklidir.",
+  );
+}
+
+export function requireCompanyDriverWriteRole(role) {
+  if (DRIVER_WRITE_ROLES.has(role ?? "")) {
     return;
   }
 
@@ -82,4 +108,42 @@ export function normalizeVehicleTextNullable(rawValue, fieldLabel = "Alan") {
   }
 
   return value;
+}
+
+export async function assertCompanyMembersExistAndActive(db, companyId, uids) {
+  if (!Array.isArray(uids) || uids.length === 0) {
+    return;
+  }
+
+  const uniqueUids = Array.from(
+    new Set(
+      uids.filter((uid) => typeof uid === "string" && uid.trim().length > 0).map((uid) => uid.trim()),
+    ),
+  );
+  if (uniqueUids.length === 0) {
+    return;
+  }
+
+  const snapshots = await Promise.all(
+    uniqueUids.map((uid) =>
+      db.collection("companies").doc(companyId).collection("members").doc(uid).get(),
+    ),
+  );
+
+  const missingOrInactive = snapshots.find((snapshot, index) => {
+    if (!snapshot.exists) {
+      return uniqueUids[index];
+    }
+
+    const memberData = asRecord(snapshot.data()) ?? {};
+    return pickString(memberData, "status") !== "active" ? uniqueUids[index] : null;
+  });
+
+  if (missingOrInactive != null) {
+    throw new HttpError(
+      412,
+      "failed-precondition",
+      "authorizedDriverIds icinde company member olmayan veya aktif olmayan uid var.",
+    );
+  }
 }
