@@ -4,6 +4,7 @@ import { listActiveTripsByCompany } from "./lib/company-active-trips.js";
 import { requireAuthenticatedUser } from "./lib/auth.js";
 import {
   requireActiveCompanyMemberRole,
+  requireCompanyVehicleWriteRole,
   requireCompanyOwnerOrAdmin,
 } from "./lib/company-access.js";
 import { getCompanyAdminTenantState, listCompanyAuditLogs } from "./lib/company-audit.js";
@@ -13,7 +14,12 @@ import { listCompanyMembers } from "./lib/company-members.js";
 import { getCompanyProfile, updateCompanyProfile } from "./lib/company-profile.js";
 import { listCompanyRoutes } from "./lib/company-routes.js";
 import { listCompanyRouteStops } from "./lib/company-route-stops.js";
-import { listCompanyVehicles } from "./lib/company-vehicles.js";
+import {
+  createCompanyVehicle,
+  deleteCompanyVehicle,
+  listCompanyVehicles,
+  updateCompanyVehicle,
+} from "./lib/company-vehicles.js";
 import { getFirebaseAdminDb, getFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import { asRecord } from "./lib/runtime-value.js";
 import { listMyCompanies } from "./lib/my-companies.js";
@@ -130,6 +136,25 @@ function extractCompanyVehiclesPathParams(pathname) {
     return { companyId: decodeURIComponent(match[1]) };
   } catch {
     return { companyId: match[1] };
+  }
+}
+
+function extractCompanyVehicleItemPathParams(pathname) {
+  const match = pathname.match(/^\/api\/companies\/([^/]+)\/vehicles\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return {
+      companyId: decodeURIComponent(match[1]),
+      vehicleId: decodeURIComponent(match[2]),
+    };
+  } catch {
+    return {
+      companyId: match[1],
+      vehicleId: match[2],
+    };
   }
 }
 
@@ -322,6 +347,61 @@ const server = createServer(async (request, response) => {
         limit,
       });
       sendApiOk(response, 200, vehicles);
+      return;
+    }
+
+    if (companyVehiclesParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const memberRole = await requireActiveCompanyMemberRole(
+        db,
+        companyVehiclesParams.companyId,
+        decodedToken.uid,
+      );
+      requireCompanyVehicleWriteRole(memberRole);
+
+      const body = await readJsonBody(request);
+      const result = await createCompanyVehicle(db, decodedToken.uid, memberRole, {
+        ...(asRecord(body) ?? {}),
+        companyId: companyVehiclesParams.companyId,
+      });
+      sendApiOk(response, 201, result);
+      return;
+    }
+
+    const companyVehicleItemParams = extractCompanyVehicleItemPathParams(requestUrl.pathname);
+    if (companyVehicleItemParams && request.method === "PATCH") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const memberRole = await requireActiveCompanyMemberRole(
+        db,
+        companyVehicleItemParams.companyId,
+        decodedToken.uid,
+      );
+      requireCompanyVehicleWriteRole(memberRole);
+
+      const body = await readJsonBody(request);
+      const result = await updateCompanyVehicle(db, decodedToken.uid, memberRole, {
+        companyId: companyVehicleItemParams.companyId,
+        vehicleId: companyVehicleItemParams.vehicleId,
+        patch: body,
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (companyVehicleItemParams && request.method === "DELETE") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const memberRole = await requireActiveCompanyMemberRole(
+        db,
+        companyVehicleItemParams.companyId,
+        decodedToken.uid,
+      );
+      requireCompanyVehicleWriteRole(memberRole);
+
+      const result = await deleteCompanyVehicle(db, decodedToken.uid, memberRole, {
+        companyId: companyVehicleItemParams.companyId,
+        vehicleId: companyVehicleItemParams.vehicleId,
+      });
+      sendApiOk(response, 200, result);
       return;
     }
 
