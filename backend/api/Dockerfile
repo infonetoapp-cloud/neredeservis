@@ -6,6 +6,10 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3001
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends wget \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json ./
 COPY src ./src
 
