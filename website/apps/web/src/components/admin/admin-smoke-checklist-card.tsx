@@ -149,11 +149,11 @@ export function AdminSmokeChecklistCard() {
     });
     try {
       const durationLine = durationMinutes.trim()
-        ? `Toplam sure (dk): ${durationMinutes.trim()}`
-        : "Toplam sure (dk): -";
+        ? `Toplam süre (dk): ${durationMinutes.trim()}`
+        : "Toplam süre (dk): -";
       const targetLine = targetMinutes.trim()
-        ? `Hedef sure (dk): ${targetMinutes.trim()}`
-        : "Hedef sure (dk): -";
+        ? `Hedef süre (dk): ${targetMinutes.trim()}`
+        : "Hedef süre (dk): -";
       const notesLine = notes.trim()
         ? ["Notlar:", notes.trim()].join("\n")
         : "Notlar:\n-";
@@ -226,7 +226,7 @@ export function AdminSmokeChecklistCard() {
       </div>
       <div className="mt-3 grid gap-3 rounded-xl border border-line bg-white px-3 py-2 md:grid-cols-2">
         <label className="text-[11px] font-semibold text-slate-700" htmlFor="smoke-duration">
-          Toplam sure (dk)
+          Toplam süre (dk)
         </label>
         <input
           id="smoke-duration"
@@ -237,7 +237,7 @@ export function AdminSmokeChecklistCard() {
           className="mt-2 w-full rounded-xl border border-line px-3 py-2 text-xs text-slate-900"
         />
         <label className="text-[11px] font-semibold text-slate-700" htmlFor="smoke-target">
-          Hedef sure (dk)
+          Hedef süre (dk)
         </label>
         <input
           id="smoke-target"
@@ -276,3 +276,4 @@ export function AdminSmokeChecklistCard() {
     </section>
   );
 }
+

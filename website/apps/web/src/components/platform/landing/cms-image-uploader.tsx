@@ -1,27 +1,72 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 import {
+  deleteObject,
+  getDownloadURL,
   ref as storageRef,
   uploadBytes,
-  getDownloadURL,
-  deleteObject,
 } from "firebase/storage";
 
-import { getFirebaseClientStorage } from "@/lib/firebase/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth, getFirebaseClientStorage } from "@/lib/firebase/client";
 
 interface CmsImageUploaderProps {
-  /** Firebase Storage içindeki hedef yol (ör. "site_media/hero") */
   storagePath: string;
-  /** Mevcut URL */
   value: string;
-  /** URL değiştiğinde */
   onChange: (url: string) => void;
-  /** Maks dosya boyutu (byte) — varsayılan 5 MB */
   maxSize?: number;
-  /** Kabul edilen MIME türleri */
   accept?: string;
+}
+
+type PlatformMediaEnvelope<T> = {
+  data?: T;
+  error?: {
+    message?: string;
+  };
+};
+
+function ensureTrailingSlash(url: string): string {
+  return url.endsWith("/") ? url : `${url}/`;
+}
+
+async function callPlatformMediaApi<T>(input: {
+  storagePath: string;
+  method: "PUT" | "DELETE";
+  body?: BodyInit;
+  contentType?: string;
+}): Promise<T> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (!backendApiBaseUrl) {
+    throw new Error("Backend API baglantisi bulunamadi.");
+  }
+
+  const currentUser = getFirebaseClientAuth()?.currentUser;
+  if (!currentUser) {
+    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
+  }
+
+  const idToken = await currentUser.getIdToken();
+  const requestUrl = new URL("api/platform/media", ensureTrailingSlash(backendApiBaseUrl));
+  requestUrl.searchParams.set("storagePath", input.storagePath);
+
+  const response = await fetch(requestUrl.toString(), {
+    method: input.method,
+    headers: {
+      authorization: `Bearer ${idToken}`,
+      ...(input.contentType ? { "content-type": input.contentType } : {}),
+    },
+    ...(input.body !== undefined ? { body: input.body } : {}),
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as PlatformMediaEnvelope<T> | null;
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "Beklenmeyen bir API hatasi olustu.");
+  }
+
+  return payload?.data as T;
 }
 
 export function CmsImageUploader({
@@ -40,57 +85,96 @@ export function CmsImageUploader({
     setError(null);
 
     if (!file.type.startsWith("image/")) {
-      setError("Yalnızca görsel dosyalar yüklenebilir.");
+      setError("Yalnizca gorsel dosyalar yuklenebilir.");
       return;
     }
     if (file.size > maxSize) {
-      setError(`Dosya boyutu ${(maxSize / 1024 / 1024).toFixed(0)} MB'ı aşamaz.`);
-      return;
-    }
-
-    const storage = getFirebaseClientStorage();
-    if (!storage) {
-      setError("Storage bağlantısı kurulamadı.");
+      setError(`Dosya boyutu ${(maxSize / 1024 / 1024).toFixed(0)} MB'i asamaz.`);
       return;
     }
 
     setUploading(true);
     try {
+      const backendApiBaseUrl = getBackendApiBaseUrl();
+      if (backendApiBaseUrl) {
+        const result = await callPlatformMediaApi<{ url?: string }>({
+          storagePath,
+          method: "PUT",
+          body: file,
+          contentType: file.type,
+        });
+        if (!result?.url) {
+          throw new Error("PLATFORM_MEDIA_UPLOAD_RESPONSE_INVALID");
+        }
+        onChange(result.url);
+        return;
+      }
+
+      const storage = getFirebaseClientStorage();
+      if (!storage) {
+        setError("Storage baglantisi kurulamadi.");
+        return;
+      }
+
       const ext = file.name.split(".").pop() ?? "png";
       const fileRef = storageRef(storage, `${storagePath}.${ext}`);
       await uploadBytes(fileRef, file, { contentType: file.type });
       const url = await getDownloadURL(fileRef);
       onChange(url);
     } catch {
-      setError("Yükleme başarısız oldu.");
+      setError("Yukleme basarisiz oldu.");
     } finally {
       setUploading(false);
     }
   }
 
-  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-    if (inputRef.current) inputRef.current.value = "";
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) {
+      void handleFile(file);
+    }
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   }
 
-  function handleDrop(e: DragEvent) {
-    e.preventDefault();
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      void handleFile(file);
+    }
   }
 
   async function handleRemove() {
-    if (!value) return;
+    if (!value) {
+      return;
+    }
+
+    const backendApiBaseUrl = getBackendApiBaseUrl();
+    if (backendApiBaseUrl) {
+      try {
+        await callPlatformMediaApi<{ success?: boolean }>({
+          storagePath,
+          method: "DELETE",
+        });
+      } catch {
+        // Best-effort cleanup; still clear the form value.
+      }
+      onChange("");
+      return;
+    }
+
     const storage = getFirebaseClientStorage();
     if (storage) {
       try {
-        // URL'den ref çıkarmaya çalış — hata olursa yoksay
-        const path = decodeURIComponent(value.split("/o/")[1]?.split("?")[0] ?? "");
-        if (path) await deleteObject(storageRef(storage, path));
+        const storagePathFromUrl = decodeURIComponent(value.split("/o/")[1]?.split("?")[0] ?? "");
+        if (storagePathFromUrl) {
+          await deleteObject(storageRef(storage, storagePathFromUrl));
+        }
       } catch {
-        // Silme hatası önemli değil, referansı temizle
+        // Best-effort cleanup; still clear the form value.
       }
     }
     onChange("");
@@ -98,26 +182,26 @@ export function CmsImageUploader({
 
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-slate-700">Görsel</label>
+      <label className="mb-1.5 block text-xs font-medium text-slate-700">Gorsel</label>
 
       {value ? (
-        /* Preview */
-        <div className="relative inline-block rounded-xl border border-slate-200 overflow-hidden">
+        <div className="relative inline-block overflow-hidden rounded-xl border border-slate-200">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="Önizleme" className="h-32 w-auto object-contain" />
+          <img src={value} alt="Onizleme" className="h-32 w-auto object-contain" />
           <button
             type="button"
-            onClick={handleRemove}
-            className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-slate-500 hover:text-rose-600 shadow"
+            onClick={() => {
+              void handleRemove();
+            }}
+            className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-slate-500 shadow hover:text-rose-600"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       ) : (
-        /* Dropzone */
         <div
-          onDragOver={(e) => {
-            e.preventDefault();
+          onDragOver={(event) => {
+            event.preventDefault();
             setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
@@ -134,9 +218,7 @@ export function CmsImageUploader({
           ) : (
             <>
               <Upload className="h-6 w-6 text-slate-400" />
-              <span className="mt-2 text-xs text-slate-500">
-                Sürükle & bırak veya tıkla
-              </span>
+              <span className="mt-2 text-xs text-slate-500">Surukle ve birak veya tikla</span>
             </>
           )}
         </div>
@@ -150,9 +232,7 @@ export function CmsImageUploader({
         className="hidden"
       />
 
-      {error && (
-        <p className="mt-1.5 text-xs text-rose-500">{error}</p>
-      )}
+      {error ? <p className="mt-1.5 text-xs text-rose-500">{error}</p> : null}
     </div>
   );
 }

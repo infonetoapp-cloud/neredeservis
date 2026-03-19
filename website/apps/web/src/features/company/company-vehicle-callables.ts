@@ -53,6 +53,18 @@ export async function createVehicleCallable(input: {
   capacity?: number | null;
   status?: VehicleStatus;
 }): Promise<CreateVehicleResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles`,
+      method: "POST",
+      body: input,
+    });
+    return ensureCreateVehicleResponse(envelope.data, "createVehicle");
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "createVehicle",
     input,
@@ -72,6 +84,21 @@ export async function updateVehicleCallable(input: {
     status?: VehicleStatus;
   };
 }): Promise<UpdateVehicleResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const vehicleId = input.vehicleId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles/${encodeURIComponent(vehicleId)}`,
+      method: "PATCH",
+      body: {
+        patch: input.patch,
+      },
+    });
+    return ensureUpdateVehicleResponse(envelope.data, "updateVehicle");
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "updateVehicle",
     input,

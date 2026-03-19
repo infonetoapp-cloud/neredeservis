@@ -71,7 +71,7 @@ export function getMockCompanyDetail(companyId: string): PlatformCompanyDetail |
       {
         uid: summary.ownerUid ?? "uid_placeholder",
         email: summary.ownerEmail,
-        displayName: summary.name.split(" ")[0] + " Yonetici",
+        displayName: summary.name.split(" ")[0] + " Yönetici",
         role: "owner",
         status: "active",
         joinedAt: summary.createdAt,
@@ -79,7 +79,7 @@ export function getMockCompanyDetail(companyId: string): PlatformCompanyDetail |
       {
         uid: "uid_member_1",
         email: "sofor1@" + summary.ownerEmail.split("@")[1],
-        displayName: "Ahmet Sofor",
+        displayName: "Ahmet Şoför",
         role: "member",
         status: "active",
         joinedAt: "2025-03-01T10:00:00Z",
@@ -87,7 +87,7 @@ export function getMockCompanyDetail(companyId: string): PlatformCompanyDetail |
       {
         uid: "uid_member_2",
         email: "sofor2@" + summary.ownerEmail.split("@")[1],
-        displayName: "Mehmet Sofor",
+        displayName: "Mehmet Şoför",
         role: "member",
         status: "active",
         joinedAt: "2025-03-15T10:00:00Z",
@@ -144,3 +144,4 @@ export function getMockCompanyDetail(companyId: string): PlatformCompanyDetail |
     ],
   };
 }
+

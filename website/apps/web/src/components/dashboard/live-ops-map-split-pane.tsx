@@ -179,7 +179,7 @@ export function LiveOpsMapSplitPane({
           ) : null}
           {mapTelemetry.warningCount > 0 ? (
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
-              {mapTelemetry.warningCount} Uyari
+              {mapTelemetry.warningCount} Uyarı
             </span>
           ) : null}
           <button
@@ -204,7 +204,7 @@ export function LiveOpsMapSplitPane({
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            Uyari Odagi ({mapWarningTotal})
+            Uyarı Odagi ({mapWarningTotal})
           </button>
           {riskToneFilter ? (
             <button
@@ -225,15 +225,15 @@ export function LiveOpsMapSplitPane({
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            {hideStale ? "Belirsiz Gizli" : "Belirsiz Goster"}
+            {hideStale ? "Belirsiz Gizli" : "Belirsiz Göster"}
           </button>
         </div>
       </div>
       {showHiddenOnlyRiskHint ? (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-800">
           <span>
-            {riskToneFilter === "critical" ? "Kritik" : "Uyari"} odaginda gorunen marker yok.
-            {` ${activeToneHiddenByStaleCount} kayit stale-gizli.`}
+            {riskToneFilter === "critical" ? "Kritik" : "Uyarı"} odaginda gorunen marker yok.
+            {` ${activeToneHiddenByStaleCount} kayıt stale-gizli.`}
           </span>
           <button
             type="button"
@@ -248,7 +248,7 @@ export function LiveOpsMapSplitPane({
       <LiveOpsStreamRecoveryCallout summary={streamRecoverySummary} className="mb-3" />
       {mapTelemetry.perfTone === "slow" ? (
         <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs text-rose-800">
-          Marker yogunlugu yuksek ({mapTelemetry.totalCount}). Harita stabilitesi icin stale gizle veya risk odagi filtrelerini ac.
+          Marker yogunlugu yuksek ({mapTelemetry.totalCount}). Harita stabilitesi için stale gizle veya risk odagi filtrelerini ac.
         </div>
       ) : null}
       {mapMarkerLimit < 200 ? (
@@ -273,7 +273,7 @@ export function LiveOpsMapSplitPane({
             <div className="mx-6 max-w-sm rounded-2xl border border-line bg-white/90 p-4 text-xs text-slate-700 shadow-sm">
               <div className="text-sm font-semibold text-slate-900">Aktif sefer yok</div>
               <div className="mt-1 text-xs text-muted">
-                Araclar sefer baslattiginda markerlar otomatik gorunur. Filtreler
+                Araclar sefer baslattiginda markerlar otomatik görünür. Filtreler
                 nedeniyle gizlendiyse asagidaki aksiyonlari kullan.
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -313,3 +313,4 @@ export function LiveOpsMapSplitPane({
     </section>
   );
 }
+

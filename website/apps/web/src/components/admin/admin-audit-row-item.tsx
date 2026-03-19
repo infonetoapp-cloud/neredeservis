@@ -170,7 +170,7 @@ export function AdminAuditRowItem({
             density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
           }`}
         >
-          Evente Gore Filtrele
+          Evente Göre Filtrele
         </button>
         {item.targetType ? (
           <button
@@ -182,7 +182,7 @@ export function AdminAuditRowItem({
               density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
             }`}
           >
-            Hedefe Gore Filtrele
+            Hedefe Göre Filtrele
           </button>
         ) : null}
         {targetHref ? (
@@ -226,7 +226,7 @@ export function AdminAuditRowItem({
             density === "compact" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-1 text-[11px]"
           }`}
         >
-          {linkCopied ? "Kayit Linki Kopyalandi" : "Kayit Linki Kopyala"}
+          {linkCopied ? "Kayıt Linki Kopyalandi" : "Kayıt Linki Kopyala"}
         </button>
       </div>
       {showDetails ? (
@@ -263,7 +263,7 @@ export function AdminAuditRowItem({
               }}
               className="inline-flex rounded-lg border border-line bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
             >
-              {rawCopied ? "Ham Kayit Kopyalandi" : "Ham Kaydi Kopyala"}
+              {rawCopied ? "Ham Kayıt Kopyalandi" : "Ham Kaydi Kopyala"}
             </button>
           </div>
         </div>
@@ -271,3 +271,4 @@ export function AdminAuditRowItem({
     </div>
   );
 }
+

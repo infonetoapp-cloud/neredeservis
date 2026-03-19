@@ -110,7 +110,7 @@ export function AdminOperationsFeature() {
     },
     {
       key: "vehicles",
-      label: "Arac Verisi",
+      label: "Araç Verisi",
       status: vehiclesQuery.status,
     },
     {
@@ -120,7 +120,7 @@ export function AdminOperationsFeature() {
     },
     {
       key: "active-trips",
-      label: "Canli Sefer Verisi",
+      label: "Canlı Sefer Verisi",
       status: activeTripsQuery.status,
     },
     {
@@ -160,7 +160,7 @@ export function AdminOperationsFeature() {
     <DashboardStatePlaceholder
       tone="info"
       title="Aktif company baglami bulunamadi"
-      description="Admin ekrani company baglaminda calisir. Mode seciminden company secip tekrar dene."
+      description="Admin ekrani company baglaminda çalışır. Mode seciminden company secip tekrar dene."
     />
   ) : (
     <div className="space-y-4">
@@ -171,7 +171,7 @@ export function AdminOperationsFeature() {
             { href: "#admin-release-gate", label: "Release Gate" },
             { href: "#admin-smoke", label: "Smoke" },
             { href: "#admin-phase5", label: "Faz 5" },
-            { href: "#admin-security", label: "Guvenlik" },
+            { href: "#admin-security", label: "Güvenlik" },
             { href: "#admin-risk", label: "Risk" },
             { href: "#admin-audit", label: "Audit" },
             { href: "#admin-tenant", label: "Tenant" },
@@ -210,7 +210,7 @@ export function AdminOperationsFeature() {
         <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900 shadow-sm">
           <div className="font-semibold">Faz 5 checklist tazeligi dusuk</div>
           <div className="mt-1">
-            {phase5FreshnessLabel}. {phase5FreshnessUpdatedLabel}. Operasyon acilisindan once checklist ve runbook adimlarini guncelle.
+            {phase5FreshnessLabel}. {phase5FreshnessUpdatedLabel}. Operasyon acilisindan once checklist ve runbook adimlarini güncelle.
           </div>
           <a
             href="#phase5-summary"
@@ -350,7 +350,7 @@ export function AdminOperationsFeature() {
               Operasyon denetimi, risk triage ve release gate merkezi
             </h1>
             <p className="max-w-4xl text-sm leading-6 text-muted">
-              Owner/Admin ekipleri icin audit, tenant-state, checklist ve canlı operasyon metrikleri tek ekranda toplanir.
+              Owner/Admin ekipleri için audit, tenant-state, checklist ve canlı operasyon metrikleri tek ekranda toplanir.
               Bu yuzey production release oncesi karar vermeyi hizlandirir ve kritik aksiyonlara dogrudan gecis saglar.
             </p>
           </div>
@@ -376,3 +376,4 @@ export function AdminOperationsFeature() {
     </section>
   );
 }
+

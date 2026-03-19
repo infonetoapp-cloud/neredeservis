@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -16,8 +17,6 @@ import {
 } from "lucide-react";
 
 import { NsLogo } from "@/components/brand/ns-logo";
-import { ActiveCompanySidebarCard } from "@/components/dashboard/active-company-sidebar-card";
-import { EnvBadge } from "@/components/shared/env-badge";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 
@@ -115,6 +114,18 @@ function isItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function parseCompanyIdFromPathname(pathname: string): string | null {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length < 2 || segments[0] !== "c") {
+    return null;
+  }
+  try {
+    return decodeURIComponent(segments[1]);
+  } catch {
+    return segments[1];
+  }
+}
+
 function buildSections(companyId: string | null, role: string | null): NavSection[] {
   if (!companyId) {
     return [];
@@ -174,7 +185,8 @@ export function DashboardShellSidebar() {
   const activeCompany = useActiveCompanyPreference();
   const membership = useActiveCompanyMembership();
 
-  const companyId = activeCompany?.companyId ?? null;
+  const pathnameCompanyId = useMemo(() => parseCompanyIdFromPathname(pathname), [pathname]);
+  const companyId = activeCompany?.companyId ?? pathnameCompanyId ?? "internal";
   const sections = buildSections(companyId, membership.role);
 
   return (
@@ -183,11 +195,10 @@ export function DashboardShellSidebar() {
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <div>
           <div className="flex items-center">
-            <NsLogo iconSize={20} wordmarkClass="text-[13px] font-bold tracking-tight" />
+            <NsLogo iconSize={24} wordmarkClass="text-[18px] font-extrabold tracking-tight leading-none" />
           </div>
-          <div className="pl-8 text-[10px] text-slate-400">Yonetim Paneli</div>
+          <div className="pl-9 text-[11px] text-slate-400">Yönetim Paneli</div>
         </div>
-        <EnvBadge />
       </div>
 
       {/* Nav */}
@@ -243,10 +254,7 @@ export function DashboardShellSidebar() {
         )}
       </nav>
 
-      {/* Active Company Card */}
-      <div className="border-t border-slate-100 px-3 py-3">
-        <ActiveCompanySidebarCard />
-      </div>
     </aside>
   );
 }
+

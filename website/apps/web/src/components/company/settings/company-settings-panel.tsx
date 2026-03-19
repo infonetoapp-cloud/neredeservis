@@ -22,6 +22,7 @@ import { useCompanyMembership } from "@/components/company/company-membership-co
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
   getCompanyProfileForCompany,
+  removeCompanyLogo,
   updateCompanyProfileForCompany,
   uploadCompanyLogo,
   type CompanyProfile,
@@ -38,7 +39,7 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Building2 }[] = [
 ];
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 type Props = { companyId: string };
 
@@ -160,7 +161,7 @@ function ProfileTab({
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-        setErrorMessage("Yalnızca PNG, JPEG, WebP veya SVG dosyaları kabul edilir.");
+        setErrorMessage("Yalnızca PNG, JPEG veya WebP dosyaları kabul edilir.");
         return;
       }
       if (file.size > MAX_LOGO_SIZE) {
@@ -173,13 +174,16 @@ function ProfileTab({
 
       try {
         // 1. Upload to Firebase Storage
-        const downloadUrl = await uploadCompanyLogo(companyId, file);
+        const uploadResult = await uploadCompanyLogo(companyId, file);
+        const downloadUrl = uploadResult.logoUrl;
 
         // 2. Save URL to Firestore via callable
-        await updateCompanyProfileForCompany({
-          companyId,
-          logoUrl: downloadUrl,
-        });
+        if (!uploadResult.profileUpdated) {
+          await updateCompanyProfileForCompany({
+            companyId,
+            logoUrl: downloadUrl,
+          });
+        }
 
         // 3. Update local state
         setLogoUrl(downloadUrl);
@@ -201,7 +205,7 @@ function ProfileTab({
     setErrorMessage(null);
 
     try {
-      await updateCompanyProfileForCompany({ companyId, logoUrl: "" });
+      await removeCompanyLogo(companyId);
       setLogoUrl(null);
       setOriginal((prev) => (prev ? { ...prev, logoUrl: null } : prev));
       showSuccess("Logo kaldırıldı.");
@@ -324,7 +328,7 @@ function ProfileTab({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            accept="image/png,image/jpeg,image/webp"
             className="hidden"
             onChange={handleLogoChange}
           />
@@ -348,7 +352,7 @@ function ProfileTab({
             </div>
             {canWrite && (
               <p className="text-xs text-zinc-400">
-                Logo yüklemek için resme tıklayın. Maks. 2 MB, PNG/JPG/WebP/SVG.
+                Logo yüklemek için resme tıklayın. Maks. 2 MB, PNG/JPG/WebP.
               </p>
             )}
           </div>

@@ -69,6 +69,36 @@ export async function listCompanyLiveOpsForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyLiveOpsSnapshot> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const query = new URLSearchParams();
+      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+        query.set("limit", String(Math.trunc(input.limit)));
+      }
+
+      const response = await callBackendApi<{
+        companyId?: unknown;
+        generatedAt?: unknown;
+        items?: unknown;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/live-ops${
+          query.size > 0 ? `?${query.toString()}` : ""
+        }`,
+      });
+      const payload = asRecord(response.data);
+      return {
+        companyId: readString(payload?.companyId) ?? companyId,
+        generatedAt: readString(payload?.generatedAt),
+        items: parseCompanyLiveOpsItems(payload?.items),
+      };
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -110,6 +140,40 @@ export async function createCompanyRouteForCompany(input: {
   allowGuestTracking?: boolean;
   authorizedDriverIds?: string[];
 }): Promise<CompanyRouteItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const response = await callBackendApi<{ route?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes`,
+        method: "POST",
+        body: {
+          name: input.name.trim(),
+          ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
+          startPoint: input.startPoint,
+          startAddress: input.startAddress.trim(),
+          endPoint: input.endPoint,
+          endAddress: input.endAddress.trim(),
+          scheduledTime: input.scheduledTime.trim(),
+          timeSlot: input.timeSlot,
+          allowGuestTracking: input.allowGuestTracking ?? false,
+          ...(Array.isArray(input.authorizedDriverIds)
+            ? { authorizedDriverIds: input.authorizedDriverIds }
+            : {}),
+        },
+      });
+      const routes = parseCompanyRouteItems([response.data?.route]);
+      const route = routes[0];
+      if (!route) {
+        throw new Error("CREATE_COMPANY_ROUTE_RESPONSE_INVALID");
+      }
+      return route;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -192,6 +256,52 @@ export async function updateCompanyRouteForCompany(input: {
   isArchived?: boolean;
   vacationUntil?: string | null;
 }): Promise<CompanyRouteItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const routeId = input.routeId.trim();
+      const patch: {
+        name?: string;
+        scheduledTime?: string;
+        timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
+        vehicleId?: string | null;
+        allowGuestTracking?: boolean;
+        authorizedDriverIds?: string[];
+        isArchived?: boolean;
+      } = {
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.scheduledTime !== undefined ? { scheduledTime: input.scheduledTime.trim() } : {}),
+        ...(input.timeSlot !== undefined ? { timeSlot: input.timeSlot } : {}),
+        ...(input.vehicleId !== undefined ? { vehicleId: input.vehicleId } : {}),
+        ...(input.allowGuestTracking !== undefined
+          ? { allowGuestTracking: input.allowGuestTracking }
+          : {}),
+        ...(Array.isArray(input.authorizedDriverIds)
+          ? { authorizedDriverIds: input.authorizedDriverIds }
+          : {}),
+        ...(input.isArchived !== undefined ? { isArchived: input.isArchived } : {}),
+      };
+
+      const response = await callBackendApi<{ route?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
+        method: "PATCH",
+        body: {
+          patch,
+        },
+      });
+      const routes = parseCompanyRouteItems([response.data?.route]);
+      const route = routes[0];
+      if (!route) {
+        throw new Error("UPDATE_COMPANY_ROUTE_RESPONSE_INVALID");
+      }
+      return route;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -271,6 +381,22 @@ export async function deleteCompanyRouteForCompany(input: {
   companyId: string;
   routeId: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const routeId = input.routeId.trim();
+      await callBackendApi({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
+        method: "DELETE",
+      });
+      return;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -339,6 +465,33 @@ export async function upsertCompanyRouteStopForRoute(input: {
   location: { lat: number; lng: number };
   order: number;
 }): Promise<CompanyRouteStopItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const routeId = input.routeId.trim();
+      const response = await callBackendApi<{ stop?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
+        method: "POST",
+        body: {
+          stopId: input.stopId?.trim(),
+          name: input.name.trim(),
+          location: input.location,
+          order: input.order,
+        },
+      });
+      const stops = parseCompanyRouteStopItems([response.data?.stop]);
+      const stop = stops[0];
+      if (!stop) {
+        throw new Error("UPSERT_COMPANY_ROUTE_STOP_RESPONSE_INVALID");
+      }
+      return stop;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -381,6 +534,23 @@ export async function deleteCompanyRouteStopForRoute(input: {
   routeId: string;
   stopId: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const routeId = input.routeId.trim();
+      const stopId = input.stopId.trim();
+      await callBackendApi({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}`,
+        method: "DELETE",
+      });
+      return;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");

@@ -56,7 +56,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
   const capacityLooksValid = isVehicleCapacityInputValid(form.capacity);
   const canSubmit = !pending && plateLooksValid && yearLooksValid && capacityLooksValid;
 
-  const submitLabel = useMemo(() => (pending ? "Kaydediliyor..." : "Arac Ekle"), [pending]);
+  const submitLabel = useMemo(() => (pending ? "Kaydediliyor..." : "Araç Ekle"), [pending]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,7 +85,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
       });
 
       setForm(INITIAL_FORM);
-      setSuccessMessage(`Arac olusturuldu (${created.vehicleId.slice(0, 8)})`);
+      setSuccessMessage(`Araç olusturuldu (${created.vehicleId.slice(0, 8)})`);
       if (onCreated) {
         await onCreated({ vehicleId: created.vehicleId });
       }
@@ -107,7 +107,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
     <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Arac Ekle</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Araç Ekle</h3>
         </div>
       </div>
 
@@ -221,7 +221,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
         </div>
 
         {!plateLooksValid ? (
-          <p className="text-xs text-amber-700">Kayit icin plaka alani en az 2 karakter olmali.</p>
+          <p className="text-xs text-amber-700">Kayit icin plaka alani en az 4 karakter olmali.</p>
         ) : null}
         {!yearLooksValid || !capacityLooksValid ? (
           <p className="text-xs text-amber-700">
@@ -249,7 +249,7 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
 
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-xs text-slate-500">
-            Detay duzenleme icin sag paneldeki Arac Guncelle formunu kullan.
+            Detay duzenleme için sag paneldeki Araç Güncelle formunu kullan.
           </p>
           <button
             type="submit"
@@ -263,3 +263,4 @@ export function VehicleCreateInlineForm({ companyId, onCreated }: Props) {
     </section>
   );
 }
+

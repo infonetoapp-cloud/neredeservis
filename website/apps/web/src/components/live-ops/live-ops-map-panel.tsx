@@ -48,7 +48,7 @@ function toMarkerColor(status: CompanyLiveOpsStatus): string {
 }
 
 function toStatusLabel(status: CompanyLiveOpsStatus): string {
-  if (status === "live") return "Canli";
+  if (status === "live") return "Canlı";
   if (status === "stale") return "Konum gecikmeli";
   if (status === "no_signal") return "Baglanti kesildi";
   return "Sefer bekliyor";
@@ -397,7 +397,7 @@ export function LiveOpsMapPanel({
       {/* Fullscreen top bar — shrinks to its own height */}
       {isFullscreen && (
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
-          <h3 className="text-sm font-semibold text-slate-800">Canli Harita — Tam Ekran</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Canlı Harita — Tam Ekran</h3>
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -469,7 +469,7 @@ export function LiveOpsMapPanel({
           <div className="mb-1 font-semibold text-slate-900">Durum Ozeti</div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span>Canli: {liveCount}</span>
+            <span>Canlı: {liveCount}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -498,3 +498,4 @@ export function LiveOpsMapPanel({
     </div>
   );
 }
+

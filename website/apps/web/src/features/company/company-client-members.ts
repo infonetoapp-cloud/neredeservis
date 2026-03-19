@@ -77,6 +77,42 @@ export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembership
 export async function createCompanyForCurrentUser(input: {
   name: string;
 }): Promise<CompanyMembershipItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const name = input.name.trim();
+      const response = await callBackendApi<{
+        companyId?: string;
+        ownerMember?: {
+          role?: string;
+          status?: string;
+        };
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: "/api/my/companies",
+        method: "POST",
+        body: { name },
+      });
+      const memberships = parseMembershipItems([
+        {
+          companyId: response.data?.companyId ?? "",
+          companyName: name,
+          memberRole: response.data?.ownerMember?.role ?? "owner",
+          membershipStatus: response.data?.ownerMember?.status ?? "active",
+          companyStatus: "active",
+          billingStatus: "active",
+        },
+      ]);
+      const membership = memberships[0];
+      if (!membership) {
+        throw new Error("COMPANY_CREATE_RESPONSE_INVALID");
+      }
+      return membership;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -183,6 +219,45 @@ export async function setCompanyMemberRoleForCompany(input: {
   memberUid: string;
   role: CompanyMemberRole;
 }): Promise<CompanyMemberItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const memberUid = input.memberUid.trim();
+      const response = await callBackendApi<{
+        companyId?: string;
+        memberUid?: string;
+        role?: string;
+        memberStatus?: string;
+        updatedAt?: string;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberUid)}`,
+        method: "PATCH",
+        body: {
+          patch: { role: input.role },
+        },
+      });
+      const data = response.data;
+      if (!data?.memberUid) {
+        throw new Error("SET_COMPANY_MEMBER_ROLE_RESPONSE_INVALID");
+      }
+      return {
+        uid: data.memberUid,
+        displayName: null,
+        email: null,
+        phone: null,
+        role: (data.role as CompanyMemberRole) ?? input.role,
+        status: (data.memberStatus as CompanyMemberItem["status"]) ?? "active",
+        companyId: data.companyId ?? input.companyId,
+        createdAt: null,
+        updatedAt: data.updatedAt ?? null,
+      };
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -273,6 +348,41 @@ export async function createCompanyDriverAccountForCompany(input: {
   phone?: string;
   plate?: string;
 }): Promise<CompanyDriverCredentialBundle> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const payload: {
+        name: string;
+        phone?: string;
+        plate?: string;
+      } = {
+        name: input.name.trim(),
+      };
+      const phone = input.phone?.trim();
+      const plate = input.plate?.trim();
+      if (phone) {
+        payload.phone = phone;
+      }
+      if (plate) {
+        payload.plate = plate;
+      }
+      const response = await callBackendApi<{ credentials?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/drivers`,
+        method: "POST",
+        body: payload,
+      });
+      const credentials = parseCompanyDriverCredentialBundle(response.data?.credentials);
+      if (!credentials) {
+        throw new Error("CREATE_COMPANY_DRIVER_ACCOUNT_RESPONSE_INVALID");
+      }
+      return credentials;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -322,6 +432,23 @@ export async function assignCompanyDriverToRouteForCompany(input: {
   driverId: string;
   routeId: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const driverId = input.driverId.trim();
+      const routeId = input.routeId.trim();
+      await callBackendApi<{ route?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/routes/${encodeURIComponent(routeId)}`,
+        method: "POST",
+      });
+      return;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -348,6 +475,23 @@ export async function unassignCompanyDriverFromRouteForCompany(input: {
   driverId: string;
   routeId: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const driverId = input.driverId.trim();
+      const routeId = input.routeId.trim();
+      await callBackendApi<{ route?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/routes/${encodeURIComponent(routeId)}`,
+        method: "DELETE",
+      });
+      return;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -374,6 +518,25 @@ export async function updateCompanyDriverStatusForCompany(input: {
   driverId: string;
   status: "active" | "passive";
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const driverId = input.driverId.trim();
+      await callBackendApi<{ driverId?: string; status?: string }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/status`,
+        method: "PATCH",
+        body: {
+          status: input.status,
+        },
+      });
+      return;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -400,6 +563,49 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
   email: string;
   role: CompanyMemberRole;
 }): Promise<CompanyInviteItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const response = await callBackendApi<{
+        companyId?: string;
+        inviteId?: string;
+        memberUid?: string;
+        invitedEmail?: string;
+        role?: string;
+        status?: string;
+        expiresAt?: string;
+        createdAt?: string;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/members`,
+        method: "POST",
+        body: {
+          email: input.email.trim(),
+          role: input.role,
+        },
+      });
+      const data = response.data;
+      if (!data?.inviteId || !data?.invitedEmail) {
+        throw new Error("INVITE_COMPANY_MEMBER_BY_EMAIL_RESPONSE_INVALID");
+      }
+      return {
+        inviteId: data.inviteId,
+        companyId: data.companyId ?? input.companyId,
+        companyName: "",
+        email: data.invitedEmail,
+        role: (data.role as CompanyMemberRole) ?? input.role,
+        status: (data.status as CompanyInviteItem["status"]) ?? "pending",
+        targetUid: data.memberUid ?? null,
+        invitedBy: null,
+        createdAt: data.createdAt ?? null,
+        updatedAt: null,
+      };
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -508,6 +714,45 @@ export async function revokeCompanyInviteForCompany(input: {
   companyId: string;
   inviteId: string;
 }): Promise<CompanyInviteItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const inviteId = input.inviteId.trim();
+      const response = await callBackendApi<{
+        inviteId?: string;
+        companyId?: string;
+        companyName?: string;
+        invitedEmail?: string;
+        role?: string;
+        status?: string;
+        revokedAt?: string;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/invites/${encodeURIComponent(inviteId)}`,
+        method: "DELETE",
+      });
+      const data = response.data;
+      if (!data?.inviteId || !data?.invitedEmail) {
+        throw new Error("REVOKE_COMPANY_INVITE_RESPONSE_INVALID");
+      }
+      return {
+        inviteId: data.inviteId,
+        companyId: data.companyId ?? input.companyId,
+        companyName: data.companyName ?? "",
+        email: data.invitedEmail,
+        role: (data.role as CompanyMemberRole) ?? "viewer",
+        status: "revoked",
+        targetUid: null,
+        invitedBy: null,
+        createdAt: null,
+        updatedAt: data.revokedAt ?? null,
+      };
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -546,6 +791,19 @@ export async function revokeCompanyInviteForCompany(input: {
 }
 
 export async function listMyPendingCompanyInvitesForCurrentUser(): Promise<CompanyInviteItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const response = await callBackendApi<{ invites?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: "/api/my/company-invites",
+      });
+      return parseCompanyInviteItems(response.data?.invites);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -567,6 +825,45 @@ export async function listMyPendingCompanyInvitesForCurrentUser(): Promise<Compa
 export async function acceptCompanyInviteForCurrentUser(input: {
   companyId: string;
 }): Promise<CompanyMembershipItem> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const response = await callBackendApi<{
+        companyId?: string;
+        companyName?: string;
+        companyStatus?: string;
+        billingStatus?: string;
+        memberUid?: string;
+        role?: string;
+        memberStatus?: string;
+        acceptedAt?: string;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/my/company-invites/${encodeURIComponent(companyId)}/accept`,
+        method: "POST",
+      });
+      const data = response.data;
+      const memberships = parseMembershipItems([
+        {
+          companyId: data?.companyId ?? companyId,
+          companyName: data?.companyName ?? companyId,
+          memberRole: data?.role,
+          membershipStatus: data?.memberStatus,
+          companyStatus: data?.companyStatus ?? "active",
+          billingStatus: data?.billingStatus ?? "active",
+        },
+      ]);
+      const membership = memberships[0];
+      if (!membership) {
+        throw new Error("ACCEPT_COMPANY_INVITE_RESPONSE_INVALID");
+      }
+      return membership;
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");

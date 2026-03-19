@@ -47,10 +47,10 @@ export default function PlatformCreateCompanyPage() {
     return (
       <div className="mx-auto max-w-lg space-y-6">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-emerald-800">Sirket Basariyla Olusturuldu</h2>
+          <h2 className="text-lg font-semibold text-emerald-800">Şirket Basariyla Olusturuldu</h2>
           <p className="mt-2 text-sm text-emerald-700">
-            <strong>{companyName}</strong> icin sirket kaydi olusturuldu.
-            Asagidaki sifre belirleme linkini yetkili kisiye iletin:
+            <strong>{companyName}</strong> için şirket kaydi olusturuldu.
+            Asagidaki şifre belirleme linkini yetkili kişiye iletin:
           </p>
           <div className="mt-3 rounded-xl border border-emerald-300 bg-white p-3">
             <code className="block break-all text-xs text-slate-700">{resetLink}</code>
@@ -80,13 +80,13 @@ export default function PlatformCreateCompanyPage() {
         href="/platform/companies"
         className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
       >
-        ← Sirketlere Don
+        ← Şirketlere Dön
       </Link>
 
       <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Yeni Sirket Olustur</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Yeni Şirket Oluştur</h2>
         <p className="mt-1 text-sm text-muted">
-          Sirket adi ve yetkili e-posta adresi girin. Yetkili kisi Firebase davet e-postasi
+          Şirket adi ve yetkili e-posta adresi girin. Yetkili kişi Firebase davet e-postasi
           alacak ve kendi sifresini belirleyecektir.
         </p>
 
@@ -94,7 +94,7 @@ export default function PlatformCreateCompanyPage() {
           {/* Company Name */}
           <div>
             <label htmlFor="companyName" className="block text-sm font-medium text-slate-700">
-              Sirket Adi
+              Şirket Adi
             </label>
             <input
               id="companyName"
@@ -130,7 +130,7 @@ export default function PlatformCreateCompanyPage() {
           {/* Vehicle Limit */}
           <div>
             <label htmlFor="vehicleLimit" className="block text-sm font-medium text-slate-700">
-              Arac Limiti
+              Araç Limiti
             </label>
             <input
               id="vehicleLimit"
@@ -143,7 +143,7 @@ export default function PlatformCreateCompanyPage() {
               required
             />
             <p className="mt-1.5 text-xs text-muted">
-              Sirketin tanimlayabilecegi maksimum arac sayisi.
+              Sirketin tanimlayabilecegi maksimum araç sayisi.
             </p>
           </div>
 
@@ -161,7 +161,7 @@ export default function PlatformCreateCompanyPage() {
               disabled={!isValid || submitting}
               className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              {submitting ? "Olusturuluyor..." : "Sirket Olustur"}
+              {submitting ? "Olusturuluyor..." : "Şirket Oluştur"}
             </button>
             <Link
               href="/platform/companies"
@@ -177,13 +177,14 @@ export default function PlatformCreateCompanyPage() {
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
         <h3 className="text-sm font-semibold text-indigo-800">Davet Akisi</h3>
         <ol className="mt-2 space-y-1.5 text-xs leading-5 text-indigo-700">
-          <li>1. Sirket adi ve yetkili e-posta giriyorsunuz.</li>
-          <li>2. Sistem Firestore&apos;da sirket kaydini olusturur.</li>
-          <li>3. Yetkili kisiye Firebase Auth davet e-postasi gider.</li>
-          <li>4. Yetkili kisi linke tiklayip sifresini belirler.</li>
+          <li>1. Şirket adi ve yetkili e-posta giriyorsunuz.</li>
+          <li>2. Sistem Firestore&apos;da şirket kaydini olusturur.</li>
+          <li>3. Yetkili kişiye Firebase Auth davet e-postasi gider.</li>
+          <li>4. Yetkili kişi linke tiklayip sifresini belirler.</li>
           <li>5. Otomatik olarak sirketin &quot;owner&quot; uyesi olur.</li>
         </ol>
       </div>
     </div>
   );
 }
+

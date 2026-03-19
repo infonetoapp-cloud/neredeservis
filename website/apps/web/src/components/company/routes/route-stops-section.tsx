@@ -48,27 +48,20 @@ export function RouteStopsSection({
   onSetStopAddressQuery,
   onSelectStopAddressSuggestion,
   onAddStop,
-  onMoveStop,
   onReorderStops,
   onDeleteStop,
 }: Props) {
   const [draggedStopId, setDraggedStopId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Build waypoints for distance calculation (existing stops only)
   const existingWaypoints = useMemo<RouteWaypoint[]>(() => {
-    return sortedRouteStops.map((s, i) => {
-      const total = sortedRouteStops.length;
-      const type: RouteWaypoint["type"] =
-        total === 1 ? "start" : i === 0 ? "start" : i === total - 1 ? "end" : "stop";
-      return {
-        id: s.stopId,
-        label: s.name || `Durak ${s.order}`,
-        lat: s.location.lat,
-        lng: s.location.lng,
-        type,
-      };
-    });
+    return sortedRouteStops.map((stop) => ({
+      id: stop.stopId,
+      label: stop.name || `Ara durak ${stop.order + 1}`,
+      lat: stop.location.lat,
+      lng: stop.location.lng,
+      type: "stop",
+    }));
   }, [sortedRouteStops]);
 
   const { segmentDistances } = useMemo(
@@ -81,90 +74,90 @@ export function RouteStopsSection({
   }
 
   return (
-    <div className="space-y-3">
-      {/* Section header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">
-          Duraklar
-          <span className="ml-1.5 text-xs font-normal text-slate-400">
-            ({sortedRouteStops.length} durak)
+    <section className="glass-panel rounded-[28px] p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">
+            Ara duraklar
+            <span className="ml-1.5 text-xs font-normal text-slate-400">
+              ({sortedRouteStops.length} durak)
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Seçili rotanın ara duraklarını buradan ekle, sırala ve temizle.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+            {selectedRoute.name}
           </span>
-        </h3>
-        {segmentDistances.length > 0 && (
-          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-            ≈ {formatDistanceKm(segmentDistances.reduce((acc, s) => acc + s.km, 0))} toplam
-          </span>
-        )}
+          {segmentDistances.length > 0 && (
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+              Yaklaşık {formatDistanceKm(segmentDistances.reduce((acc, segment) => acc + segment.km, 0))} toplam
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Stop list */}
       {loadingStops ? (
-        <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
           <span className="block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-500" />
           <span className="text-xs text-slate-500">Duraklar yükleniyor...</span>
         </div>
       ) : sortedRouteStops.length === 0 && !showAddForm ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center">
-          <p className="text-xs text-slate-500">Bu rotaya henüz durak eklenmemiş.</p>
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
+          <p className="text-sm font-semibold text-slate-700">Bu rotaya henüz ara durak eklenmemiş.</p>
+          <p className="mt-1 text-xs text-slate-500">Sürtünmeyi azaltmak için ilk durağı doğrudan buradan ekleyebilirsin.</p>
           {canMutate && (
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+              className="mt-3 inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
             >
-              <span className="text-lg leading-none">+</span> İlk durağı ekle
+              <span className="text-lg leading-none">+</span> İlk ara durağı ekle
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-0">
+        <div className="mt-4 space-y-0">
           {sortedRouteStops.map((stop, index) => {
-            const isFirst = index === 0;
             const isLast = index === sortedRouteStops.length - 1;
-            const pinColor = isFirst
-              ? "bg-green-500"
-              : isLast && sortedRouteStops.length > 1
-                ? "bg-red-500"
-                : "bg-blue-500";
             const isDragging = draggedStopId === stop.stopId;
             const isMoving = movingStopId === stop.stopId;
             const isDeleting = deletingStopId === stop.stopId;
 
             return (
               <div key={stop.stopId}>
-                {/* Stop card */}
                 <div
                   draggable={canMutate && !movingStopId && !deletingStopId && !stopActionPending}
                   onDragStart={() => setDraggedStopId(stop.stopId)}
-                  onDragOver={(e) => {
-                    if (!canMutate || !draggedStopId || draggedStopId === stop.stopId) return;
-                    e.preventDefault();
+                  onDragOver={(event) => {
+                    if (!canMutate || !draggedStopId || draggedStopId === stop.stopId) {
+                      return;
+                    }
+                    event.preventDefault();
                   }}
-                  onDrop={(e) => {
-                    if (!canMutate || !draggedStopId || draggedStopId === stop.stopId) return;
-                    e.preventDefault();
+                  onDrop={(event) => {
+                    if (!canMutate || !draggedStopId || draggedStopId === stop.stopId) {
+                      return;
+                    }
+                    event.preventDefault();
                     onReorderStops(draggedStopId, stop.stopId);
                     setDraggedStopId(null);
                   }}
                   onDragEnd={() => setDraggedStopId(null)}
-                  className={`group flex items-center gap-2.5 rounded-lg border bg-white px-3 py-2.5 transition-all ${
+                  className={`group flex items-center gap-2.5 rounded-2xl border bg-white px-3 py-3 transition-all ${
                     isDragging
                       ? "scale-[1.02] border-blue-300 opacity-70 shadow-md"
                       : "border-slate-100 hover:border-slate-200 hover:shadow-sm"
                   } ${isMoving || isDeleting ? "opacity-60" : ""}`}
                 >
-                  {/* Drag handle */}
                   {canMutate && (
                     <span
                       className="cursor-grab text-slate-300 transition-colors group-hover:text-slate-500 active:cursor-grabbing"
                       title="Sürükle-bırak ile sırala"
                     >
-                      <svg
-                        width="12"
-                        height="16"
-                        viewBox="0 0 12 16"
-                        fill="currentColor"
-                      >
+                      <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
                         <circle cx="3" cy="2" r="1.5" />
                         <circle cx="9" cy="2" r="1.5" />
                         <circle cx="3" cy="8" r="1.5" />
@@ -175,32 +168,27 @@ export function RouteStopsSection({
                     </span>
                   )}
 
-                  {/* Pin indicator */}
-                  <span className={`h-3 w-3 shrink-0 rounded-full ${pinColor} shadow-sm`} />
+                  <span className="h-3 w-3 shrink-0 rounded-full bg-blue-500 shadow-sm" />
 
-                  {/* Stop info */}
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-slate-900">
-                      {stop.name || `Durak ${stop.order}`}
+                      {stop.name || `Ara durak ${index + 1}`}
                     </div>
                     <div className="truncate text-[11px] text-slate-400">
                       {stop.location.lat.toFixed(4)}, {stop.location.lng.toFixed(4)}
                     </div>
                   </div>
 
-                  {/* Order badge */}
                   <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
                     #{stop.order + 1}
                   </span>
 
-                  {/* Distance to next */}
                   {index < segmentDistances.length && (
                     <span className="hidden shrink-0 text-[10px] text-slate-400 sm:block">
                       {formatDistanceKm(segmentDistances[index].km)}
                     </span>
                   )}
 
-                  {/* Delete button */}
                   {canMutate && (
                     <button
                       type="button"
@@ -220,7 +208,6 @@ export function RouteStopsSection({
                   )}
                 </div>
 
-                {/* Connector line → next stop */}
                 {!isLast && (
                   <div className="ml-[38px] flex items-center gap-1.5 py-0.5">
                     <span className="h-4 w-0.5 bg-slate-200" />
@@ -237,31 +224,30 @@ export function RouteStopsSection({
         </div>
       )}
 
-      {/* Add stop inline form */}
       {canMutate && selectedRoute && (
-        <div className="space-y-2">
+        <div className="mt-4 space-y-2">
           {!showAddForm && sortedRouteStops.length > 0 ? (
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-blue-200 bg-blue-50/50 px-3 py-2.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
+              className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 px-3 py-3 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
             >
-              <span className="text-base leading-none">+</span> Durak Ekle
+              <span className="text-base leading-none">+</span> Ara durak ekle
             </button>
           ) : showAddForm || sortedRouteStops.length === 0 ? (
-            <div className="rounded-lg border border-blue-100 bg-blue-50/30 p-3 space-y-2">
+            <div className="space-y-2 rounded-[24px] border border-blue-100 bg-blue-50/30 p-4">
               <div className="grid gap-2 sm:grid-cols-[1fr_1.2fr]">
                 <label className="space-y-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                    Durak Adı (opsiyonel)
+                    Durak adı (opsiyonel)
                   </span>
                   <input
                     type="text"
                     value={stopName}
-                    onChange={(e) => onSetStopName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
+                    onChange={(event) => onSetStopName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
                         onAddStop();
                       }
                     }}
@@ -271,7 +257,7 @@ export function RouteStopsSection({
                   />
                 </label>
                 <AddressAutocompleteInput
-                  label="Durak Adresi"
+                  label="Durak adresi"
                   value={stopAddressQuery}
                   placeholder="Adres aramaya başla..."
                   maxLength={256}
@@ -312,6 +298,6 @@ export function RouteStopsSection({
           ) : null}
         </div>
       )}
-    </div>
+    </section>
   );
 }

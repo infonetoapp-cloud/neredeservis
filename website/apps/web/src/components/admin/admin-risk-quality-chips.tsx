@@ -93,7 +93,7 @@ export function AdminRiskQualityChips({
         ))}
       </div>
       <div className="mt-2 text-[11px] text-muted">
-        Kalite durumu: {okCount} OK / {warnCount} Uyari
+        Kalite durumu: {okCount} OK / {warnCount} Uyarı
       </div>
       {!readiness.isReady ? (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-amber-700">
@@ -125,3 +125,4 @@ export function AdminRiskQualityChips({
     </div>
   );
 }
+

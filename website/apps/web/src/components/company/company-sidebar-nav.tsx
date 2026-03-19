@@ -34,7 +34,7 @@ function toRoleLabel(role: CompanyMemberRole | null, loading: boolean): string {
     return "Sahip";
   }
   if (role === "admin") {
-    return "Yonetici";
+    return "Yönetici";
   }
   if (role === "dispatcher") {
     return "Operasyon";
@@ -62,7 +62,7 @@ export function CompanySidebarNav({ companyId }: Props) {
       icon: DashboardIcon,
     },
     {
-      label: "Canli Operasyon",
+      label: "Canlı Operasyon",
       href: `${basePath}/live-ops`,
       allowedRoles: ["owner", "admin", "dispatcher", "viewer"],
       icon: PulseIcon,
@@ -146,3 +146,4 @@ export function CompanySidebarNav({ companyId }: Props) {
     </nav>
   );
 }
+

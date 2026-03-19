@@ -4,30 +4,30 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { sendPasswordResetEmailForAddress } from "@/features/auth/auth-client";
 import { RefreshIcon } from "@/components/shared/app-icons";
+import { sendPasswordResetEmailForAddress } from "@/features/auth/auth-client";
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Şifre sıfırlama tetiklenemiyor.";
+      return "Firebase public config eksik. Sifre sifirlama tetiklenemiyor.";
     }
-    if (code === "auth/missing-email") {
-      return "Lütfen e-posta alanını doldur.";
+    if (code === "auth/missing-email" || code === "invalid-argument") {
+      return "Lutfen e-posta alanini doldur.";
     }
     if (code === "auth/invalid-email") {
-      return "E-posta formatı geçersiz.";
+      return "E-posta formati gecersiz.";
     }
     if (code === "auth/user-not-found") {
-      return "Bu e-posta ile kayıtlı hesap bulunamadı.";
+      return "Bu e-posta ile kayitli hesap bulunamadi.";
     }
     if (code === "auth/too-many-requests") {
-      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
     }
-    return code ? `Şifre sıfırlama hatası (${code})` : error.message;
+    return code ? `Sifre sifirlama hatasi (${code})` : error.message;
   }
-  return "Beklenmeyen hata oluştu.";
+  return "Beklenmeyen hata olustu.";
 }
 
 export function ForgotPasswordForm() {
@@ -61,7 +61,7 @@ export function ForgotPasswordForm() {
 
       {status === "sent" ? (
         <div className="rounded-2xl border border-emerald-200/85 bg-emerald-50/80 p-3 text-sm text-emerald-900">
-          Reset e-postası gönderildi. Gelen kutunu kontrol et.
+          Reset e-postasi gonderildi. Gelen kutunu kontrol et.
         </div>
       ) : null}
 
@@ -86,17 +86,17 @@ export function ForgotPasswordForm() {
         {busy ? (
           <>
             <RefreshIcon className="h-4 w-4" />
-            Gönderiliyor...
+            Gonderiliyor...
           </>
         ) : (
-          "Reset Linki Gönder"
+          "Reset Linki Gonder"
         )}
       </button>
 
       <div className="pt-1 text-center text-sm text-muted">
-        Şifreyi hatırladın mı?{" "}
+        Sifreyi hatirladin mi?{" "}
         <Link href="/giris" className="font-semibold text-brand hover:text-brand-strong">
-          Giriş Yap
+          Giris Yap
         </Link>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { DashboardIcon } from "@/components/shared/app-icons";
 
 export function CompanyDashboardHero() {
   const { companyName, loading } = useCompanyMembership();
-  const displayCompany = companyName ?? (loading ? "Sirket bilgisi yukleniyor" : "Secili sirket");
+  const displayCompany = companyName ?? (loading ? "Şirket bilgisi yukleniyor" : "Secili şirket");
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-7">
@@ -19,10 +19,10 @@ export function CompanyDashboardHero() {
           Operasyon merkezi
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[#5f6874]">
-          Bu ekran tek bakista rota, sefer, risk ve canli konum ozetini verir.
+          Bu ekran tek bakista rota, sefer, risk ve canlı konum ozetini verir.
         </p>
         <div className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-[#d9e8e8] bg-white/80 px-3 py-2 text-xs text-[#51606f]">
-          <span className="font-semibold text-slate-900">Aktif sirket:</span>
+          <span className="font-semibold text-slate-900">Aktif şirket:</span>
           <span className="rounded-full border border-[#cfe3df] bg-[#edf7f5] px-2 py-0.5 font-semibold text-[#245e53]">
             {displayCompany}
           </span>
@@ -31,3 +31,4 @@ export function CompanyDashboardHero() {
     </div>
   );
 }
+

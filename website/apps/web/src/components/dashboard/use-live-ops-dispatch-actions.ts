@@ -355,7 +355,7 @@ export function useLiveOpsDispatchActions(params: {
   const handleSendWhatsApp = () => {
     if (!selectedTrip) return;
     if (!selectedTripWhatsAppUrl) {
-      setWhatsAppMessage("Sofor telefonu bulunamadi, WhatsApp aksiyonu acilamadi.");
+      setWhatsAppMessage("Şoför telefonu bulunamadi, WhatsApp aksiyonu acilamadi.");
       window.setTimeout(() => setWhatsAppMessage(null), 2600);
       return;
     }
@@ -404,7 +404,7 @@ export function useLiveOpsDispatchActions(params: {
     if (!selectedTrip) return;
     const normalizedPhone = normalizePhoneForWhatsApp(selectedDriverPhone);
     if (!normalizedPhone) {
-      setDispatchTemplateWhatsAppMessage("Sofor telefonu bulunamadi, hazir mesaj gonderilemedi.");
+      setDispatchTemplateWhatsAppMessage("Şoför telefonu bulunamadi, hazir mesaj gonderilemedi.");
       window.setTimeout(() => setDispatchTemplateWhatsAppMessage(null), 2600);
       return;
     }
@@ -493,7 +493,7 @@ export function useLiveOpsDispatchActions(params: {
       .filter((item) => item.tripId === tripId)
       .slice(0, 10);
     if (entries.length === 0) {
-      setDispatchHistoryCopyMessage("Bu sefer icin kopyalanacak dispatch gecmisi yok.");
+      setDispatchHistoryCopyMessage("Bu sefer için kopyalanacak dispatch gecmisi yok.");
       window.setTimeout(() => setDispatchHistoryCopyMessage(null), 2400);
       return;
     }
@@ -551,3 +551,4 @@ export function useLiveOpsDispatchActions(params: {
     handleCopySupportPacket,
   };
 }
+

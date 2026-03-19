@@ -70,7 +70,7 @@ export function SelectCompanyClient() {
         if (cancelled) {
           return;
         }
-        const message = error instanceof Error ? error.message : "Sirket listesi alinamadi.";
+        const message = error instanceof Error ? error.message : "Şirket listesi alınamadı.";
         setListErrorMessage(message);
       });
 
@@ -121,7 +121,7 @@ export function SelectCompanyClient() {
 
   const liveMembershipsLabel =
     listState === "loading"
-      ? "Sirket baglamlari yukleniyor..."
+      ? "Şirket bağlamları yükleniyor..."
       : hasLiveMemberships
         ? "Uye oldugun sirketler"
         : usingDevFallback
@@ -223,7 +223,7 @@ export function SelectCompanyClient() {
                         </button>
                       ) : companyLocked ? (
                         <span className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
-                          Sirket kilitli
+                          Şirket kilitli
                         </span>
                       ) : (
                         <span className="inline-flex items-center justify-center rounded-xl border border-line bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-500">
@@ -270,3 +270,4 @@ export function SelectCompanyClient() {
     </div>
   );
 }
+

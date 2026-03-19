@@ -53,9 +53,10 @@ export function AdminKpiGrid({ snapshot }: AdminKpiGridProps) {
         <div className="text-xs font-medium text-muted">Aktif Sefer</div>
         <div className="mt-1 text-2xl font-semibold text-slate-950">{snapshot.activeTripsTotal}</div>
         <div className="mt-1 text-[11px] text-slate-500">
-          Canli {snapshot.activeTripsOnline} / Stale {snapshot.activeTripsStale}
+          Canlı {snapshot.activeTripsOnline} / Stale {snapshot.activeTripsStale}
         </div>
       </article>
     </section>
   );
 }
+

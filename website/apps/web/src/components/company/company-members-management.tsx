@@ -270,12 +270,12 @@ export function CompanyMembersManagement({ companyId }: Props) {
     }
     const allowedRoles = getEditableRoleOptions(actorRole, targetMember.role);
     if (!allowedRoles.includes(role)) {
-      setErrorMessage("Bu uye icin secilen rol policy tarafindan desteklenmiyor.");
+      setErrorMessage("Bu uye için secilen rol policy tarafindan desteklenmiyor.");
       setSuccessMessage(null);
       return;
     }
     if (allowedRoles.length === 1 && allowedRoles[0] === targetMember.role) {
-      setErrorMessage("Bu uye icin rol degisikligi yetkin yok.");
+      setErrorMessage("Bu uye için rol degisikligi yetkin yok.");
       setSuccessMessage(null);
       return;
     }
@@ -385,7 +385,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
             onChange={(event) => setFilter(event.target.value as MemberFilter)}
             className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
           >
-            <option value="all">Tum uyeler</option>
+            <option value="all">Tüm uyeler</option>
             <option value="active">Sadece aktif</option>
             <option value="invited">Sadece davetli</option>
             <option value="suspended">Sadece askida</option>
@@ -460,7 +460,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
               <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                 {!selectedMember ? (
                   <div className="rounded-xl border border-dashed border-line bg-white p-3 text-xs text-muted">
-                    Detay icin bir uye secin.
+                    Detay için bir uye secin.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -474,7 +474,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                     </div>
 
                     <div className="rounded-xl border border-line bg-white p-3">
-                      <div className="mb-2 text-xs font-semibold text-slate-700">Rol yonetimi</div>
+                      <div className="mb-2 text-xs font-semibold text-slate-700">Rol yönetimi</div>
                       {selectedRoleLocked || !selectedMember ? (
                         <div className="rounded-xl border border-line bg-slate-50 px-3 py-2 text-xs text-slate-600">
                           {selectedMember
@@ -507,7 +507,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                             }
                             className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {savingUid === selectedMember.uid ? "Kaydediliyor..." : "Rolu guncelle"}
+                            {savingUid === selectedMember.uid ? "Kaydediliyor..." : "Rolu güncelle"}
                           </button>
                         </div>
                       )}
@@ -520,7 +520,7 @@ export function CompanyMembersManagement({ companyId }: Props) {
                 <div className="mb-2 text-xs font-semibold text-slate-700">Yeni uye davet et</div>
                 {actorRole === "admin" ? (
                   <div className="mb-2 rounded-xl border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900">
-                    Yonetici rolu sadece operasyon ve goruntuleyici rolleri icin davet gonderebilir.
+                    Yönetici rolu sadece operasyon ve goruntuleyici rolleri için davet gonderebilir.
                   </div>
                 ) : null}
                 {inviteRoleOptions.length === 0 ? (
@@ -632,3 +632,4 @@ export function CompanyMembersManagement({ companyId }: Props) {
     </section>
   );
 }
+

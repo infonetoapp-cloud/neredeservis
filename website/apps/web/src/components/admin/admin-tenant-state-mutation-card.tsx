@@ -77,7 +77,7 @@ export function AdminTenantStateMutationCard({
     if (billingValidUntilMode === "set") {
       if (!billingValidUntilLocal) {
         setSaveState("error");
-        setFeedback("Billing Valid Until icin tarih/saat secin.");
+        setFeedback("Billing Valid Until için tarih/saat secin.");
         return;
       }
       const parsed = new Date(billingValidUntilLocal);
@@ -241,8 +241,9 @@ export function AdminTenantStateMutationCard({
         }}
         className="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {saveState === "saving" ? "Kaydediliyor..." : "Tenant Durumunu Guncelle"}
+        {saveState === "saving" ? "Kaydediliyor..." : "Tenant Durumunu Güncelle"}
       </button>
     </section>
   );
 }
+

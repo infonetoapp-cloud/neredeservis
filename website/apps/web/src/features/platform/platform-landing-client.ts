@@ -2,6 +2,8 @@
 
 import { doc, getDoc } from "firebase/firestore";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { getFirebaseClientFirestore } from "@/lib/firebase/client";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 import type { LandingPageConfig } from "@/components/marketing/landing-config-types";
@@ -10,12 +12,55 @@ import type { LandingPageConfig } from "@/components/marketing/landing-config-ty
 
 const DOC_PATH = "site_config/landing_page";
 
+type PublicLandingConfigEnvelope<T> = {
+  data?: T;
+  error?: {
+    message?: string;
+  };
+};
+
+function ensureTrailingSlash(url: string): string {
+  return url.endsWith("/") ? url : `${url}/`;
+}
+
+async function callPublicLandingConfigApi<T>(input: {
+  baseUrl: string;
+  path: string;
+}): Promise<T> {
+  const requestUrl = new URL(input.path, ensureTrailingSlash(input.baseUrl));
+  const response = await fetch(requestUrl.toString(), {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | PublicLandingConfigEnvelope<T>
+    | null;
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "Beklenmeyen bir API hatasi olustu.");
+  }
+
+  return payload?.data as T;
+}
+
 /**
  * Landing page config'ini Firestore'dan dogrudan okur.
  * Auth gerekmez (rules: allow read: if true).
  * Dönen veride internal alanlar (updatedAt, updatedBy, version) temizlenir.
  */
 export async function fetchLandingConfig(): Promise<LandingPageConfig | null> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const response = await callPublicLandingConfigApi<{
+      exists?: boolean;
+      config?: LandingPageConfig | null;
+    }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/public/landing-config",
+    });
+    return response?.exists ? response.config ?? null : null;
+  }
+
   const db = getFirebaseClientFirestore();
   if (!db) return null;
 
@@ -38,6 +83,20 @@ interface GetConfigResponse {
 }
 
 export async function platformGetLandingConfig(): Promise<GetConfigResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const result = await callBackendApi<GetConfigResponse>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/platform/landing-config",
+    });
+    return result.data ?? {
+      exists: false,
+      config: null,
+      updatedAt: null,
+      updatedBy: null,
+    };
+  }
+
   const result = await callFirebaseCallable<
     Record<string, never>,
     GetConfigResponse
@@ -52,6 +111,17 @@ interface SaveConfigResponse {
 export async function platformSaveLandingConfig(
   config: Partial<LandingPageConfig>,
 ): Promise<SaveConfigResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const result = await callBackendApi<SaveConfigResponse>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/platform/landing-config",
+      method: "PATCH",
+      body: { config },
+    });
+    return result.data ?? { success: false };
+  }
+
   const result = await callFirebaseCallable<
     { config: Partial<LandingPageConfig> },
     SaveConfigResponse

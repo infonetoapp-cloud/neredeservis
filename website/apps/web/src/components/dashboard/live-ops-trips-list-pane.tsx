@@ -385,7 +385,7 @@ export function TripsListPane({
                           tripRisk.tone,
                         )}`}
                       >
-                        {tripRisk.tone === "critical" ? "Kritik" : "Uyari"}
+                        {tripRisk.tone === "critical" ? "Kritik" : "Uyarı"}
                       </span>
                     ) : null}
                   </div>
@@ -407,3 +407,4 @@ export function TripsListPane({
     </section>
   );
 }
+

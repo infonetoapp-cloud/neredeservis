@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { useCompanyLiveOpsSnapshot } from "@/components/live-ops/company-live-ops-snapshot-context";
@@ -13,7 +14,7 @@ import {
   type CompanyVehicleItem,
 } from "@/features/company/company-client";
 
-type StreamStatus = "loading" | "live" | "empty" | "error";
+type StreamStatus = "loading" | "warmup" | "live" | "empty" | "error";
 type FilterKey = "all" | "live" | "active" | "attention";
 
 type EnrichedLiveItem = CompanyLiveOpsItem & {
@@ -27,6 +28,8 @@ type Props = {
   maxItems?: number;
 };
 
+const WARMUP_MS = 60_000;
+
 function toLiveOpsTone(status: CompanyLiveOpsStatus): string {
   if (status === "live") {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -35,30 +38,37 @@ function toLiveOpsTone(status: CompanyLiveOpsStatus): string {
     return "bg-amber-50 text-amber-800 border-amber-200";
   }
   if (status === "no_signal") {
-    return "bg-rose-50 text-rose-700 border-rose-200";
+    return "bg-orange-50 text-orange-700 border-orange-200";
   }
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
 function toLiveOpsLabel(status: CompanyLiveOpsStatus): string {
   if (status === "live") {
-    return "Canli";
+    return "Canlı";
   }
   if (status === "stale") {
     return "Konum gecikmeli";
   }
   if (status === "no_signal") {
-    return "Baglanti kesildi";
+    return "Bağlantı kesildi";
   }
   return "Sefer bekliyor";
 }
 
-function toStreamStatus(snapshotStatus: "loading" | "ready" | "error", itemCount: number): StreamStatus {
-  if (snapshotStatus === "error") {
-    return "error";
-  }
+function toStreamStatus(
+  snapshotStatus: "loading" | "ready" | "error",
+  itemCount: number,
+  elapsedMs: number,
+): StreamStatus {
   if (snapshotStatus === "loading") {
     return "loading";
+  }
+  if (snapshotStatus === "error" && itemCount === 0 && elapsedMs < WARMUP_MS) {
+    return "warmup";
+  }
+  if (snapshotStatus === "error") {
+    return "error";
   }
   if (itemCount > 0) {
     return "live";
@@ -70,26 +80,29 @@ function toStreamStatusTone(status: StreamStatus): string {
   if (status === "live") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
-  if (status === "loading") {
-    return "border-[#b7ccc2] bg-[#e8f1ec] text-[#285849]";
+  if (status === "loading" || status === "warmup") {
+    return "border-sky-200 bg-sky-50 text-sky-700";
   }
   if (status === "error") {
-    return "border-rose-200 bg-rose-50 text-rose-700";
+    return "border-amber-200 bg-amber-50 text-amber-800";
   }
   return "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function toStreamStatusLabel(status: StreamStatus): string {
   if (status === "live") {
-    return "Canli akis";
+    return "Canlı";
   }
   if (status === "loading") {
-    return "Yukleniyor";
+    return "Yükleniyor";
+  }
+  if (status === "warmup") {
+    return "Hazırlanıyor";
   }
   if (status === "error") {
-    return "Hata";
+    return "Bağlantı sorunu";
   }
-  return "Veri yok";
+  return "Beklemede";
 }
 
 function toLastSeenLabel(timestampMs: number | null): string {
@@ -100,21 +113,21 @@ function toLastSeenLabel(timestampMs: number | null): string {
   const diffMs = Math.max(0, Date.now() - timestampMs);
   const diffSeconds = Math.floor(diffMs / 1000);
   if (diffSeconds < 60) {
-    return `${diffSeconds} sn once`;
+    return `${diffSeconds} sn önce`;
   }
 
   const diffMinutes = Math.floor(diffSeconds / 60);
   if (diffMinutes < 60) {
-    return `${diffMinutes} dk once`;
+    return `${diffMinutes} dk önce`;
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours} sa once`;
+    return `${diffHours} sa önce`;
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} gun once`;
+  return `${diffDays} gün önce`;
 }
 
 function normalizePlate(value: string): string {
@@ -127,6 +140,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
   const [companyDrivers, setCompanyDrivers] = useState<CompanyDriverItem[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [filterKey, setFilterKey] = useState<FilterKey>("all");
+  const [viewOpenedAt] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -164,6 +178,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
     const vehiclesById = new Map(companyVehicles.map((vehicle) => [vehicle.vehicleId, vehicle]));
     const vehiclesByPlate = new Map(companyVehicles.map((vehicle) => [normalizePlate(vehicle.plate), vehicle]));
     const vehiclesBySuffix = new Map<string, CompanyVehicleItem[]>();
+
     for (const vehicle of companyVehicles) {
       const normalizedPlate = normalizePlate(vehicle.plate);
       const suffix = normalizedPlate.slice(-2);
@@ -179,6 +194,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
       const driver = item.driverId ? driversById.get(item.driverId) ?? null : null;
       const directVehicle = item.vehicleId ? vehiclesById.get(item.vehicleId) ?? null : null;
       let matchedVehicle = directVehicle;
+
       if (!matchedVehicle && driver) {
         const maskedPlate = normalizePlate(driver.plateMasked);
         const directByMaskedPlate = vehiclesByPlate.get(maskedPlate);
@@ -200,8 +216,10 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
     });
   }, [companyDrivers, companyVehicles, items]);
 
-  const streamStatus = toStreamStatus(snapshotStatus, enrichedItems.length);
+  const elapsedMs = Date.now() - viewOpenedAt;
+  const streamStatus = toStreamStatus(snapshotStatus, enrichedItems.length, elapsedMs);
   const generatedAtLabel = generatedAt ? new Date(generatedAt).toLocaleTimeString("tr-TR") : "-";
+  const basePath = `/c/${encodeURIComponent(companyId)}`;
 
   const liveCount = useMemo(
     () => enrichedItems.filter((item) => item.status === "live").length,
@@ -251,19 +269,38 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
     [resolvedSelectedRouteId, visibleItems],
   );
 
+  const hasNoVisibleItems = visibleItems.length === 0;
+  const emptyStateTone =
+    streamStatus === "error"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : streamStatus === "loading" || streamStatus === "warmup"
+        ? "border-sky-200 bg-sky-50 text-sky-900"
+        : "border-slate-200 bg-slate-50 text-slate-700";
+
+  const emptyStateMessage =
+    streamStatus === "loading" || streamStatus === "warmup"
+      ? "Canlı operasyon verisi hazırlanıyor. İlk akış geldiğinde araçlar burada listelenecek."
+      : streamStatus === "error"
+        ? errorMessage ?? "Canlı veri akışında geçici kesinti var. Bağlantı kurulduğunda liste otomatik yenilenecek."
+        : "Henüz canlı operasyon görünmüyor. İlk sefer başladığında araçlar burada listelenecek.";
+
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-[#768292] uppercase">Canli Operasyon</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Arac konum ve operasyon akisi</h2>
-          <p className="mt-1 text-sm text-[#697382]">Son yenileme: {generatedAtLabel}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#768292]">Canlı Operasyon</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">Araç konum ve operasyon akışı</h2>
         </div>
-        <span
-          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${toStreamStatusTone(streamStatus)}`}
-        >
-          {toStreamStatusLabel(streamStatus)}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${toStreamStatusTone(streamStatus)}`}
+          >
+            Bağlantı: {toStreamStatusLabel(streamStatus)}
+          </span>
+          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+            Son yenileme: {generatedAtLabel}
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -276,7 +313,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
               : "border-line bg-white text-slate-700 hover:bg-slate-50"
           }`}
         >
-          Tumu ({enrichedItems.length})
+          Tümü ({enrichedItems.length})
         </button>
         <button
           type="button"
@@ -287,7 +324,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
               : "border-line bg-white text-slate-700 hover:bg-slate-50"
           }`}
         >
-          Canli ({liveCount})
+          Canlı ({liveCount})
         </button>
         <button
           type="button"
@@ -313,15 +350,38 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
         </button>
       </div>
 
-      {errorMessage ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {visibleItems.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line bg-[#f8fafc] px-4 py-5 text-sm text-[#667182]">
-          Henuz canli operasyon verisi gorunmuyor. Ilk sefer basladiginda araclar burada listelenecek.
+      {hasNoVisibleItems ? (
+        <div className={`rounded-2xl border px-4 py-4 text-sm ${emptyStateTone}`}>
+          <p>{emptyStateMessage}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              href={`${basePath}/routes`}
+              className="inline-flex items-center rounded-lg border border-current/25 bg-white/80 px-3 py-1.5 text-xs font-semibold transition hover:bg-white"
+            >
+              Rota oluştur
+            </Link>
+            <Link
+              href={`${basePath}/vehicles`}
+              className="inline-flex items-center rounded-lg border border-current/25 bg-white/80 px-3 py-1.5 text-xs font-semibold transition hover:bg-white"
+            >
+              Araç ekle
+            </Link>
+            <Link
+              href={`${basePath}/drivers`}
+              className="inline-flex items-center rounded-lg border border-current/25 bg-white/80 px-3 py-1.5 text-xs font-semibold transition hover:bg-white"
+            >
+              Şoför ekle
+            </Link>
+            {streamStatus === "error" ? (
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center rounded-lg border border-current/25 bg-white/80 px-3 py-1.5 text-xs font-semibold transition hover:bg-white"
+              >
+                Tekrar dene
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -349,7 +409,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
                   {selectedItem.vehiclePlate ? <span>Plaka: {selectedItem.vehiclePlate}</span> : null}
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#697382]">
-                  <span>Sofor: {selectedItem.driverName ?? "Bilinmiyor"}</span>
+                  <span>Şoför: {selectedItem.driverName ?? "Bilinmiyor"}</span>
                   <span>Son konum: {toLastSeenLabel(selectedItem.locationTimestampMs)}</span>
                 </div>
                 {selectedItem.speed != null && selectedItem.speed > 0 ? (
@@ -364,9 +424,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
                   </div>
                 ) : null}
                 {selectedItem.scheduledTime ? (
-                  <div className="mt-1 text-[11px] text-muted">
-                    Planlanan saat: {selectedItem.scheduledTime}
-                  </div>
+                  <div className="mt-1 text-[11px] text-muted">Planlanan saat: {selectedItem.scheduledTime}</div>
                 ) : null}
               </div>
             ) : null}
@@ -405,7 +463,7 @@ export function LiveLocationsFeedCard({ companyId, maxItems = 12 }: Props) {
                         {item.vehiclePlate}
                       </span>
                     ) : null}
-                    <span>Sofor: {item.driverName ?? "Bilinmiyor"}</span>
+                    <span>Şoför: {item.driverName ?? "Bilinmiyor"}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-[#697382]">
                     <span>Son: {toLastSeenLabel(item.locationTimestampMs)}</span>

@@ -59,7 +59,7 @@ export function AdminSecurityHardeningCard() {
     <section id="phase5-security-hardening" className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
       <div className="mb-2 text-sm font-semibold text-slate-900">Security Hardening</div>
       <p className="text-xs text-muted">
-        Faz 5 guvenlik sertlestirme adimlari. Checkler lokal kaydedilir.
+        Faz 5 güvenlik sertlestirme adimlari. Checkler lokal kaydedilir.
       </p>
       <div className="mt-3 space-y-2">
         {DEFAULT_ITEMS.map((item) => (
@@ -86,3 +86,4 @@ export function AdminSecurityHardeningCard() {
     </section>
   );
 }
+

@@ -9,13 +9,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F8F8F9] text-foreground">
       <div className="flex min-h-screen">
-        <div className="hidden lg:block lg:w-[260px] lg:flex-shrink-0">
+        <div className="hidden lg:block lg:w-[268px] lg:flex-shrink-0">
           <DashboardShellSidebar />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <DashboardShellHeader />
-          <main className="flex-1 p-5 sm:p-8">
+          <main className="flex-1 p-4 sm:p-6">
             <ConfigValidationBanner scopeLabel="Dashboard Shell" />
             <DashboardAuthGate>{children}</DashboardAuthGate>
           </main>

@@ -13,6 +13,8 @@ type PageHeaderProps = {
   icon?: ReactNode;
   /** Right-side actions (buttons, etc.) */
   actions?: ReactNode;
+  /** Compact density for pages that need more vertical space */
+  compact?: boolean;
 };
 
 /**
@@ -26,6 +28,7 @@ export function PageHeader({
   accent = "indigo",
   icon,
   actions,
+  compact = false,
 }: PageHeaderProps) {
   /* Map accent name to tailwind classes */
   const accentMap: Record<string, { border: string; badge: string }> = {
@@ -44,17 +47,17 @@ export function PageHeader({
 
   return (
     <div
-      className={`rounded-2xl border border-line bg-white p-5 shadow-sm border-l-4 ${colors.border}`}
+      className={`rounded-2xl border border-line bg-white shadow-sm border-l-4 ${colors.border} ${compact ? "p-4" : "p-5"}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="mb-1.5 text-[10px] font-semibold tracking-[0.16em] text-slate-400 uppercase">
+            <p className={`${compact ? "mb-1" : "mb-1.5"} text-[10px] font-semibold tracking-[0.16em] text-slate-400 uppercase`}>
               {eyebrow}
             </p>
           ) : null}
 
-          <h1 className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          <h1 className={`inline-flex items-center gap-2.5 font-semibold tracking-tight text-slate-900 ${compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"}`}>
             {icon ? (
               <span
                 className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ${colors.badge}`}
@@ -66,7 +69,7 @@ export function PageHeader({
           </h1>
 
           {description ? (
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">
+            <p className={`${compact ? "mt-1 text-[13px]" : "mt-1.5 text-sm"} max-w-2xl leading-relaxed text-slate-500`}>
               {description}
             </p>
           ) : null}

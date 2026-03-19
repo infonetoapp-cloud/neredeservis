@@ -40,7 +40,7 @@ export function InviteMemberSection({
       ) : null}
       {inviteRoleOptions.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-          Bu rolde uye daveti acik degil. Davet islemleri icin owner/admin yetkisi gerekir.
+          Bu rolde uye daveti acik degil. Davet islemleri için owner/admin yetkisi gerekir.
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-[1fr_180px_120px]">
@@ -75,3 +75,4 @@ export function InviteMemberSection({
     </div>
   );
 }
+

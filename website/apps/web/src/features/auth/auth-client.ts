@@ -16,7 +16,9 @@ import {
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
+import { callBackendApi } from "@/lib/backend-api/client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { getFirebaseClientAuth, getFirebaseClientFirestore } from "@/lib/firebase/client";
 
 export type AuthStateListener = (user: User | null) => void;
@@ -146,11 +148,6 @@ export async function updateCurrentUserProfile(input: {
 }
 
 export async function sendPasswordResetEmailForAddress(email: string): Promise<void> {
-  const auth = getFirebaseClientAuth();
-  if (!auth) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
   const normalized = email.trim();
   if (!normalized) {
     const error = new Error("EMAIL_REQUIRED");
@@ -158,14 +155,60 @@ export async function sendPasswordResetEmailForAddress(email: string): Promise<v
     throw error;
   }
 
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ success: boolean }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/password-reset",
+      method: "POST",
+      auth: false,
+      body: { email: normalized },
+    });
+    return;
+  }
+
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
   await sendPasswordResetEmail(auth, normalized);
 }
 
 export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAccessPolicy> {
   const auth = getFirebaseClientAuth();
-  const firestore = getFirebaseClientFirestore();
   const currentUser = auth?.currentUser;
-  if (!auth || !firestore || !currentUser) {
+  if (!auth || !currentUser) {
+    return {
+      role: null,
+      allowWebPanel: true,
+      reason: null,
+    };
+  }
+
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const response = await callBackendApi<CurrentUserWebAccessPolicy>({
+        baseUrl: backendApiBaseUrl,
+        path: "api/auth/web-access-policy",
+      });
+      return response.data ?? {
+        role: null,
+        allowWebPanel: true,
+        reason: null,
+      };
+    } catch {
+      return {
+        role: null,
+        allowWebPanel: true,
+        reason: null,
+      };
+    }
+  }
+
+  const firestore = getFirebaseClientFirestore();
+  if (!firestore) {
     return {
       role: null,
       allowWebPanel: true,

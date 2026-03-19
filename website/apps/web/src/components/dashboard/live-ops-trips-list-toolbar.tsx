@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   buildLiveOpsFilterContextSummary,
@@ -117,7 +117,7 @@ export function LiveOpsTripsListToolbar({
   onSortOptionChange,
   filterContext,
 }: Props) {
-  const riskToneLabel = riskToneFilter === "critical" ? "Kritik" : riskToneFilter === "warning" ? "Uyari" : null;
+  const riskToneLabel = riskToneFilter === "critical" ? "Kritik" : riskToneFilter === "warning" ? "Uyarı" : null;
   const riskToneCount =
     riskToneFilter === "critical"
       ? criticalRiskCount
@@ -136,7 +136,7 @@ export function LiveOpsTripsListToolbar({
     streamIssueState,
     streamStatus,
     rtdbConnectionStatus,
-    fallbackLabel: "Live ops listesi read-side odakli calisiyor",
+    fallbackLabel: "Live ops listesi read-side odakli çalışıyor",
   });
   const copyViewLinkMessage =
     copyViewLinkState === "copied"
@@ -160,7 +160,7 @@ export function LiveOpsTripsListToolbar({
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span>{filteredCount} sefer</span>
             <span className="text-slate-300">|</span>
-            <span className="text-emerald-600">{onlineCount} canli</span>
+            <span className="text-emerald-600">{onlineCount} canlı</span>
             {staleCount > 0 ? (
               <>
                 <span className="text-slate-300">|</span>
@@ -207,7 +207,7 @@ export function LiveOpsTripsListToolbar({
               aria-pressed={hideStale}
               className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
-              Tum Araclari Goster
+              Tüm Araclari Göster
             </button>
           ) : null}
           <button
@@ -236,12 +236,12 @@ export function LiveOpsTripsListToolbar({
                 : "border-line bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
-            Uyari
+            Uyarı
           </button>
           <button
             type="button"
             onClick={onCopyViewLink}
-            aria-label="Canli operasyon gorunum linkini kopyala"
+            aria-label="Canlı operasyon gorunum linkini kopyala"
             disabled={!clipboardSupported}
             className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
               clipboardSupported
@@ -303,7 +303,7 @@ export function LiveOpsTripsListToolbar({
           }`}
         >
           {copyViewLinkState === "copied"
-            ? "Canli operasyon gorunumu panoya kopyalandi."
+            ? "Canlı operasyon gorunumu panoya kopyalandi."
             : clipboardSupported
               ? "Gorunum linki kopyalanamadi. Tarayici izinlerini kontrol et."
               : "Bu tarayici pano kopyalamayi desteklemiyor. HTTPS ve modern tarayici kullan."}
@@ -311,13 +311,13 @@ export function LiveOpsTripsListToolbar({
       ) : null}
       {!clipboardSupported ? (
         <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800">
-          Pano kopyalama desteklenmiyor. Gorunum paylasimi icin modern tarayici + HTTPS kullan.
+          Pano kopyalama desteklenmiyor. Gorunum paylasimi için modern tarayici + HTTPS kullan.
         </div>
       ) : null}
       {riskToneFilter ? (
         <div className="mb-3 flex items-center justify-between gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-2 text-xs text-indigo-800">
           <span className="min-w-0">
-            Risk odagi aktif: <span className="font-semibold">{riskToneLabel}</span> ({riskToneCount} kayit) ·
+            Risk odagi aktif: <span className="font-semibold">{riskToneLabel}</span> ({riskToneCount} kayıt) ·
             Gorunen: {riskFocusedCount}
             {hideStale && riskHiddenByStaleCount > 0
               ? ` · Stale gizlenen: ${riskHiddenByStaleCount}`
@@ -349,7 +349,7 @@ export function LiveOpsTripsListToolbar({
           <input
             value={searchText}
             onChange={(event) => onSearchTextChange(event.target.value)}
-            placeholder="Sofor, plaka, rota ara..."
+            placeholder="Şoför, plaka, rota ara..."
             className="rounded-lg border border-line bg-white px-2.5 py-2 text-xs text-slate-900 outline-none ring-0 focus:border-blue-300"
           />
         </label>
@@ -361,7 +361,7 @@ export function LiveOpsTripsListToolbar({
             onChange={(event) => onRouteFilterChange(event.target.value || null)}
             className="rounded-lg border border-line bg-white px-2.5 py-2 text-xs text-slate-900 outline-none ring-0 focus:border-blue-300"
           >
-            <option value="">Tum rotalar</option>
+            <option value="">Tüm rotalar</option>
             {routeOptions.map((route) => (
               <option key={route.routeId} value={route.routeId}>
                 {route.name}
@@ -371,13 +371,13 @@ export function LiveOpsTripsListToolbar({
         </label>
 
         <label className="grid gap-1 text-xs text-slate-700">
-          <span className="font-medium text-slate-800">Sofor filtresi</span>
+          <span className="font-medium text-slate-800">Şoför filtresi</span>
           <select
             value={driverFilterUid ?? ""}
             onChange={(event) => onDriverFilterChange(event.target.value || null)}
             className="rounded-lg border border-line bg-white px-2.5 py-2 text-xs text-slate-900 outline-none ring-0 focus:border-blue-300"
           >
-            <option value="">Tum soforler</option>
+            <option value="">Tüm soforler</option>
             {driverOptions.map((driver) => (
               <option key={driver.uid} value={driver.uid}>
                 {driver.label}
@@ -394,13 +394,14 @@ export function LiveOpsTripsListToolbar({
             className="rounded-lg border border-line bg-white px-2.5 py-2 text-xs text-slate-900 outline-none ring-0 focus:border-blue-300"
           >
             <option value="signal_desc">Son sinyal (yeni-eski)</option>
-            <option value="risk_desc">Risk onceligi (kritik-uyari)</option>
-            <option value="driver_asc">Sofor (A-Z)</option>
+            <option value="risk_desc">Risk onceligi (kritik-uyarı)</option>
+            <option value="driver_asc">Şoför (A-Z)</option>
             <option value="plate_asc">Plaka (A-Z)</option>
-            <option value="state">Durum (canli to stale)</option>
+            <option value="state">Durum (canlı to stale)</option>
           </select>
         </label>
       </div>
     </>
   );
 }
+

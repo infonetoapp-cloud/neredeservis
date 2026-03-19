@@ -28,7 +28,7 @@ export function AdminAuditStatusFilters({
   return (
     <div className="mt-3 flex flex-wrap gap-2">
       {[
-        { value: "all", label: `Tum Kayitlar (${total})`, count: total },
+        { value: "all", label: `Tüm Kayitlar (${total})`, count: total },
         { value: "success", label: `Basarili (${success})`, count: success },
         { value: "denied", label: `Denied (${denied})`, count: denied },
         { value: "error", label: `Diger Hatalar (${error})`, count: error },
@@ -43,7 +43,7 @@ export function AdminAuditStatusFilters({
             onSelectFilter(filter.value as AuditStatusFilter);
           }}
           disabled={filter.value !== "all" && filter.count === 0}
-          title={filter.value !== "all" && filter.count === 0 ? "Bu durumda kayit bulunmuyor." : undefined}
+          title={filter.value !== "all" && filter.count === 0 ? "Bu durumda kayıt bulunmuyor." : undefined}
           className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
             selectedFilter === filter.value
               ? "border-blue-200 bg-blue-50 text-blue-700"
@@ -59,7 +59,7 @@ export function AdminAuditStatusFilters({
         disabled={!actionableOnly && actionableCount === 0}
         title={
           !actionableOnly && actionableCount === 0
-            ? "Aksiyonlanabilir kayit bulunmuyor."
+            ? "Aksiyonlanabilir kayıt bulunmuyor."
             : undefined
         }
         className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
@@ -73,3 +73,4 @@ export function AdminAuditStatusFilters({
     </div>
   );
 }
+

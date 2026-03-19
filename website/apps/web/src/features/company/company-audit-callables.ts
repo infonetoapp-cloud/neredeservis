@@ -227,6 +227,23 @@ export async function getCompanyAdminTenantStateCallable(input: {
 export async function updateCompanyAdminTenantStateCallable(
   input: UpdateCompanyAdminTenantStateInput,
 ): Promise<UpdateCompanyAdminTenantStateResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/admin-tenant-state`,
+      method: "PATCH",
+      body: {
+        patch: input.patch,
+      },
+    });
+    return ensureUpdateCompanyAdminTenantStateResponse(
+      envelope.data,
+      "updateCompanyAdminTenantState",
+    );
+  }
+
   const envelope = await callFirebaseCallable<UpdateCompanyAdminTenantStateInput, unknown>(
     "updateCompanyAdminTenantState",
     input,

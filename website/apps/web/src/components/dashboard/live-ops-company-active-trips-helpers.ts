@@ -132,10 +132,10 @@ export function buildDispatchSummary(params: {
       : "Konum yok";
   return [
     `Sefer Ozeti`,
-    `Sofor: ${trip.driverName}`,
-    `Arac: ${trip.driverPlate ?? "-"}`,
+    `Şoför: ${trip.driverName}`,
+    `Araç: ${trip.driverPlate ?? "-"}`,
     `Rota: ${trip.routeName}`,
-    `Durum: ${trip.liveState === "online" ? "Canli" : "Stale"}`,
+    `Durum: ${trip.liveState === "online" ? "Canlı" : "Stale"}`,
     `Son Sinyal: ${formatLastSignal(trip.lastLocationAt)}`,
     `Konum: ${coordText}`,
   ].join("\n");
@@ -257,13 +257,13 @@ export function statusBadgeClasses(liveState: "online" | "stale") {
 }
 
 export function statusLabel(liveState: "online" | "stale") {
-  return liveState === "online" ? "Canli" : "Stale";
+  return liveState === "online" ? "Canlı" : "Stale";
 }
 
 export function streamStatusLabel(status: LiveOpsStreamStatus) {
   switch (status) {
     case "live":
-      return "RTDB Stream Canli";
+      return "RTDB Stream Canlı";
     case "connecting":
       return "RTDB Stream Baglaniyor";
     case "mismatch":
@@ -363,7 +363,7 @@ export function resolveStreamIssuePresentation(
     return {
       containerClass: "border-amber-200 bg-amber-50 text-amber-800",
       textClass: "text-amber-700",
-      severityLabel: "Uyari",
+      severityLabel: "Uyarı",
     };
   }
   return {
@@ -384,7 +384,7 @@ export function buildLiveOpsStreamIssueSummary(
   }
   if (state.tone === "warn") {
     return {
-      shortLabel: "Stream: Uyari",
+      shortLabel: "Stream: Uyarı",
       shortClass: "border-amber-200 bg-amber-50 text-amber-700",
     };
   }
@@ -441,12 +441,12 @@ export function buildLiveOpsFilterContextLine(context: LiveOpsFilterContext): st
     context.riskTone === "critical"
       ? "kritik"
       : context.riskTone === "warning"
-        ? "uyari"
-        : "tum";
-  const routeLabel = context.routeFilterId ? "secili" : "tum";
-  const driverLabel = context.driverFilterUid ? "secili" : "tum";
+        ? "uyarı"
+        : "tüm";
+  const routeLabel = context.routeFilterId ? "secili" : "tüm";
+  const driverLabel = context.driverFilterUid ? "secili" : "tüm";
   const searchLabel = context.searchText.trim() ? context.searchText.trim() : "-";
-  const staleLabel = context.hideStale ? "gizli" : "gorunur";
+  const staleLabel = context.hideStale ? "gizli" : "görünür";
   return [
     `sort=${context.sortOption}`,
     `risk=${riskLabel}`,
@@ -463,11 +463,11 @@ export function buildLiveOpsFilterContextSummary(context: LiveOpsFilterContext):
     context.riskTone === "critical"
       ? "Kritik"
       : context.riskTone === "warning"
-        ? "Uyari"
-        : "Tum";
-  const routeLabel = context.routeFilterId ? "Rota secili" : "Tum rotalar";
-  const driverLabel = context.driverFilterUid ? "Sofor secili" : "Tum soforler";
-  const staleLabel = context.hideStale ? "Stale gizli" : "Stale gorunur";
+        ? "Uyarı"
+        : "Tüm";
+  const routeLabel = context.routeFilterId ? "Rota secili" : "Tüm rotalar";
+  const driverLabel = context.driverFilterUid ? "Şoför secili" : "Tüm soforler";
+  const staleLabel = context.hideStale ? "Stale gizli" : "Stale görünür";
   const searchLabel = context.searchText.trim() ? `Arama: ${context.searchText.trim()}` : "Arama yok";
   return `${riskLabel} odak | ${routeLabel} | ${driverLabel} | ${staleLabel} | ${searchLabel}`;
 }
@@ -794,3 +794,4 @@ export function buildLiveOpsMapTelemetry(
     healthLabel,
   };
 }
+

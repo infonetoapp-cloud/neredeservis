@@ -33,7 +33,7 @@ export function CompanyRoleRouteGuard({
       ) : status === "error" ? (
         <div className="space-y-3">
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-            {routeLabel} icin uyelik dogrulamasi yapilamadi. Uyelik listesi yuklenemedi.
+            {routeLabel} için üyelik doğrulaması yapılamadı. Üyelik listesi yüklenemedi.
           </div>
           <Link
             href="/dashboard"
@@ -48,10 +48,10 @@ export function CompanyRoleRouteGuard({
             Secili firma icinde aktif bir uyelik bulunamadi. {routeLabel} erisimi acilamadi.
           </div>
           <Link
-            href="/select-company"
+            href="/dashboard"
             className="inline-flex items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Firma Secimine Git
+            Genel Bakışa Git
           </Link>
         </div>
       ) : memberStatus !== "active" ? (
@@ -73,4 +73,5 @@ export function CompanyRoleRouteGuard({
     </CompanyModeRouteGuard>
   );
 }
+
 

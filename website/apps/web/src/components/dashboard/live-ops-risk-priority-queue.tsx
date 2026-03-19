@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -51,7 +51,7 @@ function riskToneClass(tone: LiveOpsRiskQueueItem["tone"]) {
 }
 
 function riskToneLabel(tone: LiveOpsRiskQueueItem["tone"]) {
-  return tone === "critical" ? "Kritik" : "Uyari";
+  return tone === "critical" ? "Kritik" : "Uyarı";
 }
 
 function buildRiskQueueClipboardPayload(params: {
@@ -62,11 +62,11 @@ function buildRiskQueueClipboardPayload(params: {
   filterContext: LiveOpsFilterContext;
 }) {
   const generatedAt = buildLiveOpsGeneratedAtMeta();
-  const toneLabel = params.tone === "critical" ? "Kritik" : "Uyari";
+  const toneLabel = params.tone === "critical" ? "Kritik" : "Uyarı";
   const lines = params.items.map((item, index) => {
     return [
       `${index + 1}. ${item.trip.driverPlate ?? "Plaka yok"} - ${item.trip.routeName}`,
-      `   Sofor: ${item.trip.driverName}`,
+      `   Şoför: ${item.trip.driverName}`,
       `   Risk: ${item.reason}`,
       `   Son Sinyal: ${formatLastSignal(item.trip.lastLocationAt)}`,
       `   Trip ID: ${item.trip.tripId}`,
@@ -141,14 +141,14 @@ function buildAllRiskQueuePayload(params: {
   const lines = params.items.map((item, index) => {
     return [
       `${index + 1}. [${riskToneLabel(item.tone)}] ${item.trip.driverPlate ?? "Plaka yok"} - ${item.trip.routeName}`,
-      `   Sofor: ${item.trip.driverName}`,
+      `   Şoför: ${item.trip.driverName}`,
       `   Risk: ${item.reason}`,
       `   Son Sinyal: ${formatLastSignal(item.trip.lastLocationAt)}`,
       `   Trip ID: ${item.trip.tripId}`,
     ].join("\n");
   });
   return [
-    "Live Ops Tum Risk Ozet",
+    "Live Ops Tüm Risk Ozet",
     `Kapsam: ${params.scopeLabel}`,
     `Kopyalanan: ${params.items.length}`,
     `Kapsam Toplami: ${params.scopeTotalCount}`,
@@ -184,7 +184,7 @@ function buildSelectedRiskPayload(params: {
     `Filtre Baglami: ${buildLiveOpsFilterContextLine(params.filterContext)}`,
     "",
     `[${riskToneLabel(params.item.tone)}] ${params.item.trip.driverPlate ?? "Plaka yok"} - ${params.item.trip.routeName}`,
-    `Sofor: ${params.item.trip.driverName}`,
+    `Şoför: ${params.item.trip.driverName}`,
     `Risk: ${params.item.reason}`,
     `Son Sinyal: ${formatLastSignal(params.item.trip.lastLocationAt)}`,
     `Trip ID: ${params.item.trip.tripId}`,
@@ -227,7 +227,7 @@ function buildSelectedRiskWhatsAppText(params: {
     `Stream: ${buildLiveOpsStreamContextLine(params.streamIssueState)}`,
     `${buildLiveOpsStreamRecoveryContextLine(params.streamRecoverySummary)}`,
     `Filtre: ${buildLiveOpsFilterContextLine(params.filterContext)}`,
-    `Sofor: ${params.item.trip.driverName}`,
+    `Şoför: ${params.item.trip.driverName}`,
     `Risk: ${params.item.reason}`,
     `Son Sinyal: ${formatLastSignal(params.item.trip.lastLocationAt)}`,
     `Link: ${deepLink}`,
@@ -242,7 +242,7 @@ function buildBulkDispatchPayload(params: {
   filterContext: LiveOpsFilterContext;
 }) {
   const generatedAt = buildLiveOpsGeneratedAtMeta();
-  const toneLabel = params.tone === "critical" ? "Kritik" : "Uyari";
+  const toneLabel = params.tone === "critical" ? "Kritik" : "Uyarı";
   const etaDelta = params.tone === "critical" ? "+20 dk" : "+10 dk";
   const lines = params.items.map((item, index) => {
     return `${index + 1}. ${item.trip.routeName} / ${item.trip.driverPlate ?? item.trip.driverName} - Tahmini varis ${etaDelta}. Son sinyal: ${formatLastSignal(item.trip.lastLocationAt)}.`;
@@ -356,14 +356,14 @@ export function LiveOpsRiskPriorityQueue({
   const scopedRiskCount = scopedRiskQueue.length;
   const navigationScopeLabel =
     activeToneFilter == null
-      ? "Tum riskler"
+      ? "Tüm riskler"
       : activeToneFilter === "critical"
         ? "Kritik odak"
-        : "Uyari odak";
+        : "Uyarı odak";
   const selectedRiskLabel =
     selectedRiskIndexInScope >= 0
       ? `Secili risk: ${selectedRiskIndexInScope + 1}/${selectedRiskTotal} (${navigationScopeLabel})${selectedRiskVisible ? "" : " · gorunum disi"}`
-      : `Secili risk: yok (${selectedRiskTotal} kayit, ${navigationScopeLabel})`;
+      : `Secili risk: yok (${selectedRiskTotal} kayıt, ${navigationScopeLabel})`;
   const selectedRiskItem =
     selectedRiskIndexInScope >= 0 ? scopedRiskQueue[selectedRiskIndexInScope] ?? null : null;
   const allCopyItems = scopedRiskQueue;
@@ -527,8 +527,8 @@ export function LiveOpsRiskPriorityQueue({
         });
         void navigator.clipboard
           .writeText(payload)
-          .then(() => setCopyMessage("Tum risk ozeti panoya kopyalandi."))
-          .catch(() => setCopyMessage("Tum risk ozeti kopyalanamadi."))
+          .then(() => setCopyMessage("Tüm risk ozeti panoya kopyalandi."))
+          .catch(() => setCopyMessage("Tüm risk ozeti kopyalanamadi."))
           .finally(() => {
             window.setTimeout(() => setCopyMessage(null), 2400);
           });
@@ -646,7 +646,7 @@ export function LiveOpsRiskPriorityQueue({
       return;
     }
     const queueItems = tone === "critical" ? criticalItemsAll : warningItemsAll;
-    const toneLabel = tone === "critical" ? "kritik" : "uyari";
+    const toneLabel = tone === "critical" ? "kritik" : "uyarı";
     if (queueItems.length === 0) {
       setCopyMessage(`Kopyalanacak ${toneLabel} risk kaydi yok.`);
       window.setTimeout(() => setCopyMessage(null), 2200);
@@ -661,7 +661,7 @@ export function LiveOpsRiskPriorityQueue({
     });
     try {
       await navigator.clipboard.writeText(payload);
-      setCopyMessage(`${toneLabel === "kritik" ? "Kritik" : "Uyari"} risk kuyrugu panoya kopyalandi.`);
+      setCopyMessage(`${toneLabel === "kritik" ? "Kritik" : "Uyarı"} risk kuyrugu panoya kopyalandi.`);
     } catch {
       setCopyMessage("Risk kuyrugu kopyalanamadi.");
     }
@@ -744,9 +744,9 @@ export function LiveOpsRiskPriorityQueue({
     });
     try {
       await navigator.clipboard.writeText(payload);
-      setCopyMessage("Tum risk ozeti panoya kopyalandi.");
+      setCopyMessage("Tüm risk ozeti panoya kopyalandi.");
     } catch {
-      setCopyMessage("Tum risk ozeti kopyalanamadi.");
+      setCopyMessage("Tüm risk ozeti kopyalanamadi.");
     }
     window.setTimeout(() => setCopyMessage(null), 2400);
   };
@@ -758,7 +758,7 @@ export function LiveOpsRiskPriorityQueue({
     }
     const queueItems = tone === "critical" ? criticalItemsAll : warningItemsAll;
     if (queueItems.length === 0) {
-      setCopyMessage(`Kopyalanacak ${tone === "critical" ? "kritik" : "uyari"} dispatch kaydi yok.`);
+      setCopyMessage(`Kopyalanacak ${tone === "critical" ? "kritik" : "uyarı"} dispatch kaydi yok.`);
       window.setTimeout(() => setCopyMessage(null), 2200);
       return;
     }
@@ -771,7 +771,7 @@ export function LiveOpsRiskPriorityQueue({
     });
     try {
       await navigator.clipboard.writeText(payload);
-      setCopyMessage(`${tone === "critical" ? "Kritik" : "Uyari"} dispatch mesaji panoya kopyalandi.`);
+      setCopyMessage(`${tone === "critical" ? "Kritik" : "Uyarı"} dispatch mesaji panoya kopyalandi.`);
     } catch {
       setCopyMessage("Dispatch mesaji kopyalanamadi.");
     }
@@ -781,7 +781,7 @@ export function LiveOpsRiskPriorityQueue({
   const sendBulkDispatchWhatsApp = (tone: LiveOpsRiskQueueItem["tone"]) => {
     const queueItems = tone === "critical" ? criticalItemsAll : warningItemsAll;
     if (queueItems.length === 0) {
-      setCopyMessage(`Gonderilecek ${tone === "critical" ? "kritik" : "uyari"} dispatch kaydi yok.`);
+      setCopyMessage(`Gonderilecek ${tone === "critical" ? "kritik" : "uyarı"} dispatch kaydi yok.`);
       window.setTimeout(() => setCopyMessage(null), 2200);
       return;
     }
@@ -796,7 +796,7 @@ export function LiveOpsRiskPriorityQueue({
     );
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(payload)}`;
     window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-    setCopyMessage(`${tone === "critical" ? "Kritik" : "Uyari"} toplu dispatch WhatsApp acildi.`);
+    setCopyMessage(`${tone === "critical" ? "Kritik" : "Uyarı"} toplu dispatch WhatsApp acildi.`);
     window.setTimeout(() => setCopyMessage(null), 2400);
   };
 
@@ -808,8 +808,8 @@ export function LiveOpsRiskPriorityQueue({
         </div>
         <div className="text-xs text-muted">
           {activeToneFilter
-            ? `${activeToneFilter === "critical" ? "Kritik" : "Uyari"} odakta gosterilecek risk yok (Toplam risk: ${totalRiskCount}).`
-            : "Kritik/uyari sefer yok. Canli durum stabil gorunuyor."}
+            ? `${activeToneFilter === "critical" ? "Kritik" : "Uyarı"} odakta gosterilecek risk yok (Toplam risk: ${totalRiskCount}).`
+            : "Kritik/uyari sefer yok. Canlı durum stabil gorunuyor."}
         </div>
         <div className="mt-2">
           <LiveOpsStreamIssueChip issueState={streamIssueState} className="inline-flex px-2 py-0.5" />
@@ -843,7 +843,7 @@ export function LiveOpsRiskPriorityQueue({
               onClick={toggleQueueLimit}
               className="rounded-full border border-line bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
             >
-              {queueLimit === 4 ? "Top 8 Goster (Alt+Q)" : "Top 4 Goster (Alt+Q)"}
+              {queueLimit === 4 ? "Top 8 Göster (Alt+Q)" : "Top 4 Göster (Alt+Q)"}
             </button>
           ) : null}
           <div className="flex items-center gap-1.5 text-[10px] font-semibold">
@@ -851,7 +851,7 @@ export function LiveOpsRiskPriorityQueue({
               Kritik: {criticalCount}
             </span>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
-              Uyari: {warningCount}
+              Uyarı: {warningCount}
             </span>
             <LiveOpsStreamIssueChip issueState={streamIssueState} className="px-2 py-0.5" />
           </div>
@@ -875,7 +875,7 @@ export function LiveOpsRiskPriorityQueue({
           onClick={onToggleHideStale}
           className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-900 hover:bg-slate-50"
         >
-          {hideStale ? "Stale Goster (Alt+H)" : "Stale Gizle (Alt+H)"}
+          {hideStale ? "Stale Göster (Alt+H)" : "Stale Gizle (Alt+H)"}
         </button>
       </div>
       <div className="mb-2 text-[11px] text-muted">
@@ -915,9 +915,9 @@ export function LiveOpsRiskPriorityQueue({
         </button>
       ) : null}
       <div className="mb-2 text-[10px] text-muted">
-        Kisayollar: Alt+Yukari/Asagi gezis, Alt+C kritik, Alt+W uyari, Esc temizle, Alt+R
+        Kisayollar: Alt+Yukari/Asagi gezis, Alt+C kritik, Alt+W uyarı, Esc temizle, Alt+R
         siralama, Alt+Q limit, Alt+H stale, Alt+E en riskli, Alt+G seciliyi getir, Alt+J gorunene
-        git, Alt+K tum risk kopya, Alt+P secili kopya, Alt+O secili WhatsApp, Alt+L risk link
+        git, Alt+K tüm risk kopya, Alt+P secili kopya, Alt+O secili WhatsApp, Alt+L risk link
         kopya, Alt+M WhatsApp.
       </div>
 
@@ -992,7 +992,7 @@ export function LiveOpsRiskPriorityQueue({
           disabled={riskQueue.length === 0}
           className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Onceki Risk (Alt+↑)
+          Onceki Risk (Alt+^)
         </button>
         <button
           type="button"
@@ -1000,7 +1000,7 @@ export function LiveOpsRiskPriorityQueue({
           disabled={riskQueue.length === 0}
           className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Sonraki Risk (Alt+↓)
+          Sonraki Risk (Alt+v)
         </button>
       </div>
 
@@ -1029,7 +1029,7 @@ export function LiveOpsRiskPriorityQueue({
           disabled={!clipboardSupported || allCopyItems.length === 0}
           className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Tum Riskleri Kopyala (Alt+K)
+          Tüm Riskleri Kopyala (Alt+K)
         </button>
         <button
           type="button"
@@ -1080,7 +1080,7 @@ export function LiveOpsRiskPriorityQueue({
           disabled={!clipboardSupported || warningItemsAll.length === 0}
           className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Uyari Mesaj Kopyala
+          Uyarı Mesaj Kopyala
         </button>
       </div>
 
@@ -1099,7 +1099,7 @@ export function LiveOpsRiskPriorityQueue({
           disabled={warningItemsAll.length === 0}
           className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Uyari WhatsApp
+          Uyarı WhatsApp
         </button>
       </div>
 
@@ -1144,3 +1144,4 @@ export function LiveOpsRiskPriorityQueue({
     </div>
   );
 }
+

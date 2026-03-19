@@ -46,7 +46,7 @@ export function AdminQuickActionList({
             </div>
             <div className="mt-1 text-xs text-muted">
               {item.hint}
-              {isDisabled ? " (su an kayit yok)" : ""}
+              {isDisabled ? " (su an kayıt yok)" : ""}
             </div>
           </>
         );
@@ -57,8 +57,8 @@ export function AdminQuickActionList({
               key={item.href}
               className="cursor-not-allowed rounded-xl border border-line bg-slate-50 p-3 opacity-80"
               aria-disabled="true"
-              aria-label={`${item.label}: su an kayit yok`}
-              title="Bu aksiyon icin su an kayit bulunmuyor."
+              aria-label={`${item.label}: su an kayıt yok`}
+              title="Bu aksiyon için su an kayıt bulunmuyor."
             >
               {content}
             </div>
@@ -73,7 +73,7 @@ export function AdminQuickActionList({
               onClick={() => {
                 router.push(item.href);
               }}
-              aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayit` : ""}`}
+              aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayıt` : ""}`}
               className="block w-full rounded-xl border border-line bg-white p-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
               {content}
@@ -85,7 +85,7 @@ export function AdminQuickActionList({
           <Link
             key={item.href}
             href={item.href}
-            aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayit` : ""}`}
+            aria-label={`${item.label}${showBadge ? `, ${badgeCount} kayıt` : ""}`}
             className="block rounded-xl border border-line bg-white p-3 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           >
             {content}
@@ -95,3 +95,4 @@ export function AdminQuickActionList({
     </div>
   );
 }
+

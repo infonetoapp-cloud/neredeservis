@@ -93,7 +93,7 @@ export function AdminAuditToolbar({
             onClick={onClearPinnedAuditId}
             className="rounded-lg border border-line bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100"
           >
-            Kayit Vurgusunu Kaldir
+            Kayıt Vurgusunu Kaldir
           </button>
         ) : null}
         <button
@@ -122,3 +122,4 @@ export function AdminAuditToolbar({
     </div>
   );
 }
+

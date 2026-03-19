@@ -2,7 +2,6 @@
 
 import type { CompanyDriverItem } from "@/features/company/company-client-shared";
 
-import type { DriverFilter } from "./driver-ui-helpers";
 import { driverStatusBadgeClass, driverStatusLabel, formatDriverId } from "./driver-ui-helpers";
 
 type Props = {
@@ -12,73 +11,109 @@ type Props = {
   onSelectDriver: (id: string) => void;
 };
 
-export function DriverListSection({
-  drivers,
-  filteredDrivers,
-  selectedDriverId,
-  onSelectDriver,
-}: Props) {
+function getDriverAttentionChips(driver: CompanyDriverItem): string[] {
+  const chips: string[] = [];
+
+  if (!driver.phoneMasked) {
+    chips.push("Telefon eksik");
+  }
+  if (!driver.plateMasked) {
+    chips.push("Plaka eksik");
+  }
+  if (driver.assignedRoutes.length === 0) {
+    chips.push("Atama bekliyor");
+  }
+
+  return chips;
+}
+
+export function DriverListSection({ drivers, filteredDrivers, selectedDriverId, onSelectDriver }: Props) {
   if (!drivers) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-center gap-2 rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-5">
         <span className="block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-blue-500" />
-        <span className="text-xs text-slate-500">Şoförler yükleniyor...</span>
+        <span className="text-sm text-slate-500">Şoförler yükleniyor...</span>
       </div>
     );
   }
 
   if (drivers.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-        <svg className="mx-auto h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-        </svg>
-        <p className="mt-3 text-sm font-medium text-slate-500">Henüz şoför eklenmemiş</p>
-        <p className="mt-1 text-xs text-slate-400">Mobil uygulama için şoför hesabı oluşturun.</p>
+      <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
+        <p className="text-base font-semibold text-slate-700">Henüz şoför kaydı yok</p>
+        <p className="mt-1 text-sm text-slate-500">Yukarıdan ilk şoförü ekleyebilirsin.</p>
       </div>
     );
   }
 
   if (filteredDrivers.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+      <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
         Arama ve filtreye uygun şoför bulunamadı.
       </div>
     );
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {filteredDrivers.map((driver) => {
         const isSelected = selectedDriverId === driver.driverId;
+        const chips = getDriverAttentionChips(driver);
+
         return (
           <button
             key={driver.driverId}
             type="button"
             onClick={() => onSelectDriver(driver.driverId)}
-            className={`group w-full rounded-lg border px-3 py-2.5 text-left transition-all ${
+            className={`group relative w-full overflow-hidden rounded-3xl border p-4 text-left transition ${
               isSelected
-                ? "border-blue-300 bg-blue-50/60 shadow-sm"
-                : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
+                ? "border-blue-200 bg-blue-50/80 shadow-md ring-1 ring-blue-100"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
             }`}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-bold text-slate-900">{driver.name}</span>
-              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${driverStatusBadgeClass(driver.status)}`}>
-                {driverStatusLabel(driver.status)}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
-              {driver.phoneMasked && <span>Tel: {driver.phoneMasked}</span>}
-              <span>Plaka: {driver.plateMasked}</span>
-            </div>
-            <div className="mt-1 flex items-center gap-3 text-[11px] text-slate-400">
-              <span title={driver.driverId}>{formatDriverId(driver.driverId)}</span>
-              <span className="ml-auto">
-                {driver.assignedRoutes.length > 0
-                  ? `${driver.assignedRoutes.length} rota`
-                  : "Atama bekliyor"}
-              </span>
+            <span
+              className={`absolute inset-y-4 left-0 w-1 rounded-r-full transition ${
+                isSelected ? "bg-blue-500" : "bg-transparent group-hover:bg-slate-200"
+              }`}
+            />
+
+            <div className="pl-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="truncate text-lg font-semibold tracking-tight text-slate-950">{driver.name}</h3>
+                    <span
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${driverStatusBadgeClass(driver.status)}`}
+                    >
+                      {driverStatusLabel(driver.status)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500" title={driver.driverId}>
+                    {formatDriverId(driver.driverId)}
+                  </p>
+                </div>
+
+                <div className="text-right text-[11px] text-slate-400">
+                  {driver.assignedRoutes.length > 0 ? `${driver.assignedRoutes.length} rota` : "Atama bekliyor"}
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                  {driver.phoneMasked ? `Tel: ${driver.phoneMasked}` : "Telefon yok"}
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                  {driver.plateMasked ? `Plaka: ${driver.plateMasked}` : "Plaka yok"}
+                </span>
+                {chips.map((chip) => (
+                  <span
+                    key={`${driver.driverId}:${chip}`}
+                    className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-100"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
             </div>
           </button>
         );

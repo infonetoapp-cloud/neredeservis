@@ -6,6 +6,7 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import {
+  getFirebaseClientAuth,
   getFirebaseClientFunctions,
   getFirebaseClientStorage,
 } from "@/lib/firebase/client";
@@ -49,6 +50,52 @@ function parseCompanyProfile(value: unknown): CompanyProfile {
         : 10,
     createdAt: readString(raw.createdAt),
   };
+}
+
+type BackendUploadEnvelope<T> = {
+  data?: T;
+  error?: {
+    message?: string;
+  };
+};
+
+export type CompanyLogoUploadResult = {
+  logoUrl: string;
+  profileUpdated: boolean;
+  updatedAt: string | null;
+};
+
+async function callBackendUploadApi<T>(input: {
+  baseUrl: string;
+  path: string;
+  method: "PUT" | "DELETE";
+  body?: BodyInit;
+  contentType?: string;
+}): Promise<T> {
+  const auth = getFirebaseClientAuth();
+  const currentUser = auth?.currentUser;
+  if (!currentUser) {
+    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
+  }
+
+  const idToken = await currentUser.getIdToken();
+  const requestUrl = new URL(input.path, input.baseUrl.endsWith("/") ? input.baseUrl : `${input.baseUrl}/`);
+  const response = await fetch(requestUrl.toString(), {
+    method: input.method,
+    headers: {
+      authorization: `Bearer ${idToken}`,
+      ...(input.contentType ? { "content-type": input.contentType } : {}),
+    },
+    ...(input.body !== undefined ? { body: input.body } : {}),
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as BackendUploadEnvelope<T> | null;
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "Beklenmeyen bir API hatasi olustu.");
+  }
+
+  return (payload?.data as T | undefined) as T;
 }
 
 export async function getCompanyProfileForCompany(input: {
@@ -132,7 +179,30 @@ export async function updateCompanyProfileForCompany(input: {
 export async function uploadCompanyLogo(
   companyId: string,
   file: File,
-): Promise<string> {
+): Promise<CompanyLogoUploadResult> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const data = await callBackendUploadApi<{
+      logoUrl?: string;
+      updatedAt?: string;
+    }>({
+      baseUrl: backendApiBaseUrl,
+      path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+      method: "PUT",
+      body: file,
+      contentType: file.type,
+    });
+    const logoUrl = readString(asRecord(data)?.logoUrl);
+    if (!logoUrl) {
+      throw new Error("COMPANY_LOGO_UPLOAD_RESPONSE_INVALID");
+    }
+    return {
+      logoUrl,
+      profileUpdated: true,
+      updatedAt: readString(asRecord(data)?.updatedAt),
+    };
+  }
+
   const storage = getFirebaseClientStorage();
   if (!storage) {
     throw new Error("Firebase Storage baslatilamadi.");
@@ -146,5 +216,32 @@ export async function uploadCompanyLogo(
     contentType: file.type,
   });
 
-  return getDownloadURL(storageRef);
+  return {
+    logoUrl: await getDownloadURL(storageRef),
+    profileUpdated: false,
+    updatedAt: null,
+  };
+}
+
+export async function removeCompanyLogo(companyId: string): Promise<{ profileUpdated: boolean; updatedAt: string | null }> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const data = await callBackendUploadApi<{
+      updatedAt?: string;
+    }>({
+      baseUrl: backendApiBaseUrl,
+      path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+      method: "DELETE",
+    });
+    return {
+      profileUpdated: true,
+      updatedAt: readString(asRecord(data)?.updatedAt),
+    };
+  }
+
+  const result = await updateCompanyProfileForCompany({ companyId, logoUrl: "" });
+  return {
+    profileUpdated: true,
+    updatedAt: result.updatedAt,
+  };
 }

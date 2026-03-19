@@ -137,7 +137,7 @@ function markerTooltip(marker: MarkerItem) {
   const riskText =
     marker.riskTone == null
       ? "Risk: normal"
-      : `Risk: ${marker.riskTone === "critical" ? "Kritik" : "Uyari"}${marker.riskReason ? ` (${marker.riskReason})` : ""}`;
+      : `Risk: ${marker.riskTone === "critical" ? "Kritik" : "Uyarı"}${marker.riskReason ? ` (${marker.riskReason})` : ""}`;
   return `${marker.driverName} - ${marker.routeName}\n${riskText}`;
 }
 
@@ -629,7 +629,7 @@ export function LiveOpsMapboxCanvas({
   if (!mapboxToken) {
     return (
       <div className="flex h-full items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-center text-xs text-amber-800">
-        Mapbox token bulunamadi. `NEXT_PUBLIC_MAPBOX_TOKEN` tanimlandiginda canli harita aktif olur.
+        Mapbox token bulunamadi. `NEXT_PUBLIC_MAPBOX_TOKEN` tanimlandiginda canlı harita aktif olur.
       </div>
     );
   }
@@ -710,7 +710,7 @@ export function LiveOpsMapboxCanvas({
           <div className="font-semibold text-slate-900">Harita Legend ({mapStyle.label})</div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-700" />
-            <span>Canli</span>
+            <span>Canlı</span>
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-block h-2.5 w-2.5 rounded-full border border-slate-400 bg-white" />
@@ -726,7 +726,7 @@ export function LiveOpsMapboxCanvas({
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-block h-2.5 w-2.5 rounded-full border border-amber-300 bg-white" />
-            <span>Uyari riski</span>
+            <span>Uyarı riski</span>
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-blue-700 bg-white px-1 text-[10px] font-bold text-blue-700">
@@ -740,7 +740,7 @@ export function LiveOpsMapboxCanvas({
           </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-block h-[2px] w-4 rounded bg-orange-500" />
-            <span>Canli baglanti cizgisi</span>
+            <span>Canlı baglanti cizgisi</span>
           </div>
         </div>
       ) : null}
@@ -751,7 +751,7 @@ export function LiveOpsMapboxCanvas({
       ) : null}
       {hiddenMarkersCount > 0 ? (
         <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg border border-amber-200 bg-amber-50/95 px-3 py-2 text-center text-xs text-amber-800">
-          Performans icin haritada en fazla {effectiveMaxMarkerCount} sefer gosteriliyor. {hiddenMarkersCount} sefer listede
+          Performans için haritada en fazla {effectiveMaxMarkerCount} sefer gosteriliyor. {hiddenMarkersCount} sefer listede
           gorunmeye devam eder.
         </div>
       ) : null}
@@ -763,3 +763,4 @@ export function LiveOpsMapboxCanvas({
     </div>
   );
 }
+

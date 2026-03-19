@@ -93,7 +93,7 @@ export function CompanyMembershipProvider({ companyId, children }: ProviderProps
           membershipStatus: null,
           companyStatus: null,
           billingStatus: null,
-          errorMessage: error instanceof Error ? error.message : "Sirket uyelik bilgisi alinamadi.",
+          errorMessage: error instanceof Error ? error.message : "Şirket uyelik bilgisi alinamadi.",
         });
       });
 
@@ -142,3 +142,4 @@ export function useCompanyMembership(): CompanyMembershipContextValue {
   }
   return context;
 }
+

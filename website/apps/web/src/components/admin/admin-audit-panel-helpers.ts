@@ -11,7 +11,7 @@ const AUDIT_SORT_LABELS: Record<AuditSortMode, string> = {
 };
 
 const AUDIT_EVENT_LABELS: Record<string, string> = {
-  company_created: "Sirket olusturuldu",
+  company_created: "Şirket olusturuldu",
   company_member_invited: "Uye daveti gonderildi",
   company_member_invite_accepted: "Uye daveti kabul edildi",
   company_member_invite_declined: "Uye daveti reddedildi",
@@ -22,9 +22,9 @@ const AUDIT_EVENT_LABELS: Record<string, string> = {
   route_stop_upserted: "Durak eklendi/guncellendi",
   route_stop_deleted: "Durak silindi",
   route_stops_reordered: "Durak sirasi guncellendi",
-  vehicle_created: "Arac olusturuldu",
-  vehicle_updated: "Arac guncellendi",
-  company_vehicle_updated: "Arac guncellendi",
+  vehicle_created: "Araç olusturuldu",
+  vehicle_updated: "Araç guncellendi",
+  company_vehicle_updated: "Araç guncellendi",
   route_driver_permissions_granted: "Rota yetkisi verildi",
   route_driver_permissions_revoked: "Rota yetkisi kaldirildi",
   route_share_link_generated: "Rota paylasim linki olusturuldu",
@@ -44,7 +44,7 @@ const AUDIT_TARGET_LABELS: Record<string, string> = {
   user: "Kullanici",
   member: "Uye",
   route: "Rota",
-  vehicle: "Arac",
+  vehicle: "Araç",
   trip: "Sefer",
   route_driver_permission: "Rota Yetkisi",
 };
@@ -111,7 +111,7 @@ export function buildAuditSummaryText(input: {
   const lines = [
     "Admin Audit Ozeti",
     `Filtre: ${input.filterSummaryLabel}`,
-    `Gorunen Kayit: ${input.total}`,
+    `Gorunen Kayıt: ${input.total}`,
     `Toplam/Basarili/Denied/Hata: ${input.total}/${input.success}/${input.denied}/${input.error}`,
     `Aralik: ${input.filteredRangeLabel}`,
   ];
@@ -270,3 +270,4 @@ export function sortAuditItems(items: CompanyAuditLogSummary[], mode: AuditSortM
   });
   return nextItems;
 }
+

@@ -15,7 +15,7 @@ export function AdminTenantStatePanel({ status, item }: AdminTenantStatePanelPro
     <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-900">Tenant Erisim Durumu (Read-Only)</h3>
       <p className="mt-1 text-xs text-muted">
-        Bu bolum suspension/lock politikasi icin mevcut tenant durumunu gosterir.
+        Bu bolum suspension/lock politikasi için mevcut tenant durumunu gosterir.
       </p>
       {status === "loading" ? (
         <div className="mt-3 rounded-xl border border-line bg-white px-3 py-2 text-xs text-muted">
@@ -52,3 +52,4 @@ export function AdminTenantStatePanel({ status, item }: AdminTenantStatePanelPro
     </section>
   );
 }
+

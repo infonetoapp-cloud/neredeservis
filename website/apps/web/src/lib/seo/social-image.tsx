@@ -101,7 +101,7 @@ export function createNeredeServisSocialImage(options: SocialImageOptions) {
               maxWidth: "86%",
             }}
           >
-            Canli operasyon, rota yonetimi ve sefer kontrolu
+            Canlı operasyon, rota yönetimi ve sefer kontrolu
           </div>
           <div
             style={{
@@ -111,7 +111,7 @@ export function createNeredeServisSocialImage(options: SocialImageOptions) {
               lineHeight: "1.35",
             }}
           >
-            Firma ve bireysel sofor akislarini tek web panelde yonetin.
+            Firma ve bireysel şoför akislarini tek web panelde yonetin.
           </div>
         </div>
 
@@ -140,4 +140,5 @@ export function createNeredeServisSocialImage(options: SocialImageOptions) {
     { width, height },
   );
 }
+
 

@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   async headers() {
     return [
       {
@@ -37,7 +36,9 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https:",
               "style-src 'self' 'unsafe-inline' https:",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
-              "frame-src 'self' https://challenges.cloudflare.com",
+              "worker-src 'self' blob:",
+              "child-src 'self' blob:",
+              "frame-src 'self' https://challenges.cloudflare.com https://www.openstreetmap.org https://openstreetmap.org",
               "connect-src 'self' https: wss:",
             ].join("; "),
           },

@@ -19,10 +19,10 @@ const STORAGE_KEY = ADMIN_STORAGE_KEYS.smokeRunbook;
 
 const DEFAULT_STEPS: RunbookStep[] = [
   { id: "login", label: "Login + role/mode guard dogrula" },
-  { id: "routes", label: "Routes/Stops CRUD smoke (liste->detay->guncelle)" },
+  { id: "routes", label: "Routes/Stops CRUD smoke (liste->detay->güncelle)" },
   { id: "live_ops", label: "Live Ops: liste + harita + secili sefer" },
   { id: "audit", label: "Audit panel filtre + CSV indir" },
-  { id: "admin", label: "Admin risk/tenant kartlari gorunur" },
+  { id: "admin", label: "Admin risk/tenant kartlari görünür" },
 ];
 
 function persist(next: Set<string>): string | null {
@@ -92,7 +92,7 @@ export function AdminStagingSmokeRunbookCard() {
         </span>
       </div>
       <p className="text-xs text-muted">
-        Staging smoke suite icin adim adim kontrol listesi. Checkler lokal saklanir.
+        Staging smoke suite için adım adım kontrol listesi. Checkler lokal saklanir.
       </p>
       <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
         <span>{updatedAtLabel}</span>
@@ -131,3 +131,4 @@ export function AdminStagingSmokeRunbookCard() {
     </section>
   );
 }
+

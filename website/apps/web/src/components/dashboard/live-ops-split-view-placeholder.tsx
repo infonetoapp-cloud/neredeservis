@@ -3,14 +3,14 @@
 import { useDashboardDensity } from "@/features/dashboard/use-dashboard-density";
 
 const TRIPS = [
-  { plate: "34 ABC 12", route: "Fabrika A - Merkez", status: "Canli", eta: "12 dk" },
+  { plate: "34 ABC 12", route: "Fabrika A - Merkez", status: "Canlı", eta: "12 dk" },
   { plate: "06 NS 34", route: "Kuzey Hatti", status: "Stale", eta: "18 dk" },
-  { plate: "35 SRV 1", route: "Guney Hatti", status: "Canli", eta: "7 dk" },
+  { plate: "35 SRV 1", route: "Guney Hatti", status: "Canlı", eta: "7 dk" },
   { plate: "16 OPS 77", route: "Personel Ring", status: "Offline", eta: "-" },
 ] as const;
 
 function statusClasses(status: string) {
-  if (status === "Canli") {
+  if (status === "Canlı") {
     return "border-emerald-200 bg-emerald-50 text-emerald-800";
   }
   if (status === "Stale") {
@@ -108,13 +108,13 @@ export function LiveOpsSplitViewPlaceholder() {
       </section>
 
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <div className="mb-3 text-sm font-semibold text-slate-900">Secili Kayit Detayi</div>
+        <div className="mb-3 text-sm font-semibold text-slate-900">Secili Kayıt Detayi</div>
         <div className="space-y-2">
           {[
-            ["Sofor", "Ahmet K."],
-            ["Arac", "34 ABC 12"],
+            ["Şoför", "Ahmet K."],
+            ["Araç", "34 ABC 12"],
             ["Rota", "Fabrika A - Merkez"],
-            ["Durum", "Canli (12 sn)"],
+            ["Durum", "Canlı (12 sn)"],
             ["Son Durak", "Durak 8 / 14"],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl border border-line bg-white px-3 py-2.5">
@@ -150,3 +150,4 @@ export function LiveOpsSplitViewPlaceholder() {
     </div>
   );
 }
+

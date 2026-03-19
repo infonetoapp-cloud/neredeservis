@@ -140,7 +140,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
   const lastFilteredAuditItem = sortedAuditItems[sortedAuditItems.length - 1] ?? null;
   const filteredAuditRangeLabel = useMemo(() => {
     if (!firstFilteredAuditItem || !lastFilteredAuditItem) {
-      return "Kayit bulunmadi";
+      return "Kayıt bulunmadi";
     }
     const first = formatLoadTime(firstFilteredAuditItem.createdAt);
     const last = formatLoadTime(lastFilteredAuditItem.createdAt);
@@ -148,7 +148,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
   }, [firstFilteredAuditItem, lastFilteredAuditItem]);
   const auditFilterSummaryLabel = useMemo(() => {
     if (!hasAuditFilter) {
-      return "Tum filtreler acik";
+      return "Tüm filtreler acik";
     }
     const parts: string[] = [];
     if (auditFilter !== "all") {
@@ -233,7 +233,7 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
       {(auditStatusSummary.denied > 0 || auditStatusSummary.error > 0) ? (
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <div className="flex items-center justify-between gap-2">
-            <div className="font-semibold">Denied/Error icin hizli aksiyon</div>
+            <div className="font-semibold">Denied/Error için hizli aksiyon</div>
             <button
               type="button"
               onClick={() => {
@@ -349,3 +349,4 @@ export function AdminAuditPanel({ status, items }: AdminAuditPanelProps) {
     </section>
   );
 }
+

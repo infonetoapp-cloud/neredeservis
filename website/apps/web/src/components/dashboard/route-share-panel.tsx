@@ -55,14 +55,14 @@ export function RouteSharePanel({ selectedRoute }: Props) {
           : "Misafir takip linki panoya kopyalandi."
       : copyViewLinkState === "error"
         ? "Link kopyalanamadi. Tarayici iznini kontrol et."
-        : "Rota gorunumlerini ekip icinde paylasmak icin linkleri kopyalayabilirsin.";
+        : "Rota gorunumlerini ekip icinde paylasmak için linkleri kopyalayabilirsin.";
 
   async function ensureGuestLink(): Promise<GenerateRouteShareLinkResponse | null> {
     if (!selectedRoute || !routeId) {
       setGuestLinkState({
         pending: false,
         data: null,
-        error: "Misafir linki icin once bir rota sec.",
+        error: "Misafir linki için once bir rota sec.",
         message: null,
       });
       return null;
@@ -163,7 +163,7 @@ export function RouteSharePanel({ selectedRoute }: Props) {
     <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
       <div className="mb-2 text-sm font-semibold text-slate-900">Rota Paylasimlari</div>
       {!selectedRoute ? (
-        <p className="text-xs text-slate-500">Paylasim icin once bir rota sec.</p>
+        <p className="text-xs text-slate-500">Paylasim için once bir rota sec.</p>
       ) : (
         <div className="space-y-2">
           <button
@@ -196,7 +196,7 @@ export function RouteSharePanel({ selectedRoute }: Props) {
           </button>
           {!canGenerateGuestLink ? (
             <p className="text-[11px] text-slate-500">
-              Misafir takip linki icin rota uzerinde Misafir takip linki acik secenegi aktif
+              Misafir takip linki için rota uzerinde Misafir takip linki acik secenegi aktif
               olmali.
             </p>
           ) : null}
@@ -248,3 +248,4 @@ export function RouteSharePanel({ selectedRoute }: Props) {
     </div>
   );
 }
+

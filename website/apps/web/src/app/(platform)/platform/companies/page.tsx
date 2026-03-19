@@ -137,19 +137,19 @@ export default function PlatformCompaniesPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-muted">
-            Toplam Sirket
+            Toplam Şirket
           </div>
           <div className="mt-1 text-2xl font-bold text-slate-900">{totalCompanies}</div>
         </div>
         <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-muted">
-            Aktif Sirket
+            Aktif Şirket
           </div>
           <div className="mt-1 text-2xl font-bold text-emerald-600">{activeCompanies}</div>
         </div>
         <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-wide text-muted">
-            Toplam Arac
+            Toplam Araç
           </div>
           <div className="mt-1 text-2xl font-bold text-slate-900">{totalVehicles}</div>
         </div>
@@ -165,7 +165,7 @@ export default function PlatformCompaniesPage() {
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
-          placeholder="Sirket ara..."
+          placeholder="Şirket ara..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="rounded-xl border border-line bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-200"
@@ -191,7 +191,7 @@ export default function PlatformCompaniesPage() {
           href="/platform/companies/new"
           className="ml-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition"
         >
-          + Yeni Sirket
+          + Yeni Şirket
         </Link>
       </div>
 
@@ -200,10 +200,10 @@ export default function PlatformCompaniesPage() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-line bg-slate-50">
-              <th className="px-4 py-3 font-semibold text-slate-700">Sirket Adi</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Şirket Adi</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Yetkili E-posta</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Durum</th>
-              <th className="px-4 py-3 font-semibold text-slate-700">Arac (Kullanilan/Limit)</th>
+              <th className="px-4 py-3 font-semibold text-slate-700">Araç (Kullanilan/Limit)</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Uye</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Rota</th>
               <th className="px-4 py-3 font-semibold text-slate-700">Olusturulma</th>
@@ -267,7 +267,7 @@ export default function PlatformCompaniesPage() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-sm text-muted">
-                  Aramanizla eslesen sirket bulunamadi.
+                  Aramanizla eslesen şirket bulunamadi.
                 </td>
               </tr>
             )}
@@ -277,3 +277,4 @@ export default function PlatformCompaniesPage() {
     </div>
   );
 }
+

@@ -44,14 +44,14 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
   }
 
   if (isUpgradeRequiredSignal(rawMessage)) {
-    return "Uygulama surumu guncellenmeli. Lutfen cikis yapip en guncel surum ile tekrar giris yapin.";
+    return "Uygulama surumu guncellenmeli. Lutfen cikis yapip en güncel surum ile tekrar giriş yapin.";
   }
 
   switch (code) {
     case "functions/unauthenticated":
-      return "Oturum bulunamadi. Lutfen tekrar giris yapin.";
+      return "Oturum bulunamadi. Lutfen tekrar giriş yapin.";
     case "functions/permission-denied":
-      return "Bu islem icin yetkin yok.";
+      return "Bu islem için yetkin yok.";
     case "functions/failed-precondition":
       if (rawMessage.includes("INVITE_EMAIL_NOT_FOUND")) {
         return "Bu e-posta ile kayitli kullanici bulunamadi.";
@@ -72,25 +72,49 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
         return "Rota ana surucusunun yetkisi bu akisla kaldirilamaz.";
       }
       if (rawMessage.includes("UPDATE_TOKEN_MISMATCH")) {
-        return "Kayit baska bir oturumda guncellendi. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Kayıt baska bir oturumda guncellendi. Liste yenilendi; lutfen tekrar deneyin.";
       }
       if (rawMessage.includes("ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED")) {
         return "Aktif sefer varken rota yapisi degistirilemez. Sefer bitince tekrar deneyin.";
       }
+      if (rawMessage.includes("COMPANY_VEHICLE_ROUTE_LINKED_DELETE_FORBIDDEN")) {
+        return "Arac rotalara bagliyken silinemez. Once rota baglantilarini kaldir.";
+      }
       if (rawMessage.includes("ROUTE_STOP_INVALID_STATE")) {
-        return "Durak listesi guncel degil. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Durak listesi güncel degil. Liste yenilendi; lutfen tekrar deneyin.";
       }
       if (rawMessage.includes("ROUTE_STOP_REORDER_STATE_INVALID")) {
-        return "Durak sirasi guncel degil. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Durak sirasi güncel degil. Liste yenilendi; lutfen tekrar deneyin.";
       }
       return "Bu islem su an tamamlanamiyor. Lutfen tekrar deneyin.";
     case "functions/invalid-argument":
       if (rawMessage.includes("TENANT_STATE_NO_CHANGES")) {
         return "Degistirilecek alan secilmedi. En az bir tenant alanini guncelleyin.";
       }
+      if (rawMessage.includes("plate:")) {
+        return "Plaka en az 4 karakter olmali.";
+      }
+      if (rawMessage.includes("plate minimum 4 karakter")) {
+        return "Plaka en az 4 karakter olmali.";
+      }
+      if (rawMessage.includes("year:")) {
+        return "Yil 1900-2100 araliginda olmali.";
+      }
+      if (rawMessage.includes("capacity:")) {
+        return "Kapasite 1-200 araliginda olmali.";
+      }
+      if (rawMessage.includes("brand:")) {
+        return "Marka bilgisi gecerli degil.";
+      }
+      if (rawMessage.includes("model:")) {
+        return "Model bilgisi gecerli degil.";
+      }
+      if (rawMessage.includes("status:")) {
+        return "Arac durumu gecerli degil. Varsayilan aktif durumuyla tekrar dene.";
+      }
       return "Girilen bilgiler gecerli degil.";
     case "functions/already-exists":
-      return "Ayni kayit zaten mevcut.";
+      return "Ayni kayıt zaten mevcut.";
     default:
       if (error instanceof FirebaseError && error.message) {
         return error.message;
@@ -98,3 +122,4 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
       return "Islem tamamlanamadi. Lutfen tekrar deneyin.";
   }
 }
+

@@ -89,7 +89,7 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
     isCoordinateSetValid &&
     isScheduledTimeValid;
 
-  const submitLabel = useMemo(() => (pending ? "Olusturuluyor..." : "Rota Olustur"), [pending]);
+  const submitLabel = useMemo(() => (pending ? "Olusturuluyor..." : "Rota Oluştur"), [pending]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,7 +156,7 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
     <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Rota Olustur</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Rota Oluştur</h3>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
         </div>
         {!isCoordinateSetValid ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-            Koordinatlar gecersiz. Lat -90..90, Lng -180..180 araliginda olmali. Virgullu giris
+            Koordinatlar gecersiz. Lat -90..90, Lng -180..180 araliginda olmali. Virgullu giriş
             desteklenir (ornek: 41,015).
           </div>
         ) : null}
@@ -347,7 +347,7 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
 
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-xs text-slate-500">
-            Konum alanlari manuel koordinat girisiyle calisir.
+            Konum alanlari manuel koordinat girisiyle çalışır.
           </p>
           <button
             type="submit"
@@ -361,3 +361,4 @@ export function RouteCreateInlineForm({ companyId, onCreated }: Props) {
     </section>
   );
 }
+

@@ -58,7 +58,7 @@ export function RegisterForm() {
   const [pendingAction, setPendingAction] = useState<"email" | "google" | "microsoft" | null>(null);
   const [isNavigating, startTransition] = useTransition();
 
-  const nextPath = searchParams.get("next") || "/select-company";
+  const nextPath = searchParams.get("next") || "/dashboard";
   const emailEnabled = isEmailLoginEnabled();
   const googleEnabled = isGoogleLoginEnabled();
   const microsoftEnabled = isMicrosoftLoginEnabled();
@@ -72,7 +72,7 @@ export function RegisterForm() {
   if (status === "signed_in") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum açık. Şirket seçimine yönlendiriliyor...
+        Oturum açık. Genel bakışa yönlendiriliyor...
       </div>
     );
   }

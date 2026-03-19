@@ -77,7 +77,7 @@ export function useAdminRiskPriorityState({
         id: "tenant-past-due",
         severity: "attention",
         title: "Billing status past_due",
-        description: "Odeme durumu gecikmede. Suspension politikasina gore takip et.",
+        description: "Odeme durumu gecikmede. Suspension politikasina göre takip et.",
         href: "/admin",
         ctaLabel: "Admin Durumunu Takip Et",
       });
@@ -121,7 +121,7 @@ export function useAdminRiskPriorityState({
         id: "audit-actionable",
         severity: "info",
         title: "Aksiyonlanabilir audit kayitlari var",
-        description: `${actionableAuditCount} kayit dogrudan hedef ekrana yonlendirilebilir.`,
+        description: `${actionableAuditCount} kayıt dogrudan hedef ekrana yonlendirilebilir.`,
         href: "/admin?auditActionable=1",
         ctaLabel: "Aksiyonlanabilir Kayitlari Ac",
       });
@@ -181,11 +181,11 @@ export function useAdminRiskPriorityState({
   }, [allRiskItems]);
   const riskModeLabel =
     riskSeverityFilter === "all"
-      ? "Tum seviyeler"
+      ? "Tüm seviyeler"
       : riskSeverityFilter === "warning"
         ? "Kritik"
         : riskSeverityFilter === "attention"
-          ? "Uyari"
+          ? "Uyarı"
           : "Bilgi";
   const quickActionBadgeByHref = useMemo<Record<string, number>>(
     () => ({
@@ -220,3 +220,4 @@ export function useAdminRiskPriorityState({
     },
   };
 }
+

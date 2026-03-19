@@ -37,6 +37,10 @@ export function resolvePostLoginPath(nextPathRaw: string | null | undefined): st
     return "/dashboard";
   }
 
+  if (nextPath === "/select-company") {
+    return "/dashboard";
+  }
+
   return nextPath;
 }
 

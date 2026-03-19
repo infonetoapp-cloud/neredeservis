@@ -47,7 +47,7 @@ export function AdminOperationsStatusCard({
             Rol: <span className="font-semibold text-slate-900">{role ?? "-"}</span> /{" "}
             <span className="font-semibold text-slate-900">{memberStatus ?? "-"}</span>
           </p>
-          <p className="mt-1 text-xs text-muted">Son canli sefer yuklemesi: {lastLoadedLabel}</p>
+          <p className="mt-1 text-xs text-muted">Son canlı sefer yuklemesi: {lastLoadedLabel}</p>
           <p className="mt-1 text-xs text-muted">
             Faz 5 Readiness:{" "}
             <span className={isPhase5Ready ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>
@@ -87,9 +87,10 @@ export function AdminOperationsStatusCard({
           className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isReloading || isLoading}
         >
-          {isReloading || isLoading ? "Yenileniyor..." : "Tum Veriyi Yenile"}
+          {isReloading || isLoading ? "Yenileniyor..." : "Tüm Veriyi Yenile"}
         </button>
       </div>
     </section>
   );
 }
+

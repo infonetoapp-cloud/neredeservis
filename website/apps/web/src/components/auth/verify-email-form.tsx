@@ -36,7 +36,7 @@ export function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, user } = useAuthSession();
-  const nextPath = searchParams.get("next") || "/select-company";
+  const nextPath = searchParams.get("next") || "/dashboard";
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"send" | "refresh" | "switch" | null>(null);
