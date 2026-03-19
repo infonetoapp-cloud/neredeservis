@@ -85,6 +85,29 @@ export async function updateCompanyProfileForCompany(input: {
   logoUrl?: string;
 }): Promise<{ changedFields: string[]; updatedAt: string }> {
   try {
+    const backendApiBaseUrl = getBackendApiBaseUrl();
+    if (backendApiBaseUrl) {
+      const response = await callBackendApi<{
+        changedFields?: string[];
+        updatedAt?: string;
+      }>({
+        baseUrl: backendApiBaseUrl,
+        path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+        method: "PATCH",
+        body: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+        },
+      });
+
+      return {
+        changedFields: Array.isArray(response.data?.changedFields)
+          ? response.data.changedFields
+          : [],
+        updatedAt: readString(asRecord(response.data)?.updatedAt) ?? new Date().toISOString(),
+      };
+    }
+
     const functions = getFirebaseClientFunctions();
     if (!functions) {
       throw new Error("Firebase baslatilamadi.");

@@ -19,6 +19,7 @@ export async function callBackendApi<T>(input: {
   baseUrl: string;
   path: string;
   method?: string;
+  body?: unknown;
 }): Promise<BackendApiEnvelope<T>> {
   const auth = getFirebaseClientAuth();
   const currentUser = auth?.currentUser;
@@ -32,7 +33,9 @@ export async function callBackendApi<T>(input: {
     method: input.method ?? "GET",
     headers: {
       authorization: `Bearer ${idToken}`,
+      ...(input.body !== undefined ? { "content-type": "application/json" } : {}),
     },
+    ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
     cache: "no-store",
   });
 
