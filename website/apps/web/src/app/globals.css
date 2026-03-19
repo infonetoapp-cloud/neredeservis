@@ -11,6 +11,12 @@
   --brand-strong: #083a8f;
   --accent: #ff7a00;
   --accent-soft: #fff4e8;
+  --font-plus-jakarta:
+    "Segoe UI", "Aptos", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --font-geist-mono:
+    ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
 }
 
 @theme inline {
