@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 export type CompanyAuditLogSummary = {
@@ -185,6 +187,16 @@ function ensureUpdateCompanyAdminTenantStateResponse(
 export async function listCompanyAuditLogsCallable(input: {
   companyId: string;
 }): Promise<CompanyAuditLogSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/audit-logs`,
+    });
+    return ensureListCompanyAuditLogsResponse(envelope.data, "listCompanyAuditLogs").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listCompanyAuditLogs",
     input,
@@ -195,6 +207,16 @@ export async function listCompanyAuditLogsCallable(input: {
 export async function getCompanyAdminTenantStateCallable(input: {
   companyId: string;
 }): Promise<CompanyAdminTenantState> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/admin-tenant-state`,
+    });
+    return ensureCompanyAdminTenantState(envelope.data, "getCompanyAdminTenantState");
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "getCompanyAdminTenantState",
     input,

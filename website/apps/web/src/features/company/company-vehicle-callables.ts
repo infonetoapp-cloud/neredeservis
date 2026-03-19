@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 import {
   ensureCreateVehicleResponse,
@@ -17,6 +19,23 @@ export async function listCompanyVehiclesCallable(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyVehicleSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+      query.set("limit", String(Math.trunc(input.limit)));
+    }
+
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
+    });
+    return ensureListCompanyVehiclesResponse(envelope.data, "listCompanyVehicles").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listCompanyVehicles",
     input,

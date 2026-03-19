@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { httpsCallable } from "firebase/functions";
 
 import { getFirebaseClientFunctions } from "@/lib/firebase/client";
@@ -20,6 +22,31 @@ import {
   toFriendlyErrorMessage,
 } from "./company-client-shared";
 export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembershipItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const response = await callBackendApi<{ items?: unknown[] }>({
+        baseUrl: backendApiBaseUrl,
+        path: "/api/my/companies",
+      });
+      const rawItems = response.data?.items ?? [];
+      const mapped = rawItems.map((item: unknown) => {
+        const r = item as Record<string, unknown>;
+        return {
+          companyId: r.companyId,
+          companyName: r.name,
+          memberRole: r.role,
+          membershipStatus: r.memberStatus,
+          companyStatus: r.companyStatus ?? "active",
+          billingStatus: r.billingStatus ?? "active",
+        };
+      });
+      return parseMembershipItems(mapped);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -77,6 +104,27 @@ export async function listCompanyMembersForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyMemberItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const query = new URLSearchParams();
+      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+        query.set("limit", String(Math.trunc(input.limit)));
+      }
+
+      const response = await callBackendApi<{ items?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/members${
+          query.size > 0 ? `?${query.toString()}` : ""
+        }`,
+      });
+      return parseCompanyMemberItems(response.data?.items);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -177,6 +225,27 @@ export async function listCompanyDriversForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyDriverItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const query = new URLSearchParams();
+      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+        query.set("limit", String(Math.trunc(input.limit)));
+      }
+
+      const response = await callBackendApi<{ items?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/drivers${
+          query.size > 0 ? `?${query.toString()}` : ""
+        }`,
+      });
+      return parseCompanyDriverItems(response.data?.items);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -203,8 +272,6 @@ export async function createCompanyDriverAccountForCompany(input: {
   name: string;
   phone?: string;
   plate?: string;
-  loginEmail?: string;
-  temporaryPassword?: string;
 }): Promise<CompanyDriverCredentialBundle> {
   const functions = getFirebaseClientFunctions();
   if (!functions) {
@@ -217,21 +284,29 @@ export async function createCompanyDriverAccountForCompany(input: {
       name: string;
       phone?: string;
       plate?: string;
-      loginEmail?: string;
-      temporaryPassword?: string;
     },
     ApiOk<{ credentials?: unknown }>
   >(functions, "createCompanyDriverAccount");
 
   try {
-    const response = await callable({
+    const payload: {
+      companyId: string;
+      name: string;
+      phone?: string;
+      plate?: string;
+    } = {
       companyId: input.companyId.trim(),
       name: input.name.trim(),
-      phone: input.phone?.trim(),
-      plate: input.plate?.trim(),
-      loginEmail: input.loginEmail?.trim(),
-      temporaryPassword: input.temporaryPassword?.trim(),
-    });
+    };
+    const phone = input.phone?.trim();
+    const plate = input.plate?.trim();
+    if (phone) {
+      payload.phone = phone;
+    }
+    if (plate) {
+      payload.plate = plate;
+    }
+    const response = await callable(payload);
     const credentials = parseCompanyDriverCredentialBundle(response.data?.data?.credentials);
     if (!credentials) {
       throw new Error("CREATE_COMPANY_DRIVER_ACCOUNT_RESPONSE_INVALID");
@@ -368,6 +443,36 @@ export async function listCompanyInvitesForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyInviteItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const query = new URLSearchParams();
+      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+        query.set("limit", String(Math.trunc(input.limit)));
+      }
+
+      const response = await callBackendApi<{ invites?: unknown[] }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/invites${
+          query.size > 0 ? `?${query.toString()}` : ""
+        }`,
+      });
+      const rawInvites = response.data?.invites ?? [];
+      const mapped = rawInvites.map((item: unknown) => {
+        const r = item as Record<string, unknown>;
+        return {
+          ...r,
+          email: r.email ?? r.invitedEmail,
+          targetUid: r.targetUid ?? r.invitedUid,
+        };
+      });
+      return parseCompanyInviteItems(mapped);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");

@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 import {
   ensureAcceptCompanyInviteResponse,
@@ -53,6 +55,15 @@ import type {
 } from "@/features/company/company-types";
 
 export async function listMyCompaniesCallable(): Promise<CompanyMembershipSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: "/api/my/companies",
+    });
+    return ensureListMyCompaniesResponse(envelope.data, "listMyCompanies").items;
+  }
+
   const envelope = await callFirebaseCallable<Record<string, never>, unknown>(
     "listMyCompanies",
     {},
@@ -75,6 +86,16 @@ export async function createCompanyCallable(input: {
 export async function listCompanyMembersCallable(input: {
   companyId: string;
 }): Promise<CompanyMemberSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/members`,
+    });
+    return ensureListCompanyMembersResponse(envelope.data, "listCompanyMembers").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listCompanyMembers",
     input,

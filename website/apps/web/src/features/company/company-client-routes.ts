@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { httpsCallable } from "firebase/functions";
 
 import { getFirebaseClientFunctions } from "@/lib/firebase/client";
@@ -21,6 +23,27 @@ export async function listCompanyRoutesForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyRouteItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const query = new URLSearchParams();
+      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+        query.set("limit", String(Math.trunc(input.limit)));
+      }
+
+      const response = await callBackendApi<{ items?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes${
+          query.size > 0 ? `?${query.toString()}` : ""
+        }`,
+      });
+      return parseCompanyRouteItems(response.data?.items);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -76,6 +99,7 @@ export async function listCompanyLiveOpsForCompany(input: {
 export async function createCompanyRouteForCompany(input: {
   companyId: string;
   name: string;
+  driverId?: string | null;
   startPoint: { lat: number; lng: number };
   startAddress: string;
   endPoint: { lat: number; lng: number };
@@ -95,6 +119,7 @@ export async function createCompanyRouteForCompany(input: {
     {
       companyId: string;
       name: string;
+      driverId?: string | null;
       startPoint: { lat: number; lng: number };
       startAddress: string;
       endPoint: { lat: number; lng: number };
@@ -105,13 +130,14 @@ export async function createCompanyRouteForCompany(input: {
       allowGuestTracking?: boolean;
       authorizedDriverIds?: string[];
     },
-    ApiOk<{ route?: unknown }>
+    ApiOk<{ route?: unknown; routeId?: unknown; srvCode?: unknown }>
   >(functions, "createCompanyRoute");
 
   try {
     const payload: {
       companyId: string;
       name: string;
+      driverId?: string | null;
       startPoint: { lat: number; lng: number };
       startAddress: string;
       endPoint: { lat: number; lng: number };
@@ -124,6 +150,7 @@ export async function createCompanyRouteForCompany(input: {
     } = {
       companyId: input.companyId.trim(),
       name: input.name.trim(),
+      ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
       startPoint: input.startPoint,
       startAddress: input.startAddress.trim(),
       endPoint: input.endPoint,
@@ -174,55 +201,58 @@ export async function updateCompanyRouteForCompany(input: {
     {
       companyId: string;
       routeId: string;
-      name?: string;
-      startPoint?: { lat: number; lng: number };
-      startAddress?: string;
-      endPoint?: { lat: number; lng: number };
-      endAddress?: string;
-      scheduledTime?: string;
-      timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
-      vehicleId?: string | null;
-      allowGuestTracking?: boolean;
-      authorizedDriverIds?: string[];
-      isArchived?: boolean;
-      vacationUntil?: string | null;
+      patch: {
+        name?: string;
+        scheduledTime?: string;
+        timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
+        vehicleId?: string | null;
+        allowGuestTracking?: boolean;
+        authorizedDriverIds?: string[];
+        isArchived?: boolean;
+      };
     },
-    ApiOk<{ route?: unknown }>
+    ApiOk<{ route?: unknown; routeId?: unknown; updatedAt?: unknown }>
   >(functions, "updateCompanyRoute");
 
   try {
-    const payload: {
-      companyId: string;
-      routeId: string;
+    const patch: {
       name?: string;
-      startPoint?: { lat: number; lng: number };
-      startAddress?: string;
-      endPoint?: { lat: number; lng: number };
-      endAddress?: string;
       scheduledTime?: string;
       timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
       vehicleId?: string | null;
       allowGuestTracking?: boolean;
       authorizedDriverIds?: string[];
       isArchived?: boolean;
-      vacationUntil?: string | null;
     } = {
-      companyId: input.companyId.trim(),
-      routeId: input.routeId.trim(),
-      name: input.name?.trim(),
-      startPoint: input.startPoint,
-      startAddress: input.startAddress?.trim(),
-      endPoint: input.endPoint,
-      endAddress: input.endAddress?.trim(),
-      scheduledTime: input.scheduledTime?.trim(),
-      timeSlot: input.timeSlot,
+      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.scheduledTime !== undefined ? { scheduledTime: input.scheduledTime.trim() } : {}),
+      ...(input.timeSlot !== undefined ? { timeSlot: input.timeSlot } : {}),
       ...(input.vehicleId !== undefined ? { vehicleId: input.vehicleId } : {}),
-      allowGuestTracking: input.allowGuestTracking,
-      isArchived: input.isArchived,
-      vacationUntil: input.vacationUntil,
+      ...(input.allowGuestTracking !== undefined
+        ? { allowGuestTracking: input.allowGuestTracking }
+        : {}),
       ...(Array.isArray(input.authorizedDriverIds)
         ? { authorizedDriverIds: input.authorizedDriverIds }
         : {}),
+      ...(input.isArchived !== undefined ? { isArchived: input.isArchived } : {}),
+    };
+
+    const payload: {
+      companyId: string;
+      routeId: string;
+      patch: {
+        name?: string;
+        scheduledTime?: string;
+        timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
+        vehicleId?: string | null;
+        allowGuestTracking?: boolean;
+        authorizedDriverIds?: string[];
+        isArchived?: boolean;
+      };
+    } = {
+      companyId: input.companyId.trim(),
+      routeId: input.routeId.trim(),
+      patch,
     };
 
     const response = await callable(payload);
@@ -237,10 +267,49 @@ export async function updateCompanyRouteForCompany(input: {
   }
 }
 
+export async function deleteCompanyRouteForCompany(input: {
+  companyId: string;
+  routeId: string;
+}): Promise<void> {
+  const functions = getFirebaseClientFunctions();
+  if (!functions) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const callable = httpsCallable<
+    { companyId: string; routeId: string },
+    ApiOk<{ routeId?: unknown; deleted?: unknown; deletedAt?: unknown }>
+  >(functions, "deleteCompanyRoute");
+
+  try {
+    await callable({
+      companyId: input.companyId.trim(),
+      routeId: input.routeId.trim(),
+    });
+  } catch (error) {
+    throw new Error(toFriendlyErrorMessage(error));
+  }
+}
+
 export async function listCompanyRouteStopsForRoute(input: {
   companyId: string;
   routeId: string;
 }): Promise<CompanyRouteStopItem[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    try {
+      const companyId = input.companyId.trim();
+      const routeId = input.routeId.trim();
+      const response = await callBackendApi<{ items?: unknown }>({
+        baseUrl: backendApiBaseUrl,
+        path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
+      });
+      return parseCompanyRouteStopItems(response.data?.items);
+    } catch (error) {
+      throw new Error(toFriendlyErrorMessage(error));
+    }
+  }
+
   const functions = getFirebaseClientFunctions();
   if (!functions) {
     throw new Error("FIREBASE_CONFIG_MISSING");

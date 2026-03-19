@@ -1,5 +1,7 @@
 "use client";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 import {
   ensureCreateCompanyRouteResponse,
@@ -34,6 +36,26 @@ export async function listCompanyRoutesCallable(input: {
   includeArchived?: boolean;
   limit?: number;
 }): Promise<CompanyRouteSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+      query.set("limit", String(Math.trunc(input.limit)));
+    }
+    if (input.includeArchived === true) {
+      query.set("includeArchived", "true");
+    }
+
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
+    });
+    return ensureListCompanyRoutesResponse(envelope.data, "listCompanyRoutes").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listCompanyRoutes",
     input,
@@ -65,6 +87,17 @@ export async function listCompanyRouteStopsCallable(input: {
   companyId: string;
   routeId: string;
 }): Promise<CompanyRouteStopSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
+    });
+    return ensureListCompanyRouteStopsResponse(envelope.data, "listCompanyRouteStops").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listCompanyRouteStops",
     input,
@@ -78,6 +111,29 @@ export async function listActiveTripsByCompanyCallable(input: {
   driverUid?: string | null;
   limit?: number;
 }): Promise<CompanyActiveTripSummary[]> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+      query.set("limit", String(Math.trunc(input.limit)));
+    }
+    if (input.routeId) {
+      query.set("routeId", input.routeId);
+    }
+    if (input.driverUid) {
+      query.set("driverUid", input.driverUid);
+    }
+
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: `/api/companies/${encodeURIComponent(companyId)}/active-trips${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
+    });
+    return ensureListActiveTripsByCompanyResponse(envelope.data, "listActiveTripsByCompany").items;
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "listActiveTripsByCompany",
     input,
