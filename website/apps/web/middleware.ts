@@ -28,6 +28,8 @@ export function middleware(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = APP_LOCK_PATH;
     redirectUrl.search = "";
+    redirectUrl.protocol = "https:";
+    redirectUrl.port = "";
     redirectUrl.searchParams.set("reason", "force_update");
     return NextResponse.redirect(redirectUrl);
   }
@@ -40,6 +42,8 @@ export function middleware(request: NextRequest) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = DEFAULT_SIGNED_IN_PATH;
     redirectUrl.search = "";
+    redirectUrl.protocol = "https:";
+    redirectUrl.port = "";
     return NextResponse.redirect(redirectUrl);
   }
 
