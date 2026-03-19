@@ -22,7 +22,7 @@ import {
 } from "./lib/company-vehicles.js";
 import { getFirebaseAdminDb, getFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import { asRecord } from "./lib/runtime-value.js";
-import { listMyCompanies } from "./lib/my-companies.js";
+import { createCompany, listMyCompanies } from "./lib/my-companies.js";
 import { HttpError, readJsonBody, sendApiError, sendApiOk, sendJson } from "./lib/http.js";
 
 const serviceName = process.env.SERVICE_NAME?.trim() || "neredeservis-backend-api";
@@ -245,6 +245,14 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const memberships = await listMyCompanies(db, decodedToken.uid);
       sendApiOk(response, 200, memberships);
+      return;
+    }
+
+    if (request.method === "POST" && isMyCompaniesPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const company = await createCompany(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 201, company);
       return;
     }
 
