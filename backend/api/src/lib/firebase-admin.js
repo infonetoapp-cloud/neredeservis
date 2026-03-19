@@ -71,3 +71,28 @@ export function getFirebaseAdminDb() {
 export function getFirebaseAdminRtdb() {
   return getDatabase(getFirebaseAdminApp());
 }
+
+let optionalRtdbResolved = false;
+let optionalRtdb = null;
+
+export function getOptionalFirebaseAdminRtdb() {
+  if (optionalRtdbResolved) {
+    return optionalRtdb;
+  }
+
+  optionalRtdbResolved = true;
+  try {
+    optionalRtdb = getFirebaseAdminRtdb();
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firebase_rtdb_unavailable",
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    optionalRtdb = null;
+  }
+
+  return optionalRtdb;
+}

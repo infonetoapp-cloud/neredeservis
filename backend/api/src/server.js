@@ -20,7 +20,7 @@ import {
   listCompanyVehicles,
   updateCompanyVehicle,
 } from "./lib/company-vehicles.js";
-import { getFirebaseAdminDb, getFirebaseAdminRtdb } from "./lib/firebase-admin.js";
+import { getFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import { asRecord } from "./lib/runtime-value.js";
 import { createCompany, listMyCompanies } from "./lib/my-companies.js";
 import { HttpError, readJsonBody, sendApiError, sendApiOk, sendJson } from "./lib/http.js";
@@ -30,7 +30,6 @@ const host = process.env.HOST?.trim() || "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 const startedAt = new Date();
 const db = getFirebaseAdminDb();
-const rtdb = getFirebaseAdminRtdb();
 const liveOpsOnlineThresholdMs = Number.parseInt(
   process.env.LIVE_OPS_ONLINE_THRESHOLD_MS ?? "60000",
   10,
@@ -422,6 +421,7 @@ const server = createServer(async (request, response) => {
       const limit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
       const routeId = requestUrl.searchParams.get("routeId")?.trim() || null;
       const driverUid = requestUrl.searchParams.get("driverUid")?.trim() || null;
+      const rtdb = getOptionalFirebaseAdminRtdb();
       const activeTrips = await listActiveTripsByCompany(db, rtdb, {
         companyId: companyActiveTripsParams.companyId,
         routeId,

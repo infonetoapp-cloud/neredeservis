@@ -107,16 +107,22 @@ export async function listActiveTripsByCompany(db, rtdb, input) {
 
   const uniqueCandidateRouteIds = Array.from(new Set(candidateTrips.map((trip) => trip.routeId)));
   const rtdbPayloadByRouteId = new Map();
-  await Promise.all(
-    uniqueCandidateRouteIds.map(async (routeId) => {
-      try {
-        const locationSnapshot = await rtdb.ref(`locations/${routeId}`).get();
-        rtdbPayloadByRouteId.set(routeId, asRecord(locationSnapshot.val()));
-      } catch {
-        rtdbPayloadByRouteId.set(routeId, null);
-      }
-    }),
-  );
+  if (rtdb) {
+    await Promise.all(
+      uniqueCandidateRouteIds.map(async (routeId) => {
+        try {
+          const locationSnapshot = await rtdb.ref(`locations/${routeId}`).get();
+          rtdbPayloadByRouteId.set(routeId, asRecord(locationSnapshot.val()));
+        } catch {
+          rtdbPayloadByRouteId.set(routeId, null);
+        }
+      }),
+    );
+  } else {
+    for (const routeId of uniqueCandidateRouteIds) {
+      rtdbPayloadByRouteId.set(routeId, null);
+    }
+  }
 
   const items = candidateTrips.map((trip) => {
     const lastLocationAtMs = parseIsoToMs(trip.lastLocationAt);
