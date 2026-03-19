@@ -76,6 +76,21 @@ export async function createCompanyCallable(input: {
   contactEmail?: string | null;
   contactPhone?: string | null;
 }): Promise<CreateCompanyResponse> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const envelope = await callBackendApi<unknown>({
+      baseUrl: backendApiBaseUrl,
+      path: "/api/my/companies",
+      method: "POST",
+      body: {
+        name: input.name,
+        ...(input.contactEmail !== undefined ? { contactEmail: input.contactEmail } : {}),
+        ...(input.contactPhone !== undefined ? { contactPhone: input.contactPhone } : {}),
+      },
+    });
+    return ensureCreateCompanyResponse(envelope.data, "createCompany");
+  }
+
   const envelope = await callFirebaseCallable<typeof input, unknown>(
     "createCompany",
     input,
