@@ -2,6 +2,11 @@ export function getPublicAppEnv(): string {
   return (process.env.NEXT_PUBLIC_APP_ENV ?? "dev").trim().toLowerCase();
 }
 
+export function getBackendApiBaseUrl(): string | null {
+  const value = (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "").trim();
+  return value || null;
+}
+
 export function isDevAppEnv(): boolean {
   return getPublicAppEnv() === "dev";
 }

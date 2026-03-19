@@ -1,25 +1,20 @@
 "use client";
 
 import { httpsCallable } from "firebase/functions";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
+import { callBackendApi } from "@/lib/backend-api/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 import {
   getFirebaseClientFunctions,
   getFirebaseClientStorage,
 } from "@/lib/firebase/client";
 
 import {
-  type ApiOk,
   asRecord,
   readString,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
-
-/* ─── Types ─── */
 
 export type CompanyProfile = {
   companyId: string;
@@ -29,8 +24,6 @@ export type CompanyProfile = {
   vehicleLimit: number;
   createdAt: string | null;
 };
-
-/* ─── Parsers ─── */
 
 function parseCompanyProfile(value: unknown): CompanyProfile {
   const raw = asRecord(value);
@@ -44,6 +37,7 @@ function parseCompanyProfile(value: unknown): CompanyProfile {
       createdAt: null,
     };
   }
+
   return {
     companyId: readString(raw.companyId) ?? "",
     name: readString(raw.name) ?? "",
@@ -57,14 +51,24 @@ function parseCompanyProfile(value: unknown): CompanyProfile {
   };
 }
 
-/* ─── API ─── */
-
 export async function getCompanyProfileForCompany(input: {
   companyId: string;
 }): Promise<CompanyProfile> {
   try {
+    const backendApiBaseUrl = getBackendApiBaseUrl();
+    if (backendApiBaseUrl) {
+      const response = await callBackendApi<CompanyProfile>({
+        baseUrl: backendApiBaseUrl,
+        path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+      });
+      return parseCompanyProfile(response.data);
+    }
+
     const functions = getFirebaseClientFunctions();
-    if (!functions) throw new Error("Firebase başlatılamadı.");
+    if (!functions) {
+      throw new Error("Firebase baslatilamadi.");
+    }
+
     const fn = httpsCallable(functions, "getCompanyProfile");
     const response = await fn({ companyId: input.companyId });
     const payload = asRecord(response.data);
@@ -82,11 +86,15 @@ export async function updateCompanyProfileForCompany(input: {
 }): Promise<{ changedFields: string[]; updatedAt: string }> {
   try {
     const functions = getFirebaseClientFunctions();
-    if (!functions) throw new Error("Firebase başlatılamadı.");
+    if (!functions) {
+      throw new Error("Firebase baslatilamadi.");
+    }
+
     const fn = httpsCallable(functions, "updateCompanyProfile");
     const response = await fn(input);
     const payload = asRecord(response.data);
     const data = asRecord(payload?.data);
+
     return {
       changedFields: Array.isArray(data?.changedFields)
         ? (data.changedFields as string[])
@@ -98,14 +106,14 @@ export async function updateCompanyProfileForCompany(input: {
   }
 }
 
-/* ─── Logo Upload ─── */
-
 export async function uploadCompanyLogo(
   companyId: string,
   file: File,
 ): Promise<string> {
   const storage = getFirebaseClientStorage();
-  if (!storage) throw new Error("Firebase Storage başlatılamadı.");
+  if (!storage) {
+    throw new Error("Firebase Storage baslatilamadi.");
+  }
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
   const storagePath = `company_logos/${companyId}/logo.${ext}`;
