@@ -9,6 +9,35 @@ export class HttpError extends Error {
   }
 }
 
+export async function readJsonBody(request, options = {}) {
+  const maxBytes = Number.isFinite(options.maxBytes) ? options.maxBytes : 64 * 1024;
+  const chunks = [];
+  let totalBytes = 0;
+
+  for await (const chunk of request) {
+    totalBytes += chunk.length;
+    if (totalBytes > maxBytes) {
+      throw new HttpError(413, "payload-too-large", "Istek govdesi cok buyuk.");
+    }
+    chunks.push(chunk);
+  }
+
+  if (chunks.length === 0) {
+    return null;
+  }
+
+  const rawBody = Buffer.concat(chunks).toString("utf8").trim();
+  if (!rawBody) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    throw new HttpError(400, "invalid-argument", "Gecerli bir JSON govdesi bekleniyor.");
+  }
+}
+
 export function sendJson(response, statusCode, payload) {
   const body = JSON.stringify(payload);
   response.writeHead(statusCode, {

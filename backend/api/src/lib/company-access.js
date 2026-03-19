@@ -27,3 +27,13 @@ export async function requireActiveCompanyMemberRole(db, companyId, uid) {
 
   return role;
 }
+
+export function requireCompanyOwnerOrAdmin(role) {
+  if (role !== "owner" && role !== "admin") {
+    throw new HttpError(
+      403,
+      "permission-denied",
+      "Bu islem icin owner veya admin rolu gereklidir.",
+    );
+  }
+}

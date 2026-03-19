@@ -1,10 +1,14 @@
 import { createServer } from "node:http";
 
 import { requireAuthenticatedUser } from "./lib/auth.js";
-import { requireActiveCompanyMemberRole } from "./lib/company-access.js";
-import { getCompanyProfile } from "./lib/company-profile.js";
+import {
+  requireActiveCompanyMemberRole,
+  requireCompanyOwnerOrAdmin,
+} from "./lib/company-access.js";
+import { getCompanyProfile, updateCompanyProfile } from "./lib/company-profile.js";
 import { getFirebaseAdminDb } from "./lib/firebase-admin.js";
-import { sendApiError, sendApiOk, sendJson } from "./lib/http.js";
+import { asRecord } from "./lib/runtime-value.js";
+import { HttpError, readJsonBody, sendApiError, sendApiOk, sendJson } from "./lib/http.js";
 
 const serviceName = process.env.SERVICE_NAME?.trim() || "neredeservis-backend-api";
 const host = process.env.HOST?.trim() || "0.0.0.0";
@@ -37,6 +41,22 @@ function extractCompanyIdFromPath(pathname) {
   }
 }
 
+function buildProfileUpdateInput(companyId, body) {
+  const rawBody = asRecord(body);
+  if (!rawBody) {
+    throw new HttpError(400, "invalid-argument", "Gecerli bir JSON govdesi bekleniyor.");
+  }
+
+  const input = { companyId };
+  if (Object.prototype.hasOwnProperty.call(rawBody, "name")) {
+    input.name = rawBody.name;
+  }
+  if (Object.prototype.hasOwnProperty.call(rawBody, "logoUrl")) {
+    input.logoUrl = rawBody.logoUrl;
+  }
+  return input;
+}
+
 const server = createServer(async (request, response) => {
   const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 
@@ -55,13 +75,25 @@ const server = createServer(async (request, response) => {
       return;
     }
 
-    if (request.method === "GET") {
-      const companyId = extractCompanyIdFromPath(requestUrl.pathname);
-      if (companyId) {
+    const companyId = extractCompanyIdFromPath(requestUrl.pathname);
+    if (companyId) {
+      if (request.method === "GET") {
         const decodedToken = await requireAuthenticatedUser(request);
         await requireActiveCompanyMemberRole(db, companyId, decodedToken.uid);
         const profile = await getCompanyProfile(db, companyId);
         sendApiOk(response, 200, profile);
+        return;
+      }
+
+      if (request.method === "PATCH") {
+        const decodedToken = await requireAuthenticatedUser(request);
+        const memberRole = await requireActiveCompanyMemberRole(db, companyId, decodedToken.uid);
+        requireCompanyOwnerOrAdmin(memberRole);
+
+        const body = await readJsonBody(request);
+        const input = buildProfileUpdateInput(companyId, body);
+        const result = await updateCompanyProfile(db, input);
+        sendApiOk(response, 200, result);
         return;
       }
     }
