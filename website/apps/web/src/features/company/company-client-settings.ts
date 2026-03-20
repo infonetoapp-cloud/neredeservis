@@ -67,16 +67,13 @@ async function callBackendUploadApi<T>(input: {
 }): Promise<T> {
   const auth = getFirebaseClientAuth();
   const currentUser = auth?.currentUser;
-  if (!currentUser) {
-    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
-  }
-
-  const idToken = await currentUser.getIdToken();
+  const idToken = currentUser ? await currentUser.getIdToken() : null;
   const requestUrl = new URL(input.path, input.baseUrl.endsWith("/") ? input.baseUrl : `${input.baseUrl}/`);
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
+    credentials: "include",
     headers: {
-      authorization: `Bearer ${idToken}`,
+      ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),

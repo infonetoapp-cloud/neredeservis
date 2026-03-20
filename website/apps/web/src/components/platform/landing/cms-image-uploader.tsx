@@ -37,18 +37,15 @@ async function callPlatformMediaApi<T>(input: {
   }
 
   const currentUser = getFirebaseClientAuth()?.currentUser;
-  if (!currentUser) {
-    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
-  }
-
-  const idToken = await currentUser.getIdToken();
+  const idToken = currentUser ? await currentUser.getIdToken() : null;
   const requestUrl = new URL("api/platform/media", ensureTrailingSlash(backendApiBaseUrl));
   requestUrl.searchParams.set("storagePath", input.storagePath);
 
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
+    credentials: "include",
     headers: {
-      authorization: `Bearer ${idToken}`,
+      ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),

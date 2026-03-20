@@ -25,14 +25,11 @@ export async function callBackendApi<T>(input: {
   const authRequired = input.auth !== false;
   const firebaseAuth = getFirebaseClientAuth();
   const currentUser = authRequired ? firebaseAuth?.currentUser ?? null : null;
-  if (authRequired && !currentUser) {
-    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
-  }
-
   const idToken = currentUser ? await currentUser.getIdToken() : null;
   const requestUrl = new URL(input.path, ensureTrailingSlash(input.baseUrl));
   const response = await fetch(requestUrl.toString(), {
     method: input.method ?? "GET",
+    credentials: "include",
     headers: {
       ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
       ...(input.body !== undefined ? { "content-type": "application/json" } : {}),

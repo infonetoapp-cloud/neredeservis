@@ -1,13 +1,13 @@
-import type { User } from "firebase/auth";
+import type { AuthSessionUser } from "@/features/auth/auth-session-types";
 
-function hasPasswordProvider(user: User | null): boolean {
+function hasPasswordProvider(user: AuthSessionUser | null): boolean {
   if (!user) {
     return false;
   }
   return user.providerData.some((provider) => provider.providerId === "password");
 }
 
-export function requiresEmailVerification(user: User | null): boolean {
+export function requiresEmailVerification(user: AuthSessionUser | null): boolean {
   if (!user) {
     return false;
   }
@@ -17,7 +17,7 @@ export function requiresEmailVerification(user: User | null): boolean {
   return !user.emailVerified;
 }
 
-export function requiresProfileOnboarding(user: User | null): boolean {
+export function requiresProfileOnboarding(user: AuthSessionUser | null): boolean {
   if (!user) {
     return false;
   }
