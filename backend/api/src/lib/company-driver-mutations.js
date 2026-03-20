@@ -1,7 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
 
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
+import { upsertAuthUserProfile } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
+import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const VALID_DRIVER_STATUSES = new Set(["active", "passive"]);
@@ -147,15 +148,15 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
 
   let uid = "";
   try {
-    const userRecord = await getFirebaseAdminAuth().createUser({
+    const userRecord = await createManagedUserViaIdentityToolkit({
       email: loginEmail,
       password: temporaryPassword,
       displayName: name,
-      disabled: false,
+      sendVerificationEmail: false,
     });
-    uid = userRecord.uid;
+    uid = userRecord.localId;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Firebase Auth kullanicisi olusturulamadi.";
+    const message = error instanceof Error ? error.message : "Sofor hesabi olusturulamadi.";
     throw new HttpError(409, "already-exists", `Sofor hesabi olusturulamadi: ${message}`);
   }
 
@@ -176,30 +177,29 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
 
   await Promise.all([
     db.collection("drivers").doc(uid).set(driverData),
-    db
-      .collection("users")
-      .doc(uid)
-      .set(
-        {
-          role: "driver",
-          preferredRole: "driver",
-          displayName: name,
-          email: loginEmail,
-          phone,
-          companyId,
-          mobileOnlyAuth: true,
-          webPanelAccess: false,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-          deletedAt: null,
-        },
-        { merge: true },
-      ),
+    upsertAuthUserProfile(
+      db,
+      {
+        uid,
+        email: loginEmail,
+        displayName: name,
+        emailVerified: false,
+        providerData: [{ providerId: "password" }],
+        signInProvider: "password",
+      },
+      {
+        role: "driver",
+        preferredRole: "driver",
+        phone,
+        companyId,
+        mobileOnlyAuth: true,
+        webPanelAccess: false,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        deletedAt: null,
+      },
+    ),
   ]);
-
-  try {
-    await getFirebaseAdminAuth().setCustomUserClaims(uid, { role: "driver", mobileDriver: true });
-  } catch {}
 
   return {
     credentials: {

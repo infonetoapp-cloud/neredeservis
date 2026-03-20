@@ -1,13 +1,54 @@
 import { readCurrentAuthSessionUser } from "./auth-session.js";
-import { getFirebaseAdminAuth, getFirebaseAdminDb } from "./firebase-admin.js";
+import { readUserProfileByUid, upsertAuthUserProfile } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
-import { asRecord, pickString } from "./runtime-value.js";
 
-function requireUid(rawUid) {
-  if (typeof rawUid !== "string" || rawUid.trim().length === 0) {
+function requireUid(subject) {
+  if (typeof subject === "string" && subject.trim().length > 0) {
+    return subject.trim();
+  }
+
+  if (
+    subject &&
+    typeof subject === "object" &&
+    !Array.isArray(subject) &&
+    typeof subject.uid === "string" &&
+    subject.uid.trim().length > 0
+  ) {
+    return subject.uid.trim();
+  }
+
+  throw new HttpError(400, "invalid-argument", "Kullanici kimligi gecersiz.");
+}
+
+function normalizeAuthSubject(subject, profile) {
+  const uid = requireUid(subject);
+  const providerData =
+    subject && typeof subject === "object" && !Array.isArray(subject) ? subject.providerData : [];
+
+  return {
+    uid,
+    email: profile?.email ?? (typeof subject?.email === "string" ? subject.email : null),
+    displayName:
+      profile?.displayName ?? (typeof subject?.displayName === "string" ? subject.displayName : null),
+    emailVerified:
+      profile?.emailVerified === true ||
+      (subject && typeof subject === "object" && !Array.isArray(subject)
+        ? subject.emailVerified === true
+        : false),
+    providerData: Array.isArray(providerData) ? providerData : [],
+    signInProvider:
+      typeof subject?.signInProvider === "string" ? subject.signInProvider : profile?.signInProvider ?? null,
+  };
+}
+
+export async function readCurrentAuthProfile(db, subject) {
+  const uid = requireUid(subject);
+  const profile = await readUserProfileByUid(db, uid);
+  const currentSubject = normalizeAuthSubject(subject, profile);
+  if (!currentSubject.uid) {
     throw new HttpError(400, "invalid-argument", "Kullanici kimligi gecersiz.");
   }
-  return rawUid.trim();
+  return readCurrentAuthSessionUser(currentSubject);
 }
 
 function normalizeDisplayName(rawValue) {
@@ -31,57 +72,30 @@ function normalizeDisplayName(rawValue) {
   return normalized;
 }
 
-export async function readCurrentAuthProfile(rawUid) {
-  const uid = requireUid(rawUid);
-  return readCurrentAuthSessionUser({ uid });
-}
-
-export async function updateCurrentAuthProfile(rawUid, input) {
-  const uid = requireUid(rawUid);
+export async function updateCurrentAuthProfile(db, subject, input) {
+  const uid = requireUid(subject);
   const displayName = normalizeDisplayName(input?.displayName);
-  const adminAuth = getFirebaseAdminAuth();
-  const db = getFirebaseAdminDb();
-
-  await adminAuth.updateUser(uid, { displayName }).catch(() => {
-    throw new HttpError(500, "internal", "Kullanici profili guncellenemedi.");
-  });
-
-  const [userRecord, userSnap] = await Promise.all([
-    adminAuth.getUser(uid).catch(() => {
-      throw new HttpError(404, "auth/user-not-found", "Kullanici hesabi bulunamadi.");
-    }),
-    db.collection("users").doc(uid).get().catch(() => null),
-  ]);
-
-  const existing = asRecord(userSnap?.data()) ?? {};
   const nowIso = new Date().toISOString();
+  const existingProfile = await readUserProfileByUid(db, uid);
+  const nextSubject = normalizeAuthSubject(subject, existingProfile);
+  nextSubject.displayName = displayName;
 
-  await db
-    .collection("users")
-    .doc(uid)
-    .set(
-      {
-        displayName,
-        email: pickString(existing, "email") ?? userRecord.email ?? null,
-        createdAt: pickString(existing, "createdAt") ?? nowIso,
-        updatedAt: nowIso,
-        deletedAt: null,
-      },
-      { merge: true },
-    );
+  const user = await upsertAuthUserProfile(
+    db,
+    {
+      ...nextSubject,
+      uid,
+      displayName,
+    },
+    {
+      createdAt: existingProfile?.createdAt ?? nowIso,
+      updatedAt: nowIso,
+      deletedAt: null,
+    },
+  );
 
   return {
-    user: await readCurrentAuthSessionUser({
-      uid: userRecord.uid,
-      email: userRecord.email ?? null,
-      displayName: userRecord.displayName ?? displayName,
-      emailVerified: userRecord.emailVerified === true,
-      providerData: Array.isArray(userRecord.providerData)
-        ? userRecord.providerData.map((provider) => ({
-            providerId: typeof provider.providerId === "string" ? provider.providerId : null,
-          }))
-        : [],
-    }),
+    user: await readCurrentAuthSessionUser(user),
     updatedAt: nowIso,
   };
 }

@@ -188,6 +188,46 @@ export async function registerWithEmailPasswordViaIdentityToolkit(input) {
   };
 }
 
+export async function createManagedUserViaIdentityToolkit(input) {
+  const email = requireEmail(input?.email);
+  const password = requirePassword(input?.password);
+  const displayName = typeof input?.displayName === "string" ? input.displayName.trim() : "";
+  const sendVerificationEmail = input?.sendVerificationEmail === true;
+
+  const payload = await callIdentityToolkit("accounts:signUp", {
+    email,
+    password,
+    returnSecureToken: true,
+  });
+
+  const localId = parseStringField(payload, "localId");
+  const idToken = parseStringField(payload, "idToken");
+  if (!localId || !idToken) {
+    throw new HttpError(500, "internal", "Kullanici hesabi olusturulamadi.");
+  }
+
+  if (displayName) {
+    await callIdentityToolkit("accounts:update", {
+      idToken,
+      displayName,
+      returnSecureToken: false,
+    }).catch(() => {
+      throw new HttpError(500, "internal", "Kullanici profili guncellenemedi.");
+    });
+  }
+
+  if (sendVerificationEmail) {
+    await sendEmailVerificationForIdToken(idToken);
+  }
+
+  return {
+    email,
+    localId,
+    idToken,
+    refreshToken: parseStringField(payload, "refreshToken"),
+  };
+}
+
 export async function sendEmailVerificationForIdToken(rawIdToken) {
   const idToken = typeof rawIdToken === "string" ? rawIdToken.trim() : "";
   if (!idToken) {

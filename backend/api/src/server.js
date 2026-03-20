@@ -8,6 +8,7 @@ import {
   exchangeIdTokenForWebSession,
   readCurrentAuthSessionUser,
 } from "./lib/auth-session.js";
+import { upsertAuthUserProfile } from "./lib/auth-user-store.js";
 import {
   getCurrentUserWebAccessPolicy,
   prepareCorporateLoginAttempt,
@@ -852,7 +853,7 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
       const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken);
+      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
       sendApiOk(response, 200, { user });
       return;
     }
@@ -861,7 +862,7 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
       const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken);
+      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
       sendApiOk(response, 201, {
         user,
         verificationEmailSent: registerResult.verificationEmailSent,
@@ -872,14 +873,14 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
       const decodedToken = await exchangeIdTokenForWebSession(response, asRecord(body)?.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken);
+      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
       sendApiOk(response, 200, { user });
       return;
     }
 
     if (request.method === "GET" && isAuthSessionPath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
-      const user = await readCurrentAuthSessionUser(decodedToken);
+      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
       const webAccessPolicy = await getCurrentUserWebAccessPolicy(db, decodedToken.uid);
       sendApiOk(response, 200, {
         user,
@@ -890,7 +891,7 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && isAuthProfilePath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
-      const user = await readCurrentAuthProfile(decodedToken.uid);
+      const user = await readCurrentAuthProfile(db, decodedToken);
       sendApiOk(response, 200, { user });
       return;
     }
@@ -898,7 +899,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "PATCH" && isAuthProfilePath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
-      const result = await updateCurrentAuthProfile(decodedToken.uid, asRecord(body) ?? {});
+      const result = await updateCurrentAuthProfile(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
+import { findUserProfileByEmail } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -91,20 +91,14 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
   }
 
   const normalizedEmail = normalizeEmail(input?.email);
-  let targetUid = "";
-  try {
-    const targetUser = await getFirebaseAdminAuth().getUserByEmail(normalizedEmail);
-    targetUid = targetUser.uid;
-  } catch (error) {
-    const errorCode = error?.code ?? "";
-    if (errorCode === "auth/user-not-found") {
-      throw new HttpError(
-        412,
-        "failed-precondition",
-        "INVITE_EMAIL_NOT_FOUND: Bu e-posta ile kayitli kullanici bulunamadi.",
-      );
-    }
-    throw error;
+  const targetUser = await findUserProfileByEmail(db, normalizedEmail);
+  const targetUid = targetUser?.uid ?? "";
+  if (!targetUid) {
+    throw new HttpError(
+      412,
+      "failed-precondition",
+      "INVITE_EMAIL_NOT_FOUND: Bu e-posta ile kayitli kullanici bulunamadi.",
+    );
   }
 
   if (targetUid === actorUid) {

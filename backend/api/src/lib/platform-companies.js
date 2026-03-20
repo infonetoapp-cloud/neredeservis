@@ -1,5 +1,11 @@
 import { getFirebaseAdminAuth } from "./firebase-admin.js";
+import {
+  findUserProfileByEmail,
+  readUserProfileByUid,
+  upsertAuthUserProfile,
+} from "./auth-user-store.js";
 import { HttpError } from "./http.js";
+import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 function assertCompanyStatus(value) {
@@ -52,6 +58,10 @@ function normalizeVehicleLimit(rawValue) {
 
 function readAppBaseUrl() {
   return (process.env.APP_BASE_URL?.trim() || "https://app.neredeservis.app").replace(/\/+$/, "");
+}
+
+function generateBootstrapPassword() {
+  return `Ns!${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
 async function sendPasswordSetupEmail(email) {
@@ -117,14 +127,6 @@ async function buildPasswordResetLink(email) {
   }
 }
 
-async function resolveAuthUserByUid(uid) {
-  try {
-    return await getFirebaseAdminAuth().getUser(uid);
-  } catch {
-    return null;
-  }
-}
-
 async function resolveCompanyOwnerIdentity(companyRef, companyData) {
   const ownerQuerySnapshot = await companyRef.collection("members").where("role", "==", "owner").limit(1).get();
   const ownerMemberSnapshot = ownerQuerySnapshot.docs[0] ?? null;
@@ -137,7 +139,7 @@ async function resolveCompanyOwnerIdentity(companyRef, companyData) {
 
   const ownerMemberData = asRecord(ownerMemberSnapshot.data()) ?? {};
   const ownerUid = ownerMemberSnapshot.id;
-  const ownerAuthUser = await resolveAuthUserByUid(ownerUid);
+  const ownerAuthUser = await readUserProfileByUid(companyRef.firestore, ownerUid);
   return {
     ownerUid,
     ownerEmail:
@@ -232,7 +234,7 @@ export async function getPlatformCompanyDetail(db, input) {
   const members = await Promise.all(
     membersSnapshot.docs.map(async (memberSnapshot) => {
       const memberData = asRecord(memberSnapshot.data()) ?? {};
-      const authUser = await resolveAuthUserByUid(memberSnapshot.id);
+      const authUser = await readUserProfileByUid(db, memberSnapshot.id);
       return {
         uid: memberSnapshot.id,
         email: pickString(memberData, "email") ?? authUser?.email ?? null,
@@ -303,22 +305,25 @@ export async function createPlatformCompany(db, actorUid, input) {
   const vehicleLimit = normalizeVehicleLimit(input?.vehicleLimit ?? 10);
   const nowIso = new Date().toISOString();
 
-  const auth = getFirebaseAdminAuth();
   let ownerUid = "";
-  try {
-    const existingUser = await auth.getUserByEmail(ownerEmail);
-    ownerUid = existingUser.uid;
-  } catch (error) {
-    const code = error && typeof error === "object" ? error.code : null;
-    if (code === "auth/user-not-found") {
-      const createdUser = await auth.createUser({
-        email: ownerEmail,
-        emailVerified: false,
-      });
-      ownerUid = createdUser.uid;
-    } else {
-      throw error;
-    }
+  const existingOwnerProfile = await findUserProfileByEmail(db, ownerEmail).catch(() => null);
+  if (existingOwnerProfile?.uid) {
+    ownerUid = existingOwnerProfile.uid;
+  } else {
+    const createdUser = await createManagedUserViaIdentityToolkit({
+      email: ownerEmail,
+      password: generateBootstrapPassword(),
+      sendVerificationEmail: false,
+    });
+    ownerUid = createdUser.localId;
+    await upsertAuthUserProfile(db, {
+      uid: ownerUid,
+      email: ownerEmail,
+      displayName: null,
+      emailVerified: false,
+      providerData: [{ providerId: "password" }],
+      signInProvider: "password",
+    });
   }
 
   const passwordResetLink = await buildPasswordResetLink(ownerEmail);

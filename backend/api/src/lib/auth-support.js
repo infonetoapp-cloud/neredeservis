@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import { FieldValue } from "firebase-admin/firestore";
 
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
 import { HttpError } from "./http.js";
 import { asRecord } from "./runtime-value.js";
 
@@ -405,16 +404,6 @@ export async function getCurrentUserWebAccessPolicy(db, uid) {
 
 export async function sendPasswordResetEmailForAddress(input) {
   const email = requireNormalizedEmail(input?.email);
-
-  try {
-    await getFirebaseAdminAuth().getUserByEmail(email);
-  } catch (error) {
-    const code = error && typeof error === "object" ? error.code : null;
-    if (code === "auth/user-not-found") {
-      throw new HttpError(404, "auth/user-not-found", "Bu e-posta ile kayitli hesap bulunamadi.");
-    }
-    throw new HttpError(500, "internal", "Kullanici hesabina ulasilamadi.");
-  }
 
   await sendPasswordResetEmailViaIdentityToolkit(email);
   return { success: true };
