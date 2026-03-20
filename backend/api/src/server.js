@@ -79,6 +79,12 @@ import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
 import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
 import { getFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import {
+  confirmPasswordResetViaIdentityToolkit,
+  registerWithEmailPasswordViaIdentityToolkit,
+  signInWithEmailPasswordViaIdentityToolkit,
+  verifyPasswordResetCodeViaIdentityToolkit,
+} from "./lib/identity-toolkit.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -590,6 +596,14 @@ function isAuthSessionPath(pathname) {
   return pathname === "/api/auth/session";
 }
 
+function isAuthLoginPath(pathname) {
+  return pathname === "/api/auth/login";
+}
+
+function isAuthRegisterPath(pathname) {
+  return pathname === "/api/auth/register";
+}
+
 function isAuthSessionExchangePath(pathname) {
   return pathname === "/api/auth/session/exchange";
 }
@@ -600,6 +614,14 @@ function isAuthLogoutPath(pathname) {
 
 function isAuthPasswordResetPath(pathname) {
   return pathname === "/api/auth/password-reset";
+}
+
+function isAuthPasswordResetVerifyPath(pathname) {
+  return pathname === "/api/auth/password-reset/verify";
+}
+
+function isAuthPasswordResetConfirmPath(pathname) {
+  return pathname === "/api/auth/password-reset/confirm";
 }
 
 function isAuthWebAccessPolicyPath(pathname) {
@@ -797,10 +819,48 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === "POST" && isAuthPasswordResetVerifyPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const result = await verifyPasswordResetCodeViaIdentityToolkit(asRecord(body)?.oobCode);
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthPasswordResetConfirmPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const result = await confirmPasswordResetViaIdentityToolkit({
+        oobCode: asRecord(body)?.oobCode,
+        password: asRecord(body)?.password,
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
     if (request.method === "GET" && isAuthLoginContextPath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
       const result = resolveCorporateLoginContext(decodedToken);
       sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthLoginPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
+      const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
+      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      sendApiOk(response, 200, { user });
+      return;
+    }
+
+    if (request.method === "POST" && isAuthRegisterPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
+      const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
+      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      sendApiOk(response, 201, {
+        user,
+        verificationEmailSent: registerResult.verificationEmailSent,
+      });
       return;
     }
 
