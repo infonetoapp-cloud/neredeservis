@@ -1,3 +1,8 @@
+import {
+  assertCompanyMembersActiveFromPostgres,
+  readCompanyMemberRoleFromPostgres,
+  shouldUsePostgresCompanyStore,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -7,6 +12,13 @@ const ROUTE_WRITE_ROLES = new Set(["owner", "admin", "dispatcher"]);
 const DRIVER_WRITE_ROLES = new Set(["owner", "admin", "dispatcher"]);
 
 export async function requireActiveCompanyMemberRole(db, companyId, uid) {
+  if (shouldUsePostgresCompanyStore()) {
+    const postgresRole = await readCompanyMemberRoleFromPostgres(companyId, uid);
+    if (postgresRole) {
+      return postgresRole;
+    }
+  }
+
   const memberSnapshot = await db
     .collection("companies")
     .doc(companyId)
@@ -122,6 +134,13 @@ export async function assertCompanyMembersExistAndActive(db, companyId, uids) {
   );
   if (uniqueUids.length === 0) {
     return;
+  }
+
+  if (shouldUsePostgresCompanyStore()) {
+    const postgresOk = await assertCompanyMembersActiveFromPostgres(companyId, uniqueUids);
+    if (postgresOk) {
+      return;
+    }
   }
 
   const snapshots = await Promise.all(

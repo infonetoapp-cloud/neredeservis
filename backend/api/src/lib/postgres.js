@@ -86,6 +86,46 @@ export async function ensurePostgresAuthSchema() {
     CREATE INDEX IF NOT EXISTS web_login_guard_email_ip_idx
       ON web_login_guard (email, ip_address);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS companies (
+      company_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      legal_name TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      billing_status TEXT NOT NULL DEFAULT 'active',
+      timezone TEXT NULL,
+      country_code TEXT NULL,
+      contact_phone TEXT NULL,
+      contact_email TEXT NULL,
+      created_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_members (
+      company_id TEXT NOT NULL,
+      uid TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL,
+      permissions JSONB NULL,
+      invited_by TEXT NULL,
+      invited_at TIMESTAMPTZ NULL,
+      accepted_at TIMESTAMPTZ NULL,
+      company_name_snapshot TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (company_id, uid)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_members_uid_idx
+      ON company_members (uid);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_members_company_id_idx
+      ON company_members (company_id);
+  `);
 
   return true;
 }

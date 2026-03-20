@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
 
+import {
+  backfillCompanyFromFirestoreRecord,
+  backfillCompanyMembershipFromFirestoreRecord,
+  listMyCompaniesFromPostgres,
+  shouldUsePostgresCompanyStore,
+  syncCompanyWithOwnerMembershipToPostgres,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -7,6 +14,13 @@ const VALID_MEMBER_ROLES = new Set(["owner", "admin", "dispatcher", "viewer"]);
 const VALID_MEMBER_STATUSES = new Set(["active", "invited", "suspended"]);
 
 export async function listMyCompanies(db, uid) {
+  if (shouldUsePostgresCompanyStore()) {
+    const postgresItems = await listMyCompaniesFromPostgres(uid);
+    if (postgresItems.length > 0) {
+      return { items: postgresItems };
+    }
+  }
+
   const membershipSnapshot = await db
     .collection("users")
     .doc(uid)
@@ -47,6 +61,7 @@ export async function listMyCompanies(db, uid) {
   );
 
   const items = [];
+  const resolvedItems = [];
   for (let index = 0; index < membershipRows.length; index += 1) {
     const row = membershipRows[index];
     const companySnapshot = companySnapshots[index];
@@ -72,17 +87,57 @@ export async function listMyCompanies(db, uid) {
         ? rawBillingStatus
         : "active";
 
-    items.push({
+    const item = {
       companyId: row.companyId,
       name,
       role: row.role,
       memberStatus: row.memberStatus,
       companyStatus,
       billingStatus,
+    };
+    items.push(item);
+    resolvedItems.push({
+      item,
+      row,
+      companyData,
     });
   }
 
   items.sort((left, right) => left.name.localeCompare(right.name, "tr"));
+
+  if (shouldUsePostgresCompanyStore()) {
+    await Promise.all(
+      resolvedItems.map(({ item, row, companyData }) => {
+        const nowIso = new Date().toISOString();
+
+        return Promise.all([
+          backfillCompanyFromFirestoreRecord({
+            companyId: item.companyId,
+            name: item.name,
+            legalName: pickString(companyData, "legalName"),
+            status: item.companyStatus,
+            billingStatus: item.billingStatus,
+            timezone: pickString(companyData, "timezone"),
+            countryCode: pickString(companyData, "countryCode"),
+            contactPhone: pickString(companyData, "contactPhone"),
+            contactEmail: pickString(companyData, "contactEmail"),
+            createdBy: pickString(companyData, "createdBy"),
+            createdAt: pickString(companyData, "createdAt"),
+            updatedAt: pickString(companyData, "updatedAt") ?? nowIso,
+          }).catch(() => false),
+          backfillCompanyMembershipFromFirestoreRecord({
+            companyId: item.companyId,
+            uid,
+            role: row.role,
+            status: row.memberStatus,
+            companyNameSnapshot: item.name,
+            createdAt: pickString(companyData, "createdAt"),
+            updatedAt: pickString(companyData, "updatedAt") ?? nowIso,
+          }).catch(() => false),
+        ]);
+      }),
+    );
+  }
 
   return { items };
 }
@@ -212,5 +267,33 @@ export async function createCompany(db, uid, input) {
       },
       createdAt: nowIso,
     };
+  }).then(async (result) => {
+    if (shouldUsePostgresCompanyStore()) {
+      try {
+        await syncCompanyWithOwnerMembershipToPostgres({
+          companyId: result.companyId,
+          uid,
+          name,
+          status: "active",
+          timezone: "Europe/Istanbul",
+          countryCode: "TR",
+          contactPhone,
+          contactEmail,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+      } catch (error) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            event: "postgres_company_sync_failed",
+            companyId: result.companyId,
+            message: error instanceof Error ? error.message : "unknown_error",
+          }),
+        );
+      }
+    }
+
+    return result;
   });
 }
