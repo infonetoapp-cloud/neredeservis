@@ -57,6 +57,14 @@ function mapIdentityToolkitError(rawCode) {
   ) {
     return new HttpError(401, "auth/invalid-credential", "E-posta veya sifre hatali.");
   }
+  if (
+    normalized === "INVALID_ID_TOKEN" ||
+    normalized === "TOKEN_EXPIRED" ||
+    normalized === "INVALID_REFRESH_TOKEN" ||
+    normalized === "CREDENTIAL_TOO_OLD_LOGIN_AGAIN"
+  ) {
+    return new HttpError(401, "unauthenticated", "Oturum gecersiz. Tekrar giris yap.");
+  }
   if (normalized === "USER_DISABLED") {
     return new HttpError(403, "auth/user-disabled", "Bu hesap devre disi birakilmis.");
   }
@@ -297,6 +305,6 @@ export async function lookupIdentityToolkitUserByIdToken(rawIdToken) {
     providerData: providerData.length > 0 ? providerData : passwordProviderFallback,
     signInProvider:
       providerData[0]?.providerId ??
-      (parseStringField(userRecord, "email") ? "password" : null),
+      (parseStringField(userRecord, "email") ? "password" : "anonymous"),
   };
 }
