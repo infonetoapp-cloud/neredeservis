@@ -1,10 +1,11 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { HttpError } from "./http.js";
 import { asRecord } from "./runtime-value.js";
 
-const DOC_PATH = "site_config/landing_page";
 const DEFAULT_PUBLIC_CACHE_TTL_MS = 60_000;
+const DEFAULT_CONFIG_RELATIVE_PATH = "platform-config/landing-page.json";
 
 let publicLandingConfigCache = null;
 let publicLandingConfigCacheExpiresAt = 0;
@@ -23,22 +24,44 @@ function stripInternalFields(data) {
   return config;
 }
 
-async function readLandingConfigDoc(db) {
-  return db.doc(DOC_PATH).get();
+function resolveStorageRoot() {
+  return path.resolve(
+    process.env.UPLOAD_STORAGE_ROOT?.trim() || path.join(process.cwd(), "data", "uploads"),
+  );
 }
 
-export async function getPublicLandingConfig(db) {
+function resolveLandingConfigPath() {
+  return path.join(resolveStorageRoot(), DEFAULT_CONFIG_RELATIVE_PATH);
+}
+
+async function readStoredLandingConfigRecord() {
+  try {
+    const raw = await readFile(resolveLandingConfigPath(), "utf8");
+    const parsed = JSON.parse(raw);
+    return asRecord(parsed);
+  } catch {
+    return null;
+  }
+}
+
+async function writeStoredLandingConfigRecord(record) {
+  const targetPath = resolveLandingConfigPath();
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  await writeFile(targetPath, JSON.stringify(record, null, 2), "utf8");
+}
+
+export async function getPublicLandingConfig() {
   const cacheTtlMs = getPublicCacheTtlMs();
   const now = Date.now();
   if (publicLandingConfigCache && publicLandingConfigCacheExpiresAt > now) {
     return publicLandingConfigCache;
   }
 
-  const snapshot = await readLandingConfigDoc(db);
-  const result = snapshot.exists
+  const storedRecord = await readStoredLandingConfigRecord();
+  const result = storedRecord
     ? {
         exists: true,
-        config: stripInternalFields(snapshot.data()),
+        config: stripInternalFields(storedRecord),
       }
     : {
         exists: false,
@@ -50,9 +73,9 @@ export async function getPublicLandingConfig(db) {
   return result;
 }
 
-export async function getPlatformLandingConfig(db) {
-  const snapshot = await readLandingConfigDoc(db);
-  if (!snapshot.exists) {
+export async function getPlatformLandingConfig() {
+  const storedRecord = await readStoredLandingConfigRecord();
+  if (!storedRecord) {
     return {
       exists: false,
       config: null,
@@ -61,31 +84,30 @@ export async function getPlatformLandingConfig(db) {
     };
   }
 
-  const record = asRecord(snapshot.data()) ?? {};
-  const config = stripInternalFields(record);
+  const config = stripInternalFields(storedRecord);
   return {
     exists: true,
     config,
-    updatedAt:
-      typeof record.updatedAt?.toDate === "function" ? record.updatedAt.toDate().toISOString() : null,
-    updatedBy: typeof record.updatedBy === "string" ? record.updatedBy : null,
+    updatedAt: typeof storedRecord.updatedAt === "string" ? storedRecord.updatedAt : null,
+    updatedBy: typeof storedRecord.updatedBy === "string" ? storedRecord.updatedBy : null,
   };
 }
 
-export async function updatePlatformLandingConfig(db, authUid, input) {
+export async function updatePlatformLandingConfig(_db, authUid, input) {
   const config = asRecord(input?.config);
   if (!config) {
     throw new HttpError(400, "invalid-argument", "config alani zorunludur.");
   }
 
-  await db.doc(DOC_PATH).set(
-    {
-      ...config,
-      updatedAt: FieldValue.serverTimestamp(),
-      updatedBy: authUid,
-    },
-    { merge: true },
-  );
+  const previousRecord = (await readStoredLandingConfigRecord()) ?? {};
+  const nextRecord = {
+    ...stripInternalFields(previousRecord),
+    ...config,
+    updatedAt: new Date().toISOString(),
+    updatedBy: authUid,
+  };
+
+  await writeStoredLandingConfigRecord(nextRecord);
 
   publicLandingConfigCache = null;
   publicLandingConfigCacheExpiresAt = 0;
