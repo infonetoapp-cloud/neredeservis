@@ -108,7 +108,8 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     ALTER TABLE companies
       ADD COLUMN IF NOT EXISTS vehicles_synced_at TIMESTAMPTZ NULL,
-      ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL;
+      ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS routes_synced_at TIMESTAMPTZ NULL;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS company_members (
@@ -180,6 +181,69 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_drivers_company_id_idx
       ON company_drivers (company_id);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_routes (
+      route_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      srv_code TEXT NULL,
+      driver_id TEXT NULL,
+      authorized_driver_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      member_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      scheduled_time TEXT NULL,
+      time_slot TEXT NULL,
+      is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+      allow_guest_tracking BOOLEAN NOT NULL DEFAULT FALSE,
+      start_address TEXT NULL,
+      end_address TEXT NULL,
+      start_point JSONB NULL,
+      end_point JSONB NULL,
+      vehicle_id TEXT NULL,
+      vehicle_plate TEXT NULL,
+      passenger_count INTEGER NOT NULL DEFAULT 0,
+      visibility TEXT NULL,
+      creation_mode TEXT NULL,
+      route_polyline JSONB NULL,
+      vacation_until TIMESTAMPTZ NULL,
+      last_trip_started_notification_at TIMESTAMPTZ NULL,
+      created_by TEXT NULL,
+      updated_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      stops_synced_at TIMESTAMPTZ NULL
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_routes_company_id_idx
+      ON company_routes (company_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_routes_company_updated_idx
+      ON company_routes (company_id, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_route_stops (
+      stop_id TEXT PRIMARY KEY,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      lat DOUBLE PRECISION NOT NULL,
+      lng DOUBLE PRECISION NOT NULL,
+      stop_order INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT NULL,
+      updated_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_route_stops_route_id_idx
+      ON company_route_stops (route_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_route_stops_route_order_idx
+      ON company_route_stops (route_id, stop_order);
   `);
 
   return true;

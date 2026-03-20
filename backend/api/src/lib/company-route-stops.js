@@ -1,3 +1,9 @@
+import { syncCompanyRouteAndStopsFromFirestore } from "./company-route-postgres-sync.js";
+import {
+  listCompanyRouteStopsFromPostgres,
+  readCompanyRouteFromPostgres,
+  shouldUsePostgresCompanyRouteStore,
+} from "./company-route-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -16,6 +22,22 @@ function parseIsoToMs(value) {
 }
 
 export async function listCompanyRouteStops(db, input) {
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const route = await readCompanyRouteFromPostgres(input.companyId, input.routeId).catch(() => null);
+    if (route?.stopsSyncedAt) {
+      const postgresResult = await listCompanyRouteStopsFromPostgres(input.companyId, input.routeId).catch(
+        () => null,
+      );
+      if (postgresResult?.routeExists) {
+        return {
+          companyId: input.companyId,
+          routeId: input.routeId,
+          items: postgresResult.items,
+        };
+      }
+    }
+  }
+
   const routeReference = db.collection("routes").doc(input.routeId);
   const routeSnapshot = await routeReference.get();
   if (!routeSnapshot.exists) {
@@ -64,6 +86,15 @@ export async function listCompanyRouteStops(db, input) {
       }
       return (parseIsoToMs(right.updatedAt) ?? 0) - (parseIsoToMs(left.updatedAt) ?? 0);
     });
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      input.companyId,
+      input.routeId,
+      new Date().toISOString(),
+    ).catch(() => false);
+  }
 
   return {
     companyId: input.companyId,

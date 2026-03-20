@@ -1,6 +1,14 @@
 import { randomBytes } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
+import {
+  backfillCompanyRecordFromFirestore,
+  syncCompanyRouteAndStopsFromFirestore,
+} from "./company-route-postgres-sync.js";
+import {
+  deleteCompanyRouteFromPostgres,
+  shouldUsePostgresCompanyRouteStore,
+} from "./company-route-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -397,6 +405,11 @@ export async function createCompanyRoute(db, actorUid, actorRole, input) {
     srvCode: created.srvCode,
   });
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await backfillCompanyRecordFromFirestore(db, companyId).catch(() => false);
+    await syncCompanyRouteAndStopsFromFirestore(db, companyId, created.routeId, nowIso).catch(() => false);
+  }
+
   return {
     routeId: created.routeId,
     srvCode: created.srvCode,
@@ -553,6 +566,15 @@ export async function updateCompanyRoute(db, actorUid, actorRole, input) {
     },
   });
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      companyId,
+      updated.routeId,
+      updated.updatedAt ?? nowIso,
+    ).catch(() => false);
+  }
+
   return updated;
 }
 
@@ -656,6 +678,10 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
       routeMutationScope: "company_route_delete",
     },
   });
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await deleteCompanyRouteFromPostgres(companyId, routeId).catch(() => false);
+  }
 
   return {
     routeId,
@@ -765,6 +791,15 @@ export async function upsertCompanyRouteStop(db, actorUid, actorRole, input) {
     },
   });
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      companyId,
+      updated.routeId,
+      updated.updatedAt ?? nowIso,
+    ).catch(() => false);
+  }
+
   return updated;
 }
 
@@ -846,6 +881,15 @@ export async function deleteCompanyRouteStop(db, actorUid, actorRole, input) {
       routeMutationScope: "company_stop_delete",
     },
   });
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      companyId,
+      deleted.routeId,
+      nowIso,
+    ).catch(() => false);
+  }
 
   return {
     routeId: deleted.routeId,
@@ -1001,6 +1045,15 @@ export async function reorderCompanyRouteStops(db, actorUid, actorRole, input) {
         routeMutationScope: "company_stop_reorder",
       },
     });
+  }
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      companyId,
+      reordered.routeId,
+      reordered.updatedAt ?? nowIso,
+    ).catch(() => false);
   }
 
   return {

@@ -2,6 +2,9 @@ import { FieldValue } from "firebase-admin/firestore";
 
 import { upsertAuthUserProfile } from "./auth-user-store.js";
 import {
+  syncCompanyRouteFromFirestore,
+} from "./company-route-postgres-sync.js";
+import {
   shouldUsePostgresCompanyFleetStore,
   syncCompanyDriverToPostgres,
 } from "./company-fleet-store.js";
@@ -299,6 +302,7 @@ export async function assignCompanyDriverToRoute(db, actorUid, input) {
   };
 
   await db.collection("routes").doc(routeId).update(updatePatch);
+  await syncCompanyRouteFromFirestore(db, companyId, routeId, updatePatch.updatedAt).catch(() => false);
   return { route: { routeId } };
 }
 
@@ -326,6 +330,7 @@ export async function unassignCompanyDriverFromRoute(db, actorUid, input) {
   };
 
   await db.collection("routes").doc(routeId).update(updatePatch);
+  await syncCompanyRouteFromFirestore(db, companyId, routeId, updatePatch.updatedAt).catch(() => false);
   return { route: { routeId } };
 }
 

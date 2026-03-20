@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
+import { syncCompanyRouteFromFirestore } from "./company-route-postgres-sync.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -160,7 +161,7 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
   const routeRef = db.collection("routes").doc(routeId);
   const routePermissionRef = routeRef.collection("driver_permissions").doc(driverUid);
 
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot, permissionSnapshot] = await Promise.all([
       transaction.get(companyRef),
       transaction.get(routeRef),
@@ -246,6 +247,9 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
       updatedAt: nowIso,
     };
   });
+
+  await syncCompanyRouteFromFirestore(db, companyId, routeId, result.updatedAt).catch(() => false);
+  return result;
 }
 
 export async function revokeDriverRoutePermissions(db, actorUid, actorRole, input) {
@@ -259,7 +263,7 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
   const routeRef = db.collection("routes").doc(routeId);
   const routePermissionRef = routeRef.collection("driver_permissions").doc(driverUid);
 
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot, permissionSnapshot] = await Promise.all([
       transaction.get(companyRef),
       transaction.get(routeRef),
@@ -356,4 +360,7 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
       updatedAt: nowIso,
     };
   });
+
+  await syncCompanyRouteFromFirestore(db, companyId, routeId, result.updatedAt).catch(() => false);
+  return result;
 }
