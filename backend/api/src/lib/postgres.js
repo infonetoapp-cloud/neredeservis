@@ -106,6 +106,11 @@ export async function ensurePostgresAuthSchema() {
     );
   `);
   await pool.query(`
+    ALTER TABLE companies
+      ADD COLUMN IF NOT EXISTS vehicles_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL;
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS company_members (
       company_id TEXT NOT NULL,
       uid TEXT NOT NULL,
@@ -128,6 +133,53 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_members_company_id_idx
       ON company_members (company_id);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_vehicles (
+      vehicle_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      owner_type TEXT NOT NULL DEFAULT 'company',
+      plate TEXT NOT NULL,
+      plate_normalized TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      brand TEXT NULL,
+      model TEXT NULL,
+      year INTEGER NULL,
+      capacity INTEGER NULL,
+      created_by TEXT NULL,
+      updated_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_vehicles_company_id_idx
+      ON company_vehicles (company_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_vehicles_company_plate_idx
+      ON company_vehicles (company_id, plate_normalized);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_drivers (
+      driver_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      phone TEXT NULL,
+      plate TEXT NULL,
+      login_email TEXT NULL,
+      temporary_password TEXT NULL,
+      mobile_only BOOLEAN NOT NULL DEFAULT FALSE,
+      created_by TEXT NULL,
+      updated_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_drivers_company_id_idx
+      ON company_drivers (company_id);
   `);
 
   return true;

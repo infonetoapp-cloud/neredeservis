@@ -4,6 +4,15 @@ import {
   normalizeVehiclePlate,
   normalizeVehicleTextNullable,
 } from "./company-access.js";
+import {
+  deleteCompanyVehicleFromPostgres,
+  isCompanyVehiclesSyncedInPostgres,
+  listCompanyVehiclesFromPostgres,
+  replaceCompanyVehiclesForCompany,
+  shouldUsePostgresCompanyFleetStore,
+  syncCompanyVehicleToPostgres,
+} from "./company-fleet-store.js";
+import { backfillCompanyFromFirestoreRecord } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
@@ -87,8 +96,44 @@ function buildVehicleItem(vehicleId, companyId, vehicleData) {
   };
 }
 
+async function backfillCompanyRecordFromFirestore(db, companyId) {
+  const companySnapshot = await db.collection("companies").doc(companyId).get();
+  if (!companySnapshot.exists) {
+    return false;
+  }
+
+  const companyData = asRecord(companySnapshot.data()) ?? {};
+  return backfillCompanyFromFirestoreRecord({
+    companyId,
+    name: pickString(companyData, "name"),
+    legalName: pickString(companyData, "legalName"),
+    status: pickString(companyData, "status"),
+    billingStatus: pickString(companyData, "billingStatus"),
+    timezone: pickString(companyData, "timezone"),
+    countryCode: pickString(companyData, "countryCode"),
+    contactPhone: pickString(companyData, "contactPhone"),
+    contactEmail: pickString(companyData, "contactEmail"),
+    logoUrl: pickString(companyData, "logoUrl"),
+    address: pickString(companyData, "address"),
+    vehicleLimit: pickFiniteNumber(companyData, "vehicleLimit"),
+    createdBy: pickString(companyData, "createdBy"),
+    createdAt: pickString(companyData, "createdAt"),
+    updatedAt: pickString(companyData, "updatedAt"),
+  });
+}
+
 export async function listCompanyVehicles(db, input) {
   const vehicleLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 50;
+  if (shouldUsePostgresCompanyFleetStore()) {
+    const vehiclesSynced = await isCompanyVehiclesSyncedInPostgres(input.companyId).catch(() => false);
+    if (vehiclesSynced) {
+      const items = await listCompanyVehiclesFromPostgres(input.companyId, vehicleLimit).catch(() => null);
+      if (items) {
+        return { items };
+      }
+    }
+  }
+
   const vehiclesSnapshot = await db
     .collection("companies")
     .doc(input.companyId)
@@ -117,6 +162,13 @@ export async function listCompanyVehicles(db, input) {
     .filter((item) => item !== null)
     .sort((left, right) => (parseIsoToMs(right.updatedAt) ?? 0) - (parseIsoToMs(left.updatedAt) ?? 0));
 
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await backfillCompanyRecordFromFirestore(db, input.companyId).catch(() => false);
+    await replaceCompanyVehiclesForCompany(input.companyId, items, new Date().toISOString()).catch(
+      () => false,
+    );
+  }
+
   return { items };
 }
 
@@ -139,7 +191,7 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
   const nowIso = new Date().toISOString();
   const companyRef = db.collection("companies").doc(input.companyId);
 
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const companySnapshot = await transaction.get(companyRef);
     if (!companySnapshot.exists) {
       throw new HttpError(404, "not-found", "Firma bulunamadi.");
@@ -198,6 +250,27 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
       vehicle: buildVehicleItem(vehicleRef.id, input.companyId, vehicleData),
     };
   });
+
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await backfillCompanyRecordFromFirestore(db, input.companyId).catch(() => false);
+    await syncCompanyVehicleToPostgres({
+      vehicleId: result.vehicleId,
+      companyId: input.companyId,
+      ownerType: "company",
+      plate: result.vehicle.plate,
+      status: result.vehicle.status,
+      brand: result.vehicle.brand,
+      model: result.vehicle.model,
+      year: result.vehicle.year,
+      capacity: result.vehicle.capacity,
+      createdAt: result.vehicle.createdAt,
+      updatedAt: result.vehicle.updatedAt,
+      createdBy: actorUid,
+      updatedBy: actorUid,
+    }).catch(() => false);
+  }
+
+  return result;
 }
 
 export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
@@ -256,7 +329,7 @@ export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
   const vehicleRef = companyRef.collection("vehicles").doc(input.vehicleId);
   const nowIso = patchPayload.updatedAt;
 
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const [companySnapshot, vehicleSnapshot] = await Promise.all([
       transaction.get(companyRef),
       transaction.get(vehicleRef),
@@ -317,6 +390,25 @@ export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
       }),
     };
   });
+
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await syncCompanyVehicleToPostgres({
+      vehicleId: result.vehicleId,
+      companyId: input.companyId,
+      ownerType: "company",
+      plate: result.vehicle.plate,
+      status: result.vehicle.status,
+      brand: result.vehicle.brand,
+      model: result.vehicle.model,
+      year: result.vehicle.year,
+      capacity: result.vehicle.capacity,
+      createdAt: result.vehicle.createdAt,
+      updatedAt: result.vehicle.updatedAt,
+      updatedBy: actorUid,
+    }).catch(() => false);
+  }
+
+  return result;
 }
 
 export async function deleteCompanyVehicle(db, actorUid, actorRole, input) {
@@ -324,7 +416,7 @@ export async function deleteCompanyVehicle(db, actorUid, actorRole, input) {
   const vehicleRef = companyRef.collection("vehicles").doc(input.vehicleId);
   const nowIso = new Date().toISOString();
 
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const [companySnapshot, vehicleSnapshot] = await Promise.all([
       transaction.get(companyRef),
       transaction.get(vehicleRef),
@@ -383,4 +475,10 @@ export async function deleteCompanyVehicle(db, actorUid, actorRole, input) {
       deletedAt: nowIso,
     };
   });
+
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await deleteCompanyVehicleFromPostgres(input.companyId, input.vehicleId).catch(() => false);
+  }
+
+  return result;
 }

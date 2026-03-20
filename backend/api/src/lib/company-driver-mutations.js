@@ -1,6 +1,11 @@
 import { FieldValue } from "firebase-admin/firestore";
 
 import { upsertAuthUserProfile } from "./auth-user-store.js";
+import {
+  shouldUsePostgresCompanyFleetStore,
+  syncCompanyDriverToPostgres,
+} from "./company-fleet-store.js";
+import { backfillCompanyFromFirestoreRecord } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { asRecord, pickString } from "./runtime-value.js";
@@ -133,6 +138,30 @@ function generateLoginEmail(name) {
   return `${slug}.${suffix}@neredeservis.app`;
 }
 
+async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
+  if (!companySnapshot?.exists) {
+    return false;
+  }
+
+  const companyData = asRecord(companySnapshot.data()) ?? {};
+  return backfillCompanyFromFirestoreRecord({
+    companyId,
+    name: pickString(companyData, "name"),
+    legalName: pickString(companyData, "legalName"),
+    status: pickString(companyData, "status"),
+    billingStatus: pickString(companyData, "billingStatus"),
+    timezone: pickString(companyData, "timezone"),
+    countryCode: pickString(companyData, "countryCode"),
+    contactPhone: pickString(companyData, "contactPhone"),
+    contactEmail: pickString(companyData, "contactEmail"),
+    logoUrl: pickString(companyData, "logoUrl"),
+    address: pickString(companyData, "address"),
+    createdBy: pickString(companyData, "createdBy"),
+    createdAt: pickString(companyData, "createdAt"),
+    updatedAt: pickString(companyData, "updatedAt"),
+  });
+}
+
 export async function createCompanyDriverAccount(db, actorUid, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   const name = normalizeName(input?.name);
@@ -200,6 +229,25 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
       },
     ),
   ]);
+
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await backfillCompanyRecordFromSnapshot(companyId, companySnapshot).catch(() => false);
+    await syncCompanyDriverToPostgres({
+      driverId: uid,
+      companyId,
+      name,
+      status: "active",
+      phone,
+      plate,
+      loginEmail,
+      temporaryPassword,
+      mobileOnly: true,
+      createdBy: actorUid,
+      updatedBy: actorUid,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }).catch(() => false);
+  }
 
   return {
     credentials: {
@@ -297,11 +345,30 @@ export async function updateCompanyDriverStatus(db, actorUid, input) {
     throw new HttpError(403, "permission-denied", "Sofor bu sirkete ait degil.");
   }
 
+  const updatedAt = new Date().toISOString();
   await driverRef.update({
     status,
-    updatedAt: new Date().toISOString(),
+    updatedAt,
     updatedBy: actorUid,
   });
+
+  if (shouldUsePostgresCompanyFleetStore()) {
+    await syncCompanyDriverToPostgres({
+      driverId,
+      companyId,
+      name: pickString(driverData, "name"),
+      status,
+      phone: pickString(driverData, "phone"),
+      plate: pickString(driverData, "plate"),
+      loginEmail: pickString(driverData, "loginEmail"),
+      temporaryPassword: pickString(driverData, "temporaryPassword"),
+      mobileOnly: driverData.mobileOnly === true,
+      createdBy: pickString(driverData, "createdBy"),
+      updatedBy: actorUid,
+      createdAt: pickString(driverData, "createdAt"),
+      updatedAt,
+    }).catch(() => false);
+  }
 
   return { driverId, status };
 }
