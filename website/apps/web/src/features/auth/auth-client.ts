@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  confirmPasswordReset as firebaseConfirmPasswordReset,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   OAuthProvider,
@@ -13,6 +14,7 @@ import {
   signInWithPopup,
   signOut,
   updateProfile,
+  verifyPasswordResetCode as firebaseVerifyPasswordResetCode,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -30,6 +32,10 @@ export type CurrentUserWebAccessPolicy = {
   role: string | null;
   allowWebPanel: boolean;
   reason: WebAccessBlockReason | null;
+};
+
+export type EmailPasswordRegistrationResult = {
+  verificationEmailSent: boolean;
 };
 
 export const AUTH_SESSION_CHANGED_EVENT_NAME = "ns-auth-session-changed";
@@ -164,6 +170,23 @@ export async function signInWithEmailPassword(input: {
   email: string;
   password: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ user?: unknown }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/login",
+      method: "POST",
+      auth: false,
+      body: {
+        email: input.email.trim(),
+        password: input.password,
+      },
+    });
+    setClientSessionCookie(true);
+    notifyAuthSessionChanged();
+    return;
+  }
+
   const auth = getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -176,7 +199,28 @@ export async function signInWithEmailPassword(input: {
 export async function registerWithEmailPassword(input: {
   email: string;
   password: string;
-}): Promise<void> {
+  displayName?: string;
+}): Promise<EmailPasswordRegistrationResult> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const response = await callBackendApi<{ verificationEmailSent?: unknown }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/register",
+      method: "POST",
+      auth: false,
+      body: {
+        email: input.email.trim(),
+        password: input.password,
+        displayName: input.displayName?.trim() || undefined,
+      },
+    });
+    setClientSessionCookie(true);
+    notifyAuthSessionChanged();
+    return {
+      verificationEmailSent: asRecord(response.data)?.verificationEmailSent === true,
+    };
+  }
+
   const auth = getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -184,6 +228,7 @@ export async function registerWithEmailPassword(input: {
 
   await createUserWithEmailAndPassword(auth, input.email.trim(), input.password);
   await exchangeCurrentFirebaseSessionForBackendCookie();
+  return { verificationEmailSent: false };
 }
 
 export async function signInWithGooglePopup(): Promise<void> {
@@ -235,6 +280,12 @@ export async function signOutCurrentUser(): Promise<void> {
 }
 
 export async function sendEmailVerificationForCurrentUser(): Promise<void> {
+  if (getBackendApiBaseUrl()) {
+    const error = new Error("EMAIL_VERIFICATION_RESEND_UNAVAILABLE");
+    (error as { code?: string }).code = "auth/operation-not-supported-in-this-environment";
+    throw error;
+  }
+
   const auth = getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
@@ -317,6 +368,71 @@ export async function sendPasswordResetEmailForAddress(email: string): Promise<v
   }
 
   await sendPasswordResetEmail(auth, normalized);
+}
+
+export async function verifyPasswordResetCodeForFlow(
+  oobCode: string,
+): Promise<{ email: string | null }> {
+  const normalizedCode = oobCode.trim();
+  if (!normalizedCode) {
+    const error = new Error("OOB_CODE_REQUIRED");
+    (error as { code?: string }).code = "auth/invalid-action-code";
+    throw error;
+  }
+
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const response = await callBackendApi<{ email?: unknown }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/password-reset/verify",
+      method: "POST",
+      auth: false,
+      body: { oobCode: normalizedCode },
+    });
+    const responseData = asRecord(response.data);
+    return {
+      email: typeof responseData?.email === "string" ? responseData.email : null,
+    };
+  }
+
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const email = await firebaseVerifyPasswordResetCode(auth, normalizedCode);
+  return { email: typeof email === "string" ? email : null };
+}
+
+export async function confirmPasswordResetForFlow(input: {
+  oobCode: string;
+  password: string;
+}): Promise<void> {
+  const normalizedCode = input.oobCode.trim();
+  if (!normalizedCode) {
+    const error = new Error("OOB_CODE_REQUIRED");
+    (error as { code?: string }).code = "auth/invalid-action-code";
+    throw error;
+  }
+
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ success?: boolean }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/password-reset/confirm",
+      method: "POST",
+      auth: false,
+      body: { oobCode: normalizedCode, password: input.password },
+    });
+    return;
+  }
+
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  await firebaseConfirmPasswordReset(auth, normalizedCode, input.password);
 }
 
 export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAccessPolicy> {

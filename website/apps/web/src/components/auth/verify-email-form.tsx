@@ -11,25 +11,29 @@ import {
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import { requiresEmailVerification } from "@/features/auth/auth-guard-utils";
 import { CheckCircleIcon, RefreshIcon } from "@/components/shared/app-icons";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. E-posta doğrulama tetiklenemiyor.";
+      return "Kimlik dogrulama yapilandirmasi eksik. E-posta dogrulama baslatilamadi.";
     }
     if (code === "auth/too-many-requests") {
-      return "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.";
+      return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";
     }
     if (code === "auth/network-request-failed") {
-      return "Ağ hatası. Bağlantını kontrol et.";
+      return "Ag hatasi. Baglantini kontrol et.";
+    }
+    if (code === "auth/operation-not-supported-in-this-environment") {
+      return "Bu asamada tekrar gonderim desteklenmiyor. Gelen kutunu ve spam klasorunu kontrol et.";
     }
     if (code === "auth/unauthorized-continue-uri" || code === "auth/invalid-continue-uri") {
-      return "Doğrulama linki oluşturulamadı. Firebase Auth authorized domains ayarını kontrol et.";
+      return "Dogrulama linki olusturulamadi. Yetkili domain ayarini kontrol et.";
     }
-    return code ? `Doğrulama hatası (${code})` : error.message;
+    return code ? `Dogrulama hatasi (${code})` : error.message;
   }
-  return "Beklenmeyen hata oluştu.";
+  return "Beklenmeyen hata olustu.";
 }
 
 export function VerifyEmailForm() {
@@ -37,6 +41,8 @@ export function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const { status, user } = useAuthSession();
   const nextPath = searchParams.get("next") || "/dashboard";
+  const verificationState = searchParams.get("verification");
+  const backendSessionEnabled = Boolean(getBackendApiBaseUrl());
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"send" | "refresh" | "switch" | null>(null);
@@ -59,17 +65,35 @@ export function VerifyEmailForm() {
     if (status !== "signed_in" || !needsVerification || autoSendAttempted) {
       return;
     }
+
+    if (backendSessionEnabled) {
+      setAutoSendAttempted(true);
+      if (verificationState === "sent") {
+        setFeedbackMessage(
+          "Dogrulama e-postasi kayit sirasinda gonderildi. Gelen kutusu ve spam klasorunu kontrol et.",
+        );
+      } else if (verificationState === "pending") {
+        setFeedbackMessage(
+          "Hesap acildi ancak dogrulama e-postasi tekrar gonderilemedi. Gelmediyse daha sonra yeniden kayit akisini deneyin.",
+        );
+      }
+      return;
+    }
+
     let active = true;
     setAutoSendAttempted(true);
     setPendingAction("send");
     setErrorMessage(null);
     setFeedbackMessage(null);
+
     sendEmailVerificationForCurrentUser()
       .then(() => {
         if (!active) {
           return;
         }
-        setFeedbackMessage("Doğrulama e-postası otomatik gönderildi. Gelen kutusu ve spam klasörünü kontrol et.");
+        setFeedbackMessage(
+          "Dogrulama e-postasi otomatik gonderildi. Gelen kutusu ve spam klasorunu kontrol et.",
+        );
       })
       .catch((error) => {
         if (!active) {
@@ -87,14 +111,14 @@ export function VerifyEmailForm() {
     return () => {
       active = false;
     };
-  }, [autoSendAttempted, needsVerification, status]);
+  }, [autoSendAttempted, backendSessionEnabled, needsVerification, status, verificationState]);
 
   if (status === "loading") {
     return <div className="text-sm text-muted">Oturum bilgisi kontrol ediliyor...</div>;
   }
 
   if (status !== "signed_in") {
-    return <div className="text-sm text-muted">Giriş sayfasına yönlendiriliyor...</div>;
+    return <div className="text-sm text-muted">Giris sayfasina yonlendiriliyor...</div>;
   }
 
   const handleSendVerification = async () => {
@@ -103,7 +127,7 @@ export function VerifyEmailForm() {
     setPendingAction("send");
     try {
       await sendEmailVerificationForCurrentUser();
-      setFeedbackMessage("Doğrulama e-postası gönderildi. Gelen kutunu kontrol et.");
+      setFeedbackMessage("Dogrulama e-postasi gonderildi. Gelen kutunu kontrol et.");
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
@@ -121,7 +145,9 @@ export function VerifyEmailForm() {
         router.replace(nextPath);
         return;
       }
-      setFeedbackMessage("Doğrulama henüz tamamlanmamış görünüyor. Mail linkine tıklayıp tekrar dene.");
+      setFeedbackMessage(
+        "Dogrulama henuz tamamlanmamis gorunuyor. Mail linkine tiklayip tekrar dene.",
+      );
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
@@ -147,8 +173,8 @@ export function VerifyEmailForm() {
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-line bg-slate-50 p-3 text-sm text-slate-700">
-        <div className="font-semibold text-slate-900">Doğrulanacak e-posta</div>
-        <div className="mt-1">{user?.email ?? "E-posta bulunamadı"}</div>
+        <div className="font-semibold text-slate-900">Dogrulanacak e-posta</div>
+        <div className="mt-1">{user?.email ?? "E-posta bulunamadi"}</div>
       </div>
 
       {feedbackMessage ? (
@@ -163,21 +189,23 @@ export function VerifyEmailForm() {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        disabled={pendingAction !== null}
-        onClick={handleSendVerification}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {pendingAction === "send" ? (
-          <>
-            <RefreshIcon className="h-4 w-4" />
-            Gönderiliyor...
-          </>
-        ) : (
-          "Doğrulama E-postası Gönder"
-        )}
-      </button>
+      {!backendSessionEnabled ? (
+        <button
+          type="button"
+          disabled={pendingAction !== null}
+          onClick={handleSendVerification}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {pendingAction === "send" ? (
+            <>
+              <RefreshIcon className="h-4 w-4" />
+              Gonderiliyor...
+            </>
+          ) : (
+            "Dogrulama E-postasi Gonder"
+          )}
+        </button>
+      ) : null}
 
       <button
         type="button"
@@ -193,20 +221,20 @@ export function VerifyEmailForm() {
         ) : (
           <>
             <CheckCircleIcon className="h-4 w-4" />
-            Doğrulamayı Kontrol Et
+            Dogrulamayi Kontrol Et
           </>
         )}
       </button>
 
       <div className="pt-1 text-center text-sm text-muted">
-        Yanlış hesapla mı girdin?{" "}
+        Yanlis hesapla mi girdin?{" "}
         <button
           type="button"
           disabled={pendingAction !== null}
           onClick={handleSwitchAccount}
           className="font-semibold text-brand hover:text-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {pendingAction === "switch" ? "Çıkış yapılıyor..." : "Çıkış yap ve giriş sayfasına dön"}
+          {pendingAction === "switch" ? "Cikis yapiliyor..." : "Cikis yap ve giris sayfasina don"}
         </button>
       </div>
     </div>

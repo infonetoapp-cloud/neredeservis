@@ -98,8 +98,15 @@ export function RegisterForm() {
 
     setPendingAction("email");
     try {
-      await registerWithEmailPassword({ email, password });
-      router.replace(`/verify-email?next=${encodeURIComponent(nextPath)}`);
+      const result = await registerWithEmailPassword({
+        email,
+        password,
+        displayName: fullName,
+      });
+      const verificationState = result.verificationEmailSent ? "sent" : "pending";
+      router.replace(
+        `/verify-email?next=${encodeURIComponent(nextPath)}&verification=${verificationState}`,
+      );
     } catch (error) {
       setErrorMessage(toFriendlyErrorMessage(error));
     } finally {
