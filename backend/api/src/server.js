@@ -3,6 +3,11 @@ import { createServer } from "node:http";
 import { listActiveTripsByCompany } from "./lib/company-active-trips.js";
 import { requireAuthenticatedUser } from "./lib/auth.js";
 import {
+  clearWebSessionCookie,
+  exchangeIdTokenForWebSession,
+  readCurrentAuthSessionUser,
+} from "./lib/auth-session.js";
+import {
   getCurrentUserWebAccessPolicy,
   prepareCorporateLoginAttempt,
   reportCorporateLoginResult,
@@ -71,6 +76,7 @@ import {
   storeCompanyLogoFromRequest,
 } from "./lib/company-logo-storage.js";
 import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
+import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
 import { getFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import {
   generateRouteShareLink,
@@ -580,6 +586,18 @@ function isAuthLoginContextPath(pathname) {
   return pathname === "/api/auth/login-context";
 }
 
+function isAuthSessionPath(pathname) {
+  return pathname === "/api/auth/session";
+}
+
+function isAuthSessionExchangePath(pathname) {
+  return pathname === "/api/auth/session/exchange";
+}
+
+function isAuthLogoutPath(pathname) {
+  return pathname === "/api/auth/logout";
+}
+
 function isAuthPasswordResetPath(pathname) {
   return pathname === "/api/auth/password-reset";
 }
@@ -704,6 +722,11 @@ const server = createServer(async (request, response) => {
   const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 
   try {
+    if (handleCorsPreflight(request, response)) {
+      return;
+    }
+    applyCorsHeaders(request, response);
+
     if (requestUrl.pathname === "/healthz" || requestUrl.pathname === "/readyz") {
       sendJson(response, 200, {
         ok: true,
@@ -778,6 +801,31 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const result = resolveCorporateLoginContext(decodedToken);
       sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const decodedToken = await exchangeIdTokenForWebSession(response, asRecord(body)?.idToken);
+      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      sendApiOk(response, 200, { user });
+      return;
+    }
+
+    if (request.method === "GET" && isAuthSessionPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      const webAccessPolicy = await getCurrentUserWebAccessPolicy(db, decodedToken.uid);
+      sendApiOk(response, 200, {
+        user,
+        webAccessPolicy,
+      });
+      return;
+    }
+
+    if (request.method === "POST" && isAuthLogoutPath(requestUrl.pathname)) {
+      clearWebSessionCookie(response);
+      sendApiOk(response, 200, { success: true });
       return;
     }
 
