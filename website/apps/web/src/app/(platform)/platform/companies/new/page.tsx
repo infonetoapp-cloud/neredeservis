@@ -13,7 +13,7 @@ export default function PlatformCreateCompanyPage() {
   const [vehicleLimit, setVehicleLimit] = useState(10);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [createdState, setCreatedState] = useState<{ loginUrl: string | null } | null>(null);
 
   const isValid = companyName.trim().length >= 2 && ownerEmail.includes("@") && vehicleLimit > 0;
 
@@ -31,11 +31,11 @@ export default function PlatformCreateCompanyPage() {
         vehicleLimit,
       });
 
-      if (result.passwordResetLink) {
-        setResetLink(result.passwordResetLink);
-      } else {
-        router.push("/platform/companies");
+      if (result.notificationSent) {
+        setCreatedState({ loginUrl: result.loginUrl });
+        return;
       }
+      router.push("/platform/companies");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bilinmeyen hata olustu.");
     } finally {
@@ -43,7 +43,7 @@ export default function PlatformCreateCompanyPage() {
     }
   };
 
-  if (resetLink) {
+  if (createdState) {
     return (
       <div className="mx-auto max-w-lg space-y-6">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
@@ -52,16 +52,21 @@ export default function PlatformCreateCompanyPage() {
             <strong>{companyName}</strong> için şirket kaydi olusturuldu.
             Asagidaki şifre belirleme linkini yetkili kişiye iletin:
           </p>
-          <div className="mt-3 rounded-xl border border-emerald-300 bg-white p-3">
-            <code className="block break-all text-xs text-slate-700">{resetLink}</code>
+          <div className="mt-3 rounded-xl border border-emerald-300 bg-white p-3 text-sm text-slate-700">
+            Yetkili kullanici maildeki link ile sifresini kurabilir.
+            {createdState.loginUrl ? (
+              <>
+                {" "}Giris sayfasi:{" "}
+                <a
+                  href={createdState.loginUrl}
+                  className="font-medium text-emerald-700 underline underline-offset-2"
+                >
+                  {createdState.loginUrl}
+                </a>
+              </>
+            ) : null}
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <button
-              onClick={() => void navigator.clipboard.writeText(resetLink)}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
-            >
-              Linki Kopyala
-            </button>
             <Link
               href="/platform/companies"
               className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition"

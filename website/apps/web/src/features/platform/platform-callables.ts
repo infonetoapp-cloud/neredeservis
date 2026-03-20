@@ -61,7 +61,8 @@ interface BackendCreateCompanyResult {
   companyId: string;
   ownerUid: string;
   ownerEmail: string;
-  passwordResetLink: string;
+  notificationSent?: boolean;
+  loginUrl?: string;
   createdAt: string;
 }
 
@@ -221,7 +222,7 @@ export async function platformGetCompanyDetail(
 
 export async function platformCreateCompany(
   input: CreateCompanyInput,
-): Promise<{ companyId: string; passwordResetLink: string }> {
+): Promise<{ companyId: string; notificationSent: boolean; loginUrl: string | null }> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
   if (backendApiBaseUrl) {
     const result = await callBackendApi<BackendCreateCompanyResult>({
@@ -237,7 +238,8 @@ export async function platformCreateCompany(
 
     return {
       companyId: result.data?.companyId ?? "",
-      passwordResetLink: result.data?.passwordResetLink ?? "",
+      notificationSent: result.data?.notificationSent === true,
+      loginUrl: result.data?.loginUrl ?? null,
     };
   }
 
@@ -252,7 +254,8 @@ export async function platformCreateCompany(
 
   return {
     companyId: result.data.companyId,
-    passwordResetLink: result.data.passwordResetLink,
+    notificationSent: true,
+    loginUrl: null,
   };
 }
 
@@ -300,22 +303,28 @@ export async function platformSetCompanyStatus(
 
 export async function platformResetOwnerPassword(
   companyId: string,
-): Promise<{ loginLink: string }> {
+): Promise<{ notificationSent: boolean; loginUrl: string | null }> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
   if (backendApiBaseUrl) {
-    const result = await callBackendApi<{ loginLink: string }>({
+    const result = await callBackendApi<{ notificationSent?: boolean; loginUrl?: string }>({
       baseUrl: backendApiBaseUrl,
       path: `api/platform/companies/${encodeURIComponent(companyId)}/reset-owner-password`,
       method: "POST",
     });
-    return { loginLink: result.data?.loginLink ?? "" };
+    return {
+      notificationSent: result.data?.notificationSent === true,
+      loginUrl: result.data?.loginUrl ?? null,
+    };
   }
 
   const result = await callFirebaseCallable<
     { companyId: string },
     { loginLink: string }
   >("platformResetOwnerPassword", { companyId });
-  return { loginLink: result.data.loginLink };
+  return {
+    notificationSent: Boolean(result.data.loginLink),
+    loginUrl: result.data.loginLink || null,
+  };
 }
 
 export async function platformDeleteCompany(companyId: string): Promise<void> {
