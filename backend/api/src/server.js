@@ -1096,12 +1096,13 @@ const server = createServer(async (request, response) => {
 
       const body = await readJsonBody(request);
       const rawBody = asRecord(body) ?? {};
-      const result = await inviteCompanyMember(db, decodedToken.uid, memberRole, {
-        companyId: companyMembersParams.companyId,
-        email: rawBody.email,
-        role: rawBody.role,
-      });
-      sendApiOk(response, 201, result);
+        const result = await inviteCompanyMember(db, decodedToken.uid, memberRole, {
+          companyId: companyMembersParams.companyId,
+          email: rawBody.email,
+          memberUid: rawBody.memberUid,
+          role: rawBody.role,
+        });
+        sendApiOk(response, 201, result);
       return;
     }
 

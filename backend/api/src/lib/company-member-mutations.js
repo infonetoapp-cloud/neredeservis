@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { findUserProfileByEmail } from "./auth-user-store.js";
+import { findUserProfileByEmail, readUserProfileByUid } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -90,14 +90,36 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
     throw new HttpError(403, "permission-denied", "Admin rolunde kullanici admin daveti gonderemez.");
   }
 
-  const normalizedEmail = normalizeEmail(input?.email);
-  const targetUser = await findUserProfileByEmail(db, normalizedEmail);
+  const rawEmail = typeof input?.email === "string" ? input.email.trim() : "";
+  const rawMemberUid = typeof input?.memberUid === "string" ? input.memberUid.trim() : "";
+
+  let targetUser = null;
+  let normalizedEmail = "";
+  if (rawEmail) {
+    normalizedEmail = normalizeEmail(rawEmail);
+    targetUser = await findUserProfileByEmail(db, normalizedEmail);
+  } else if (rawMemberUid) {
+    targetUser = await readUserProfileByUid(db, rawMemberUid);
+    normalizedEmail = normalizeEmail(targetUser?.email);
+  } else {
+    throw new HttpError(400, "invalid-argument", "email veya memberUid gereklidir.");
+  }
+
   const targetUid = targetUser?.uid ?? "";
   if (!targetUid) {
     throw new HttpError(
       412,
       "failed-precondition",
-      "INVITE_EMAIL_NOT_FOUND: Bu e-posta ile kayitli kullanici bulunamadi.",
+      rawEmail
+        ? "INVITE_EMAIL_NOT_FOUND: Bu e-posta ile kayitli kullanici bulunamadi."
+        : "INVITE_MEMBER_NOT_FOUND: Bu uid ile kayitli kullanici bulunamadi.",
+    );
+  }
+  if (!normalizedEmail) {
+    throw new HttpError(
+      412,
+      "failed-precondition",
+      "INVITE_MEMBER_EMAIL_MISSING: Davet gonderilecek kullanicinin e-postasi bulunamadi.",
     );
   }
 
