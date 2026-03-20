@@ -9,9 +9,8 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
-FROM base AS builder
+FROM deps AS builder
 
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_OPTIONS=--max_old_space_size=768
 RUN pnpm run build
