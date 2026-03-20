@@ -1,8 +1,7 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
   type ApiOk,
@@ -14,34 +13,18 @@ export async function listCompanyVehiclesForCompany(input: {
   companyId: string;
   limit?: number;
 }): Promise<CompanyVehicleItem[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const query = new URLSearchParams();
-      if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
-        query.set("limit", String(Math.trunc(input.limit)));
-      }
-
-      const response = await callBackendApi<{ items?: unknown }>({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/vehicles${
-          query.size > 0 ? `?${query.toString()}` : ""
-        }`,
-      });
-      return parseCompanyVehicleItems(response.data?.items);
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    const response = await callFirebaseCallable<
-      { companyId: string; limit?: number },
-      { items?: unknown }
-    >("listCompanyVehicles", {
-      companyId: input.companyId.trim(),
-      limit: input.limit,
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+      query.set("limit", String(Math.trunc(input.limit)));
+    }
+
+    const response = await callBackendApi<{ items?: unknown }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
     });
     return parseCompanyVehicleItems(response.data?.items);
   } catch (error) {
@@ -60,54 +43,9 @@ export async function createCompanyVehicleForCompany(input: {
   capacity?: number;
   status?: "active" | "maintenance" | "inactive";
 }): Promise<CompanyVehicleItem> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const payload: Record<string, unknown> = {
-        plate: input.plate.trim(),
-        ownerType: input.ownerType ?? "company",
-      };
-      const label = input.label?.trim();
-      if (label) payload.label = label;
-      const brand = input.brand?.trim();
-      if (brand) payload.brand = brand;
-      const model = input.model?.trim();
-      if (model) payload.model = model;
-      if (input.year != null) payload.year = input.year;
-      if (input.capacity != null) payload.capacity = input.capacity;
-      if (input.status != null) payload.status = input.status;
-
-      const response = await callBackendApi<{ vehicle?: unknown }>({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/vehicles`,
-        method: "POST",
-        body: payload,
-      });
-      const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
-      const vehicle = vehicles[0];
-      if (!vehicle) {
-        throw new Error("CREATE_COMPANY_VEHICLE_RESPONSE_INVALID");
-      }
-      return vehicle;
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    const payload: {
-      companyId: string;
-      plate: string;
-      ownerType?: "company";
-      label?: string;
-      brand?: string;
-      model?: string;
-      year?: number | null;
-      capacity?: number;
-      status?: "active" | "maintenance" | "inactive";
-    } = {
-      companyId: input.companyId.trim(),
+    const companyId = input.companyId.trim();
+    const payload: Record<string, unknown> = {
       plate: input.plate.trim(),
       ownerType: input.ownerType ?? "company",
     };
@@ -121,10 +59,12 @@ export async function createCompanyVehicleForCompany(input: {
     if (input.capacity != null) payload.capacity = input.capacity;
     if (input.status != null) payload.status = input.status;
 
-    const response = await callFirebaseCallable<typeof payload, { vehicle?: unknown }>(
-      "createVehicle",
-      payload,
-    );
+    const response = await callBackendApi<{ vehicle?: unknown }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles`,
+      method: "POST",
+      body: payload,
+    });
     const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
     const vehicle = vehicles[0];
     if (!vehicle) {
@@ -146,36 +86,6 @@ export async function updateCompanyVehicleForCompany(input: {
   capacity?: number | null;
   status?: "active" | "maintenance" | "inactive";
 }): Promise<CompanyVehicleItem> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const vehicleId = input.vehicleId.trim();
-      const patch: Record<string, unknown> = {};
-      if (input.plate !== undefined) patch.plate = input.plate.trim();
-      if (input.brand !== undefined) patch.brand = input.brand;
-      if (input.model !== undefined) patch.model = input.model;
-      if (input.year !== undefined) patch.year = input.year;
-      if (input.capacity !== undefined) patch.capacity = input.capacity;
-      if (input.status !== undefined) patch.status = input.status;
-
-      const response = await callBackendApi<{ vehicle?: unknown }>({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/vehicles/${encodeURIComponent(vehicleId)}`,
-        method: "PATCH",
-        body: patch,
-      });
-      const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
-      const vehicle = vehicles[0];
-      if (!vehicle) {
-        throw new Error("UPDATE_COMPANY_VEHICLE_RESPONSE_INVALID");
-      }
-      return vehicle;
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
     const patch: Record<string, unknown> = {};
     if (input.plate !== undefined) patch.plate = input.plate.trim();
@@ -185,17 +95,11 @@ export async function updateCompanyVehicleForCompany(input: {
     if (input.capacity !== undefined) patch.capacity = input.capacity;
     if (input.status !== undefined) patch.status = input.status;
 
-    const response = await callFirebaseCallable<
-      {
-        companyId: string;
-        vehicleId: string;
-        patch: Record<string, unknown>;
-      },
-      { vehicle?: unknown }
-    >("updateVehicle", {
-      companyId: input.companyId.trim(),
-      vehicleId: input.vehicleId.trim(),
-      patch,
+    const response = await callBackendApi<{ vehicle?: unknown }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/vehicles/${encodeURIComponent(input.vehicleId.trim())}`,
+      method: "PATCH",
+      body: patch,
     });
     const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
     const vehicle = vehicles[0];
@@ -212,32 +116,11 @@ export async function deleteCompanyVehicleForCompany(input: {
   companyId: string;
   vehicleId: string;
 }): Promise<void> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const vehicleId = input.vehicleId.trim();
-      await callBackendApi({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/vehicles/${encodeURIComponent(vehicleId)}`,
-        method: "DELETE",
-      });
-      return;
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    await callFirebaseCallable<
-      {
-        companyId: string;
-        vehicleId: string;
-      },
-      { deleted?: boolean }
-    >("deleteVehicle", {
-      companyId: input.companyId.trim(),
-      vehicleId: input.vehicleId.trim(),
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/vehicles/${encodeURIComponent(input.vehicleId.trim())}`,
+      method: "DELETE",
     });
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));

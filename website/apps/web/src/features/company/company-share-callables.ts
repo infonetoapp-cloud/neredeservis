@@ -1,8 +1,7 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import type {
   DynamicRoutePreviewResponse,
   GenerateRouteShareLinkResponse,
@@ -144,24 +143,15 @@ export async function generateRouteShareLinkCallable(input: {
   routeId: string;
   customText?: string;
 }): Promise<GenerateRouteShareLinkResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const routeId = input.routeId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/routes/${encodeURIComponent(routeId)}/share-link`,
-      method: "POST",
-      body: {
-        ...(input.customText !== undefined ? { customText: input.customText } : {}),
-      },
-    });
-    return ensureGenerateRouteShareLinkResponse(envelope.data, "generateRouteShareLink");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "generateRouteShareLink",
-    input,
-  );
+  const routeId = input.routeId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/routes/${encodeURIComponent(routeId)}/share-link`,
+    method: "POST",
+    body: {
+      ...(input.customText !== undefined ? { customText: input.customText } : {}),
+    },
+  });
   return ensureGenerateRouteShareLinkResponse(envelope.data, "generateRouteShareLink");
 }
 
@@ -169,19 +159,10 @@ export async function getDynamicRoutePreviewCallable(input: {
   srvCode: string;
   token: string;
 }): Promise<DynamicRoutePreviewResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const data = await callPublicBackendRoutePreview<unknown>({
-      baseUrl: backendApiBaseUrl,
-      srvCode: input.srvCode.trim().toUpperCase(),
-      token: input.token,
-    });
-    return ensureDynamicRoutePreviewResponse(data, "getDynamicRoutePreview");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "getDynamicRoutePreview",
-    input,
-  );
-  return ensureDynamicRoutePreviewResponse(envelope.data, "getDynamicRoutePreview");
+  const data = await callPublicBackendRoutePreview<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    srvCode: input.srvCode.trim().toUpperCase(),
+    token: input.token,
+  });
+  return ensureDynamicRoutePreviewResponse(data, "getDynamicRoutePreview");
 }

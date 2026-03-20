@@ -1,8 +1,7 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
   type ApiOk,
@@ -118,32 +117,19 @@ export async function listDriverDocumentsForCompany(input: {
   companyId: string;
   driverId?: string;
 }): Promise<DriverDocumentSummary[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const query = new URLSearchParams();
-      const driverId = input.driverId?.trim();
-      if (driverId) {
-        query.set("driverId", driverId);
-      }
-      const response = await callBackendApi<{ items?: unknown[] }>({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/driver-documents${
-          query.size > 0 ? `?${query.toString()}` : ""
-        }`,
-      });
-      return parseDriverDocumentSummaries(response.data?.items ?? []);
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    const response = await callFirebaseCallable<
-      { companyId: string; driverId?: string },
-      { items?: unknown[] }
-    >("listDriverDocuments", input);
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    const driverId = input.driverId?.trim();
+    if (driverId) {
+      query.set("driverId", driverId);
+    }
+    const response = await callBackendApi<{ items?: unknown[] }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/driver-documents${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
+    });
     return parseDriverDocumentSummaries(response.data?.items ?? []);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
@@ -159,49 +145,25 @@ export async function upsertDriverDocumentForCompany(input: {
   licenseClass?: string;
   note?: string;
 }): Promise<{ driverId: string; docType: DriverDocType; status: DriverDocStatus; updatedAt: string }> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const driverId = input.driverId.trim();
-      const response = await callBackendApi<{
-        driverId?: string;
-        docType?: string;
-        status?: string;
-        updatedAt?: string;
-      }>({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
-        method: "PUT",
-        body: {
-          ...(input.issueDate !== undefined ? { issueDate: input.issueDate } : {}),
-          ...(input.expiryDate !== undefined ? { expiryDate: input.expiryDate } : {}),
-          ...(input.licenseClass !== undefined ? { licenseClass: input.licenseClass } : {}),
-          ...(input.note !== undefined ? { note: input.note } : {}),
-        },
-      });
-      const data = response.data ?? {};
-      return {
-        driverId: (data.driverId as string) ?? input.driverId,
-        docType: (data.docType as DriverDocType) ?? input.docType,
-        status: readDocStatus(data.status),
-        updatedAt: (data.updatedAt as string) ?? new Date().toISOString(),
-      };
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    const response = await callFirebaseCallable<
-      typeof input,
-      {
-        driverId?: string;
-        docType?: string;
-        status?: string;
-        updatedAt?: string;
-      }
-    >("upsertDriverDocument", input);
+    const companyId = input.companyId.trim();
+    const driverId = input.driverId.trim();
+    const response = await callBackendApi<{
+      driverId?: string;
+      docType?: string;
+      status?: string;
+      updatedAt?: string;
+    }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
+      method: "PUT",
+      body: {
+        ...(input.issueDate !== undefined ? { issueDate: input.issueDate } : {}),
+        ...(input.expiryDate !== undefined ? { expiryDate: input.expiryDate } : {}),
+        ...(input.licenseClass !== undefined ? { licenseClass: input.licenseClass } : {}),
+        ...(input.note !== undefined ? { note: input.note } : {}),
+      },
+    });
     const data = response.data ?? {};
     return {
       driverId: (data.driverId as string) ?? input.driverId,
@@ -219,24 +181,14 @@ export async function deleteDriverDocumentForCompany(input: {
   driverId: string;
   docType: DriverDocType;
 }): Promise<void> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const companyId = input.companyId.trim();
-      const driverId = input.driverId.trim();
-      await callBackendApi({
-        baseUrl: backendApiBaseUrl,
-        path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
-        method: "DELETE",
-      });
-      return;
-    } catch (error) {
-      throw new Error(toFriendlyErrorMessage(error));
-    }
-  }
-
   try {
-    await callFirebaseCallable<typeof input, unknown>("deleteDriverDocument", input);
+    const companyId = input.companyId.trim();
+    const driverId = input.driverId.trim();
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
+      method: "DELETE",
+    });
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }

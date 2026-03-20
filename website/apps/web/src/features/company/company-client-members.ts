@@ -1,7 +1,7 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getBackendApiBaseUrl, requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 import {
@@ -19,13 +19,11 @@ import {
   toFriendlyErrorMessage,
 } from "./company-client-shared";
 export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembershipItem[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      const response = await callBackendApi<{ items?: unknown[] }>({
-        baseUrl: backendApiBaseUrl,
-        path: "/api/my/companies",
-      });
+  try {
+    const response = await callBackendApi<{ items?: unknown[] }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: "/api/my/companies",
+    });
       const rawItems = response.data?.items ?? [];
       const mapped = rawItems.map((item: unknown) => {
         const r = item as Record<string, unknown>;
@@ -42,8 +40,6 @@ export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembership
     } catch (error) {
       throw new Error(toFriendlyErrorMessage(error));
     }
-  }
-
   try {
     const response = await callFirebaseCallable<unknown, { items?: unknown[] }>("listMyCompanies", {});
     const rawItems = response.data?.items ?? [];
