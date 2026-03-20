@@ -1,4 +1,11 @@
-import type { FirebaseOptions } from "firebase/app";
+export type FirebasePublicConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  databaseURL: string;
+  appId?: string;
+  storageBucket?: string;
+};
 
 type RequiredKey =
   | "NEXT_PUBLIC_FIREBASE_API_KEY"
@@ -60,7 +67,7 @@ export function getPublicConfigValidation(): PublicConfigValidation {
   };
 }
 
-export function getFirebasePublicConfigOrNull(): FirebaseOptions | null {
+export function getFirebasePublicConfigOrNull(): FirebasePublicConfig | null {
   const validation = getPublicConfigValidation();
   if (!validation.ok) {
     return null;

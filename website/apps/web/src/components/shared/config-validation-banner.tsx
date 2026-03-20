@@ -1,10 +1,15 @@
 import { getPublicConfigValidation } from "@/lib/env/firebase-public-config";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 
 type Props = {
   scopeLabel: string;
 };
 
 export function ConfigValidationBanner({ scopeLabel }: Props) {
+  if (getBackendApiBaseUrl()) {
+    return null;
+  }
+
   const validation = getPublicConfigValidation();
 
   if (validation.ok) {
