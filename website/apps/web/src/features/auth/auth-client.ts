@@ -1,29 +1,27 @@
 "use client";
 
-import {
-  confirmPasswordReset as firebaseConfirmPasswordReset,
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  OAuthProvider,
-  reload,
-  sendEmailVerification,
-  type User,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-  verifyPasswordResetCode as firebaseVerifyPasswordResetCode,
-} from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-
 import { callBackendApi } from "@/lib/backend-api/client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { getFirebaseClientAuth, getFirebaseClientFirestore } from "@/lib/firebase/client";
 
 import type { AuthSessionUser } from "./auth-session-types";
+
+type FirebaseAuthModule = typeof import("firebase/auth");
+type FirebaseFirestoreModule = typeof import("firebase/firestore");
+type FirebaseClientModule = typeof import("@/lib/firebase/client");
+type FirebaseRuntime = {
+  authModule: FirebaseAuthModule;
+  firestoreModule: FirebaseFirestoreModule;
+  clientModule: FirebaseClientModule;
+};
+type FirebaseUserLike = {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  emailVerified: boolean;
+  providerData: Array<{ providerId: string | null }>;
+  getIdToken?: () => Promise<string>;
+};
 
 export type AuthStateListener = (user: AuthSessionUser | null) => void;
 export type WebAccessBlockReason = "DRIVER_MOBILE_ONLY_WEB_BLOCK";
@@ -40,6 +38,8 @@ export type EmailPasswordRegistrationResult = {
 
 export const AUTH_SESSION_CHANGED_EVENT_NAME = "ns-auth-session-changed";
 
+let firebaseRuntimePromise: Promise<FirebaseRuntime> | null = null;
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return null;
@@ -47,7 +47,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function mapFirebaseUserToAuthSessionUser(user: User | null): AuthSessionUser | null {
+function mapFirebaseUserToAuthSessionUser(user: FirebaseUserLike | null): AuthSessionUser | null {
   if (!user) {
     return null;
   }
@@ -100,6 +100,28 @@ function parseBackendSessionUser(value: unknown): AuthSessionUser | null {
   };
 }
 
+async function loadFirebaseRuntime(): Promise<FirebaseRuntime> {
+  if (!firebaseRuntimePromise) {
+    firebaseRuntimePromise = Promise.all([
+      import("firebase/auth"),
+      import("firebase/firestore"),
+      import("@/lib/firebase/client"),
+    ]).then(([authModule, firestoreModule, clientModule]) => ({
+      authModule,
+      firestoreModule,
+      clientModule,
+    }));
+  }
+
+  return firebaseRuntimePromise;
+}
+
+async function readCurrentFirebaseUser(): Promise<FirebaseUserLike | null> {
+  const { clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
+  return (auth?.currentUser as FirebaseUserLike | null | undefined) ?? null;
+}
+
 export function notifyAuthSessionChanged(): void {
   if (typeof window === "undefined") {
     return;
@@ -109,10 +131,9 @@ export function notifyAuthSessionChanged(): void {
 
 async function exchangeCurrentFirebaseSessionForBackendCookie(): Promise<void> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  const auth = getFirebaseClientAuth();
-  const currentUser = auth?.currentUser;
+  const currentUser = await readCurrentFirebaseUser();
 
-  if (!currentUser) {
+  if (!currentUser?.getIdToken) {
     setClientSessionCookie(false);
     notifyAuthSessionChanged();
     return;
@@ -159,11 +180,30 @@ export async function readCurrentAuthSessionFromBackend(): Promise<AuthSessionUs
 }
 
 export function subscribeAuthState(listener: AuthStateListener): (() => void) | null {
-  const auth = getFirebaseClientAuth();
-  if (!auth) {
-    return null;
-  }
-  return onAuthStateChanged(auth, (user) => listener(mapFirebaseUserToAuthSessionUser(user)));
+  let unsubscribe: (() => void) | null = null;
+  let cancelled = false;
+
+  void loadFirebaseRuntime()
+    .then(({ authModule, clientModule }) => {
+      if (cancelled) {
+        return;
+      }
+      const auth = clientModule.getFirebaseClientAuth();
+      if (!auth) {
+        return;
+      }
+      unsubscribe = authModule.onAuthStateChanged(auth, (user) =>
+        listener(mapFirebaseUserToAuthSessionUser(user as FirebaseUserLike | null)),
+      );
+    })
+    .catch(() => {
+      unsubscribe = null;
+    });
+
+  return () => {
+    cancelled = true;
+    unsubscribe?.();
+  };
 }
 
 export async function signInWithEmailPassword(input: {
@@ -187,12 +227,13 @@ export async function signInWithEmailPassword(input: {
     return;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  await signInWithEmailAndPassword(auth, input.email.trim(), input.password);
+  await authModule.signInWithEmailAndPassword(auth, input.email.trim(), input.password);
   await exchangeCurrentFirebaseSessionForBackendCookie();
 }
 
@@ -221,37 +262,40 @@ export async function registerWithEmailPassword(input: {
     };
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  await createUserWithEmailAndPassword(auth, input.email.trim(), input.password);
+  await authModule.createUserWithEmailAndPassword(auth, input.email.trim(), input.password);
   await exchangeCurrentFirebaseSessionForBackendCookie();
   return { verificationEmailSent: false };
 }
 
 export async function signInWithGooglePopup(): Promise<void> {
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const provider = new GoogleAuthProvider();
+  const provider = new authModule.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  await signInWithPopup(auth, provider);
+  await authModule.signInWithPopup(auth, provider);
   await exchangeCurrentFirebaseSessionForBackendCookie();
 }
 
 export async function signInWithMicrosoftPopup(): Promise<void> {
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const provider = new OAuthProvider("microsoft.com");
+  const provider = new authModule.OAuthProvider("microsoft.com");
   provider.setCustomParameters({ prompt: "select_account" });
-  await signInWithPopup(auth, provider);
+  await authModule.signInWithPopup(auth, provider);
   await exchangeCurrentFirebaseSessionForBackendCookie();
 }
 
@@ -270,9 +314,13 @@ export async function signOutCurrentUser(): Promise<void> {
     }
   }
 
-  const auth = getFirebaseClientAuth();
-  if (auth) {
-    await signOut(auth);
+  const { authModule, clientModule } = await loadFirebaseRuntime().catch(() => ({
+    authModule: null,
+    clientModule: null,
+  }));
+  const auth = clientModule?.getFirebaseClientAuth?.();
+  if (auth && authModule) {
+    await authModule.signOut(auth);
   }
 
   setClientSessionCookie(false);
@@ -286,7 +334,8 @@ export async function sendEmailVerificationForCurrentUser(): Promise<void> {
     throw error;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
@@ -298,7 +347,7 @@ export async function sendEmailVerificationForCurrentUser(): Promise<void> {
     throw error;
   }
 
-  await sendEmailVerification(currentUser);
+  await authModule.sendEmailVerification(currentUser);
 }
 
 export async function reloadCurrentUserSession(): Promise<AuthSessionUser | null> {
@@ -310,14 +359,17 @@ export async function reloadCurrentUserSession(): Promise<AuthSessionUser | null
     return backendUser;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   const currentUser = auth?.currentUser ?? null;
 
   if (currentUser) {
-    await reload(currentUser);
+    await authModule.reload(currentUser);
   }
 
-  const mappedUser = mapFirebaseUserToAuthSessionUser(auth?.currentUser ?? null);
+  const mappedUser = mapFirebaseUserToAuthSessionUser(
+    (auth?.currentUser as FirebaseUserLike | null | undefined) ?? null,
+  );
   setClientSessionCookie(Boolean(mappedUser));
   notifyAuthSessionChanged();
   return mappedUser;
@@ -342,7 +394,8 @@ export async function updateCurrentUserProfile(input: {
     return;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
@@ -354,8 +407,8 @@ export async function updateCurrentUserProfile(input: {
     throw error;
   }
 
-  await updateProfile(currentUser, { displayName: input.displayName.trim() });
-  await reload(currentUser);
+  await authModule.updateProfile(currentUser, { displayName: input.displayName.trim() });
+  await authModule.reload(currentUser);
   notifyAuthSessionChanged();
 }
 
@@ -379,12 +432,13 @@ export async function sendPasswordResetEmailForAddress(email: string): Promise<v
     return;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  await sendPasswordResetEmail(auth, normalized);
+  await authModule.sendPasswordResetEmail(auth, normalized);
 }
 
 export async function verifyPasswordResetCodeForFlow(
@@ -412,12 +466,13 @@ export async function verifyPasswordResetCodeForFlow(
     };
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  const email = await firebaseVerifyPasswordResetCode(auth, normalizedCode);
+  const email = await authModule.verifyPasswordResetCode(auth, normalizedCode);
   return { email: typeof email === "string" ? email : null };
 }
 
@@ -444,12 +499,13 @@ export async function confirmPasswordResetForFlow(input: {
     return;
   }
 
-  const auth = getFirebaseClientAuth();
+  const { authModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  await firebaseConfirmPasswordReset(auth, normalizedCode, input.password);
+  await authModule.confirmPasswordReset(auth, normalizedCode, input.password);
 }
 
 export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAccessPolicy> {
@@ -474,7 +530,8 @@ export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAc
     }
   }
 
-  const auth = getFirebaseClientAuth();
+  const { firestoreModule, clientModule } = await loadFirebaseRuntime();
+  const auth = clientModule.getFirebaseClientAuth();
   const currentUser = auth?.currentUser;
   if (!auth || !currentUser) {
     return {
@@ -484,7 +541,7 @@ export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAc
     };
   }
 
-  const firestore = getFirebaseClientFirestore();
+  const firestore = clientModule.getFirebaseClientFirestore();
   if (!firestore) {
     return {
       role: null,
@@ -494,7 +551,9 @@ export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAc
   }
 
   try {
-    const userSnap = await getDoc(doc(firestore, "users", currentUser.uid));
+    const userSnap = await firestoreModule.getDoc(
+      firestoreModule.doc(firestore, "users", currentUser.uid),
+    );
     const userData = userSnap.data();
     const rawRole = typeof userData?.role === "string" ? userData.role.trim().toLowerCase() : null;
     const forceMobileOnly = userData?.mobileOnlyAuth === true || userData?.webPanelAccess === false;
