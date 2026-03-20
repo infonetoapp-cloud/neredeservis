@@ -147,7 +147,7 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         updated_at
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::timestamptz, $16::timestamptz
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::timestamptz, $15::timestamptz
       )
       ON CONFLICT (company_id) DO UPDATE
       SET
@@ -366,9 +366,10 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
     return false;
   }
 
-  await pool.query("BEGIN");
+  const client = await pool.connect();
   try {
-    await pool.query(
+    await client.query("BEGIN");
+    await client.query(
       `
         INSERT INTO companies (
           company_id,
@@ -416,7 +417,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
       ],
     );
 
-    await pool.query(
+    await client.query(
       `
         INSERT INTO company_members (
           company_id,
@@ -452,11 +453,13 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
       ],
     );
 
-    await pool.query("COMMIT");
+    await client.query("COMMIT");
     return true;
   } catch (error) {
-    await pool.query("ROLLBACK").catch(() => null);
+    await client.query("ROLLBACK").catch(() => null);
     throw error;
+  } finally {
+    client.release();
   }
 }
 
