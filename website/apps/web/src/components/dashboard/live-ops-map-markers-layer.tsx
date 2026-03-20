@@ -1,7 +1,6 @@
 "use client";
 
 import type { CompanyActiveTripSummary } from "@/features/company/company-types";
-import { useRouteLiveLocationStream } from "@/features/company/use-route-live-location-stream";
 
 export function coordToMapPosition(lat: number | null, lng: number | null) {
   if (lat == null || lng == null) {
@@ -19,7 +18,6 @@ type LiveOpsMapTripMarkerProps = {
   selectedTripId: string | null;
   hoveredTripId: string | null;
   onSelectTripId: (tripId: string) => void;
-  streamEnabled: boolean;
 };
 
 function LiveOpsMapTripMarker({
@@ -27,28 +25,16 @@ function LiveOpsMapTripMarker({
   selectedTripId,
   hoveredTripId,
   onSelectTripId,
-  streamEnabled,
 }: LiveOpsMapTripMarkerProps) {
-  const tripStream = useRouteLiveLocationStream(trip.routeId, trip.tripId, streamEnabled);
-
   if (trip.tripId === selectedTripId) {
     return null;
   }
 
-  const hasStreamCoords =
-    tripStream.status === "live" &&
-    tripStream.snapshot?.lat != null &&
-    tripStream.snapshot?.lng != null;
-
-  const effectiveCoords = hasStreamCoords
-    ? { lat: tripStream.snapshot?.lat ?? null, lng: tripStream.snapshot?.lng ?? null }
-    : { lat: trip.live.lat, lng: trip.live.lng };
-
-  const position = coordToMapPosition(effectiveCoords.lat, effectiveCoords.lng);
+  const position = coordToMapPosition(trip.live.lat, trip.live.lng);
   const isHovered = hoveredTripId === trip.tripId;
   const isDimmed = Boolean(hoveredTripId) && !isHovered;
   const liveClass =
-    tripStream.status === "live" || trip.liveState === "online"
+    trip.liveState === "online"
       ? "bg-blue-600 shadow-[0_0_0_6px_rgba(37,99,235,0.14)]"
       : "border-2 border-slate-400 bg-white";
 
@@ -79,7 +65,7 @@ export function LiveOpsMapMarkersLayer({
   selectedTripId,
   hoveredTripId,
   onSelectTripId,
-  streamEnabled,
+  streamEnabled: _streamEnabled,
 }: LiveOpsMapMarkersLayerProps) {
   return (
     <>
@@ -90,7 +76,6 @@ export function LiveOpsMapMarkersLayer({
           selectedTripId={selectedTripId}
           hoveredTripId={hoveredTripId}
           onSelectTripId={onSelectTripId}
-          streamEnabled={streamEnabled}
         />
       ))}
     </>

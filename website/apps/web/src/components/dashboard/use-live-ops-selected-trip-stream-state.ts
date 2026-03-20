@@ -3,13 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  type LiveOpsStreamStaleReason,
   resolveStreamIssueState,
-  streamErrorSemantic,
+  type LiveOpsStreamStaleReason,
 } from "@/components/dashboard/live-ops-company-active-trips-helpers";
 import { useCompanyRouteStops } from "@/features/company/use-company-route-stops";
-import { useRouteLiveLocationStream } from "@/features/company/use-route-live-location-stream";
-import { useRtdbConnectionState } from "@/features/company/use-rtdb-connection-state";
 import type { CompanyActiveTripSummary } from "@/features/company/company-types";
 
 type AuthStatus = "loading" | "signed_out" | "signed_in" | "disabled";
@@ -31,20 +28,22 @@ type UseLiveOpsSelectedTripStreamStateArgs = {
 const STREAM_STALE_TIMEOUT_MS = 45_000;
 const STREAM_LAG_TICK_MS = 15_000;
 
+function parseIsoToMs(value: string | null): number | null {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function useLiveOpsSelectedTripStreamState({
   authStatus,
   companyId,
   selectedTrip,
   tripsStatus,
 }: UseLiveOpsSelectedTripStreamStateArgs) {
-  const liveStreamEnabled =
-    authStatus === "signed_in" && Boolean(companyId) && tripsStatus !== "error";
-  const rtdbConnection = useRtdbConnectionState(liveStreamEnabled);
-  const selectedTripLiveStream = useRouteLiveLocationStream(
-    selectedTrip?.routeId ?? null,
-    selectedTrip?.tripId ?? null,
-    liveStreamEnabled && Boolean(selectedTrip),
-  );
+  const liveStreamEnabled = authStatus === "signed_in" && Boolean(companyId) && tripsStatus !== "error";
 
   const selectedTripStopsQuery = useCompanyRouteStops(
     companyId,
@@ -53,10 +52,47 @@ export function useLiveOpsSelectedTripStreamState({
   );
   const [streamNowMs, setStreamNowMs] = useState(() => Date.now());
 
-  const streamHasSelectedTripCoords =
-    selectedTripLiveStream.status === "live" &&
-    selectedTripLiveStream.snapshot?.lat != null &&
-    selectedTripLiveStream.snapshot?.lng != null;
+  const rtdbConnection = useMemo(
+    () =>
+      !liveStreamEnabled
+        ? {
+            status: "idle" as const,
+            error: null as string | null,
+            lastChangedAt: null as string | null,
+          }
+        : {
+            status: selectedTrip?.live.source === "rtdb" ? ("online" as const) : ("idle" as const),
+            error: null as string | null,
+            lastChangedAt: selectedTrip?.lastLocationAt ?? selectedTrip?.updatedAt ?? new Date().toISOString(),
+          },
+    [liveStreamEnabled, selectedTrip],
+  );
+
+  const selectedTripLiveStream = useMemo(
+    () =>
+      !liveStreamEnabled || !selectedTrip
+        ? {
+            status: "idle" as const,
+            error: null as string | null,
+            snapshot: null,
+            lastEventAt: null as number | null,
+            retryAttempt: 0,
+            nextRetryAt: null as number | null,
+            authRefreshInFlight: false,
+          }
+        : {
+            status: "idle" as const,
+            error: null as string | null,
+            snapshot: null,
+            lastEventAt:
+              parseIsoToMs(selectedTrip.lastLocationAt) ?? parseIsoToMs(selectedTrip.updatedAt),
+            retryAttempt: 0,
+            nextRetryAt: null as number | null,
+            authRefreshInFlight: false,
+          },
+    [liveStreamEnabled, selectedTrip],
+  );
+
   useEffect(() => {
     if (!liveStreamEnabled || !selectedTrip) {
       return;
@@ -95,14 +131,6 @@ export function useLiveOpsSelectedTripStreamState({
   const streamLagSeconds = streamLagMs == null ? null : Math.floor(streamLagMs / 1000);
 
   const effectiveLiveCoords = useMemo<EffectiveLiveCoords>(() => {
-    if (streamHasSelectedTripCoords && selectedTripLiveStream.snapshot) {
-      return {
-        lat: selectedTripLiveStream.snapshot.lat,
-        lng: selectedTripLiveStream.snapshot.lng,
-        source: "rtdb_stream",
-        stale: streamStale,
-      };
-    }
     if (!selectedTrip) {
       return null;
     }
@@ -110,9 +138,9 @@ export function useLiveOpsSelectedTripStreamState({
       ...selectedTrip.live,
       stale: selectedTrip.live.stale || selectedTrip.liveState === "stale",
     };
-  }, [selectedTrip, selectedTripLiveStream.snapshot, streamHasSelectedTripCoords, streamStale]);
+  }, [selectedTrip]);
 
-  const selectedTripStreamErrorSemantic = streamErrorSemantic(selectedTripLiveStream.error);
+  const selectedTripStreamErrorSemantic = "none" as const;
   const streamIssueState = resolveStreamIssueState({
     streamStatus: selectedTripLiveStream.status,
     rtdbConnectionStatus: rtdbConnection.status,
