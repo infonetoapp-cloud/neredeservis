@@ -33,8 +33,85 @@ function normalizeNullableText(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function normalizeVehicleLimit(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(1, Math.trunc(value));
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.max(1, Math.trunc(parsed));
+    }
+  }
+  return null;
+}
+
 export function shouldUsePostgresCompanyStore() {
   return isPostgresConfigured();
+}
+
+export async function readCompanyFromPostgres(companyId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  if (!normalizedCompanyId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        company_id,
+        name,
+        legal_name,
+        status,
+        billing_status,
+        timezone,
+        country_code,
+        contact_phone,
+        contact_email,
+        logo_url,
+        address,
+        vehicle_limit,
+        created_by,
+        created_at,
+        updated_at
+      FROM companies
+      WHERE company_id = $1
+      LIMIT 1
+    `,
+    [normalizedCompanyId],
+  );
+  const row = result.rows[0] ?? null;
+  if (!row) {
+    return null;
+  }
+
+  const name = normalizeNullableText(row.name);
+  if (!name) {
+    return null;
+  }
+
+  return {
+    companyId: normalizedCompanyId,
+    name,
+    legalName: normalizeNullableText(row.legal_name),
+    status: normalizeCompanyStatus(row.status),
+    billingStatus: normalizeBillingStatus(row.billing_status),
+    timezone: normalizeNullableText(row.timezone) ?? "Europe/Istanbul",
+    countryCode: normalizeNullableText(row.country_code) ?? "TR",
+    contactPhone: normalizeNullableText(row.contact_phone),
+    contactEmail: normalizeNullableText(row.contact_email),
+    logoUrl: normalizeNullableText(row.logo_url),
+    address: normalizeNullableText(row.address),
+    vehicleLimit: normalizeVehicleLimit(row.vehicle_limit) ?? 10,
+    createdBy: normalizeNullableText(row.created_by),
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at),
+  };
 }
 
 export async function backfillCompanyFromFirestoreRecord(input) {
@@ -62,12 +139,15 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         country_code,
         contact_phone,
         contact_email,
+        logo_url,
+        address,
+        vehicle_limit,
         created_by,
         created_at,
         updated_at
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::timestamptz, $12::timestamptz
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::timestamptz, $16::timestamptz
       )
       ON CONFLICT (company_id) DO UPDATE
       SET
@@ -79,6 +159,9 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         country_code = COALESCE(EXCLUDED.country_code, companies.country_code),
         contact_phone = COALESCE(EXCLUDED.contact_phone, companies.contact_phone),
         contact_email = COALESCE(EXCLUDED.contact_email, companies.contact_email),
+        logo_url = COALESCE(EXCLUDED.logo_url, companies.logo_url),
+        address = COALESCE(EXCLUDED.address, companies.address),
+        vehicle_limit = COALESCE(EXCLUDED.vehicle_limit, companies.vehicle_limit),
         created_by = COALESCE(EXCLUDED.created_by, companies.created_by),
         updated_at = EXCLUDED.updated_at
     `,
@@ -92,6 +175,9 @@ export async function backfillCompanyFromFirestoreRecord(input) {
       normalizeNullableText(input?.countryCode) ?? "TR",
       normalizeNullableText(input?.contactPhone),
       normalizeNullableText(input?.contactEmail),
+      normalizeNullableText(input?.logoUrl),
+      normalizeNullableText(input?.address),
+      normalizeVehicleLimit(input?.vehicleLimit),
       normalizeNullableText(input?.createdBy),
       toIsoString(input?.createdAt) ?? nowIso,
       nowIso,
@@ -430,6 +516,35 @@ export async function backfillCompanyMembershipFromFirestoreRecord(input) {
       toIsoString(input?.createdAt) ?? new Date().toISOString(),
       toIsoString(input?.updatedAt) ?? new Date().toISOString(),
     ],
+  );
+
+  return true;
+}
+
+export async function syncCompanyMemberToPostgres(input) {
+  const companyBackfilled = await backfillCompanyFromFirestoreRecord(input);
+  const membershipBackfilled = await backfillCompanyMembershipFromFirestoreRecord(input);
+  return companyBackfilled || membershipBackfilled;
+}
+
+export async function deleteCompanyMemberFromPostgres(companyId, uid) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedUid = normalizeNullableText(uid);
+  if (!normalizedCompanyId || !normalizedUid) {
+    return false;
+  }
+
+  await pool.query(
+    `
+      DELETE FROM company_members
+      WHERE company_id = $1 AND uid = $2
+    `,
+    [normalizedCompanyId, normalizedUid],
   );
 
   return true;

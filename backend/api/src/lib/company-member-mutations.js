@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
 import { findUserProfileByEmail, readUserProfileByUid } from "./auth-user-store.js";
+import {
+  deleteCompanyMemberFromPostgres,
+  shouldUsePostgresCompanyStore,
+  syncCompanyMemberToPostgres,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -80,6 +85,63 @@ function normalizeMemberPatch(rawValue) {
   }
 
   return patch;
+}
+
+function companySyncPayloadFromSnapshot(companyId, companyData) {
+  return {
+    companyId,
+    name: pickString(companyData, "name"),
+    legalName: pickString(companyData, "legalName"),
+    status: pickString(companyData, "status"),
+    billingStatus: pickString(companyData, "billingStatus"),
+    timezone: pickString(companyData, "timezone"),
+    countryCode: pickString(companyData, "countryCode"),
+    contactPhone: pickString(companyData, "contactPhone"),
+    contactEmail: pickString(companyData, "contactEmail"),
+    createdBy: pickString(companyData, "createdBy"),
+    createdAt: pickString(companyData, "createdAt"),
+    updatedAt: pickString(companyData, "updatedAt"),
+  };
+}
+
+async function syncCompanyMemberMutationToPostgres(input) {
+  if (!shouldUsePostgresCompanyStore()) {
+    return;
+  }
+
+  try {
+    await syncCompanyMemberToPostgres(input);
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "postgres_company_member_sync_failed",
+        companyId: input?.companyId ?? null,
+        uid: input?.uid ?? null,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+  }
+}
+
+async function deleteCompanyMemberMutationFromPostgres(companyId, uid) {
+  if (!shouldUsePostgresCompanyStore()) {
+    return;
+  }
+
+  try {
+    await deleteCompanyMemberFromPostgres(companyId, uid);
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "postgres_company_member_delete_failed",
+        companyId,
+        uid,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+  }
 }
 
 export async function inviteCompanyMember(db, actorUid, actorRole, input) {
@@ -241,7 +303,21 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
       status: "pending",
       expiresAt: expiresAtIso,
       createdAt: nowIso,
+      companySync: {
+        ...companySyncPayloadFromSnapshot(companyId, companyData),
+        uid: targetUid,
+        role,
+        status: "invited",
+        invitedBy: actorUid,
+        invitedAt: nowIso,
+        acceptedAt: null,
+        companyNameSnapshot: companyName,
+        updatedAt: nowIso,
+      },
     };
+  }).then(async (result) => {
+    await syncCompanyMemberMutationToPostgres(result.companySync);
+    return result;
   });
 }
 
@@ -343,7 +419,25 @@ export async function updateCompanyMember(db, actorUid, actorRole, input) {
       role: nextRole,
       memberStatus: nextMemberStatus,
       updatedAt: nowIso,
+      companySync: {
+        ...companySyncPayloadFromSnapshot(companyId, asRecord(companySnapshot.data()) ?? {}),
+        uid: memberUid,
+        role: nextRole,
+        status: nextMemberStatus,
+        invitedBy: pickString(memberData, "invitedBy"),
+        invitedAt: pickString(memberData, "invitedAt"),
+        acceptedAt:
+          nextMemberStatus === "active"
+            ? pickString(memberData, "acceptedAt") ?? nowIso
+            : pickString(memberData, "acceptedAt"),
+        companyNameSnapshot: pickString(asRecord(companySnapshot.data()) ?? {}, "name"),
+        createdAt: pickString(memberData, "createdAt"),
+        updatedAt: nowIso,
+      },
     };
+  }).then(async (result) => {
+    await syncCompanyMemberMutationToPostgres(result.companySync);
+    return result;
   });
 }
 
@@ -439,6 +533,9 @@ export async function removeCompanyMember(db, actorUid, actorRole, input) {
       removed: true,
       removedAt: nowIso,
     };
+  }).then(async (result) => {
+    await deleteCompanyMemberMutationFromPostgres(result.companyId, result.memberUid);
+    return result;
   });
 }
 
@@ -554,6 +651,24 @@ export async function revokeCompanyInvite(db, actorUid, actorRole, input) {
       role,
       status: "revoked",
       revokedAt: nowIso,
+      companySync: invitedUid
+        ? {
+            ...companySyncPayloadFromSnapshot(companyId, companyData),
+            uid: invitedUid,
+            role,
+            status: "suspended",
+            invitedBy: pickString(inviteData, "invitedBy"),
+            invitedAt: pickString(inviteData, "createdAt"),
+            acceptedAt: null,
+            companyNameSnapshot: companyName || null,
+            updatedAt: nowIso,
+          }
+        : null,
     };
+  }).then(async (result) => {
+    if (result.companySync) {
+      await syncCompanyMemberMutationToPostgres(result.companySync);
+    }
+    return result;
   });
 }

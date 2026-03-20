@@ -1,14 +1,38 @@
+import {
+  backfillCompanyFromFirestoreRecord,
+  readCompanyFromPostgres,
+  shouldUsePostgresCompanyStore,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 export async function getCompanyProfile(db, companyId) {
+  if (shouldUsePostgresCompanyStore()) {
+    const company = await readCompanyFromPostgres(companyId);
+    if (company) {
+      return {
+        companyId,
+        name: company.name,
+        logoUrl: company.logoUrl ?? null,
+        contactEmail: company.contactEmail ?? null,
+        contactPhone: company.contactPhone ?? null,
+        address: company.address ?? null,
+        timezone: company.timezone ?? "Europe/Istanbul",
+        countryCode: company.countryCode ?? "TR",
+        status: company.status ?? "active",
+        vehicleLimit: company.vehicleLimit ?? 10,
+        createdAt: company.createdAt ?? null,
+      };
+    }
+  }
+
   const companySnapshot = await db.collection("companies").doc(companyId).get();
   if (!companySnapshot.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
   const data = asRecord(companySnapshot.data()) ?? {};
-  return {
+  const profile = {
     companyId,
     name: pickString(data, "name") ?? "",
     logoUrl: pickString(data, "logoUrl") ?? null,
@@ -21,6 +45,19 @@ export async function getCompanyProfile(db, companyId) {
     vehicleLimit: pickFiniteNumber(data, "vehicleLimit") ?? 10,
     createdAt: pickString(data, "createdAt") ?? null,
   };
+
+  if (shouldUsePostgresCompanyStore()) {
+    await backfillCompanyFromFirestoreRecord({
+      companyId,
+      ...profile,
+      legalName: pickString(data, "legalName"),
+      billingStatus: pickString(data, "billingStatus"),
+      createdBy: pickString(data, "createdBy"),
+      updatedAt: pickString(data, "updatedAt"),
+    }).catch(() => false);
+  }
+
+  return profile;
 }
 
 export async function updateCompanyProfile(db, input) {
@@ -29,6 +66,7 @@ export async function updateCompanyProfile(db, input) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
+  const data = asRecord(companySnapshot.data()) ?? {};
   const updates = {};
   const changedFields = [];
 
@@ -68,6 +106,30 @@ export async function updateCompanyProfile(db, input) {
   updates.updatedAt = updatedAt;
 
   await db.collection("companies").doc(input.companyId).update(updates);
+
+  if (shouldUsePostgresCompanyStore()) {
+    const nextData = {
+      ...data,
+      ...updates,
+    };
+    await backfillCompanyFromFirestoreRecord({
+      companyId: input.companyId,
+      name: pickString(nextData, "name"),
+      logoUrl: pickString(nextData, "logoUrl"),
+      contactEmail: pickString(nextData, "contactEmail"),
+      contactPhone: pickString(nextData, "contactPhone"),
+      address: pickString(nextData, "address"),
+      timezone: pickString(nextData, "timezone"),
+      countryCode: pickString(nextData, "countryCode"),
+      status: pickString(nextData, "status"),
+      vehicleLimit: pickFiniteNumber(nextData, "vehicleLimit"),
+      legalName: pickString(nextData, "legalName"),
+      billingStatus: pickString(nextData, "billingStatus"),
+      createdBy: pickString(nextData, "createdBy"),
+      createdAt: pickString(nextData, "createdAt"),
+      updatedAt,
+    }).catch(() => false);
+  }
 
   return {
     companyId: input.companyId,

@@ -97,6 +97,9 @@ export async function ensurePostgresAuthSchema() {
       country_code TEXT NULL,
       contact_phone TEXT NULL,
       contact_email TEXT NULL,
+      logo_url TEXT NULL,
+      address TEXT NULL,
+      vehicle_limit INTEGER NULL,
       created_by TEXT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

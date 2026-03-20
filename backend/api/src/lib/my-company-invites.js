@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { shouldUsePostgresCompanyStore, syncCompanyMemberToPostgres } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -41,6 +42,43 @@ function resolveCompanyStatus(companyData) {
 function resolveBillingStatus(companyData) {
   const rawStatus = pickString(companyData, "billingStatus");
   return rawStatus === "past_due" || rawStatus === "suspended_locked" ? rawStatus : "active";
+}
+
+function companySyncPayloadFromSnapshot(companyId, companyData) {
+  return {
+    companyId,
+    name: pickString(companyData, "name"),
+    legalName: pickString(companyData, "legalName"),
+    status: pickString(companyData, "status"),
+    billingStatus: pickString(companyData, "billingStatus"),
+    timezone: pickString(companyData, "timezone"),
+    countryCode: pickString(companyData, "countryCode"),
+    contactPhone: pickString(companyData, "contactPhone"),
+    contactEmail: pickString(companyData, "contactEmail"),
+    createdBy: pickString(companyData, "createdBy"),
+    createdAt: pickString(companyData, "createdAt"),
+    updatedAt: pickString(companyData, "updatedAt"),
+  };
+}
+
+async function syncInviteMembershipToPostgres(input) {
+  if (!shouldUsePostgresCompanyStore()) {
+    return;
+  }
+
+  try {
+    await syncCompanyMemberToPostgres(input);
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "postgres_invite_membership_sync_failed",
+        companyId: input?.companyId ?? null,
+        uid: input?.uid ?? null,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+  }
 }
 
 export async function listMyPendingCompanyInvites(db, uid) {
@@ -254,7 +292,22 @@ export async function acceptMyCompanyInvite(db, uid, input) {
       role: currentRole,
       memberStatus: "active",
       acceptedAt: nowIso,
+      companySync: {
+        ...companySyncPayloadFromSnapshot(companyId, companyData),
+        uid,
+        role: currentRole,
+        status: "active",
+        invitedBy: null,
+        invitedAt: pickString(memberData, "invitedAt"),
+        acceptedAt: nowIso,
+        companyNameSnapshot: companyName,
+        createdAt: pickString(memberData, "createdAt"),
+        updatedAt: nowIso,
+      },
     };
+  }).then(async (result) => {
+    await syncInviteMembershipToPostgres(result.companySync);
+    return result;
   });
 }
 
@@ -380,6 +433,21 @@ export async function declineMyCompanyInvite(db, uid, input) {
       role: currentRole,
       memberStatus: "suspended",
       declinedAt: nowIso,
+      companySync: {
+        ...companySyncPayloadFromSnapshot(companyId, companyData),
+        uid,
+        role: currentRole,
+        status: "suspended",
+        invitedBy: null,
+        invitedAt: pickString(memberData, "invitedAt"),
+        acceptedAt: pickString(memberData, "acceptedAt"),
+        companyNameSnapshot: companyName,
+        createdAt: pickString(memberData, "createdAt"),
+        updatedAt: nowIso,
+      },
     };
+  }).then(async (result) => {
+    await syncInviteMembershipToPostgres(result.companySync);
+    return result;
   });
 }
