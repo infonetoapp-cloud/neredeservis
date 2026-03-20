@@ -302,18 +302,19 @@ export async function sendEmailVerificationForCurrentUser(): Promise<void> {
 }
 
 export async function reloadCurrentUserSession(): Promise<AuthSessionUser | null> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    const backendUser = await readCurrentAuthSessionFromBackend();
+    setClientSessionCookie(Boolean(backendUser));
+    notifyAuthSessionChanged();
+    return backendUser;
+  }
+
   const auth = getFirebaseClientAuth();
   const currentUser = auth?.currentUser ?? null;
 
   if (currentUser) {
     await reload(currentUser);
-  }
-
-  const backendUser = await readCurrentAuthSessionFromBackend();
-  if (backendUser) {
-    setClientSessionCookie(true);
-    notifyAuthSessionChanged();
-    return backendUser;
   }
 
   const mappedUser = mapFirebaseUserToAuthSessionUser(auth?.currentUser ?? null);
@@ -325,6 +326,22 @@ export async function reloadCurrentUserSession(): Promise<AuthSessionUser | null
 export async function updateCurrentUserProfile(input: {
   displayName: string;
 }): Promise<void> {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ user?: unknown }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/profile",
+      method: "PATCH",
+      auth: false,
+      body: {
+        displayName: input.displayName.trim(),
+      },
+    });
+    setClientSessionCookie(true);
+    notifyAuthSessionChanged();
+    return;
+  }
+
   const auth = getFirebaseClientAuth();
   if (!auth) {
     throw new Error("FIREBASE_CONFIG_MISSING");
