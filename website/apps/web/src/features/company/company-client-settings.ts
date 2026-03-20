@@ -1,15 +1,8 @@
 "use client";
 
-import { httpsCallable } from "firebase/functions";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import {
-  getFirebaseClientAuth,
-  getFirebaseClientFunctions,
-  getFirebaseClientStorage,
-} from "@/lib/firebase/client";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 import {
   asRecord,
@@ -103,24 +96,15 @@ export async function getCompanyProfileForCompany(input: {
 }): Promise<CompanyProfile> {
   try {
     const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (backendApiBaseUrl) {
-      const response = await callBackendApi<CompanyProfile>({
-        baseUrl: backendApiBaseUrl,
-        path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
-      });
-      return parseCompanyProfile(response.data);
+    if (!backendApiBaseUrl) {
+      throw new Error("BACKEND_API_BASE_URL_MISSING");
     }
 
-    const functions = getFirebaseClientFunctions();
-    if (!functions) {
-      throw new Error("Firebase baslatilamadi.");
-    }
-
-    const fn = httpsCallable(functions, "getCompanyProfile");
-    const response = await fn({ companyId: input.companyId });
-    const payload = asRecord(response.data);
-    const data = asRecord(payload?.data);
-    return parseCompanyProfile(data);
+    const response = await callBackendApi<CompanyProfile>({
+      baseUrl: backendApiBaseUrl,
+      path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+    });
+    return parseCompanyProfile(response.data);
   } catch (error: unknown) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -133,43 +117,28 @@ export async function updateCompanyProfileForCompany(input: {
 }): Promise<{ changedFields: string[]; updatedAt: string }> {
   try {
     const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (backendApiBaseUrl) {
-      const response = await callBackendApi<{
-        changedFields?: string[];
-        updatedAt?: string;
-      }>({
-        baseUrl: backendApiBaseUrl,
-        path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
-        method: "PATCH",
-        body: {
-          ...(input.name !== undefined ? { name: input.name } : {}),
-          ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
-        },
-      });
-
-      return {
-        changedFields: Array.isArray(response.data?.changedFields)
-          ? response.data.changedFields
-          : [],
-        updatedAt: readString(asRecord(response.data)?.updatedAt) ?? new Date().toISOString(),
-      };
+    if (!backendApiBaseUrl) {
+      throw new Error("BACKEND_API_BASE_URL_MISSING");
     }
 
-    const functions = getFirebaseClientFunctions();
-    if (!functions) {
-      throw new Error("Firebase baslatilamadi.");
-    }
-
-    const fn = httpsCallable(functions, "updateCompanyProfile");
-    const response = await fn(input);
-    const payload = asRecord(response.data);
-    const data = asRecord(payload?.data);
+    const response = await callBackendApi<{
+      changedFields?: string[];
+      updatedAt?: string;
+    }>({
+      baseUrl: backendApiBaseUrl,
+      path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+      method: "PATCH",
+      body: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+      },
+    });
 
     return {
-      changedFields: Array.isArray(data?.changedFields)
-        ? (data.changedFields as string[])
+      changedFields: Array.isArray(response.data?.changedFields)
+        ? response.data.changedFields
         : [],
-      updatedAt: readString(data?.updatedAt) ?? new Date().toISOString(),
+      updatedAt: readString(asRecord(response.data)?.updatedAt) ?? new Date().toISOString(),
     };
   } catch (error: unknown) {
     throw new Error(toFriendlyErrorMessage(error));
@@ -181,67 +150,46 @@ export async function uploadCompanyLogo(
   file: File,
 ): Promise<CompanyLogoUploadResult> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const data = await callBackendUploadApi<{
-      logoUrl?: string;
-      updatedAt?: string;
-    }>({
-      baseUrl: backendApiBaseUrl,
-      path: `api/companies/${encodeURIComponent(companyId)}/logo`,
-      method: "PUT",
-      body: file,
-      contentType: file.type,
-    });
-    const logoUrl = readString(asRecord(data)?.logoUrl);
-    if (!logoUrl) {
-      throw new Error("COMPANY_LOGO_UPLOAD_RESPONSE_INVALID");
-    }
-    return {
-      logoUrl,
-      profileUpdated: true,
-      updatedAt: readString(asRecord(data)?.updatedAt),
-    };
+  if (!backendApiBaseUrl) {
+    throw new Error("BACKEND_API_BASE_URL_MISSING");
   }
 
-  const storage = getFirebaseClientStorage();
-  if (!storage) {
-    throw new Error("Firebase Storage baslatilamadi.");
-  }
-
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-  const storagePath = `company_logos/${companyId}/logo.${ext}`;
-  const storageRef = ref(storage, storagePath);
-
-  await uploadBytes(storageRef, file, {
+  const data = await callBackendUploadApi<{
+    logoUrl?: string;
+    updatedAt?: string;
+  }>({
+    baseUrl: backendApiBaseUrl,
+    path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+    method: "PUT",
+    body: file,
     contentType: file.type,
   });
-
+  const logoUrl = readString(asRecord(data)?.logoUrl);
+  if (!logoUrl) {
+    throw new Error("COMPANY_LOGO_UPLOAD_RESPONSE_INVALID");
+  }
   return {
-    logoUrl: await getDownloadURL(storageRef),
-    profileUpdated: false,
-    updatedAt: null,
+    logoUrl,
+    profileUpdated: true,
+    updatedAt: readString(asRecord(data)?.updatedAt),
   };
 }
 
 export async function removeCompanyLogo(companyId: string): Promise<{ profileUpdated: boolean; updatedAt: string | null }> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const data = await callBackendUploadApi<{
-      updatedAt?: string;
-    }>({
-      baseUrl: backendApiBaseUrl,
-      path: `api/companies/${encodeURIComponent(companyId)}/logo`,
-      method: "DELETE",
-    });
-    return {
-      profileUpdated: true,
-      updatedAt: readString(asRecord(data)?.updatedAt),
-    };
+  if (!backendApiBaseUrl) {
+    throw new Error("BACKEND_API_BASE_URL_MISSING");
   }
 
-  const result = await updateCompanyProfileForCompany({ companyId, logoUrl: "" });
+  const data = await callBackendUploadApi<{
+    updatedAt?: string;
+  }>({
+    baseUrl: backendApiBaseUrl,
+    path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+    method: "DELETE",
+  });
   return {
     profileUpdated: true,
-    updatedAt: result.updatedAt,
+    updatedAt: readString(asRecord(data)?.updatedAt),
   };
 }

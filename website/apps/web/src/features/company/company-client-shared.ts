@@ -207,6 +207,9 @@ export function toFriendlyErrorMessage(error: unknown): string {
   const maybeCode =
     (asRecord(error)?.code as string | undefined) ??
     (asRecord(asRecord(error)?.customData)?.code as string | undefined);
+  if (rawMessage.includes("BACKEND_API_BASE_URL_MISSING")) {
+    return "Backend API ayari eksik. Panel yöneticisine haber ver.";
+  }
   const reasonMap: Array<{ reason: string; message: string }> = [
     { reason: "COMPANY_SUSPENDED", message: "Şirket hesabi askiya alinmis. Destek ile iletisime gec." },
     { reason: "COMPANY_BILLING_LOCKED", message: "Şirket fatura kilidi nedeniyle isleme kapali." },

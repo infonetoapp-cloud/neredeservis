@@ -173,19 +173,8 @@ function ProfileTab({
       setErrorMessage(null);
 
       try {
-        // 1. Upload to Firebase Storage
         const uploadResult = await uploadCompanyLogo(companyId, file);
         const downloadUrl = uploadResult.logoUrl;
-
-        // 2. Save URL to Firestore via callable
-        if (!uploadResult.profileUpdated) {
-          await updateCompanyProfileForCompany({
-            companyId,
-            logoUrl: downloadUrl,
-          });
-        }
-
-        // 3. Update local state
         setLogoUrl(downloadUrl);
         setOriginal((prev) => (prev ? { ...prev, logoUrl: downloadUrl } : prev));
         showSuccess("Logo güncellendi.");
