@@ -2,9 +2,7 @@
 
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { httpsCallable } from "firebase/functions";
-
-import { getFirebaseClientFunctions } from "@/lib/firebase/client";
+import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 import {
   type ApiOk,
@@ -141,15 +139,12 @@ export async function listDriverDocumentsForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<
-    { companyId: string; driverId?: string },
-    ApiOk<{ items?: unknown[] }>
-  >(functions, "listDriverDocuments");
   try {
-    const response = await callable(input);
-    return parseDriverDocumentSummaries(response.data?.data?.items ?? []);
+    const response = await callFirebaseCallable<
+      { companyId: string; driverId?: string },
+      { items?: unknown[] }
+    >("listDriverDocuments", input);
+    return parseDriverDocumentSummaries(response.data?.items ?? []);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -197,17 +192,17 @@ export async function upsertDriverDocumentForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<typeof input, ApiOk<{
-    driverId?: string;
-    docType?: string;
-    status?: string;
-    updatedAt?: string;
-  }>>(functions, "upsertDriverDocument");
   try {
-    const response = await callable(input);
-    const data = response.data?.data ?? {};
+    const response = await callFirebaseCallable<
+      typeof input,
+      {
+        driverId?: string;
+        docType?: string;
+        status?: string;
+        updatedAt?: string;
+      }
+    >("upsertDriverDocument", input);
+    const data = response.data ?? {};
     return {
       driverId: (data.driverId as string) ?? input.driverId,
       docType: (data.docType as DriverDocType) ?? input.docType,
@@ -240,11 +235,8 @@ export async function deleteDriverDocumentForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<typeof input, ApiOk<unknown>>(functions, "deleteDriverDocument");
   try {
-    await callable(input);
+    await callFirebaseCallable<typeof input, unknown>("deleteDriverDocument", input);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }

@@ -2,9 +2,7 @@
 
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { httpsCallable } from "firebase/functions";
-
-import { getFirebaseClientFunctions } from "@/lib/firebase/client";
+import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 import {
   type ApiOk,
@@ -44,22 +42,15 @@ export async function listCompanyRoutesForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
-    functions,
-    "listCompanyRoutes",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; limit?: number },
+      { items?: unknown }
+    >("listCompanyRoutes", {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyRouteItems(response.data?.data?.items);
+    return parseCompanyRouteItems(response.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -99,22 +90,15 @@ export async function listCompanyLiveOpsForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; limit?: number },
-    ApiOk<{ companyId?: unknown; generatedAt?: unknown; items?: unknown }>
-  >(functions, "listCompanyLiveOps");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; limit?: number },
+      { companyId?: unknown; generatedAt?: unknown; items?: unknown }
+    >("listCompanyLiveOps", {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    const payload = asRecord(response.data?.data);
+    const payload = asRecord(response.data);
     const companyId = readString(payload?.companyId) ?? input.companyId.trim();
     return {
       companyId,
@@ -174,29 +158,6 @@ export async function createCompanyRouteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      name: string;
-      driverId?: string | null;
-      startPoint: { lat: number; lng: number };
-      startAddress: string;
-      endPoint: { lat: number; lng: number };
-      endAddress: string;
-      scheduledTime: string;
-      timeSlot: Exclude<CompanyRouteTimeSlot, null>;
-      vehicleId?: string | null;
-      allowGuestTracking?: boolean;
-      authorizedDriverIds?: string[];
-    },
-    ApiOk<{ route?: unknown; routeId?: unknown; srvCode?: unknown }>
-  >(functions, "createCompanyRoute");
-
   try {
     const payload: {
       companyId: string;
@@ -228,8 +189,11 @@ export async function createCompanyRouteForCompany(input: {
         : {}),
     };
 
-    const response = await callable(payload);
-    const routes = parseCompanyRouteItems([response.data?.data?.route]);
+    const response = await callFirebaseCallable<typeof payload, { route?: unknown }>(
+      "createCompanyRoute",
+      payload,
+    );
+    const routes = parseCompanyRouteItems([response.data?.route]);
     const route = routes[0];
     if (!route) {
       throw new Error("CREATE_COMPANY_ROUTE_RESPONSE_INVALID");
@@ -302,28 +266,6 @@ export async function updateCompanyRouteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      routeId: string;
-      patch: {
-        name?: string;
-        scheduledTime?: string;
-        timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
-        vehicleId?: string | null;
-        allowGuestTracking?: boolean;
-        authorizedDriverIds?: string[];
-        isArchived?: boolean;
-      };
-    },
-    ApiOk<{ route?: unknown; routeId?: unknown; updatedAt?: unknown }>
-  >(functions, "updateCompanyRoute");
-
   try {
     const patch: {
       name?: string;
@@ -365,8 +307,11 @@ export async function updateCompanyRouteForCompany(input: {
       patch,
     };
 
-    const response = await callable(payload);
-    const routes = parseCompanyRouteItems([response.data?.data?.route]);
+    const response = await callFirebaseCallable<typeof payload, { route?: unknown }>(
+      "updateCompanyRoute",
+      payload,
+    );
+    const routes = parseCompanyRouteItems([response.data?.route]);
     const route = routes[0];
     if (!route) {
       throw new Error("UPDATE_COMPANY_ROUTE_RESPONSE_INVALID");
@@ -397,18 +342,11 @@ export async function deleteCompanyRouteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; routeId: string },
-    ApiOk<{ routeId?: unknown; deleted?: unknown; deletedAt?: unknown }>
-  >(functions, "deleteCompanyRoute");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      { companyId: string; routeId: string },
+      { routeId?: unknown; deleted?: unknown; deletedAt?: unknown }
+    >("deleteCompanyRoute", {
       companyId: input.companyId.trim(),
       routeId: input.routeId.trim(),
     });
@@ -436,22 +374,15 @@ export async function listCompanyRouteStopsForRoute(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; routeId: string }, ApiOk<{ items?: unknown }>>(
-    functions,
-    "listCompanyRouteStops",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; routeId: string },
+      { items?: unknown }
+    >("listCompanyRouteStops", {
       companyId: input.companyId.trim(),
       routeId: input.routeId.trim(),
     });
-    return parseCompanyRouteStopItems(response.data?.data?.items);
+    return parseCompanyRouteStopItems(response.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -492,25 +423,18 @@ export async function upsertCompanyRouteStopForRoute(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      routeId: string;
-      stopId?: string;
-      name: string;
-      location: { lat: number; lng: number };
-      order: number;
-    },
-    ApiOk<{ stop?: unknown }>
-  >(functions, "upsertCompanyRouteStop");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      {
+        companyId: string;
+        routeId: string;
+        stopId?: string;
+        name: string;
+        location: { lat: number; lng: number };
+        order: number;
+      },
+      { stop?: unknown }
+    >("upsertCompanyRouteStop", {
       companyId: input.companyId.trim(),
       routeId: input.routeId.trim(),
       stopId: input.stopId?.trim(),
@@ -518,7 +442,7 @@ export async function upsertCompanyRouteStopForRoute(input: {
       location: input.location,
       order: input.order,
     });
-    const stops = parseCompanyRouteStopItems([response.data?.data?.stop]);
+    const stops = parseCompanyRouteStopItems([response.data?.stop]);
     const stop = stops[0];
     if (!stop) {
       throw new Error("UPSERT_COMPANY_ROUTE_STOP_RESPONSE_INVALID");
@@ -551,18 +475,11 @@ export async function deleteCompanyRouteStopForRoute(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; routeId: string; stopId: string },
-    ApiOk<{ deleted?: boolean }>
-  >(functions, "deleteCompanyRouteStop");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      { companyId: string; routeId: string; stopId: string },
+      { deleted?: boolean }
+    >("deleteCompanyRouteStop", {
       companyId: input.companyId.trim(),
       routeId: input.routeId.trim(),
       stopId: input.stopId.trim(),

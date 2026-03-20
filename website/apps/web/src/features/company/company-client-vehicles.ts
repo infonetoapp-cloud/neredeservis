@@ -2,9 +2,7 @@
 
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { httpsCallable } from "firebase/functions";
-
-import { getFirebaseClientFunctions } from "@/lib/firebase/client";
+import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 import {
   type ApiOk,
@@ -37,22 +35,15 @@ export async function listCompanyVehiclesForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
-    functions,
-    "listCompanyVehicles",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; limit?: number },
+      { items?: unknown }
+    >("listCompanyVehicles", {
       companyId: input.companyId.trim(),
       limit: input.limit,
     });
-    return parseCompanyVehicleItems(response.data?.data?.items);
+    return parseCompanyVehicleItems(response.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -104,26 +95,6 @@ export async function createCompanyVehicleForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      plate: string;
-      ownerType?: "company";
-      label?: string;
-      brand?: string | null;
-      model?: string | null;
-      year?: number | null;
-      capacity?: number;
-      status?: "active" | "maintenance" | "inactive";
-    },
-    ApiOk<{ vehicle?: unknown }>
-  >(functions, "createVehicle");
-
   try {
     const payload: {
       companyId: string;
@@ -150,8 +121,11 @@ export async function createCompanyVehicleForCompany(input: {
     if (input.capacity != null) payload.capacity = input.capacity;
     if (input.status != null) payload.status = input.status;
 
-    const response = await callable(payload);
-    const vehicles = parseCompanyVehicleItems([response.data?.data?.vehicle]);
+    const response = await callFirebaseCallable<typeof payload, { vehicle?: unknown }>(
+      "createVehicle",
+      payload,
+    );
+    const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
     const vehicle = vehicles[0];
     if (!vehicle) {
       throw new Error("CREATE_COMPANY_VEHICLE_RESPONSE_INVALID");
@@ -202,27 +176,6 @@ export async function updateCompanyVehicleForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      vehicleId: string;
-      patch: {
-        plate?: string;
-        brand?: string | null;
-        model?: string | null;
-        year?: number | null;
-        capacity?: number | null;
-        status?: "active" | "maintenance" | "inactive";
-      };
-    },
-    ApiOk<{ vehicle?: unknown }>
-  >(functions, "updateVehicle");
-
   try {
     const patch: Record<string, unknown> = {};
     if (input.plate !== undefined) patch.plate = input.plate.trim();
@@ -232,12 +185,19 @@ export async function updateCompanyVehicleForCompany(input: {
     if (input.capacity !== undefined) patch.capacity = input.capacity;
     if (input.status !== undefined) patch.status = input.status;
 
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      {
+        companyId: string;
+        vehicleId: string;
+        patch: Record<string, unknown>;
+      },
+      { vehicle?: unknown }
+    >("updateVehicle", {
       companyId: input.companyId.trim(),
       vehicleId: input.vehicleId.trim(),
       patch,
     });
-    const vehicles = parseCompanyVehicleItems([response.data?.data?.vehicle]);
+    const vehicles = parseCompanyVehicleItems([response.data?.vehicle]);
     const vehicle = vehicles[0];
     if (!vehicle) {
       throw new Error("UPDATE_COMPANY_VEHICLE_RESPONSE_INVALID");
@@ -268,21 +228,14 @@ export async function deleteCompanyVehicleForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      vehicleId: string;
-    },
-    ApiOk<{ deleted?: boolean }>
-  >(functions, "deleteVehicle");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      {
+        companyId: string;
+        vehicleId: string;
+      },
+      { deleted?: boolean }
+    >("deleteVehicle", {
       companyId: input.companyId.trim(),
       vehicleId: input.vehicleId.trim(),
     });

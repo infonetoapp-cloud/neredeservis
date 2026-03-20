@@ -3,8 +3,11 @@
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 
+import {
+  WEB_AUTH_SESSION_COOKIE_NAME,
+  WEB_AUTH_SESSION_COOKIE_SIGNED_IN_VALUE,
+} from "@/lib/auth/session-cookie-constants";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 interface CmsImageUploaderProps {
   storagePath: string;
@@ -25,6 +28,36 @@ function ensureTrailingSlash(url: string): string {
   return url.endsWith("/") ? url : `${url}/`;
 }
 
+function hasClientSessionCookie(): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  const cookiePrefix = `${WEB_AUTH_SESSION_COOKIE_NAME}=`;
+  return document.cookie
+    .split(";")
+    .map((segment) => segment.trim())
+    .some(
+      (segment) =>
+        segment.startsWith(cookiePrefix) &&
+        segment.slice(cookiePrefix.length) === WEB_AUTH_SESSION_COOKIE_SIGNED_IN_VALUE,
+    );
+}
+
+async function readFallbackFirebaseIdToken(): Promise<string | null> {
+  if (hasClientSessionCookie()) {
+    return null;
+  }
+
+  const firebaseClient = await import("@/lib/firebase/client").catch(() => null);
+  const currentUser = firebaseClient?.getFirebaseClientAuth()?.currentUser ?? null;
+  if (!currentUser) {
+    return null;
+  }
+
+  return currentUser.getIdToken();
+}
+
 async function callPlatformMediaApi<T>(input: {
   storagePath: string;
   method: "PUT" | "DELETE";
@@ -36,8 +69,7 @@ async function callPlatformMediaApi<T>(input: {
     throw new Error("Backend API baglantisi bulunamadi.");
   }
 
-  const currentUser = getFirebaseClientAuth()?.currentUser;
-  const idToken = currentUser ? await currentUser.getIdToken() : null;
+  const idToken = await readFallbackFirebaseIdToken();
   const requestUrl = new URL("api/platform/media", ensureTrailingSlash(backendApiBaseUrl));
   requestUrl.searchParams.set("storagePath", input.storagePath);
 
