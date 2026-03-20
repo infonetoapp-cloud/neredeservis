@@ -11,6 +11,7 @@ import {
 } from "@/features/auth/auth-client";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 import {
+  getBackendApiBaseUrl,
   isEmailLoginEnabled,
   isGoogleLoginEnabled,
   isMicrosoftLoginEnabled,
@@ -59,9 +60,10 @@ export function RegisterForm() {
   const [isNavigating, startTransition] = useTransition();
 
   const nextPath = searchParams.get("next") || "/dashboard";
+  const backendSessionEnabled = Boolean(getBackendApiBaseUrl());
   const emailEnabled = isEmailLoginEnabled();
-  const googleEnabled = isGoogleLoginEnabled();
-  const microsoftEnabled = isMicrosoftLoginEnabled();
+  const googleEnabled = !backendSessionEnabled && isGoogleLoginEnabled();
+  const microsoftEnabled = !backendSessionEnabled && isMicrosoftLoginEnabled();
 
   useEffect(() => {
     if (status === "signed_in") {
