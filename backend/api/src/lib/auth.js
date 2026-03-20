@@ -1,6 +1,6 @@
 import { HttpError } from "./http.js";
 
-import { readWebSessionCookie } from "./auth-session.js";
+import { readAuthenticatedWebSession } from "./auth-session.js";
 import { getFirebaseAdminAuth } from "./firebase-admin.js";
 import { asRecord } from "./runtime-value.js";
 
@@ -15,7 +15,10 @@ function readBearerToken(request) {
 
 function assertSupportedAuthToken(decodedToken) {
   const firebaseClaim = asRecord(decodedToken.firebase);
-  if (firebaseClaim?.sign_in_provider === "anonymous") {
+  const signInProvider =
+    firebaseClaim?.sign_in_provider ??
+    (typeof decodedToken.signInProvider === "string" ? decodedToken.signInProvider : null);
+  if (signInProvider === "anonymous") {
     throw new HttpError(
       412,
       "failed-precondition",
@@ -28,7 +31,7 @@ function assertSupportedAuthToken(decodedToken) {
 export async function requireAuthenticatedUser(request) {
   const adminAuth = getFirebaseAdminAuth();
   const idToken = readBearerToken(request);
-  const sessionCookie = readWebSessionCookie(request);
+  const sessionUser = readAuthenticatedWebSession(request);
   let lastError = null;
 
   if (idToken) {
@@ -40,10 +43,9 @@ export async function requireAuthenticatedUser(request) {
     }
   }
 
-  if (sessionCookie) {
+  if (sessionUser) {
     try {
-      const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
-      return assertSupportedAuthToken(decodedToken);
+      return assertSupportedAuthToken(sessionUser);
     } catch (error) {
       lastError = error;
     }

@@ -1,5 +1,7 @@
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+
 import { HttpError } from "./http.js";
+import { lookupIdentityToolkitUserByIdToken } from "./identity-toolkit.js";
 
 const WEB_SESSION_COOKIE_NAME = "ns_session_token";
 const WEB_SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
@@ -43,6 +45,85 @@ function appendSetCookieHeader(response, cookieHeaderValue) {
   response.setHeader("Set-Cookie", [existing, cookieHeaderValue]);
 }
 
+function readWebSessionSecret() {
+  const explicitSecret = (process.env.WEB_SESSION_SECRET ?? "").trim();
+  if (explicitSecret) {
+    return explicitSecret;
+  }
+
+  const legacyFallbackSeed =
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64?.trim() ||
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
+    "";
+  if (legacyFallbackSeed) {
+    return createHash("sha256").update(legacyFallbackSeed).digest("hex");
+  }
+
+  throw new HttpError(500, "internal", "WEB_SESSION_SECRET sunucu degiskeni tanimlanmamis.");
+}
+
+function encodeBase64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function decodeBase64UrlJson(value) {
+  try {
+    return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function signWebSessionPayload(encodedPayload) {
+  return createHmac("sha256", readWebSessionSecret()).update(encodedPayload).digest("base64url");
+}
+
+function createSignedWebSessionToken(payload) {
+  const encodedPayload = encodeBase64UrlJson(payload);
+  const signature = signWebSessionPayload(encodedPayload);
+  return `${encodedPayload}.${signature}`;
+}
+
+function readSignedWebSessionPayload(rawCookieValue) {
+  const cookieValue = typeof rawCookieValue === "string" ? rawCookieValue.trim() : "";
+  if (!cookieValue) {
+    return null;
+  }
+
+  const separatorIndex = cookieValue.lastIndexOf(".");
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const encodedPayload = cookieValue.slice(0, separatorIndex);
+  const signature = cookieValue.slice(separatorIndex + 1);
+  if (!encodedPayload || !signature) {
+    return null;
+  }
+
+  const expectedSignature = signWebSessionPayload(encodedPayload);
+  const providedBuffer = Buffer.from(signature, "utf8");
+  const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+  if (
+    providedBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(providedBuffer, expectedBuffer)
+  ) {
+    return null;
+  }
+
+  const payload = decodeBase64UrlJson(encodedPayload);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const expiresAtMs = Number((payload).exp ?? 0);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    return null;
+  }
+
+  return payload;
+}
+
 function parseCookieHeader(rawCookieHeader) {
   if (!rawCookieHeader || typeof rawCookieHeader !== "string") {
     return new Map();
@@ -71,6 +152,39 @@ export function readWebSessionCookie(request) {
   return cookieValue.trim() || null;
 }
 
+export function readAuthenticatedWebSession(request) {
+  const payload = readSignedWebSessionPayload(readWebSessionCookie(request));
+  if (!payload) {
+    return null;
+  }
+
+  const uid = typeof payload.uid === "string" ? payload.uid.trim() : "";
+  if (!uid) {
+    return null;
+  }
+
+  const providerData = Array.isArray(payload.providerData)
+    ? payload.providerData
+        .map((item) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) {
+            return null;
+          }
+          const providerId = typeof item.providerId === "string" ? item.providerId.trim() : "";
+          return providerId ? { providerId } : null;
+        })
+        .filter(Boolean)
+    : [];
+
+  return {
+    uid,
+    email: typeof payload.email === "string" ? payload.email : null,
+    displayName: typeof payload.displayName === "string" ? payload.displayName : null,
+    emailVerified: payload.emailVerified === true,
+    providerData,
+    signInProvider: typeof payload.signInProvider === "string" ? payload.signInProvider : null,
+  };
+}
+
 export function clearWebSessionCookie(response) {
   appendSetCookieHeader(response, buildCookieHeader("", 0));
 }
@@ -81,40 +195,56 @@ export async function exchangeIdTokenForWebSession(response, rawIdToken) {
     throw new HttpError(400, "invalid-argument", "idToken zorunludur.");
   }
 
-  const adminAuth = getFirebaseAdminAuth();
-  const decodedToken = await adminAuth.verifyIdToken(idToken).catch(() => {
+  const sessionUser = await lookupIdentityToolkitUserByIdToken(idToken);
+  if (!sessionUser.uid) {
     throw new HttpError(401, "unauthenticated", "Oturum dogrulanamadi. Tekrar giris yap.");
-  });
-
-  if (decodedToken?.firebase?.sign_in_provider === "anonymous") {
+  }
+  if (sessionUser.signInProvider === "anonymous") {
     throw new HttpError(412, "failed-precondition", "Anonim oturum bu islem icin desteklenmiyor.");
   }
 
-  const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-    expiresIn: WEB_SESSION_MAX_AGE_MS,
+  const now = Date.now();
+  const sessionCookie = createSignedWebSessionToken({
+    uid: sessionUser.uid,
+    email: sessionUser.email,
+    displayName: sessionUser.displayName,
+    emailVerified: sessionUser.emailVerified === true,
+    providerData: Array.isArray(sessionUser.providerData) ? sessionUser.providerData : [],
+    signInProvider: sessionUser.signInProvider ?? null,
+    iat: now,
+    exp: now + WEB_SESSION_MAX_AGE_MS,
   });
   appendSetCookieHeader(response, buildCookieHeader(sessionCookie, WEB_SESSION_MAX_AGE_SECONDS));
-  return decodedToken;
+  return sessionUser;
 }
 
-export async function readCurrentAuthSessionUser(uid) {
-  if (!uid || typeof uid !== "string") {
-    throw new HttpError(400, "invalid-argument", "Kullanici kimligi gecersiz.");
+export async function readCurrentAuthSessionUser(subject) {
+  if (subject && typeof subject === "object" && !Array.isArray(subject)) {
+    const uid = typeof subject.uid === "string" ? subject.uid.trim() : "";
+    if (uid) {
+      return {
+        uid,
+        email: typeof subject.email === "string" ? subject.email : null,
+        displayName: typeof subject.displayName === "string" ? subject.displayName : null,
+        emailVerified: subject.emailVerified === true,
+        providerData: Array.isArray(subject.providerData)
+          ? subject.providerData
+              .map((provider) => {
+                if (!provider || typeof provider !== "object" || Array.isArray(provider)) {
+                  return null;
+                }
+                const providerId =
+                  typeof provider.providerId === "string" ? provider.providerId.trim() : "";
+                return providerId ? { providerId } : null;
+              })
+              .filter(Boolean)
+          : [],
+      };
+    }
   }
 
-  const userRecord = await getFirebaseAdminAuth().getUser(uid).catch(() => {
-    throw new HttpError(404, "auth/user-not-found", "Kullanici hesabi bulunamadi.");
-  });
-
-  return {
-    uid: userRecord.uid,
-    email: userRecord.email ?? null,
-    displayName: userRecord.displayName ?? null,
-    emailVerified: userRecord.emailVerified === true,
-    providerData: Array.isArray(userRecord.providerData)
-      ? userRecord.providerData.map((provider) => ({
-          providerId: typeof provider.providerId === "string" ? provider.providerId : null,
-        }))
-      : [],
-  };
+  if (!subject || typeof subject !== "string") {
+    throw new HttpError(400, "invalid-argument", "Kullanici kimligi gecersiz.");
+  }
+  throw new HttpError(404, "auth/user-not-found", "Kullanici hesabi bulunamadi.");
 }

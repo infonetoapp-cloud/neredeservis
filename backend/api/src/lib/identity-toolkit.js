@@ -1,4 +1,3 @@
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
 import { HttpError } from "./http.js";
 
 const IDENTITY_TOOLKIT_BASE_URL = "https://identitytoolkit.googleapis.com/v1";
@@ -110,6 +109,23 @@ function parseStringField(record, fieldName) {
   return typeof record?.[fieldName] === "string" ? record[fieldName].trim() : "";
 }
 
+function parseProviderData(record) {
+  if (!Array.isArray(record?.providerUserInfo)) {
+    return [];
+  }
+
+  return record.providerUserInfo
+    .map((item) => {
+      const providerRecord = asRecord(item);
+      const providerId = parseStringField(providerRecord, "providerId") || null;
+      if (!providerId) {
+        return null;
+      }
+      return { providerId };
+    })
+    .filter(Boolean);
+}
+
 export async function signInWithEmailPasswordViaIdentityToolkit(input) {
   const email = requireEmail(input?.email);
   const password = requirePassword(input?.password);
@@ -145,7 +161,11 @@ export async function registerWithEmailPasswordViaIdentityToolkit(input) {
   }
 
   if (displayName) {
-    await getFirebaseAdminAuth().updateUser(localId, { displayName }).catch(() => {
+    await callIdentityToolkit("accounts:update", {
+      idToken,
+      displayName,
+      returnSecureToken: false,
+    }).catch(() => {
       throw new HttpError(500, "internal", "Kullanici profili guncellenemedi.");
     });
   }
@@ -209,5 +229,34 @@ export async function confirmPasswordResetViaIdentityToolkit(input) {
   return {
     email: parseStringField(payload, "email") || null,
     success: true,
+  };
+}
+
+export async function lookupIdentityToolkitUserByIdToken(rawIdToken) {
+  const idToken = typeof rawIdToken === "string" ? rawIdToken.trim() : "";
+  if (!idToken) {
+    throw new HttpError(400, "invalid-argument", "idToken zorunludur.");
+  }
+
+  const payload = await callIdentityToolkit("accounts:lookup", { idToken });
+  const users = Array.isArray(payload.users) ? payload.users : [];
+  const userRecord = asRecord(users[0]);
+  if (!userRecord) {
+    throw new HttpError(401, "unauthenticated", "Oturum dogrulanamadi. Tekrar giris yap.");
+  }
+
+  const providerData = parseProviderData(userRecord);
+  const passwordProviderFallback =
+    providerData.length === 0 && parseStringField(userRecord, "email") ? [{ providerId: "password" }] : [];
+
+  return {
+    uid: parseStringField(userRecord, "localId"),
+    email: parseStringField(userRecord, "email") || null,
+    displayName: parseStringField(userRecord, "displayName") || null,
+    emailVerified: userRecord.emailVerified === true,
+    providerData: providerData.length > 0 ? providerData : passwordProviderFallback,
+    signInProvider:
+      providerData[0]?.providerId ??
+      (parseStringField(userRecord, "email") ? "password" : null),
   };
 }

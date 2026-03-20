@@ -852,7 +852,7 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
       const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      const user = await readCurrentAuthSessionUser(decodedToken);
       sendApiOk(response, 200, { user });
       return;
     }
@@ -861,7 +861,7 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
       const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      const user = await readCurrentAuthSessionUser(decodedToken);
       sendApiOk(response, 201, {
         user,
         verificationEmailSent: registerResult.verificationEmailSent,
@@ -872,14 +872,14 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
       const decodedToken = await exchangeIdTokenForWebSession(response, asRecord(body)?.idToken);
-      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      const user = await readCurrentAuthSessionUser(decodedToken);
       sendApiOk(response, 200, { user });
       return;
     }
 
     if (request.method === "GET" && isAuthSessionPath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
-      const user = await readCurrentAuthSessionUser(decodedToken.uid);
+      const user = await readCurrentAuthSessionUser(decodedToken);
       const webAccessPolicy = await getCurrentUserWebAccessPolicy(db, decodedToken.uid);
       sendApiOk(response, 200, {
         user,

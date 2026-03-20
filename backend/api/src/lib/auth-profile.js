@@ -33,7 +33,7 @@ function normalizeDisplayName(rawValue) {
 
 export async function readCurrentAuthProfile(rawUid) {
   const uid = requireUid(rawUid);
-  return readCurrentAuthSessionUser(uid);
+  return readCurrentAuthSessionUser({ uid });
 }
 
 export async function updateCurrentAuthProfile(rawUid, input) {
@@ -71,7 +71,17 @@ export async function updateCurrentAuthProfile(rawUid, input) {
     );
 
   return {
-    user: await readCurrentAuthSessionUser(uid),
+    user: await readCurrentAuthSessionUser({
+      uid: userRecord.uid,
+      email: userRecord.email ?? null,
+      displayName: userRecord.displayName ?? displayName,
+      emailVerified: userRecord.emailVerified === true,
+      providerData: Array.isArray(userRecord.providerData)
+        ? userRecord.providerData.map((provider) => ({
+            providerId: typeof provider.providerId === "string" ? provider.providerId : null,
+          }))
+        : [],
+    }),
     updatedAt: nowIso,
   };
 }
