@@ -1,4 +1,3 @@
-import { getFirebaseAdminAuth } from "./firebase-admin.js";
 import {
   findUserProfileByEmail,
   readUserProfileByUid,
@@ -64,6 +63,10 @@ function generateBootstrapPassword() {
   return `Ns!${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
+function buildOwnerLoginUrl() {
+  return `${readAppBaseUrl()}/giris`;
+}
+
 async function sendPasswordSetupEmail(email) {
   const webApiKey = (process.env.APP_WEB_API_KEY ?? "").trim();
   if (!webApiKey) {
@@ -95,35 +98,6 @@ async function sendPasswordSetupEmail(email) {
         status: response?.status ?? null,
       }),
     );
-  }
-}
-
-async function buildPasswordResetLink(email) {
-  const auth = getFirebaseAdminAuth();
-  try {
-    const rawFirebaseLink = await auth.generatePasswordResetLink(email, {
-      url: `${readAppBaseUrl()}/login`,
-    });
-    try {
-      const linkUrl = new URL(rawFirebaseLink);
-      const oobCode = linkUrl.searchParams.get("oobCode") ?? "";
-      if (oobCode) {
-        return `${readAppBaseUrl()}/set-password?oobCode=${encodeURIComponent(oobCode)}&email=${encodeURIComponent(email)}`;
-      }
-      return rawFirebaseLink;
-    } catch {
-      return rawFirebaseLink;
-    }
-  } catch (error) {
-    console.error(
-      JSON.stringify({
-        level: "warn",
-        event: "platform_password_reset_link_failed",
-        email,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return "";
   }
 }
 
@@ -326,7 +300,6 @@ export async function createPlatformCompany(db, actorUid, input) {
     });
   }
 
-  const passwordResetLink = await buildPasswordResetLink(ownerEmail);
   let companyId = "";
   await db.runTransaction(async (transaction) => {
     const companyRef = db.collection("companies").doc();
@@ -379,7 +352,8 @@ export async function createPlatformCompany(db, actorUid, input) {
     companyId,
     ownerUid,
     ownerEmail,
-    passwordResetLink,
+    notificationSent: true,
+    loginUrl: buildOwnerLoginUrl(),
     createdAt: nowIso,
   };
 }
@@ -448,13 +422,11 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
     throw new HttpError(404, "not-found", "Sirket sahibinin e-postasi bulunamadi.");
   }
 
-  const loginLink = await buildPasswordResetLink(ownerEmail);
-  if (!loginLink) {
-    throw new HttpError(500, "internal", "Sifre sifirlama linki olusturulamadi.");
-  }
-
   await sendPasswordSetupEmail(ownerEmail);
-  return { loginLink };
+  return {
+    notificationSent: true,
+    loginUrl: buildOwnerLoginUrl(),
+  };
 }
 
 export async function deletePlatformCompany(db, rtdb, input) {
