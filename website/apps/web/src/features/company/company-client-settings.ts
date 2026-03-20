@@ -1,10 +1,6 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import {
-  WEB_AUTH_SESSION_COOKIE_NAME,
-  WEB_AUTH_SESSION_COOKIE_SIGNED_IN_VALUE,
-} from "@/lib/auth/session-cookie-constants";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
@@ -55,36 +51,6 @@ type BackendUploadEnvelope<T> = {
   };
 };
 
-function hasClientSessionCookie(): boolean {
-  if (typeof document === "undefined") {
-    return false;
-  }
-
-  const cookiePrefix = `${WEB_AUTH_SESSION_COOKIE_NAME}=`;
-  return document.cookie
-    .split(";")
-    .map((segment) => segment.trim())
-    .some(
-      (segment) =>
-        segment.startsWith(cookiePrefix) &&
-        segment.slice(cookiePrefix.length) === WEB_AUTH_SESSION_COOKIE_SIGNED_IN_VALUE,
-    );
-}
-
-async function readFallbackFirebaseIdToken(): Promise<string | null> {
-  if (hasClientSessionCookie()) {
-    return null;
-  }
-
-  const firebaseClient = await import("@/lib/firebase/client").catch(() => null);
-  const currentUser = firebaseClient?.getFirebaseClientAuth()?.currentUser ?? null;
-  if (!currentUser) {
-    return null;
-  }
-
-  return currentUser.getIdToken();
-}
-
 export type CompanyLogoUploadResult = {
   logoUrl: string;
   profileUpdated: boolean;
@@ -98,13 +64,11 @@ async function callBackendUploadApi<T>(input: {
   body?: BodyInit;
   contentType?: string;
 }): Promise<T> {
-  const idToken = await readFallbackFirebaseIdToken();
   const requestUrl = new URL(input.path, input.baseUrl.endsWith("/") ? input.baseUrl : `${input.baseUrl}/`);
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
     credentials: "include",
     headers: {
-      ...(idToken ? { authorization: `Bearer ${idToken}` } : {}),
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),

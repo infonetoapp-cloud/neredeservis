@@ -1,12 +1,39 @@
 "use client";
 
-import { getCallableErrorCode } from "@/lib/firebase/callable";
-
 function getRawCallableMessage(error: unknown): string {
   if (typeof error === "object" && error && "message" in error) {
     return String((error as { message?: unknown }).message ?? "");
   }
   return "";
+}
+
+function getCallableErrorCode(error: unknown): string | null {
+  if (typeof error !== "object" || !error) {
+    return null;
+  }
+
+  const rawCode =
+    "code" in error && typeof (error as { code?: unknown }).code === "string"
+      ? (error as { code: string }).code
+      : null;
+  if (!rawCode) {
+    return null;
+  }
+
+  if (rawCode.startsWith("functions/")) {
+    return rawCode;
+  }
+
+  switch (rawCode) {
+    case "unauthenticated":
+    case "permission-denied":
+    case "failed-precondition":
+    case "invalid-argument":
+    case "already-exists":
+      return `functions/${rawCode}`;
+    default:
+      return rawCode;
+  }
 }
 
 function isUpgradeRequiredSignal(rawMessage: string): boolean {
