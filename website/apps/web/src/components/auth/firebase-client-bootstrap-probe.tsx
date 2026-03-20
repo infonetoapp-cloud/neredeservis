@@ -1,12 +1,31 @@
 "use client";
 
-import { getFirebaseClientApp, getFirebaseClientAuth } from "@/lib/firebase/client";
+import { useEffect, useState } from "react";
+
 import { CheckCircleIcon, RefreshIcon } from "@/components/shared/app-icons";
 
 export function FirebaseClientBootstrapProbe() {
-  const app = getFirebaseClientApp();
-  const auth = getFirebaseClientAuth();
-  const ready = Boolean(app && auth);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void import("@/lib/firebase/client")
+      .then((firebaseClient) => {
+        if (cancelled) return;
+        setReady(
+          Boolean(firebaseClient.getFirebaseClientApp() && firebaseClient.getFirebaseClientAuth()),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (ready) {
     return null;

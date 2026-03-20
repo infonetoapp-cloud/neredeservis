@@ -2,12 +2,9 @@
 
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { httpsCallable } from "firebase/functions";
-
-import { getFirebaseClientFunctions } from "@/lib/firebase/client";
+import { callFirebaseCallable } from "@/lib/firebase/callable";
 
 import {
-  type ApiOk,
   type CompanyDriverCredentialBundle,
   type CompanyDriverItem,
   type CompanyInviteItem,
@@ -47,15 +44,9 @@ export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembership
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<unknown, ApiOk<{ items?: unknown[] }>>(functions, "listMyCompanies");
   try {
-    const response = await callable({});
-    const rawItems = response.data?.data?.items ?? [];
+    const response = await callFirebaseCallable<unknown, { items?: unknown[] }>("listMyCompanies", {});
+    const rawItems = response.data?.items ?? [];
     // Backend returns { companyId, name, role, memberStatus } — map to CompanyMembershipItem
     const mapped = rawItems.map((item: unknown) => {
       const r = item as Record<string, unknown>;
@@ -113,19 +104,12 @@ export async function createCompanyForCurrentUser(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ name: string }, ApiOk<{ membership?: unknown }>>(
-    functions,
-    "createCompany",
-  );
-
   try {
-    const response = await callable({ name: input.name.trim() });
-    const membershipList = parseMembershipItems([response.data?.data?.membership]);
+    const response = await callFirebaseCallable<{ name: string }, { membership?: unknown }>(
+      "createCompany",
+      { name: input.name.trim() },
+    );
+    const membershipList = parseMembershipItems([response.data?.membership]);
     const firstMembership = membershipList[0];
     if (!firstMembership) {
       throw new Error("COMPANY_CREATE_RESPONSE_INVALID");
@@ -161,22 +145,15 @@ export async function listCompanyMembersForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
-    functions,
-    "listCompanyMembers",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<{ companyId: string; limit?: number }, { items?: unknown }>(
+      "listCompanyMembers",
+      {
       companyId: input.companyId.trim(),
       limit: input.limit,
-    });
-    return parseCompanyMemberItems(response.data?.data?.items);
+      },
+    );
+    return parseCompanyMemberItems(response.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -187,23 +164,16 @@ export async function inviteCompanyMemberForCompany(input: {
   memberUid: string;
   role: CompanyMemberRole;
 }): Promise<CompanyMemberItem> {
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; memberUid: string; role: CompanyMemberRole },
-    ApiOk<{ member?: unknown }>
-  >(functions, "inviteCompanyMember");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; memberUid: string; role: CompanyMemberRole },
+      { member?: unknown }
+    >("inviteCompanyMember", {
       companyId: input.companyId.trim(),
       memberUid: input.memberUid.trim(),
       role: input.role,
     });
-    const members = parseCompanyMemberItems([response.data?.data?.member]);
+    const members = parseCompanyMemberItems([response.data?.member]);
     const member = members[0];
     if (!member) {
       throw new Error("INVITE_COMPANY_MEMBER_RESPONSE_INVALID");
@@ -258,23 +228,16 @@ export async function setCompanyMemberRoleForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; memberUid: string; patch: { role: CompanyMemberRole } },
-    ApiOk<{ companyId?: string; memberUid?: string; role?: string; memberStatus?: string; updatedAt?: string }>
-  >(functions, "updateCompanyMember");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; memberUid: string; patch: { role: CompanyMemberRole } },
+      { companyId?: string; memberUid?: string; role?: string; memberStatus?: string; updatedAt?: string }
+    >("updateCompanyMember", {
       companyId: input.companyId.trim(),
       memberUid: input.memberUid.trim(),
       patch: { role: input.role },
     });
-    const data = response.data?.data;
+    const data = response.data;
     if (!data?.memberUid) {
       throw new Error("SET_COMPANY_MEMBER_ROLE_RESPONSE_INVALID");
     }
@@ -321,22 +284,15 @@ export async function listCompanyDriversForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ items?: unknown }>>(
-    functions,
-    "listCompanyDrivers",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<{ companyId: string; limit?: number }, { items?: unknown }>(
+      "listCompanyDrivers",
+      {
       companyId: input.companyId.trim(),
       limit: input.limit,
-    });
-    return parseCompanyDriverItems(response.data?.data?.items);
+      },
+    );
+    return parseCompanyDriverItems(response.data?.items);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -383,21 +339,6 @@ export async function createCompanyDriverAccountForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    {
-      companyId: string;
-      name: string;
-      phone?: string;
-      plate?: string;
-    },
-    ApiOk<{ credentials?: unknown }>
-  >(functions, "createCompanyDriverAccount");
-
   try {
     const payload: {
       companyId: string;
@@ -416,8 +357,16 @@ export async function createCompanyDriverAccountForCompany(input: {
     if (plate) {
       payload.plate = plate;
     }
-    const response = await callable(payload);
-    const credentials = parseCompanyDriverCredentialBundle(response.data?.data?.credentials);
+    const response = await callFirebaseCallable<
+      {
+        companyId: string;
+        name: string;
+        phone?: string;
+        plate?: string;
+      },
+      { credentials?: unknown }
+    >("createCompanyDriverAccount", payload);
+    const credentials = parseCompanyDriverCredentialBundle(response.data?.credentials);
     if (!credentials) {
       throw new Error("CREATE_COMPANY_DRIVER_ACCOUNT_RESPONSE_INVALID");
     }
@@ -449,18 +398,11 @@ export async function assignCompanyDriverToRouteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; driverId: string; routeId: string },
-    ApiOk<{ route?: unknown }>
-  >(functions, "assignCompanyDriverToRoute");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      { companyId: string; driverId: string; routeId: string },
+      { route?: unknown }
+    >("assignCompanyDriverToRoute", {
       companyId: input.companyId.trim(),
       driverId: input.driverId.trim(),
       routeId: input.routeId.trim(),
@@ -492,18 +434,11 @@ export async function unassignCompanyDriverFromRouteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; driverId: string; routeId: string },
-    ApiOk<{ route?: unknown }>
-  >(functions, "unassignCompanyDriverFromRoute");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      { companyId: string; driverId: string; routeId: string },
+      { route?: unknown }
+    >("unassignCompanyDriverFromRoute", {
       companyId: input.companyId.trim(),
       driverId: input.driverId.trim(),
       routeId: input.routeId.trim(),
@@ -537,18 +472,11 @@ export async function updateCompanyDriverStatusForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; driverId: string; status: "active" | "passive" },
-    ApiOk<{ driverId?: string; status?: string }>
-  >(functions, "updateCompanyDriverStatus");
-
   try {
-    await callable({
+    await callFirebaseCallable<
+      { companyId: string; driverId: string; status: "active" | "passive" },
+      { driverId?: string; status?: string }
+    >("updateCompanyDriverStatus", {
       companyId: input.companyId.trim(),
       driverId: input.driverId.trim(),
       status: input.status,
@@ -606,23 +534,25 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; email: string; role: CompanyMemberRole },
-    ApiOk<{ companyId?: string; inviteId?: string; memberUid?: string; invitedEmail?: string; role?: string; status?: string; expiresAt?: string; createdAt?: string }>
-  >(functions, "inviteCompanyMember");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; email: string; role: CompanyMemberRole },
+      {
+        companyId?: string;
+        inviteId?: string;
+        memberUid?: string;
+        invitedEmail?: string;
+        role?: string;
+        status?: string;
+        expiresAt?: string;
+        createdAt?: string;
+      }
+    >("inviteCompanyMember", {
       companyId: input.companyId.trim(),
       email: input.email.trim(),
       role: input.role,
     });
-    const data = response.data?.data;
+    const data = response.data;
     if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("INVITE_COMPANY_MEMBER_BY_EMAIL_RESPONSE_INVALID");
     }
@@ -679,22 +609,15 @@ export async function listCompanyInvitesForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string; limit?: number }, ApiOk<{ invites?: unknown[] }>>(
-    functions,
-    "listCompanyInvites",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<{ companyId: string; limit?: number }, { invites?: unknown[] }>(
+      "listCompanyInvites",
+      {
       companyId: input.companyId.trim(),
       limit: input.limit,
-    });
-    const rawInvites = response.data?.data?.invites ?? [];
+      },
+    );
+    const rawInvites = response.data?.invites ?? [];
     // Map backend fields (invitedEmail→email, invitedUid→targetUid)
     const mapped = rawInvites.map((item: unknown) => {
       const r = item as Record<string, unknown>;
@@ -753,22 +676,23 @@ export async function revokeCompanyInviteForCompany(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<
-    { companyId: string; inviteId: string },
-    ApiOk<{ inviteId?: string; companyId?: string; companyName?: string; invitedEmail?: string; role?: string; status?: string; revokedAt?: string }>
-  >(functions, "revokeCompanyInvite");
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<
+      { companyId: string; inviteId: string },
+      {
+        inviteId?: string;
+        companyId?: string;
+        companyName?: string;
+        invitedEmail?: string;
+        role?: string;
+        status?: string;
+        revokedAt?: string;
+      }
+    >("revokeCompanyInvite", {
       companyId: input.companyId.trim(),
       inviteId: input.inviteId.trim(),
     });
-    const data = response.data?.data;
+    const data = response.data;
     if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("REVOKE_COMPANY_INVITE_RESPONSE_INVALID");
     }
@@ -804,19 +728,12 @@ export async function listMyPendingCompanyInvitesForCurrentUser(): Promise<Compa
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<unknown, ApiOk<{ invites?: unknown }>>(
-    functions,
-    "listMyPendingCompanyInvites",
-  );
-
   try {
-    const response = await callable({});
-    return parseCompanyInviteItems(response.data?.data?.invites);
+    const response = await callFirebaseCallable<unknown, { invites?: unknown }>(
+      "listMyPendingCompanyInvites",
+      {},
+    );
+    return parseCompanyInviteItems(response.data?.invites);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -864,21 +781,14 @@ export async function acceptCompanyInviteForCurrentUser(input: {
     }
   }
 
-  const functions = getFirebaseClientFunctions();
-  if (!functions) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
-  const callable = httpsCallable<{ companyId: string }, ApiOk<{ membership?: unknown }>>(
-    functions,
-    "acceptCompanyInvite",
-  );
-
   try {
-    const response = await callable({
+    const response = await callFirebaseCallable<{ companyId: string }, { membership?: unknown }>(
+      "acceptCompanyInvite",
+      {
       companyId: input.companyId.trim(),
-    });
-    const memberships = parseMembershipItems([response.data?.data?.membership]);
+      },
+    );
+    const memberships = parseMembershipItems([response.data?.membership]);
     const membership = memberships[0];
     if (!membership) {
       throw new Error("ACCEPT_COMPANY_INVITE_RESPONSE_INVALID");

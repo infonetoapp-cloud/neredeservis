@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onValue, ref } from "firebase/database";
 
-import { getFirebaseClientAuth, getFirebaseClientDatabase } from "@/lib/firebase/client";
+import { loadFirebaseRtdbRuntime } from "@/lib/firebase/rtdb";
 
 type StreamStatus = "idle" | "connecting" | "live" | "mismatch" | "error";
 
@@ -41,7 +40,6 @@ export function useRouteLiveLocationStream(
   enabled: boolean,
 ) {
   const streamEnabled = enabled && Boolean(routeId) && Boolean(expectedTripId);
-  const databaseClient = streamEnabled ? getFirebaseClientDatabase() : null;
   const [status, setStatus] = useState<StreamStatus>(enabled ? "connecting" : "idle");
   const [error, setError] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<RouteLiveLocationStreamSnapshot | null>(null);
@@ -59,124 +57,139 @@ export function useRouteLiveLocationStream(
       return;
     }
 
-    if (!databaseClient) {
-      return;
-    }
-
     retryAttemptRef.current = 0;
     let cancelled = false;
-    const pathRef = ref(databaseClient, `locations/${routeId}`);
-    const unsubscribe = onValue(
-      pathRef,
-      (eventSnapshot) => {
+    let unsubscribe: (() => void) | null = null;
+
+    void loadFirebaseRtdbRuntime()
+      .then(({ databaseModule, clientModule }) => {
         if (cancelled) return;
-        const payload = toRecord(eventSnapshot.val());
-        if (!payload) {
-          setSnapshot(null);
-          setStatus("connecting");
-          setError(null);
+
+        const databaseClient = clientModule.getFirebaseClientDatabase();
+        if (!databaseClient) {
+          setStatus("error");
+          setError("Firebase RTDB config hazir degil.");
           return;
         }
 
-        const payloadTripId = pickString(payload, "tripId");
-        const lat = pickFiniteNumber(payload, "lat");
-        const lng = pickFiniteNumber(payload, "lng");
-        const timestampMs = pickFiniteNumber(payload, "timestamp");
-        const accuracy = pickFiniteNumber(payload, "accuracy");
-        const speed = pickFiniteNumber(payload, "speed");
-        const heading = pickFiniteNumber(payload, "heading");
+        const pathRef = databaseModule.ref(databaseClient, `locations/${routeId}`);
+        unsubscribe = databaseModule.onValue(
+          pathRef,
+          (eventSnapshot) => {
+            if (cancelled) return;
+            const payload = toRecord(eventSnapshot.val());
+            if (!payload) {
+              setSnapshot(null);
+              setStatus("connecting");
+              setError(null);
+              return;
+            }
 
-        setSnapshot({
-          tripId: payloadTripId,
-          lat,
-          lng,
-          timestampMs,
-          accuracy,
-          speed,
-          heading,
-          receivedAt: new Date().toISOString(),
-        });
-        setError(null);
-        setLastEventAt(Date.now());
-        retryAttemptRef.current = 0;
-        setRetryAttempt(0);
-        setNextRetryAt(null);
-        if (retryTimerRef.current) {
-          window.clearTimeout(retryTimerRef.current);
-          retryTimerRef.current = null;
-        }
+            const payloadTripId = pickString(payload, "tripId");
+            const lat = pickFiniteNumber(payload, "lat");
+            const lng = pickFiniteNumber(payload, "lng");
+            const timestampMs = pickFiniteNumber(payload, "timestamp");
+            const accuracy = pickFiniteNumber(payload, "accuracy");
+            const speed = pickFiniteNumber(payload, "speed");
+            const heading = pickFiniteNumber(payload, "heading");
 
-        const sameTrip = payloadTripId === expectedTripId;
-        const hasCoords = lat != null && lng != null;
-        setStatus(sameTrip && hasCoords ? "live" : "mismatch");
-      },
-      (nextError) => {
+            setSnapshot({
+              tripId: payloadTripId,
+              lat,
+              lng,
+              timestampMs,
+              accuracy,
+              speed,
+              heading,
+              receivedAt: new Date().toISOString(),
+            });
+            setError(null);
+            setLastEventAt(Date.now());
+            retryAttemptRef.current = 0;
+            setRetryAttempt(0);
+            setNextRetryAt(null);
+            if (retryTimerRef.current) {
+              window.clearTimeout(retryTimerRef.current);
+              retryTimerRef.current = null;
+            }
+
+            const sameTrip = payloadTripId === expectedTripId;
+            const hasCoords = lat != null && lng != null;
+            setStatus(sameTrip && hasCoords ? "live" : "mismatch");
+          },
+          (nextError) => {
+            if (cancelled) return;
+            const message = nextError?.message ?? "RTDB stream baglanamadi.";
+            setStatus("error");
+            setError(message);
+
+            const normalized = message.toLowerCase();
+            let tokenRefreshTriggered = false;
+            if (normalized.includes("permission_denied") || normalized.includes("permission denied")) {
+              const authClient = clientModule.getFirebaseClientAuth();
+              const now = Date.now();
+              const lastRefreshAt = lastAuthRefreshAtRef.current ?? 0;
+              if (authClient?.currentUser && now - lastRefreshAt > 60_000) {
+                lastAuthRefreshAtRef.current = now;
+                tokenRefreshTriggered = true;
+                setAuthRefreshInFlight(true);
+                authClient.currentUser
+                  .getIdToken(true)
+                  .then(() => {
+                    if (cancelled) return;
+                    retryAttemptRef.current = 0;
+                    setRetryAttempt(0);
+                    setNextRetryAt(null);
+                    setStatus("connecting");
+                    if (retryTimerRef.current) {
+                      window.clearTimeout(retryTimerRef.current);
+                      retryTimerRef.current = null;
+                    }
+                    setRetryToken((value) => value + 1);
+                  })
+                  .catch(() => null)
+                  .finally(() => {
+                    if (cancelled) return;
+                    setAuthRefreshInFlight(false);
+                  });
+              }
+            }
+
+            const nextAttempt = Math.min(6, retryAttemptRef.current + 1);
+            retryAttemptRef.current = nextAttempt;
+            const delay = tokenRefreshTriggered
+              ? 2_000
+              : Math.min(30_000, 1000 * Math.pow(2, nextAttempt));
+            setRetryAttempt(nextAttempt);
+            setNextRetryAt(Date.now() + delay);
+            if (retryTimerRef.current) {
+              window.clearTimeout(retryTimerRef.current);
+              retryTimerRef.current = null;
+            }
+            retryTimerRef.current = window.setTimeout(() => {
+              setStatus("connecting");
+              setRetryToken((value) => value + 1);
+              retryTimerRef.current = null;
+            }, delay);
+          },
+        );
+      })
+      .catch((nextError) => {
         if (cancelled) return;
-        const message = nextError?.message ?? "RTDB stream baglanamadi.";
         setStatus("error");
-        setError(message);
-
-        const normalized = message.toLowerCase();
-        let tokenRefreshTriggered = false;
-        if (normalized.includes("permission_denied") || normalized.includes("permission denied")) {
-          const authClient = getFirebaseClientAuth();
-          const now = Date.now();
-          const lastRefreshAt = lastAuthRefreshAtRef.current ?? 0;
-          if (authClient?.currentUser && now - lastRefreshAt > 60_000) {
-            lastAuthRefreshAtRef.current = now;
-            tokenRefreshTriggered = true;
-            setAuthRefreshInFlight(true);
-            authClient.currentUser
-              .getIdToken(true)
-              .then(() => {
-                if (cancelled) return;
-                // Retry quickly after a forced token refresh.
-                retryAttemptRef.current = 0;
-                setRetryAttempt(0);
-                setNextRetryAt(null);
-                setStatus("connecting");
-                if (retryTimerRef.current) {
-                  window.clearTimeout(retryTimerRef.current);
-                  retryTimerRef.current = null;
-                }
-                setRetryToken((value) => value + 1);
-              })
-              .catch(() => null)
-              .finally(() => {
-                if (cancelled) return;
-                setAuthRefreshInFlight(false);
-              });
-          }
-        }
-
-        const nextAttempt = Math.min(6, retryAttemptRef.current + 1);
-        retryAttemptRef.current = nextAttempt;
-        const delay = tokenRefreshTriggered
-          ? 2_000
-          : Math.min(30_000, 1000 * Math.pow(2, nextAttempt));
-        setRetryAttempt(nextAttempt);
-        setNextRetryAt(Date.now() + delay);
-        if (retryTimerRef.current) {
-          window.clearTimeout(retryTimerRef.current);
-          retryTimerRef.current = null;
-        }
-        retryTimerRef.current = window.setTimeout(() => {
-          setStatus("connecting");
-          setRetryToken((value) => value + 1);
-          retryTimerRef.current = null;
-        }, delay);
-      },
-    );
+        setError(nextError instanceof Error ? nextError.message : "RTDB runtime yuklenemedi.");
+      });
 
     return () => {
       cancelled = true;
-      unsubscribe();
+      unsubscribe?.();
       if (retryTimerRef.current) {
         window.clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
     };
-  }, [databaseClient, expectedTripId, retryToken, routeId, streamEnabled]);
+  }, [expectedTripId, retryToken, routeId, streamEnabled]);
+
   if (!streamEnabled) {
     return {
       status: "idle" as const,
@@ -185,17 +198,6 @@ export function useRouteLiveLocationStream(
       lastEventAt: null as number | null,
       retryAttempt: 0,
       nextRetryAt: null as number | null,
-      authRefreshInFlight: false,
-    };
-  }
-  if (!databaseClient) {
-    return {
-      status: "error" as const,
-      error: "Firebase RTDB config hazir degil.",
-      snapshot: null as RouteLiveLocationStreamSnapshot | null,
-      lastEventAt: null as number | null,
-      retryAttempt,
-      nextRetryAt,
       authRefreshInFlight: false,
     };
   }

@@ -1,13 +1,8 @@
 "use client";
 
-import { FirebaseError } from "firebase/app";
-
 import { getCallableErrorCode } from "@/lib/firebase/callable";
 
 function getRawCallableMessage(error: unknown): string {
-  if (error instanceof FirebaseError) {
-    return error.message;
-  }
   if (typeof error === "object" && error && "message" in error) {
     return String((error as { message?: unknown }).message ?? "");
   }
@@ -44,14 +39,14 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
   }
 
   if (isUpgradeRequiredSignal(rawMessage)) {
-    return "Uygulama surumu guncellenmeli. Lutfen cikis yapip en güncel surum ile tekrar giriş yapin.";
+    return "Uygulama surumu guncellenmeli. Lutfen cikis yapip en guncel surum ile tekrar giris yapin.";
   }
 
   switch (code) {
     case "functions/unauthenticated":
-      return "Oturum bulunamadi. Lutfen tekrar giriş yapin.";
+      return "Oturum bulunamadi. Lutfen tekrar giris yapin.";
     case "functions/permission-denied":
-      return "Bu islem için yetkin yok.";
+      return "Bu islem icin yetkin yok.";
     case "functions/failed-precondition":
       if (rawMessage.includes("INVITE_EMAIL_NOT_FOUND")) {
         return "Bu e-posta ile kayitli kullanici bulunamadi.";
@@ -72,7 +67,7 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
         return "Rota ana surucusunun yetkisi bu akisla kaldirilamaz.";
       }
       if (rawMessage.includes("UPDATE_TOKEN_MISMATCH")) {
-        return "Kayıt baska bir oturumda guncellendi. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Kayit baska bir oturumda guncellendi. Liste yenilendi; lutfen tekrar deneyin.";
       }
       if (rawMessage.includes("ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED")) {
         return "Aktif sefer varken rota yapisi degistirilemez. Sefer bitince tekrar deneyin.";
@@ -81,10 +76,10 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
         return "Arac rotalara bagliyken silinemez. Once rota baglantilarini kaldir.";
       }
       if (rawMessage.includes("ROUTE_STOP_INVALID_STATE")) {
-        return "Durak listesi güncel degil. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Durak listesi guncel degil. Liste yenilendi; lutfen tekrar deneyin.";
       }
       if (rawMessage.includes("ROUTE_STOP_REORDER_STATE_INVALID")) {
-        return "Durak sirasi güncel degil. Liste yenilendi; lutfen tekrar deneyin.";
+        return "Durak sirasi guncel degil. Liste yenilendi; lutfen tekrar deneyin.";
       }
       return "Bu islem su an tamamlanamiyor. Lutfen tekrar deneyin.";
     case "functions/invalid-argument":
@@ -114,12 +109,11 @@ export function mapCompanyCallableErrorToMessage(error: unknown): string {
       }
       return "Girilen bilgiler gecerli degil.";
     case "functions/already-exists":
-      return "Ayni kayıt zaten mevcut.";
+      return "Ayni kayit zaten mevcut.";
     default:
-      if (error instanceof FirebaseError && error.message) {
-        return error.message;
+      if (rawMessage) {
+        return rawMessage;
       }
       return "Islem tamamlanamadi. Lutfen tekrar deneyin.";
   }
 }
-
