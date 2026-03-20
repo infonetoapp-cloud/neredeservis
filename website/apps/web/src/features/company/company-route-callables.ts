@@ -1,8 +1,7 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import {
   ensureCreateCompanyRouteResponse,
   ensureDeleteCompanyRouteStopResponse,
@@ -36,30 +35,21 @@ export async function listCompanyRoutesCallable(input: {
   includeArchived?: boolean;
   limit?: number;
 }): Promise<CompanyRouteSummary[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const query = new URLSearchParams();
-    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
-      query.set("limit", String(Math.trunc(input.limit)));
-    }
-    if (input.includeArchived === true) {
-      query.set("includeArchived", "true");
-    }
-
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes${
-        query.size > 0 ? `?${query.toString()}` : ""
-      }`,
-    });
-    return ensureListCompanyRoutesResponse(envelope.data, "listCompanyRoutes").items;
+  const companyId = input.companyId.trim();
+  const query = new URLSearchParams();
+  if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+    query.set("limit", String(Math.trunc(input.limit)));
+  }
+  if (input.includeArchived === true) {
+    query.set("includeArchived", "true");
   }
 
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listCompanyRoutes",
-    input,
-  );
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes${
+      query.size > 0 ? `?${query.toString()}` : ""
+    }`,
+  });
   return ensureListCompanyRoutesResponse(envelope.data, "listCompanyRoutes").items;
 }
 
@@ -76,22 +66,13 @@ export async function createCompanyRouteCallable(input: {
   authorizedDriverIds?: string[];
   idempotencyKey?: string;
 }): Promise<CreateCompanyRouteResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes`,
-      method: "POST",
-      body: input,
-    });
-    return ensureCreateCompanyRouteResponse(envelope.data, "createCompanyRoute");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "createCompanyRoute",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes`,
+    method: "POST",
+    body: input,
+  });
   return ensureCreateCompanyRouteResponse(envelope.data, "createCompanyRoute");
 }
 
@@ -99,21 +80,12 @@ export async function listCompanyRouteStopsCallable(input: {
   companyId: string;
   routeId: string;
 }): Promise<CompanyRouteStopSummary[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
-    });
-    return ensureListCompanyRouteStopsResponse(envelope.data, "listCompanyRouteStops").items;
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listCompanyRouteStops",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
+  });
   return ensureListCompanyRouteStopsResponse(envelope.data, "listCompanyRouteStops").items;
 }
 
@@ -123,33 +95,24 @@ export async function listActiveTripsByCompanyCallable(input: {
   driverUid?: string | null;
   limit?: number;
 }): Promise<CompanyActiveTripSummary[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const query = new URLSearchParams();
-    if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
-      query.set("limit", String(Math.trunc(input.limit)));
-    }
-    if (input.routeId) {
-      query.set("routeId", input.routeId);
-    }
-    if (input.driverUid) {
-      query.set("driverUid", input.driverUid);
-    }
-
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/active-trips${
-        query.size > 0 ? `?${query.toString()}` : ""
-      }`,
-    });
-    return ensureListActiveTripsByCompanyResponse(envelope.data, "listActiveTripsByCompany").items;
+  const companyId = input.companyId.trim();
+  const query = new URLSearchParams();
+  if (typeof input.limit === "number" && Number.isFinite(input.limit)) {
+    query.set("limit", String(Math.trunc(input.limit)));
+  }
+  if (input.routeId) {
+    query.set("routeId", input.routeId);
+  }
+  if (input.driverUid) {
+    query.set("driverUid", input.driverUid);
   }
 
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listActiveTripsByCompany",
-    input,
-  );
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/active-trips${
+      query.size > 0 ? `?${query.toString()}` : ""
+    }`,
+  });
   return ensureListActiveTripsByCompanyResponse(envelope.data, "listActiveTripsByCompany").items;
 }
 
@@ -166,26 +129,17 @@ export async function updateCompanyRouteCallable(input: {
     authorizedDriverIds?: string[];
   };
 }): Promise<UpdateCompanyRouteResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
-      method: "PATCH",
-      body: {
-        lastKnownUpdateToken: input.lastKnownUpdateToken,
-        patch: input.patch,
-      },
-    });
-    return ensureUpdateCompanyRouteResponse(envelope.data, "updateCompanyRoute");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "updateCompanyRoute",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
+    method: "PATCH",
+    body: {
+      lastKnownUpdateToken: input.lastKnownUpdateToken,
+      patch: input.patch,
+    },
+  });
   return ensureUpdateCompanyRouteResponse(envelope.data, "updateCompanyRoute");
 }
 
@@ -198,23 +152,14 @@ export async function upsertCompanyRouteStopCallable(input: {
   order: number;
   location: { lat: number; lng: number };
 }): Promise<UpsertCompanyRouteStopResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
-      method: "POST",
-      body: input,
-    });
-    return ensureUpsertCompanyRouteStopResponse(envelope.data, "upsertCompanyRouteStop");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "upsertCompanyRouteStop",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
+    method: "POST",
+    body: input,
+  });
   return ensureUpsertCompanyRouteStopResponse(envelope.data, "upsertCompanyRouteStop");
 }
 
@@ -224,26 +169,17 @@ export async function deleteCompanyRouteStopCallable(input: {
   stopId: string;
   lastKnownUpdateToken?: string;
 }): Promise<DeleteCompanyRouteStopResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const stopId = input.stopId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}`,
-      method: "DELETE",
-      body: {
-        lastKnownUpdateToken: input.lastKnownUpdateToken,
-      },
-    });
-    return ensureDeleteCompanyRouteStopResponse(envelope.data, "deleteCompanyRouteStop");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "deleteCompanyRouteStop",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const stopId = input.stopId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}`,
+    method: "DELETE",
+    body: {
+      lastKnownUpdateToken: input.lastKnownUpdateToken,
+    },
+  });
   return ensureDeleteCompanyRouteStopResponse(envelope.data, "deleteCompanyRouteStop");
 }
 
@@ -254,27 +190,18 @@ export async function reorderCompanyRouteStopsCallable(input: {
   direction: "up" | "down";
   lastKnownUpdateToken?: string;
 }): Promise<ReorderCompanyRouteStopsResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const stopId = input.stopId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}/reorder`,
-      method: "POST",
-      body: {
-        direction: input.direction,
-        lastKnownUpdateToken: input.lastKnownUpdateToken,
-      },
-    });
-    return ensureReorderCompanyRouteStopsResponse(envelope.data, "reorderCompanyRouteStops");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "reorderCompanyRouteStops",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const stopId = input.stopId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}/reorder`,
+    method: "POST",
+    body: {
+      direction: input.direction,
+      lastKnownUpdateToken: input.lastKnownUpdateToken,
+    },
+  });
   return ensureReorderCompanyRouteStopsResponse(envelope.data, "reorderCompanyRouteStops");
 }
 
@@ -285,26 +212,17 @@ export async function grantDriverRoutePermissionsCallable(input: {
   idempotencyKey?: string;
   permissions: RouteDriverPermissionFlags;
 }): Promise<GrantDriverRoutePermissionsResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const driverUid = input.driverUid.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions/${encodeURIComponent(driverUid)}`,
-      method: "PUT",
-      body: {
-        permissions: input.permissions,
-      },
-    });
-    return ensureGrantDriverRoutePermissionsResponse(envelope.data, "grantDriverRoutePermissions");
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "grantDriverRoutePermissions",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const driverUid = input.driverUid.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions/${encodeURIComponent(driverUid)}`,
+    method: "PUT",
+    body: {
+      permissions: input.permissions,
+    },
+  });
   return ensureGrantDriverRoutePermissionsResponse(envelope.data, "grantDriverRoutePermissions");
 }
 
@@ -312,21 +230,12 @@ export async function listRouteDriverPermissionsCallable(input: {
   companyId: string;
   routeId: string;
 }): Promise<RouteDriverPermissionSummary[]> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions`,
-    });
-    return ensureListRouteDriverPermissionsResponse(envelope.data, "listRouteDriverPermissions").items;
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listRouteDriverPermissions",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions`,
+  });
   return ensureListRouteDriverPermissionsResponse(envelope.data, "listRouteDriverPermissions").items;
 }
 
@@ -338,30 +247,18 @@ export async function revokeDriverRoutePermissionsCallable(input: {
   permissionKeys?: Array<keyof RouteDriverPermissionFlags>;
   resetToDefault?: boolean;
 }): Promise<RevokeDriverRoutePermissionsResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const companyId = input.companyId.trim();
-    const routeId = input.routeId.trim();
-    const driverUid = input.driverUid.trim();
-    const envelope = await callBackendApi<unknown>({
-      baseUrl: backendApiBaseUrl,
-      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions/${encodeURIComponent(driverUid)}`,
-      method: "DELETE",
-      body: {
-        permissionKeys: input.permissionKeys,
-        resetToDefault: input.resetToDefault,
-      },
-    });
-    return ensureRevokeDriverRoutePermissionsResponse(
-      envelope.data,
-      "revokeDriverRoutePermissions",
-    );
-  }
-
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "revokeDriverRoutePermissions",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const routeId = input.routeId.trim();
+  const driverUid = input.driverUid.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/driver-permissions/${encodeURIComponent(driverUid)}`,
+    method: "DELETE",
+    body: {
+      permissionKeys: input.permissionKeys,
+      resetToDefault: input.resetToDefault,
+    },
+  });
   return ensureRevokeDriverRoutePermissionsResponse(
     envelope.data,
     "revokeDriverRoutePermissions",

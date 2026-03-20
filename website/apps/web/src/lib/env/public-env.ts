@@ -7,6 +7,14 @@ export function getBackendApiBaseUrl(): string | null {
   return value || null;
 }
 
+export function requireBackendApiBaseUrl(): string {
+  const value = getBackendApiBaseUrl();
+  if (value) {
+    return value;
+  }
+  throw new Error("BACKEND_API_BASE_URL_REQUIRED");
+}
+
 export function isDevAppEnv(): boolean {
   return getPublicAppEnv() === "dev";
 }
