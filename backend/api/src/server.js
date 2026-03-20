@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 
 import { listActiveTripsByCompany } from "./lib/company-active-trips.js";
 import { requireAuthenticatedUser } from "./lib/auth.js";
+import { readCurrentAuthProfile, updateCurrentAuthProfile } from "./lib/auth-profile.js";
 import {
   clearWebSessionCookie,
   exchangeIdTokenForWebSession,
@@ -628,6 +629,10 @@ function isAuthWebAccessPolicyPath(pathname) {
   return pathname === "/api/auth/web-access-policy";
 }
 
+function isAuthProfilePath(pathname) {
+  return pathname === "/api/auth/profile";
+}
+
 function isPlatformLandingConfigPath(pathname) {
   return pathname === "/api/platform/landing-config";
 }
@@ -880,6 +885,21 @@ const server = createServer(async (request, response) => {
         user,
         webAccessPolicy,
       });
+      return;
+    }
+
+    if (request.method === "GET" && isAuthProfilePath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const user = await readCurrentAuthProfile(decodedToken.uid);
+      sendApiOk(response, 200, { user });
+      return;
+    }
+
+    if (request.method === "PATCH" && isAuthProfilePath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await updateCurrentAuthProfile(decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
       return;
     }
 
