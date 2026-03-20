@@ -1,9 +1,25 @@
+import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
+import {
+  isCompanyInvitesSyncedInPostgres,
+  listCompanyInvitesFromPostgres,
+  shouldUsePostgresCompanyInviteStore,
+} from "./company-invite-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 export async function listCompanyInvites(db, input) {
-  const companyReference = db.collection("companies").doc(input.companyId);
   const inviteLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 100;
+  if (shouldUsePostgresCompanyInviteStore()) {
+    const invitesSynced = await isCompanyInvitesSyncedInPostgres(input.companyId).catch(() => false);
+    if (invitesSynced) {
+      const invites = await listCompanyInvitesFromPostgres(input.companyId, inviteLimit).catch(() => null);
+      if (invites) {
+        return { invites };
+      }
+    }
+  }
+
+  const companyReference = db.collection("companies").doc(input.companyId);
 
   const [companySnapshot, invitesSnapshot] = await Promise.all([
     companyReference.get(),
@@ -60,6 +76,10 @@ export async function listCompanyInvites(db, input) {
       };
     })
     .filter((invite) => invite !== null);
+
+  if (shouldUsePostgresCompanyInviteStore()) {
+    await syncCompanyInvitesFromFirestore(db, input.companyId, new Date().toISOString()).catch(() => false);
+  }
 
   return { invites };
 }

@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
 
+import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
+import {
+  areMyPendingCompanyInvitesSyncedInPostgres,
+  listMyPendingCompanyInvitesFromPostgres,
+  shouldUsePostgresCompanyInviteStore,
+} from "./company-invite-store.js";
 import { shouldUsePostgresCompanyStore, syncCompanyMemberToPostgres } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
@@ -82,6 +88,16 @@ async function syncInviteMembershipToPostgres(input) {
 }
 
 export async function listMyPendingCompanyInvites(db, uid) {
+  if (shouldUsePostgresCompanyInviteStore()) {
+    const invitesSynced = await areMyPendingCompanyInvitesSyncedInPostgres(uid).catch(() => false);
+    if (invitesSynced) {
+      const invites = await listMyPendingCompanyInvitesFromPostgres(uid).catch(() => null);
+      if (invites) {
+        return { invites };
+      }
+    }
+  }
+
   const membershipSnapshot = await db
     .collection("users")
     .doc(uid)
@@ -168,6 +184,16 @@ export async function listMyPendingCompanyInvites(db, uid) {
   }
 
   invites.sort((left, right) => left.companyName.localeCompare(right.companyName, "tr"));
+
+  if (shouldUsePostgresCompanyInviteStore()) {
+    const companyIds = Array.from(new Set(invites.map((invite) => invite.companyId).filter(Boolean)));
+    await Promise.all(
+      companyIds.map((companyId) =>
+        syncCompanyInvitesFromFirestore(db, companyId, new Date().toISOString()).catch(() => false),
+      ),
+    );
+  }
+
   return { invites };
 }
 
@@ -307,6 +333,7 @@ export async function acceptMyCompanyInvite(db, uid, input) {
     };
   }).then(async (result) => {
     await syncInviteMembershipToPostgres(result.companySync);
+    await syncCompanyInvitesFromFirestore(db, result.companyId, result.acceptedAt).catch(() => false);
     return result;
   });
 }
@@ -448,6 +475,7 @@ export async function declineMyCompanyInvite(db, uid, input) {
     };
   }).then(async (result) => {
     await syncInviteMembershipToPostgres(result.companySync);
+    await syncCompanyInvitesFromFirestore(db, result.companyId, result.declinedAt).catch(() => false);
     return result;
   });
 }

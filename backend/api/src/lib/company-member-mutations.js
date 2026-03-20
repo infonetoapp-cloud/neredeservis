@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { findUserProfileByEmail, readUserProfileByUid } from "./auth-user-store.js";
+import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
 import {
   deleteCompanyMemberFromPostgres,
   shouldUsePostgresCompanyStore,
@@ -317,6 +318,7 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
     };
   }).then(async (result) => {
     await syncCompanyMemberMutationToPostgres(result.companySync);
+    await syncCompanyInvitesFromFirestore(db, result.companyId, result.createdAt).catch(() => false);
     return result;
   });
 }
@@ -535,6 +537,7 @@ export async function removeCompanyMember(db, actorUid, actorRole, input) {
     };
   }).then(async (result) => {
     await deleteCompanyMemberMutationFromPostgres(result.companyId, result.memberUid);
+    await syncCompanyInvitesFromFirestore(db, result.companyId, result.removedAt).catch(() => false);
     return result;
   });
 }
@@ -669,6 +672,7 @@ export async function revokeCompanyInvite(db, actorUid, actorRole, input) {
     if (result.companySync) {
       await syncCompanyMemberMutationToPostgres(result.companySync);
     }
+    await syncCompanyInvitesFromFirestore(db, result.companyId, result.revokedAt).catch(() => false);
     return result;
   });
 }

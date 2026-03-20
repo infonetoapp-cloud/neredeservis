@@ -109,7 +109,8 @@ export async function ensurePostgresAuthSchema() {
     ALTER TABLE companies
       ADD COLUMN IF NOT EXISTS vehicles_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL,
-      ADD COLUMN IF NOT EXISTS routes_synced_at TIMESTAMPTZ NULL;
+      ADD COLUMN IF NOT EXISTS routes_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS member_invites_synced_at TIMESTAMPTZ NULL;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS company_members (
@@ -244,6 +245,36 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_route_stops_route_order_idx
       ON company_route_stops (route_id, stop_order);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_invites (
+      invite_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      invited_uid TEXT NULL,
+      invited_email TEXT NOT NULL,
+      invited_email_lowercase TEXT NOT NULL,
+      role TEXT NOT NULL,
+      status TEXT NOT NULL,
+      invited_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NULL,
+      accepted_at TIMESTAMPTZ NULL,
+      declined_at TIMESTAMPTZ NULL,
+      revoked_at TIMESTAMPTZ NULL
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_invites_company_id_idx
+      ON company_invites (company_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_invites_company_status_idx
+      ON company_invites (company_id, status, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_invites_invited_uid_idx
+      ON company_invites (invited_uid);
   `);
 
   return true;
