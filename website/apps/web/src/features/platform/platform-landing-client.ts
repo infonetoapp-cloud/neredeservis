@@ -1,16 +1,10 @@
 "use client";
 
-import { doc, getDoc } from "firebase/firestore";
-
 import { callBackendApi } from "@/lib/backend-api/client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { getFirebaseClientFirestore } from "@/lib/firebase/client";
-import { callFirebaseCallable } from "@/lib/firebase/callable";
 import type { LandingPageConfig } from "@/components/marketing/landing-config-types";
 
-// ─── Public: Firestore'dan landing config oku (auth gereksiz) ─────────────────
-
-const DOC_PATH = "site_config/landing_page";
+// ─── Public: self-hosted backend'den landing config oku ───────────────────────
 
 type PublicLandingConfigEnvelope<T> = {
   data?: T;
@@ -44,36 +38,25 @@ async function callPublicLandingConfigApi<T>(input: {
 }
 
 /**
- * Landing page config'ini Firestore'dan dogrudan okur.
- * Auth gerekmez (rules: allow read: if true).
- * Dönen veride internal alanlar (updatedAt, updatedBy, version) temizlenir.
+ * Landing page config'ini self-hosted backend API'den okur.
  */
 export async function fetchLandingConfig(): Promise<LandingPageConfig | null> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const response = await callPublicLandingConfigApi<{
-      exists?: boolean;
-      config?: LandingPageConfig | null;
-    }>({
-      baseUrl: backendApiBaseUrl,
-      path: "api/public/landing-config",
-    });
-    return response?.exists ? response.config ?? null : null;
+  if (!backendApiBaseUrl) {
+    return null;
   }
 
-  const db = getFirebaseClientFirestore();
-  if (!db) return null;
-
-  const snap = await getDoc(doc(db, DOC_PATH));
-  if (!snap.exists()) return null;
-
-  const raw = snap.data();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { updatedAt, updatedBy, version, ...config } = raw;
-  return config as LandingPageConfig;
+  const response = await callPublicLandingConfigApi<{
+    exists?: boolean;
+    config?: LandingPageConfig | null;
+  }>({
+    baseUrl: backendApiBaseUrl,
+    path: "api/public/landing-config",
+  });
+  return response?.exists ? response.config ?? null : null;
 }
 
-// ─── Platform: CMS callable wrapper'ları ──────────────────────────────────────
+// ─── Platform: CMS backend wrapper'ları ───────────────────────────────────────
 
 interface GetConfigResponse {
   exists: boolean;
@@ -84,24 +67,20 @@ interface GetConfigResponse {
 
 export async function platformGetLandingConfig(): Promise<GetConfigResponse> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const result = await callBackendApi<GetConfigResponse>({
-      baseUrl: backendApiBaseUrl,
-      path: "api/platform/landing-config",
-    });
-    return result.data ?? {
-      exists: false,
-      config: null,
-      updatedAt: null,
-      updatedBy: null,
-    };
+  if (!backendApiBaseUrl) {
+    throw new Error("Backend API baglantisi bulunamadi.");
   }
 
-  const result = await callFirebaseCallable<
-    Record<string, never>,
-    GetConfigResponse
-  >("platformGetLandingConfig", {});
-  return result.data;
+  const result = await callBackendApi<GetConfigResponse>({
+    baseUrl: backendApiBaseUrl,
+    path: "api/platform/landing-config",
+  });
+  return result.data ?? {
+    exists: false,
+    config: null,
+    updatedAt: null,
+    updatedBy: null,
+  };
 }
 
 interface SaveConfigResponse {
@@ -112,19 +91,15 @@ export async function platformSaveLandingConfig(
   config: Partial<LandingPageConfig>,
 ): Promise<SaveConfigResponse> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    const result = await callBackendApi<SaveConfigResponse>({
-      baseUrl: backendApiBaseUrl,
-      path: "api/platform/landing-config",
-      method: "PATCH",
-      body: { config },
-    });
-    return result.data ?? { success: false };
+  if (!backendApiBaseUrl) {
+    throw new Error("Backend API baglantisi bulunamadi.");
   }
 
-  const result = await callFirebaseCallable<
-    { config: Partial<LandingPageConfig> },
-    SaveConfigResponse
-  >("platformUpdateLandingConfig", { config });
-  return result.data;
+  const result = await callBackendApi<SaveConfigResponse>({
+    baseUrl: backendApiBaseUrl,
+    path: "api/platform/landing-config",
+    method: "PATCH",
+    body: { config },
+  });
+  return result.data ?? { success: false };
 }

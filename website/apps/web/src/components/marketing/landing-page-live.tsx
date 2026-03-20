@@ -8,8 +8,8 @@ import { LandingPageRenderer } from "@/components/marketing/landing-page-rendere
 import { fetchLandingConfig } from "@/features/platform/platform-landing-client";
 
 /**
- * Client component: Firestore'dan landing config okur, merge eder, render eder.
- * İlk render DEFAULT ile anında olur (fallback). Firestore verisi gelince günceller.
+ * Client component: self-hosted backend'den landing config okur, merge eder, render eder.
+ * İlk render DEFAULT ile anında olur, remote config gelince günceller.
  */
 export function LandingPageLive() {
   const [config, setConfig] = useState<LandingPageConfig>(DEFAULT_LANDING_CONFIG);

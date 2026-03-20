@@ -2,15 +2,9 @@
 
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { Loader2, Upload, X } from "lucide-react";
-import {
-  deleteObject,
-  getDownloadURL,
-  ref as storageRef,
-  uploadBytes,
-} from "firebase/storage";
 
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
-import { getFirebaseClientAuth, getFirebaseClientStorage } from "@/lib/firebase/client";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 interface CmsImageUploaderProps {
   storagePath: string;
@@ -96,31 +90,21 @@ export function CmsImageUploader({
     setUploading(true);
     try {
       const backendApiBaseUrl = getBackendApiBaseUrl();
-      if (backendApiBaseUrl) {
-        const result = await callPlatformMediaApi<{ url?: string }>({
-          storagePath,
-          method: "PUT",
-          body: file,
-          contentType: file.type,
-        });
-        if (!result?.url) {
-          throw new Error("PLATFORM_MEDIA_UPLOAD_RESPONSE_INVALID");
-        }
-        onChange(result.url);
+      if (!backendApiBaseUrl) {
+        setError("Backend API baglantisi kurulamadi.");
         return;
       }
 
-      const storage = getFirebaseClientStorage();
-      if (!storage) {
-        setError("Storage baglantisi kurulamadi.");
-        return;
+      const result = await callPlatformMediaApi<{ url?: string }>({
+        storagePath,
+        method: "PUT",
+        body: file,
+        contentType: file.type,
+      });
+      if (!result?.url) {
+        throw new Error("PLATFORM_MEDIA_UPLOAD_RESPONSE_INVALID");
       }
-
-      const ext = file.name.split(".").pop() ?? "png";
-      const fileRef = storageRef(storage, `${storagePath}.${ext}`);
-      await uploadBytes(fileRef, file, { contentType: file.type });
-      const url = await getDownloadURL(fileRef);
-      onChange(url);
+      onChange(result.url);
     } catch {
       setError("Yukleme basarisiz oldu.");
     } finally {
@@ -153,29 +137,18 @@ export function CmsImageUploader({
     }
 
     const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (backendApiBaseUrl) {
-      try {
-        await callPlatformMediaApi<{ success?: boolean }>({
-          storagePath,
-          method: "DELETE",
-        });
-      } catch {
-        // Best-effort cleanup; still clear the form value.
-      }
+    if (!backendApiBaseUrl) {
       onChange("");
       return;
     }
 
-    const storage = getFirebaseClientStorage();
-    if (storage) {
-      try {
-        const storagePathFromUrl = decodeURIComponent(value.split("/o/")[1]?.split("?")[0] ?? "");
-        if (storagePathFromUrl) {
-          await deleteObject(storageRef(storage, storagePathFromUrl));
-        }
-      } catch {
-        // Best-effort cleanup; still clear the form value.
-      }
+    try {
+      await callPlatformMediaApi<{ success?: boolean }>({
+        storagePath,
+        method: "DELETE",
+      });
+    } catch {
+      // Best-effort cleanup; still clear the form value.
     }
     onChange("");
   }
