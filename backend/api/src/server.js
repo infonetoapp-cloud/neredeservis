@@ -110,6 +110,7 @@ import {
   setPlatformCompanyStatus,
   setPlatformCompanyVehicleLimit,
 } from "./lib/platform-companies.js";
+import { ensurePostgresAuthSchema, isPostgresConfigured } from "./lib/postgres.js";
 import { asRecord } from "./lib/runtime-value.js";
 import { createCompany, listMyCompanies } from "./lib/my-companies.js";
 import {
@@ -128,6 +129,10 @@ const liveOpsOnlineThresholdMs = Number.parseInt(
   process.env.LIVE_OPS_ONLINE_THRESHOLD_MS ?? "60000",
   10,
 );
+
+if (isPostgresConfigured()) {
+  await ensurePostgresAuthSchema();
+}
 
 function buildMeta() {
   return {

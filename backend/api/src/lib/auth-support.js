@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 
 import { HttpError } from "./http.js";
+import { readUserProfileByUid } from "./auth-user-store.js";
+import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { asRecord } from "./runtime-value.js";
 
 const LOGIN_GUARD_COLLECTION = "_web_login_guard";
@@ -87,16 +89,22 @@ function parseFiniteNumber(value) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return value;
   }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
   return 0;
 }
 
 function parseLoginGuardState(value) {
   const record = asRecord(value);
   return {
-    failedCount: parseFiniteNumber(record?.failedCount),
-    firstFailureMs: parseFiniteNumber(record?.firstFailureMs),
-    lastFailureMs: parseFiniteNumber(record?.lastFailureMs),
-    lockUntilMs: parseFiniteNumber(record?.lockUntilMs),
+    failedCount: parseFiniteNumber(record?.failedCount ?? record?.failed_count),
+    firstFailureMs: parseFiniteNumber(record?.firstFailureMs ?? record?.first_failure_ms),
+    lastFailureMs: parseFiniteNumber(record?.lastFailureMs ?? record?.last_failure_ms),
+    lockUntilMs: parseFiniteNumber(record?.lockUntilMs ?? record?.lock_until_ms),
   };
 }
 
@@ -138,6 +146,121 @@ function resolveClientIp(request) {
 function buildGuardDocId(email, ipAddress) {
   const hash = createHash("sha256").update(`${email}|${ipAddress}`).digest("hex");
   return `corp_${hash.slice(0, 48)}`;
+}
+
+async function readLoginGuardState(db, docId) {
+  if (isPostgresConfigured()) {
+    const pool = getPostgresPool();
+    const result = await pool.query(
+      `
+        SELECT failed_count, first_failure_ms, last_failure_ms, lock_until_ms
+        FROM web_login_guard
+        WHERE doc_id = $1
+        LIMIT 1
+      `,
+      [docId],
+    );
+    return parseLoginGuardState(result.rows[0] ?? null);
+  }
+
+  const guardSnapshot = await db.collection(LOGIN_GUARD_COLLECTION).doc(docId).get();
+  return parseLoginGuardState(guardSnapshot.data());
+}
+
+async function clearLoginGuardState(db, docId) {
+  if (isPostgresConfigured()) {
+    const pool = getPostgresPool();
+    await pool.query(`DELETE FROM web_login_guard WHERE doc_id = $1`, [docId]);
+    return;
+  }
+
+  await db.collection(LOGIN_GUARD_COLLECTION).doc(docId).delete();
+}
+
+async function recordFailedLoginAttemptSql(docId, email, ipAddress, config, nowMs) {
+  const pool = getPostgresPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const currentResult = await client.query(
+      `
+        SELECT failed_count, first_failure_ms, last_failure_ms, lock_until_ms
+        FROM web_login_guard
+        WHERE doc_id = $1
+        FOR UPDATE
+      `,
+      [docId],
+    );
+    const previousState = resetIfWindowExpired(
+      parseLoginGuardState(currentResult.rows[0] ?? null),
+      nowMs,
+      config.failureWindowMs,
+    );
+
+    const nextFailedCount = previousState.failedCount + 1;
+    const nextFirstFailureMs =
+      previousState.firstFailureMs > 0 ? previousState.firstFailureMs : nowMs;
+    let nextLockUntilMs = previousState.lockUntilMs > nowMs ? previousState.lockUntilMs : 0;
+
+    if (nextFailedCount >= config.hardLockThreshold) {
+      nextLockUntilMs = Math.max(nextLockUntilMs, nowMs + config.hardLockMs);
+    } else if (nextFailedCount >= config.captchaThreshold) {
+      const softLockStep = nextFailedCount - config.captchaThreshold + 1;
+      const softLockMs = Math.min(softLockStep * 30_000, 5 * 60_000);
+      nextLockUntilMs = Math.max(nextLockUntilMs, nowMs + softLockMs);
+    }
+
+    const nextState = {
+      failedCount: nextFailedCount,
+      firstFailureMs: nextFirstFailureMs,
+      lastFailureMs: nowMs,
+      lockUntilMs: nextLockUntilMs,
+    };
+
+    await client.query(
+      `
+        INSERT INTO web_login_guard (
+          doc_id,
+          email,
+          ip_address,
+          failed_count,
+          first_failure_ms,
+          last_failure_ms,
+          lock_until_ms,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        ON CONFLICT (doc_id) DO UPDATE
+        SET
+          email = EXCLUDED.email,
+          ip_address = EXCLUDED.ip_address,
+          failed_count = EXCLUDED.failed_count,
+          first_failure_ms = EXCLUDED.first_failure_ms,
+          last_failure_ms = EXCLUDED.last_failure_ms,
+          lock_until_ms = EXCLUDED.lock_until_ms,
+          updated_at = NOW()
+      `,
+      [
+        docId,
+        email,
+        ipAddress,
+        nextState.failedCount,
+        nextState.firstFailureMs,
+        nextState.lastFailureMs,
+        nextState.lockUntilMs,
+      ],
+    );
+
+    await client.query("COMMIT");
+    return nextState;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function verifyTurnstileToken(input) {
@@ -235,10 +358,9 @@ export async function prepareCorporateLoginAttempt(db, request, input) {
   const captchaToken = typeof input?.captchaToken === "string" ? input.captchaToken.trim() : "";
   const ipAddress = resolveClientIp(request);
   const docId = buildGuardDocId(email, ipAddress);
-  const guardSnapshot = await db.collection(LOGIN_GUARD_COLLECTION).doc(docId).get();
   const nowMs = Date.now();
   const state = resetIfWindowExpired(
-    parseLoginGuardState(guardSnapshot.data()),
+    await readLoginGuardState(db, docId),
     nowMs,
     config.failureWindowMs,
   );
@@ -281,10 +403,9 @@ export async function reportCorporateLoginResult(db, request, input) {
 
   const ipAddress = resolveClientIp(request);
   const docId = buildGuardDocId(email, ipAddress);
-  const guardRef = db.collection(LOGIN_GUARD_COLLECTION).doc(docId);
 
   if (success) {
-    await guardRef.delete();
+    await clearLoginGuardState(db, docId);
     return {
       failedCount: 0,
       lockSecondsRemaining: 0,
@@ -299,6 +420,16 @@ export async function reportCorporateLoginResult(db, request, input) {
     lockUntilMs: 0,
   };
 
+  if (isPostgresConfigured()) {
+    nextState = await recordFailedLoginAttemptSql(docId, email, ipAddress, config, nowMs);
+    return {
+      failedCount: nextState.failedCount,
+      lockSecondsRemaining:
+        nextState.lockUntilMs > nowMs ? Math.ceil((nextState.lockUntilMs - nowMs) / 1000) : 0,
+    };
+  }
+
+  const guardRef = db.collection(LOGIN_GUARD_COLLECTION).doc(docId);
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(guardRef);
     const previousState = resetIfWindowExpired(
@@ -367,8 +498,7 @@ export async function getCurrentUserWebAccessPolicy(db, uid) {
   }
 
   try {
-    const userSnapshot = await db.collection("users").doc(uid).get();
-    const userData = asRecord(userSnapshot.data()) ?? {};
+    const userData = (await readUserProfileByUid(db, uid)) ?? {};
     const rawRole = typeof userData.role === "string" ? userData.role.trim().toLowerCase() : null;
     const forceMobileOnly = userData.mobileOnlyAuth === true || userData.webPanelAccess === false;
 
