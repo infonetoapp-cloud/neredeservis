@@ -2,10 +2,11 @@ import { createHash } from "node:crypto";
 
 import { syncCompanyAuditLogsFromFirestore } from "./company-audit-postgres-sync.js";
 import {
+  flushStagedCompanyAuditLog,
   isCompanyAuditFreshInPostgres,
   listCompanyAuditLogsFromPostgres,
+  stageCompanyAuditLogWrite,
   shouldUsePostgresCompanyAuditStore,
-  syncCompanyAuditLogToPostgres,
 } from "./company-audit-store.js";
 import {
   backfillCompanyFromFirestoreRecord,
@@ -221,7 +222,6 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
 
     transaction.update(companyRef, updatePatch);
 
-    const auditRef = db.collection("audit_logs").doc();
     const auditLog = {
       companyId,
       actorUid,
@@ -255,7 +255,7 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
         .slice(0, 24),
       createdAt: nowIso,
     };
-    transaction.set(auditRef, auditLog);
+    const stagedAuditLog = stageCompanyAuditLogWrite(db, transaction, auditLog);
 
     return {
       companyId,
@@ -299,8 +299,7 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
         updatedAt: nowIso,
       },
       auditLog: {
-        auditId: auditRef.id,
-        ...auditLog,
+        ...stagedAuditLog,
       },
     };
   }).then(async (result) => {
@@ -308,7 +307,7 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
       await backfillCompanyFromFirestoreRecord(result.companySync).catch(() => false);
     }
     if (shouldUsePostgresCompanyAuditStore()) {
-      await syncCompanyAuditLogToPostgres(result.auditLog).catch(() => false);
+      await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     }
     return result;
   });

@@ -7,6 +7,7 @@ import {
   shouldUsePostgresCompanyStore,
   syncCompanyWithOwnerMembershipToPostgres,
 } from "./company-membership-store.js";
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -199,8 +200,6 @@ export async function createCompany(db, uid, input) {
       .doc(uid)
       .collection("company_memberships")
       .doc(companyRef.id);
-    const auditRef = db.collection("audit_logs").doc();
-
     transaction.set(companyRef, {
       name,
       legalName: null,
@@ -239,7 +238,7 @@ export async function createCompany(db, uid, input) {
       updatedAt: nowIso,
     });
 
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId: companyRef.id,
       actorUid: uid,
       actorType: "company_member",
@@ -266,6 +265,7 @@ export async function createCompany(db, uid, input) {
         status: "active",
       },
       createdAt: nowIso,
+      auditLog,
     };
   }).then(async (result) => {
     if (shouldUsePostgresCompanyStore()) {
@@ -293,6 +293,8 @@ export async function createCompany(db, uid, input) {
         );
       }
     }
+
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
 
     return result;
   });

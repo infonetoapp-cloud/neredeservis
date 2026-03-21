@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
 import {
   areMyPendingCompanyInvitesSyncedInPostgres,
@@ -289,8 +290,7 @@ export async function acceptMyCompanyInvite(db, uid, input) {
       );
     });
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid: uid,
       actorType: "company_member",
@@ -318,6 +318,7 @@ export async function acceptMyCompanyInvite(db, uid, input) {
       role: currentRole,
       memberStatus: "active",
       acceptedAt: nowIso,
+      auditLog,
       companySync: {
         ...companySyncPayloadFromSnapshot(companyId, companyData),
         uid,
@@ -334,6 +335,7 @@ export async function acceptMyCompanyInvite(db, uid, input) {
   }).then(async (result) => {
     await syncInviteMembershipToPostgres(result.companySync);
     await syncCompanyInvitesFromFirestore(db, result.companyId, result.acceptedAt).catch(() => false);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }
@@ -431,8 +433,7 @@ export async function declineMyCompanyInvite(db, uid, input) {
       );
     });
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid: uid,
       actorType: "company_member",
@@ -460,6 +461,7 @@ export async function declineMyCompanyInvite(db, uid, input) {
       role: currentRole,
       memberStatus: "suspended",
       declinedAt: nowIso,
+      auditLog,
       companySync: {
         ...companySyncPayloadFromSnapshot(companyId, companyData),
         uid,
@@ -476,6 +478,7 @@ export async function declineMyCompanyInvite(db, uid, input) {
   }).then(async (result) => {
     await syncInviteMembershipToPostgres(result.companySync);
     await syncCompanyInvitesFromFirestore(db, result.companyId, result.declinedAt).catch(() => false);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }

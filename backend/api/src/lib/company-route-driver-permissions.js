@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import {
   isRouteDriverPermissionsSyncedInPostgres,
   listRouteDriverPermissionsFromPostgres,
@@ -247,8 +248,7 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
       { merge: true },
     );
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -275,6 +275,7 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
       driverUid,
       permissions,
       updatedAt: nowIso,
+      auditLog,
     };
   });
 
@@ -282,6 +283,7 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
   await syncRouteDriverPermissionsFromFirestore(db, companyId, routeId, result.updatedAt).catch(
     () => false,
   );
+  await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
   return result;
 }
 
@@ -363,8 +365,7 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
       );
     }
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -391,6 +392,7 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
       routeId,
       driverUid,
       updatedAt: nowIso,
+      auditLog,
     };
   });
 
@@ -398,5 +400,6 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
   await syncRouteDriverPermissionsFromFirestore(db, companyId, routeId, result.updatedAt).catch(
     () => false,
   );
+  await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
   return result;
 }

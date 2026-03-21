@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { findUserProfileByEmail, readUserProfileByUid } from "./auth-user-store.js";
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
 import {
   deleteCompanyMemberFromPostgres,
@@ -270,8 +271,7 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
       expiresAt: expiresAtIso,
     });
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -304,6 +304,7 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
       status: "pending",
       expiresAt: expiresAtIso,
       createdAt: nowIso,
+      auditLog,
       companySync: {
         ...companySyncPayloadFromSnapshot(companyId, companyData),
         uid: targetUid,
@@ -319,6 +320,7 @@ export async function inviteCompanyMember(db, actorUid, actorRole, input) {
   }).then(async (result) => {
     await syncCompanyMemberMutationToPostgres(result.companySync);
     await syncCompanyInvitesFromFirestore(db, result.companyId, result.createdAt).catch(() => false);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }
@@ -390,8 +392,7 @@ export async function updateCompanyMember(db, actorUid, actorRole, input) {
       { merge: true },
     );
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -421,6 +422,7 @@ export async function updateCompanyMember(db, actorUid, actorRole, input) {
       role: nextRole,
       memberStatus: nextMemberStatus,
       updatedAt: nowIso,
+      auditLog,
       companySync: {
         ...companySyncPayloadFromSnapshot(companyId, asRecord(companySnapshot.data()) ?? {}),
         uid: memberUid,
@@ -439,6 +441,7 @@ export async function updateCompanyMember(db, actorUid, actorRole, input) {
     };
   }).then(async (result) => {
     await syncCompanyMemberMutationToPostgres(result.companySync);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }
@@ -505,8 +508,7 @@ export async function removeCompanyMember(db, actorUid, actorRole, input) {
       );
     });
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -534,10 +536,12 @@ export async function removeCompanyMember(db, actorUid, actorRole, input) {
       removedMemberStatus,
       removed: true,
       removedAt: nowIso,
+      auditLog,
     };
   }).then(async (result) => {
     await deleteCompanyMemberMutationFromPostgres(result.companyId, result.memberUid);
     await syncCompanyInvitesFromFirestore(db, result.companyId, result.removedAt).catch(() => false);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }
@@ -623,8 +627,7 @@ export async function revokeCompanyInvite(db, actorUid, actorRole, input) {
       }
     }
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -654,6 +657,7 @@ export async function revokeCompanyInvite(db, actorUid, actorRole, input) {
       role,
       status: "revoked",
       revokedAt: nowIso,
+      auditLog,
       companySync: invitedUid
         ? {
             ...companySyncPayloadFromSnapshot(companyId, companyData),
@@ -673,6 +677,7 @@ export async function revokeCompanyInvite(db, actorUid, actorRole, input) {
       await syncCompanyMemberMutationToPostgres(result.companySync);
     }
     await syncCompanyInvitesFromFirestore(db, result.companyId, result.revokedAt).catch(() => false);
+    await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
     return result;
   });
 }

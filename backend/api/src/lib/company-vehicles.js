@@ -4,6 +4,7 @@ import {
   normalizeVehiclePlate,
   normalizeVehicleTextNullable,
 } from "./company-access.js";
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import {
   deleteCompanyVehicleFromPostgres,
   isCompanyVehiclesSyncedInPostgres,
@@ -205,7 +206,6 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
     }
 
     const vehicleRef = companyRef.collection("vehicles").doc();
-    const auditRef = db.collection("audit_logs").doc();
     const vehicleData = {
       companyId: input.companyId,
       ownerType: "company",
@@ -223,7 +223,7 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
     };
 
     transaction.set(vehicleRef, vehicleData);
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId: input.companyId,
       actorUid,
       actorType: "company_member",
@@ -247,6 +247,7 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
     return {
       vehicleId: vehicleRef.id,
       createdAt: nowIso,
+      auditLog,
       vehicle: buildVehicleItem(vehicleRef.id, input.companyId, vehicleData),
     };
   });
@@ -269,6 +270,8 @@ export async function createCompanyVehicle(db, actorUid, actorRole, input) {
       updatedBy: actorUid,
     }).catch(() => false);
   }
+
+  await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
 
   return result;
 }
@@ -360,8 +363,7 @@ export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
 
     transaction.update(vehicleRef, patchPayload);
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId: input.companyId,
       actorUid,
       actorType: "company_member",
@@ -384,6 +386,7 @@ export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
     return {
       vehicleId: input.vehicleId,
       updatedAt: nowIso,
+      auditLog,
       vehicle: buildVehicleItem(input.vehicleId, input.companyId, {
         ...currentVehicleData,
         ...patchPayload,
@@ -407,6 +410,8 @@ export async function updateCompanyVehicle(db, actorUid, actorRole, input) {
       updatedBy: actorUid,
     }).catch(() => false);
   }
+
+  await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
 
   return result;
 }
@@ -449,8 +454,7 @@ export async function deleteCompanyVehicle(db, actorUid, actorRole, input) {
 
     transaction.delete(vehicleRef);
 
-    const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = stageCompanyAuditLogWrite(db, transaction, {
       companyId: input.companyId,
       actorUid,
       actorType: "company_member",
@@ -473,12 +477,15 @@ export async function deleteCompanyVehicle(db, actorUid, actorRole, input) {
       vehicleId: input.vehicleId,
       deleted: true,
       deletedAt: nowIso,
+      auditLog,
     };
   });
 
   if (shouldUsePostgresCompanyFleetStore()) {
     await deleteCompanyVehicleFromPostgres(input.companyId, input.vehicleId).catch(() => false);
   }
+
+  await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
 
   return result;
 }
