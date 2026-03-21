@@ -236,7 +236,8 @@ export async function ensurePostgresAuthSchema() {
       updated_by TEXT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      stops_synced_at TIMESTAMPTZ NULL
+      stops_synced_at TIMESTAMPTZ NULL,
+      driver_permissions_synced_at TIMESTAMPTZ NULL
     );
   `);
   await pool.query(`
@@ -269,6 +270,23 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_route_stops_route_order_idx
       ON company_route_stops (route_id, stop_order);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_route_driver_permissions (
+      company_id TEXT NOT NULL,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      driver_uid TEXT NOT NULL,
+      permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by TEXT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_by TEXT NULL,
+      PRIMARY KEY (route_id, driver_uid)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_route_driver_permissions_company_route_idx
+      ON company_route_driver_permissions (company_id, route_id);
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS company_invites (

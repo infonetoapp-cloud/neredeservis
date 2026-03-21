@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
+import {
+  isRouteDriverPermissionsSyncedInPostgres,
+  listRouteDriverPermissionsFromPostgres,
+  shouldUsePostgresRouteDriverPermissionStore,
+} from "./company-route-driver-permission-store.js";
+import { syncRouteDriverPermissionsFromFirestore } from "./company-route-driver-permission-postgres-sync.js";
 import { syncCompanyRouteFromFirestore } from "./company-route-postgres-sync.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
@@ -116,6 +122,24 @@ function normalizePermissionKeys(rawValue) {
 export async function listRouteDriverPermissions(db, input) {
   const companyId = normalizeId(input?.companyId, "companyId");
   const routeId = normalizeId(input?.routeId, "routeId");
+
+  if (shouldUsePostgresRouteDriverPermissionStore()) {
+    const permissionsSynced = await isRouteDriverPermissionsSyncedInPostgres(companyId, routeId).catch(
+      () => false,
+    );
+    if (permissionsSynced) {
+      const postgresResult = await listRouteDriverPermissionsFromPostgres(companyId, routeId).catch(
+        () => null,
+      );
+      if (postgresResult) {
+        if (!postgresResult.routeExists) {
+          throw new HttpError(404, "not-found", "Route bulunamadi.");
+        }
+        return { items: postgresResult.items };
+      }
+    }
+  }
+
   const companyRef = db.collection("companies").doc(companyId);
   const routeRef = db.collection("routes").doc(routeId);
   const [companySnapshot, routeSnapshot, permissionsSnapshot] = await Promise.all([
@@ -145,6 +169,12 @@ export async function listRouteDriverPermissions(db, input) {
       };
     })
     .sort((left, right) => left.driverUid.localeCompare(right.driverUid, "tr"));
+
+  if (shouldUsePostgresRouteDriverPermissionStore()) {
+    await syncRouteDriverPermissionsFromFirestore(db, companyId, routeId, new Date().toISOString()).catch(
+      () => false,
+    );
+  }
 
   return { items };
 }
@@ -249,6 +279,9 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
   });
 
   await syncCompanyRouteFromFirestore(db, companyId, routeId, result.updatedAt).catch(() => false);
+  await syncRouteDriverPermissionsFromFirestore(db, companyId, routeId, result.updatedAt).catch(
+    () => false,
+  );
   return result;
 }
 
@@ -362,5 +395,8 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
   });
 
   await syncCompanyRouteFromFirestore(db, companyId, routeId, result.updatedAt).catch(() => false);
+  await syncRouteDriverPermissionsFromFirestore(db, companyId, routeId, result.updatedAt).catch(
+    () => false,
+  );
   return result;
 }
