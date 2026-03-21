@@ -44,15 +44,15 @@ function readBillingStatus(value) {
 export async function listCompanyAuditLogs(db, input) {
   const auditLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 60;
   if (shouldUsePostgresCompanyAuditStore()) {
+    const postgresItems = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(
+      () => null,
+    );
     const auditFresh = await isCompanyAuditFreshInPostgres(
       input.companyId,
       COMPANY_AUDIT_CACHE_MAX_AGE_MS,
     ).catch(() => false);
-    if (auditFresh) {
-      const items = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(() => null);
-      if (items) {
-        return { items };
-      }
+    if (postgresItems && (auditFresh || postgresItems.length > 0)) {
+      return { items: postgresItems };
     }
   }
 
