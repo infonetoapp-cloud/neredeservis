@@ -1,7 +1,21 @@
 import { createHash } from "node:crypto";
 
+import { syncCompanyAuditLogsFromFirestore } from "./company-audit-postgres-sync.js";
+import {
+  isCompanyAuditFreshInPostgres,
+  listCompanyAuditLogsFromPostgres,
+  shouldUsePostgresCompanyAuditStore,
+  syncCompanyAuditLogToPostgres,
+} from "./company-audit-store.js";
+import {
+  backfillCompanyFromFirestoreRecord,
+  readCompanyFromPostgres,
+  shouldUsePostgresCompanyStore,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
+
+const COMPANY_AUDIT_CACHE_MAX_AGE_MS = 60_000;
 
 function parseIsoToMs(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -28,6 +42,18 @@ function readBillingStatus(value) {
 
 export async function listCompanyAuditLogs(db, input) {
   const auditLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 60;
+  if (shouldUsePostgresCompanyAuditStore()) {
+    const auditFresh = await isCompanyAuditFreshInPostgres(
+      input.companyId,
+      COMPANY_AUDIT_CACHE_MAX_AGE_MS,
+    ).catch(() => false);
+    if (auditFresh) {
+      const items = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(() => null);
+      if (items) {
+        return { items };
+      }
+    }
+  }
 
   const auditSnapshot = await db
     .collection("audit_logs")
@@ -59,10 +85,28 @@ export async function listCompanyAuditLogs(db, input) {
     .sort((left, right) => (parseIsoToMs(right.createdAt) ?? 0) - (parseIsoToMs(left.createdAt) ?? 0))
     .slice(0, auditLimit);
 
+  if (shouldUsePostgresCompanyAuditStore()) {
+    await syncCompanyAuditLogsFromFirestore(db, input.companyId, new Date().toISOString()).catch(() => false);
+  }
+
   return { items };
 }
 
 export async function getCompanyAdminTenantState(db, companyId) {
+  if (shouldUsePostgresCompanyStore()) {
+    const company = await readCompanyFromPostgres(companyId).catch(() => null);
+    if (company) {
+      return {
+        companyId,
+        companyStatus: readCompanyStatus(company.status),
+        billingStatus: readBillingStatus(company.billingStatus),
+        billingValidUntil: company.billingValidUntil ?? null,
+        updatedAt: company.updatedAt,
+        createdAt: company.createdAt,
+      };
+    }
+  }
+
   const companySnapshot = await db.collection("companies").doc(companyId).get();
   if (!companySnapshot.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
@@ -178,7 +222,7 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
     transaction.update(companyRef, updatePatch);
 
     const auditRef = db.collection("audit_logs").doc();
-    transaction.set(auditRef, {
+    const auditLog = {
       companyId,
       actorUid,
       actorType: "company_member",
@@ -210,7 +254,8 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
         .digest("hex")
         .slice(0, 24),
       createdAt: nowIso,
-    });
+    };
+    transaction.set(auditRef, auditLog);
 
     return {
       companyId,
@@ -228,6 +273,43 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
           : updatePatch.billingValidUntil,
       updatedAt: nowIso,
       changedFields,
+      companySync: {
+        companyId,
+        name: pickString(companyData, "name"),
+        legalName: pickString(companyData, "legalName"),
+        status:
+          typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
+        billingStatus:
+          typeof updatePatch.billingStatus === "string"
+            ? updatePatch.billingStatus
+            : currentBillingStatus,
+        billingValidUntil:
+          updatePatch.billingValidUntil === undefined
+            ? currentBillingValidUntil ?? null
+            : updatePatch.billingValidUntil,
+        timezone: pickString(companyData, "timezone"),
+        countryCode: pickString(companyData, "countryCode"),
+        contactPhone: pickString(companyData, "contactPhone"),
+        contactEmail: pickString(companyData, "contactEmail"),
+        logoUrl: pickString(companyData, "logoUrl"),
+        address: pickString(companyData, "address"),
+        vehicleLimit: companyData?.vehicleLimit,
+        createdBy: pickString(companyData, "createdBy"),
+        createdAt: pickString(companyData, "createdAt"),
+        updatedAt: nowIso,
+      },
+      auditLog: {
+        auditId: auditRef.id,
+        ...auditLog,
+      },
     };
+  }).then(async (result) => {
+    if (shouldUsePostgresCompanyStore()) {
+      await backfillCompanyFromFirestoreRecord(result.companySync).catch(() => false);
+    }
+    if (shouldUsePostgresCompanyAuditStore()) {
+      await syncCompanyAuditLogToPostgres(result.auditLog).catch(() => false);
+    }
+    return result;
   });
 }

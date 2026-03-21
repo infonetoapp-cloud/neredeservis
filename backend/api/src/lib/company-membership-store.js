@@ -69,6 +69,7 @@ export async function readCompanyFromPostgres(companyId) {
         legal_name,
         status,
         billing_status,
+        billing_valid_until,
         timezone,
         country_code,
         contact_phone,
@@ -101,6 +102,7 @@ export async function readCompanyFromPostgres(companyId) {
     legalName: normalizeNullableText(row.legal_name),
     status: normalizeCompanyStatus(row.status),
     billingStatus: normalizeBillingStatus(row.billing_status),
+    billingValidUntil: toIsoString(row.billing_valid_until),
     timezone: normalizeNullableText(row.timezone) ?? "Europe/Istanbul",
     countryCode: normalizeNullableText(row.country_code) ?? "TR",
     contactPhone: normalizeNullableText(row.contact_phone),
@@ -135,6 +137,7 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         legal_name,
         status,
         billing_status,
+        billing_valid_until,
         timezone,
         country_code,
         contact_phone,
@@ -147,7 +150,7 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         updated_at
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::timestamptz, $15::timestamptz
+        $1, $2, $3, $4, $5, $6::timestamptz, $7, $8, $9, $10, $11, $12, $13, $14, $15::timestamptz, $16::timestamptz
       )
       ON CONFLICT (company_id) DO UPDATE
       SET
@@ -155,6 +158,7 @@ export async function backfillCompanyFromFirestoreRecord(input) {
         legal_name = COALESCE(EXCLUDED.legal_name, companies.legal_name),
         status = EXCLUDED.status,
         billing_status = EXCLUDED.billing_status,
+        billing_valid_until = COALESCE(EXCLUDED.billing_valid_until, companies.billing_valid_until),
         timezone = COALESCE(EXCLUDED.timezone, companies.timezone),
         country_code = COALESCE(EXCLUDED.country_code, companies.country_code),
         contact_phone = COALESCE(EXCLUDED.contact_phone, companies.contact_phone),
@@ -171,6 +175,7 @@ export async function backfillCompanyFromFirestoreRecord(input) {
       normalizeNullableText(input?.legalName),
       normalizeCompanyStatus(input?.status),
       normalizeBillingStatus(input?.billingStatus),
+      toIsoString(input?.billingValidUntil),
       normalizeNullableText(input?.timezone) ?? "Europe/Istanbul",
       normalizeNullableText(input?.countryCode) ?? "TR",
       normalizeNullableText(input?.contactPhone),
@@ -377,6 +382,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
           legal_name,
           status,
           billing_status,
+          billing_valid_until,
           timezone,
           country_code,
           contact_phone,
@@ -386,7 +392,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
           updated_at
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::timestamptz, $12::timestamptz
+          $1, $2, $3, $4, $5, $6::timestamptz, $7, $8, $9, $10, $11, $12::timestamptz, $13::timestamptz
         )
         ON CONFLICT (company_id) DO UPDATE
         SET
@@ -394,6 +400,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
           legal_name = EXCLUDED.legal_name,
           status = EXCLUDED.status,
           billing_status = EXCLUDED.billing_status,
+          billing_valid_until = EXCLUDED.billing_valid_until,
           timezone = EXCLUDED.timezone,
           country_code = EXCLUDED.country_code,
           contact_phone = EXCLUDED.contact_phone,
@@ -407,6 +414,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
         normalizeNullableText(input?.legalName),
         normalizeCompanyStatus(input?.status),
         normalizeBillingStatus(input?.billingStatus),
+        toIsoString(input?.billingValidUntil),
         normalizeNullableText(input?.timezone) ?? "Europe/Istanbul",
         normalizeNullableText(input?.countryCode) ?? "TR",
         normalizeNullableText(input?.contactPhone),

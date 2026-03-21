@@ -93,6 +93,7 @@ export async function ensurePostgresAuthSchema() {
       legal_name TEXT NULL,
       status TEXT NOT NULL DEFAULT 'active',
       billing_status TEXT NOT NULL DEFAULT 'active',
+      billing_valid_until TIMESTAMPTZ NULL,
       timezone TEXT NULL,
       country_code TEXT NULL,
       contact_phone TEXT NULL,
@@ -110,7 +111,10 @@ export async function ensurePostgresAuthSchema() {
       ADD COLUMN IF NOT EXISTS vehicles_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS routes_synced_at TIMESTAMPTZ NULL,
-      ADD COLUMN IF NOT EXISTS member_invites_synced_at TIMESTAMPTZ NULL;
+      ADD COLUMN IF NOT EXISTS member_invites_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS audit_logs_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS active_trips_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS billing_valid_until TIMESTAMPTZ NULL;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS company_members (
@@ -275,6 +279,66 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_invites_invited_uid_idx
       ON company_invites (invited_uid);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_audit_logs (
+      audit_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      target_type TEXT NULL,
+      target_id TEXT NULL,
+      actor_uid TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'unknown',
+      reason TEXT NULL,
+      metadata JSONB NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_audit_logs_company_created_idx
+      ON company_audit_logs (company_id, created_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_active_trips (
+      trip_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      route_id TEXT NOT NULL,
+      route_name TEXT NOT NULL,
+      route_updated_at TIMESTAMPTZ NULL,
+      driver_uid TEXT NOT NULL,
+      driver_name TEXT NOT NULL,
+      driver_plate TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      started_at TIMESTAMPTZ NULL,
+      last_location_at TIMESTAMPTZ NULL,
+      updated_at TIMESTAMPTZ NULL,
+      live_state TEXT NOT NULL DEFAULT 'stale',
+      live_source TEXT NULL,
+      live_stale BOOLEAN NOT NULL DEFAULT TRUE,
+      lat DOUBLE PRECISION NULL,
+      lng DOUBLE PRECISION NULL,
+      speed DOUBLE PRECISION NULL,
+      heading DOUBLE PRECISION NULL,
+      accuracy DOUBLE PRECISION NULL,
+      location_timestamp_ms BIGINT NULL,
+      vehicle_id TEXT NULL,
+      scheduled_time TEXT NULL,
+      time_slot TEXT NULL,
+      passenger_count INTEGER NOT NULL DEFAULT 0,
+      synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_active_trips_company_synced_idx
+      ON company_active_trips (company_id, synced_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_active_trips_company_route_idx
+      ON company_active_trips (company_id, route_id);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_active_trips_company_driver_idx
+      ON company_active_trips (company_id, driver_uid);
   `);
 
   return true;

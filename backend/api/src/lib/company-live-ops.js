@@ -1,6 +1,5 @@
 import { listActiveTripsByCompany } from "./company-active-trips.js";
 import { listCompanyRoutes } from "./company-routes.js";
-import { pickFiniteNumber, pickString } from "./runtime-value.js";
 
 function parseIsoToMs(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -81,55 +80,27 @@ export async function listCompanyLiveOpsSnapshot(db, rtdb, input) {
     }
   }
 
-  const routeIdsWithActiveTrips = Array.from(
-    new Set(routes.map((route) => route.routeId).filter((routeId) => activeTripByRouteId.has(routeId))),
-  );
-  const rtdbPayloadByRouteId = new Map();
-  if (rtdb) {
-    await Promise.all(
-      routeIdsWithActiveTrips.map(async (routeId) => {
-        try {
-          const snapshot = await rtdb.ref(`locations/${routeId}`).get();
-          const payload =
-            snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
-          rtdbPayloadByRouteId.set(
-            routeId,
-            payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null,
-          );
-        } catch {
-          rtdbPayloadByRouteId.set(routeId, null);
-        }
-      }),
-    );
-  }
-
   const nowMs = Date.now();
   const items = routes
     .map((route) => {
       const activeTrip = activeTripByRouteId.get(route.routeId) ?? null;
-      const rtdbPayload = activeTrip ? rtdbPayloadByRouteId.get(route.routeId) ?? null : null;
-      const sameTrip = activeTrip && pickString(rtdbPayload, "tripId") === activeTrip.tripId;
-
-      const lat = sameTrip ? pickFiniteNumber(rtdbPayload, "lat") : null;
-      const lng = sameTrip ? pickFiniteNumber(rtdbPayload, "lng") : null;
-      const speed = sameTrip ? pickFiniteNumber(rtdbPayload, "speed") : null;
-      const heading = sameTrip ? pickFiniteNumber(rtdbPayload, "heading") : null;
-      const accuracy = sameTrip ? pickFiniteNumber(rtdbPayload, "accuracy") : null;
+      const live = activeTrip?.live ?? null;
+      const lat = live?.lat ?? null;
+      const lng = live?.lng ?? null;
+      const speed = live?.speed ?? null;
+      const heading = live?.heading ?? null;
+      const accuracy = live?.accuracy ?? null;
       const locationTimestampMs =
-        sameTrip
-          ? pickFiniteNumber(rtdbPayload, "timestamp") ??
-            parseIsoToMs(activeTrip.lastLocationAt) ??
-            parseIsoToMs(activeTrip.updatedAt)
-          : activeTrip
-            ? parseIsoToMs(activeTrip.lastLocationAt) ?? parseIsoToMs(activeTrip.updatedAt)
-            : null;
+        activeTrip?.locationTimestampMs ??
+        parseIsoToMs(activeTrip?.lastLocationAt) ??
+        parseIsoToMs(activeTrip?.updatedAt);
 
       let status = "idle";
       if (activeTrip) {
-        const hasCoords = lat != null && lng != null;
-        if (!hasCoords) {
+        if (activeTrip.liveState === "no_signal" || lat == null || lng == null) {
           status = "no_signal";
         } else if (
+          activeTrip.liveState === "stale" ||
           locationTimestampMs == null ||
           nowMs - locationTimestampMs > liveOpsOnlineThresholdMs
         ) {
