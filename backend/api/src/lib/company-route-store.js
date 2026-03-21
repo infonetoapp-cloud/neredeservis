@@ -37,6 +37,11 @@ function normalizeTimeSlot(value) {
     : null;
 }
 
+function normalizeSrvCode(value) {
+  const normalized = normalizeNullableText(value);
+  return normalized ? normalized.toUpperCase() : null;
+}
+
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -283,7 +288,7 @@ async function upsertCompanyRouteRow(queryable, input) {
       routeId,
       companyId,
       name,
-      normalizeNullableText(input?.srvCode),
+      normalizeSrvCode(input?.srvCode),
       normalizeNullableText(input?.driverId),
       toJson(normalizeStringArray(input?.authorizedDriverIds), []),
       toJson(normalizeStringArray(input?.memberIds), []),
@@ -636,4 +641,73 @@ export async function deleteCompanyRouteFromPostgres(companyId, routeId) {
   );
 
   return true;
+}
+
+export async function tryReserveCompanyRouteSrvCode(srvCode, routeId, reservedBy) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  const normalizedSrvCode = normalizeSrvCode(srvCode);
+  const normalizedRouteId = normalizeNullableText(routeId);
+  if (!normalizedSrvCode || !normalizedRouteId) {
+    return false;
+  }
+
+  const result = await pool.query(
+    `
+      INSERT INTO route_srv_code_reservations (
+        srv_code,
+        route_id,
+        reserved_by,
+        created_at,
+        updated_at
+      )
+      SELECT $1, $2, $3, NOW(), NOW()
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM company_routes
+        WHERE UPPER(srv_code) = $1
+      )
+      ON CONFLICT (srv_code) DO NOTHING
+    `,
+    [normalizedSrvCode, normalizedRouteId, normalizeNullableText(reservedBy)],
+  );
+
+  return result.rowCount > 0;
+}
+
+export async function releaseReservedCompanyRouteSrvCode(srvCode, routeId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  const normalizedSrvCode = normalizeSrvCode(srvCode);
+  const normalizedRouteId = normalizeNullableText(routeId);
+  if (!normalizedSrvCode && !normalizedRouteId) {
+    return false;
+  }
+
+  const conditions = [];
+  const values = [];
+  if (normalizedSrvCode) {
+    values.push(normalizedSrvCode);
+    conditions.push(`srv_code = $${values.length}`);
+  }
+  if (normalizedRouteId) {
+    values.push(normalizedRouteId);
+    conditions.push(`route_id = $${values.length}`);
+  }
+
+  const result = await pool.query(
+    `
+      DELETE FROM route_srv_code_reservations
+      WHERE ${conditions.join(" OR ")}
+    `,
+    values,
+  );
+
+  return result.rowCount > 0;
 }

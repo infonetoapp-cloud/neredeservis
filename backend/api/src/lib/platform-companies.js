@@ -310,6 +310,17 @@ async function deletePlatformCompanyFromPostgres(companyId) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    await client.query(
+      `
+        DELETE FROM route_srv_code_reservations
+        WHERE route_id IN (
+          SELECT route_id
+          FROM company_routes
+          WHERE company_id = $1
+        )
+      `,
+      [companyId],
+    );
     await client.query(`DELETE FROM company_active_trips WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_audit_logs WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_invites WHERE company_id = $1`, [companyId]);

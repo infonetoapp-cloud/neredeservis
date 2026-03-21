@@ -249,6 +249,11 @@ export async function ensurePostgresAuthSchema() {
       ON company_routes (company_id, updated_at DESC);
   `);
   await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS company_routes_srv_code_upper_unique_idx
+      ON company_routes ((UPPER(srv_code)))
+      WHERE srv_code IS NOT NULL;
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS company_route_stops (
       stop_id TEXT PRIMARY KEY,
       route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
@@ -409,6 +414,19 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS route_share_audit_events_srv_created_idx
       ON route_share_audit_events (srv_code, created_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_srv_code_reservations (
+      srv_code TEXT PRIMARY KEY,
+      route_id TEXT NULL,
+      reserved_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_srv_code_reservations_route_id_idx
+      ON route_srv_code_reservations (route_id);
   `);
 
   return true;

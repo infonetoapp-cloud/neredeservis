@@ -7,9 +7,12 @@ import {
 } from "./company-route-postgres-sync.js";
 import {
   deleteCompanyRouteFromPostgres,
+  releaseReservedCompanyRouteSrvCode,
   shouldUsePostgresCompanyRouteStore,
+  tryReserveCompanyRouteSrvCode,
 } from "./company-route-store.js";
 import { HttpError } from "./http.js";
+import { writeRouteShareAuditEventToPostgres } from "./route-share-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const ROUTE_TIME_SLOTS = new Set(["morning", "evening", "midday", "custom"]);
@@ -244,6 +247,34 @@ async function createRouteWithSrvCode(db, actorUid, nowIso, routeData) {
   for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
     const srvCode = generateSrvCodeCandidate();
     const routeRef = db.collection("routes").doc();
+
+    if (shouldUsePostgresCompanyRouteStore()) {
+      const reserved = await tryReserveCompanyRouteSrvCode(srvCode, routeRef.id, actorUid).catch(
+        () => false,
+      );
+      if (!reserved) {
+        continue;
+      }
+
+      try {
+        await db.runTransaction(async (transaction) => {
+          transaction.set(routeRef, {
+            ...routeData,
+            srvCode,
+          });
+        });
+
+        return {
+          routeId: routeRef.id,
+          srvCode,
+          srvCodeReservedInPostgres: true,
+        };
+      } catch (error) {
+        await releaseReservedCompanyRouteSrvCode(srvCode, routeRef.id).catch(() => false);
+        throw error;
+      }
+    }
+
     const srvCodeRef = db.collection("_srv_codes").doc(srvCode);
 
     try {
@@ -316,6 +347,23 @@ function assertCompanyRoute(routeData, companyId) {
 
 async function writeRouteAuditEventSafe(db, input) {
   try {
+    if (shouldUsePostgresCompanyRouteStore()) {
+      await writeRouteShareAuditEventToPostgres({
+        companyId: input.companyId ?? input.metadata?.companyId ?? null,
+        eventType: input.eventType,
+        actorUid: input.actorUid ?? null,
+        actorType: input.actorUid ? "authenticated" : "public",
+        routeId: input.routeId ?? null,
+        srvCode: input.srvCode ?? null,
+        status: input.status ?? "success",
+        reason: input.reason ?? null,
+        requestIpHash: null,
+        metadata: input.metadata ?? {},
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     await db.collection(ROUTE_AUDIT_COLLECTION).add({
       eventType: input.eventType,
       actorUid: input.actorUid ?? null,
@@ -407,8 +455,29 @@ export async function createCompanyRoute(db, actorUid, actorRole, input) {
 
   if (shouldUsePostgresCompanyRouteStore()) {
     await backfillCompanyRecordFromFirestore(db, companyId).catch(() => false);
-    await syncCompanyRouteAndStopsFromFirestore(db, companyId, created.routeId, nowIso).catch(() => false);
+    const syncSucceeded = await syncCompanyRouteAndStopsFromFirestore(
+      db,
+      companyId,
+      created.routeId,
+      nowIso,
+    ).catch(() => false);
+    if (syncSucceeded && created.srvCodeReservedInPostgres === true) {
+      await releaseReservedCompanyRouteSrvCode(created.srvCode, created.routeId).catch(() => false);
+    }
   }
+
+  await writeRouteAuditEventSafe(db, {
+    companyId,
+    eventType: "route_created",
+    actorUid,
+    routeId: created.routeId,
+    srvCode: created.srvCode,
+    metadata: {
+      companyId,
+      role: actorRole,
+      routeMutationScope: "company_route_create",
+    },
+  });
 
   return {
     routeId: created.routeId,
@@ -554,6 +623,7 @@ export async function updateCompanyRoute(db, actorUid, actorRole, input) {
   });
 
   await writeRouteAuditEventSafe(db, {
+    companyId,
     eventType: "route_updated",
     actorUid,
     routeId: updated.routeId,
@@ -668,6 +738,7 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
   }
 
   await writeRouteAuditEventSafe(db, {
+    companyId,
     eventType: "route_deleted",
     actorUid,
     routeId,
@@ -681,6 +752,9 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
 
   if (shouldUsePostgresCompanyRouteStore()) {
     await deleteCompanyRouteFromPostgres(companyId, routeId).catch(() => false);
+    await releaseReservedCompanyRouteSrvCode(pickString(routeData, "srvCode"), routeId).catch(
+      () => false,
+    );
   }
 
   return {
@@ -778,6 +852,7 @@ export async function upsertCompanyRouteStop(db, actorUid, actorRole, input) {
   });
 
   await writeRouteAuditEventSafe(db, {
+    companyId,
     eventType: "route_stop_upserted",
     actorUid,
     routeId: updated.routeId,
@@ -870,6 +945,7 @@ export async function deleteCompanyRouteStop(db, actorUid, actorRole, input) {
   });
 
   await writeRouteAuditEventSafe(db, {
+    companyId,
     eventType: "route_stop_deleted",
     actorUid,
     routeId: deleted.routeId,
@@ -1032,6 +1108,7 @@ export async function reorderCompanyRouteStops(db, actorUid, actorRole, input) {
 
   if (reordered.changed) {
     await writeRouteAuditEventSafe(db, {
+      companyId,
       eventType: "route_stops_reordered",
       actorUid,
       routeId: reordered.routeId,
