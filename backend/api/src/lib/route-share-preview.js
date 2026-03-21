@@ -468,13 +468,9 @@ export async function getDynamicRoutePreview(db, request, input) {
       throw new HttpError(412, "failed-precondition", "Route ad alani eksik.");
     }
 
-    const driverUid = pickString(routePreview, "driverId");
-    if (!driverUid) {
-      throw new HttpError(412, "failed-precondition", "Route owner bilgisi eksik.");
-    }
-
     let driverDisplayName = pickString(routePreview, "driverDisplayName");
-    if (!driverDisplayName) {
+    const driverUid = pickString(routePreview, "driverId");
+    if (driverUid && !driverDisplayName) {
       const [driverSnapshot, userData] = await Promise.all([
         db.collection("drivers").doc(driverUid).get(),
         readUserProfileByUid(db, driverUid).catch(() => null),
@@ -482,6 +478,9 @@ export async function getDynamicRoutePreview(db, request, input) {
       const driverData = asRecord(driverSnapshot.data());
       driverDisplayName =
         pickString(driverData, "name") ?? pickString(userData, "displayName") ?? "Servis Soforu";
+    }
+    if (!driverDisplayName) {
+      driverDisplayName = "Servis Soforu";
     }
 
     const output = {
