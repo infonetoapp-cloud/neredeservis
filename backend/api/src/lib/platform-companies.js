@@ -3,8 +3,14 @@ import {
   readUserProfileByUid,
   upsertAuthUserProfile,
 } from "./auth-user-store.js";
+import {
+  backfillCompanyFromFirestoreRecord,
+  readCompanyFromPostgres,
+  syncCompanyWithOwnerMembershipToPostgres,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
+import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 function assertCompanyStatus(value) {
@@ -132,6 +138,196 @@ function toCreatedAtIso(record) {
   return pickString(record, "createdAt") ?? new Date().toISOString();
 }
 
+function normalizeNullableText(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeIsoString(value) {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return value.toISOString();
+  }
+  return null;
+}
+
+async function listPlatformCompaniesFromPostgres() {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        c.company_id,
+        c.name,
+        c.status,
+        c.vehicle_limit,
+        c.created_at,
+        owner.uid AS owner_uid,
+        au.email AS owner_email,
+        COUNT(DISTINCT cm.uid)::int AS member_count,
+        COUNT(DISTINCT v.vehicle_id)::int AS vehicle_count,
+        COUNT(DISTINCT r.route_id)::int AS route_count
+      FROM companies c
+      LEFT JOIN company_members owner
+        ON owner.company_id = c.company_id
+       AND owner.role = 'owner'
+       AND owner.status = 'active'
+      LEFT JOIN auth_users au ON au.uid = owner.uid
+      LEFT JOIN company_members cm ON cm.company_id = c.company_id
+      LEFT JOIN company_vehicles v ON v.company_id = c.company_id
+      LEFT JOIN company_routes r ON r.company_id = c.company_id
+      GROUP BY c.company_id, c.name, c.status, c.vehicle_limit, c.created_at, owner.uid, au.email
+      ORDER BY c.created_at DESC, c.company_id ASC
+    `,
+  );
+
+  return result.rows.map((row) => ({
+    companyId: row.company_id,
+    name: normalizeNullableText(row.name) ?? "(isimsiz)",
+    status: assertCompanyStatus(normalizeNullableText(row.status)),
+    ownerEmail: normalizeNullableText(row.owner_email),
+    ownerUid: normalizeNullableText(row.owner_uid),
+    vehicleLimit: pickFiniteNumber(row, "vehicle_limit") ?? 0,
+    vehicleCount: pickFiniteNumber(row, "vehicle_count") ?? 0,
+    memberCount: pickFiniteNumber(row, "member_count") ?? 0,
+    routeCount: pickFiniteNumber(row, "route_count") ?? 0,
+    createdAt: normalizeIsoString(row.created_at) ?? new Date().toISOString(),
+  }));
+}
+
+async function getPlatformCompanyDetailFromPostgres(companyId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const company = await readCompanyFromPostgres(companyId);
+  if (!company) {
+    return null;
+  }
+
+  const [membersResult, vehiclesResult, routesResult] = await Promise.all([
+    pool.query(
+      `
+        SELECT
+          cm.uid,
+          au.email,
+          COALESCE(au.display_name, au.profile_data->>'name', au.email) AS display_name,
+          cm.role,
+          cm.status,
+          COALESCE(cm.accepted_at, cm.created_at) AS joined_at
+        FROM company_members cm
+        LEFT JOIN auth_users au ON au.uid = cm.uid
+        WHERE cm.company_id = $1
+        ORDER BY COALESCE(cm.accepted_at, cm.created_at) ASC NULLS LAST, cm.uid ASC
+      `,
+      [companyId],
+    ),
+    pool.query(
+      `
+        SELECT
+          vehicle_id,
+          plate,
+          brand,
+          model,
+          capacity,
+          status
+        FROM company_vehicles
+        WHERE company_id = $1
+        ORDER BY updated_at DESC, vehicle_id ASC
+      `,
+      [companyId],
+    ),
+    pool.query(
+      `
+        SELECT
+          r.route_id,
+          r.name,
+          COALESCE(COUNT(s.stop_id), 0)::int AS stop_count,
+          r.passenger_count,
+          r.is_archived
+        FROM company_routes r
+        LEFT JOIN company_route_stops s ON s.route_id = r.route_id
+        WHERE r.company_id = $1
+        GROUP BY r.route_id, r.name, r.passenger_count, r.is_archived, r.updated_at
+        ORDER BY r.updated_at DESC NULLS LAST, r.route_id ASC
+      `,
+      [companyId],
+    ),
+  ]);
+
+  const members = membersResult.rows.map((row) => ({
+    uid: row.uid,
+    email: normalizeNullableText(row.email),
+    displayName: normalizeNullableText(row.display_name),
+    role: normalizeNullableText(row.role) ?? "member",
+    status: normalizeNullableText(row.status) ?? "active",
+    joinedAt: normalizeIsoString(row.joined_at) ?? new Date().toISOString(),
+  }));
+
+  const vehicles = vehiclesResult.rows.map((row) => ({
+    vehicleId: row.vehicle_id,
+    plate: normalizeNullableText(row.plate),
+    brand: normalizeNullableText(row.brand),
+    model: normalizeNullableText(row.model),
+    capacity: pickFiniteNumber(row, "capacity"),
+    status: normalizeNullableText(row.status) ?? "active",
+  }));
+
+  const routes = routesResult.rows.map((row) => ({
+    routeId: row.route_id,
+    name: normalizeNullableText(row.name) ?? "(isimsiz rota)",
+    stopCount: pickFiniteNumber(row, "stop_count") ?? 0,
+    passengerCount: pickFiniteNumber(row, "passenger_count") ?? 0,
+    isArchived: row.is_archived === true,
+  }));
+
+  const ownerMember = members.find((member) => member.role === "owner") ?? null;
+  return {
+    companyId,
+    name: company.name ?? "(isimsiz)",
+    status: assertCompanyStatus(company.status),
+    ownerEmail: ownerMember?.email ?? company.contactEmail ?? null,
+    ownerUid: ownerMember?.uid ?? null,
+    vehicleLimit: company.vehicleLimit ?? 0,
+    createdAt: company.createdAt ?? new Date().toISOString(),
+    members,
+    vehicles,
+    routes,
+  };
+}
+
+async function deletePlatformCompanyFromPostgres(companyId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM company_active_trips WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_audit_logs WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_invites WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_drivers WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_vehicles WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_members WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_routes WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM companies WHERE company_id = $1`, [companyId]);
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function deleteDocumentRefs(db, documentRefs) {
   const batchSize = 400;
   for (let index = 0; index < documentRefs.length; index += batchSize) {
@@ -158,6 +354,13 @@ async function deleteQueryByField(db, collectionName, fieldName, values) {
 }
 
 export async function listPlatformCompanies(db) {
+  if (isPostgresConfigured()) {
+    const items = await listPlatformCompaniesFromPostgres().catch(() => null);
+    if (items) {
+      return { items };
+    }
+  }
+
   const companiesSnapshot = await db.collection("companies").orderBy("createdAt", "desc").get();
 
   const items = await Promise.all(
@@ -192,6 +395,13 @@ export async function listPlatformCompanies(db) {
 
 export async function getPlatformCompanyDetail(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
+  if (isPostgresConfigured()) {
+    const detail = await getPlatformCompanyDetailFromPostgres(companyId).catch(() => null);
+    if (detail) {
+      return detail;
+    }
+  }
+
   const companyRef = db.collection("companies").doc(companyId);
   const [companySnapshot, membersSnapshot, vehiclesSnapshot, routesSnapshot] = await Promise.all([
     companyRef.get(),
@@ -348,6 +558,23 @@ export async function createPlatformCompany(db, actorUid, input) {
 
   await sendPasswordSetupEmail(ownerEmail);
 
+  if (isPostgresConfigured()) {
+    await syncCompanyWithOwnerMembershipToPostgres({
+      companyId,
+      uid: ownerUid,
+      name: companyName,
+      status: "active",
+      billingStatus: "active",
+      timezone: "Europe/Istanbul",
+      countryCode: "TR",
+      contactEmail: ownerEmail,
+      contactPhone: null,
+      vehicleLimit,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }).catch(() => false);
+  }
+
   return {
     companyId,
     ownerUid,
@@ -374,6 +601,28 @@ export async function setPlatformCompanyVehicleLimit(db, input) {
     updatedAt: nowIso,
   });
 
+  if (isPostgresConfigured()) {
+    const companyData = asRecord(companySnapshot.data()) ?? {};
+    await backfillCompanyFromFirestoreRecord({
+      companyId,
+      name: pickString(companyData, "name"),
+      legalName: pickString(companyData, "legalName"),
+      status: pickString(companyData, "status"),
+      billingStatus: pickString(companyData, "billingStatus"),
+      billingValidUntil: pickString(companyData, "billingValidUntil"),
+      timezone: pickString(companyData, "timezone"),
+      countryCode: pickString(companyData, "countryCode"),
+      contactPhone: pickString(companyData, "contactPhone"),
+      contactEmail: pickString(companyData, "contactEmail"),
+      logoUrl: pickString(companyData, "logoUrl"),
+      address: pickString(companyData, "address"),
+      vehicleLimit,
+      createdBy: pickString(companyData, "createdBy"),
+      createdAt: pickString(companyData, "createdAt"),
+      updatedAt: nowIso,
+    }).catch(() => false);
+  }
+
   return {
     companyId,
     vehicleLimit,
@@ -399,6 +648,28 @@ export async function setPlatformCompanyStatus(db, input) {
     status: rawStatus,
     updatedAt: nowIso,
   });
+
+  if (isPostgresConfigured()) {
+    const companyData = asRecord(companySnapshot.data()) ?? {};
+    await backfillCompanyFromFirestoreRecord({
+      companyId,
+      name: pickString(companyData, "name"),
+      legalName: pickString(companyData, "legalName"),
+      status: rawStatus,
+      billingStatus: pickString(companyData, "billingStatus"),
+      billingValidUntil: pickString(companyData, "billingValidUntil"),
+      timezone: pickString(companyData, "timezone"),
+      countryCode: pickString(companyData, "countryCode"),
+      contactPhone: pickString(companyData, "contactPhone"),
+      contactEmail: pickString(companyData, "contactEmail"),
+      logoUrl: pickString(companyData, "logoUrl"),
+      address: pickString(companyData, "address"),
+      vehicleLimit: pickFiniteNumber(companyData, "vehicleLimit"),
+      createdBy: pickString(companyData, "createdBy"),
+      createdAt: pickString(companyData, "createdAt"),
+      updatedAt: nowIso,
+    }).catch(() => false);
+  }
 
   return {
     companyId,
@@ -481,6 +752,10 @@ export async function deletePlatformCompany(db, rtdb, input) {
         rtdb.ref(`guestReaders/${routeId}`).remove().catch(() => {}),
       ]),
     );
+  }
+
+  if (isPostgresConfigured()) {
+    await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
   }
 
   return {
