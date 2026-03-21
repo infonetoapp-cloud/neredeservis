@@ -110,6 +110,7 @@ export async function ensurePostgresAuthSchema() {
     ALTER TABLE companies
       ADD COLUMN IF NOT EXISTS vehicles_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS drivers_synced_at TIMESTAMPTZ NULL,
+      ADD COLUMN IF NOT EXISTS driver_documents_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS routes_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS member_invites_synced_at TIMESTAMPTZ NULL,
       ADD COLUMN IF NOT EXISTS audit_logs_synced_at TIMESTAMPTZ NULL,
@@ -186,6 +187,25 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_drivers_company_id_idx
       ON company_drivers (company_id);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_driver_documents (
+      company_id TEXT NOT NULL,
+      driver_id TEXT NOT NULL,
+      doc_type TEXT NOT NULL,
+      issue_date TEXT NULL,
+      expiry_date TEXT NULL,
+      license_class TEXT NULL,
+      note TEXT NULL,
+      uploaded_at TIMESTAMPTZ NULL,
+      uploaded_by TEXT NULL,
+      updated_at TIMESTAMPTZ NULL,
+      PRIMARY KEY (company_id, driver_id, doc_type)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_driver_documents_company_driver_idx
+      ON company_driver_documents (company_id, driver_id);
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS company_routes (
@@ -339,6 +359,38 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_active_trips_company_driver_idx
       ON company_active_trips (company_id, driver_uid);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_preview_rate_limits (
+      rate_key TEXT PRIMARY KEY,
+      window_start_ms BIGINT NOT NULL,
+      call_count INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_share_audit_events (
+      event_id BIGSERIAL PRIMARY KEY,
+      company_id TEXT NULL,
+      event_type TEXT NOT NULL,
+      actor_uid TEXT NULL,
+      actor_type TEXT NOT NULL DEFAULT 'public',
+      route_id TEXT NULL,
+      srv_code TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'success',
+      reason TEXT NULL,
+      request_ip_hash TEXT NULL,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_share_audit_events_route_created_idx
+      ON route_share_audit_events (route_id, created_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_share_audit_events_srv_created_idx
+      ON route_share_audit_events (srv_code, created_at DESC);
   `);
 
   return true;

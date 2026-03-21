@@ -313,6 +313,8 @@ async function deletePlatformCompanyFromPostgres(companyId) {
     await client.query(`DELETE FROM company_active_trips WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_audit_logs WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_invites WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_driver_documents WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM route_share_audit_events WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_drivers WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_vehicles WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_members WHERE company_id = $1`, [companyId]);

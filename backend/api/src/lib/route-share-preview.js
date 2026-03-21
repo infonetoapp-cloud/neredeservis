@@ -1,6 +1,15 @@
 import { createHash, createHmac } from "node:crypto";
 
 import { HttpError } from "./http.js";
+import { readUserProfileByUid } from "./auth-user-store.js";
+import { syncCompanyRouteFromFirestore } from "./company-route-postgres-sync.js";
+import {
+  enforceRoutePreviewRateLimitInPostgres,
+  readRouteShareContextFromPostgresByRouteId,
+  readRouteShareContextFromPostgresBySrvCode,
+  shouldUsePostgresRouteShareStore,
+  writeRouteShareAuditEventToPostgres,
+} from "./route-share-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const ROUTE_AUDIT_COLLECTION = "_audit_route_events";
@@ -87,12 +96,25 @@ function readAllowedUserRole(userData, allowedRoles) {
 }
 
 async function requireAllowedUserRole(db, uid, allowedRoles) {
-  const userSnapshot = await db.collection("users").doc(uid).get();
-  const userData = asRecord(userSnapshot.data()) ?? {};
+  const userData = (await readUserProfileByUid(db, uid)) ?? {};
   return readAllowedUserRole(userData, allowedRoles);
 }
 
 async function requireRouteMember(db, routeId, uid) {
+  if (shouldUsePostgresRouteShareStore()) {
+    const postgresRoute = await readRouteShareContextFromPostgresByRouteId(routeId).catch(() => null);
+    if (postgresRoute) {
+      const isMember =
+        postgresRoute.driverId === uid ||
+        postgresRoute.authorizedDriverIds.includes(uid) ||
+        postgresRoute.memberIds.includes(uid);
+      if (!isMember) {
+        throw new HttpError(403, "permission-denied", "Bu route icin erisim yetkin yok.");
+      }
+      return postgresRoute;
+    }
+  }
+
   const routeSnapshot = await db.collection("routes").doc(routeId).get();
   if (!routeSnapshot.exists) {
     throw new HttpError(404, "not-found", "Route bulunamadi.");
@@ -106,6 +128,13 @@ async function requireRouteMember(db, routeId, uid) {
     routeOwnerUid === uid || authorizedDriverIds.includes(uid) || memberIds.includes(uid);
   if (!isMember) {
     throw new HttpError(403, "permission-denied", "Bu route icin erisim yetkin yok.");
+  }
+
+  const companyId = pickString(routeData, "companyId");
+  if (companyId && shouldUsePostgresRouteShareStore()) {
+    await syncCompanyRouteFromFirestore(db, companyId, routeId, new Date().toISOString()).catch(
+      () => false,
+    );
   }
 
   return routeData;
@@ -202,9 +231,19 @@ function verifyRoutePreviewToken({ srvCode, token, nowMs }) {
 
 async function enforceRoutePreviewRateLimit(db, key) {
   const nowMs = Date.now();
-  const ref = db.collection("_rate_limits").doc(key);
   const windowMs = readRoutePreviewRateWindowMs();
   const maxCalls = readRoutePreviewRateMaxCalls();
+
+  if (shouldUsePostgresRouteShareStore()) {
+    return enforceRoutePreviewRateLimitInPostgres({
+      key,
+      nowMs,
+      windowMs,
+      maxCalls,
+    });
+  }
+
+  const ref = db.collection("_rate_limits").doc(key);
 
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
@@ -265,6 +304,22 @@ function buildAuditFingerprint(value) {
 }
 
 async function writeRouteAuditEvent(db, input) {
+  if (shouldUsePostgresRouteShareStore()) {
+    return writeRouteShareAuditEventToPostgres({
+      companyId: input.companyId ?? null,
+      eventType: input.eventType,
+      actorUid: input.actorUid ?? null,
+      actorType: input.actorUid ? "authenticated" : "public",
+      routeId: input.routeId ?? null,
+      srvCode: input.srvCode ?? null,
+      status: input.status ?? "success",
+      reason: input.reason ?? null,
+      requestIpHash: buildAuditFingerprint(input.requestIp ?? null),
+      metadata: input.metadata ?? {},
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   await db.collection(ROUTE_AUDIT_COLLECTION).add({
     eventType: input.eventType,
     actorUid: input.actorUid ?? null,
@@ -308,6 +363,7 @@ export async function generateRouteShareLink(db, uid, input) {
   const customText = normalizeCustomText(input?.customText);
   const routeData = await requireRouteMember(db, routeId, uid);
   const srvCode = pickString(routeData, "srvCode");
+  const companyId = pickString(routeData, "companyId");
   if (!srvCode) {
     throw new HttpError(412, "failed-precondition", "Route srvCode alani bulunamadi.");
   }
@@ -324,6 +380,7 @@ export async function generateRouteShareLink(db, uid, input) {
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(systemShareText)}`;
 
   await writeRouteAuditEvent(db, {
+    companyId,
     eventType: "route_share_link_generated",
     actorUid: uid,
     routeId,
@@ -366,49 +423,80 @@ export async function getDynamicRoutePreview(db, request, input) {
       nowMs,
     });
 
-    const routeQuerySnapshot = await db
-      .collection("routes")
-      .where("srvCode", "==", srvCode)
-      .where("isArchived", "==", false)
-      .limit(1)
-      .get();
-    if (routeQuerySnapshot.empty) {
-      throw new HttpError(404, "not-found", "Route preview bulunamadi.");
+    let routePreview = null;
+    if (shouldUsePostgresRouteShareStore()) {
+      routePreview = await readRouteShareContextFromPostgresBySrvCode(srvCode).catch(() => null);
     }
 
-    const routeDocument = routeQuerySnapshot.docs[0];
-    const routeData = asRecord(routeDocument.data()) ?? {};
-    const routeName = pickString(routeData, "name");
+    if (!routePreview) {
+      const routeQuerySnapshot = await db
+        .collection("routes")
+        .where("srvCode", "==", srvCode)
+        .where("isArchived", "==", false)
+        .limit(1)
+        .get();
+      if (routeQuerySnapshot.empty) {
+        throw new HttpError(404, "not-found", "Route preview bulunamadi.");
+      }
+
+      const routeDocument = routeQuerySnapshot.docs[0];
+      const routeData = asRecord(routeDocument.data()) ?? {};
+      routePreview = {
+        routeId: routeDocument.id,
+        companyId: pickString(routeData, "companyId"),
+        name: pickString(routeData, "name"),
+        srvCode,
+        driverId: pickString(routeData, "driverId"),
+        scheduledTime: pickString(routeData, "scheduledTime"),
+        timeSlot: readRouteTimeSlot(routeData.timeSlot),
+        allowGuestTracking: routeData.allowGuestTracking === true,
+      };
+
+      const companyId = pickString(routeData, "companyId");
+      if (companyId && shouldUsePostgresRouteShareStore()) {
+        await syncCompanyRouteFromFirestore(
+          db,
+          companyId,
+          routeDocument.id,
+          new Date().toISOString(),
+        ).catch(() => false);
+      }
+    }
+
+    const routeName = pickString(routePreview, "name");
     if (!routeName) {
       throw new HttpError(412, "failed-precondition", "Route ad alani eksik.");
     }
 
-    const driverUid = pickString(routeData, "driverId");
+    const driverUid = pickString(routePreview, "driverId");
     if (!driverUid) {
       throw new HttpError(412, "failed-precondition", "Route owner bilgisi eksik.");
     }
 
-    const [driverSnapshot, userSnapshot] = await Promise.all([
-      db.collection("drivers").doc(driverUid).get(),
-      db.collection("users").doc(driverUid).get(),
-    ]);
-    const driverData = asRecord(driverSnapshot.data());
-    const userData = asRecord(userSnapshot.data());
-    const driverDisplayName =
-      pickString(driverData, "name") ?? pickString(userData, "displayName") ?? "Servis Soforu";
+    let driverDisplayName = pickString(routePreview, "driverDisplayName");
+    if (!driverDisplayName) {
+      const [driverSnapshot, userData] = await Promise.all([
+        db.collection("drivers").doc(driverUid).get(),
+        readUserProfileByUid(db, driverUid).catch(() => null),
+      ]);
+      const driverData = asRecord(driverSnapshot.data());
+      driverDisplayName =
+        pickString(driverData, "name") ?? pickString(userData, "displayName") ?? "Servis Soforu";
+    }
 
     const output = {
-      routeId: routeDocument.id,
+      routeId: pickString(routePreview, "routeId"),
       srvCode,
       routeName,
       driverDisplayName,
-      scheduledTime: pickString(routeData, "scheduledTime"),
-      timeSlot: readRouteTimeSlot(routeData.timeSlot),
-      allowGuestTracking: routeData.allowGuestTracking === true,
+      scheduledTime: pickString(routePreview, "scheduledTime"),
+      timeSlot: readRouteTimeSlot(routePreview.timeSlot),
+      allowGuestTracking: routePreview.allowGuestTracking === true,
       deepLinkUrl: `neredeservis://route-preview?srvCode=${srvCode}`,
     };
 
     await writeRouteAuditEventSafe(db, {
+      companyId: pickString(routePreview, "companyId"),
       eventType: "route_preview_accessed",
       actorUid: null,
       routeId: output.routeId,
