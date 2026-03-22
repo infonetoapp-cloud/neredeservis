@@ -108,6 +108,7 @@ import {
 } from "./lib/identity-toolkit.js";
 import {
   readCurrentAuthBundle,
+  registerCurrentDriverDevice,
   updateCurrentAuthConsent,
   upsertCurrentDriverProfile,
 } from "./lib/current-auth-bundle.js";
@@ -693,6 +694,10 @@ function isAuthConsentPath(pathname) {
   return pathname === "/api/auth/consent";
 }
 
+function isAuthDeviceRegistrationPath(pathname) {
+  return pathname === "/api/auth/device-registration";
+}
+
 function isPassengerRouteJoinPath(pathname) {
   return pathname === "/api/passenger/routes/join";
 }
@@ -1163,6 +1168,14 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await updateCurrentAuthConsent(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthDeviceRegistrationPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await registerCurrentDriverDevice(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }

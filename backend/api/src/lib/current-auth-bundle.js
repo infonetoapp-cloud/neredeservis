@@ -122,7 +122,9 @@ function sanitizeDriverProfile(rawValue) {
     trialStartDate: pickString(record, "trialStartDate"),
     trialEndsAt: pickString(record, "trialEndsAt"),
     lastPaywallShownAt: pickString(record, "lastPaywallShownAt"),
+    activeDeviceId: pickString(record, "activeDeviceId"),
     activeDeviceToken: pickString(record, "activeDeviceToken"),
+    lastSeenAt: pickString(record, "lastSeenAt"),
     createdAt: pickString(record, "createdAt"),
     updatedAt: pickString(record, "updatedAt"),
   };
@@ -139,7 +141,9 @@ function sanitizeDriverProfile(rawValue) {
     sanitized.trialStartDate != null ||
     sanitized.trialEndsAt != null ||
     sanitized.lastPaywallShownAt != null ||
+    sanitized.activeDeviceId != null ||
     sanitized.activeDeviceToken != null ||
+    sanitized.lastSeenAt != null ||
     sanitized.createdAt != null ||
     sanitized.updatedAt != null;
 
@@ -225,7 +229,9 @@ async function bestEffortMirrorDriverDoc(db, uid, rawDriverProfile, fallbackDisp
     trialStartDate: driverProfile.trialStartDate ?? null,
     trialEndsAt: driverProfile.trialEndsAt ?? null,
     lastPaywallShownAt: driverProfile.lastPaywallShownAt ?? null,
+    activeDeviceId: driverProfile.activeDeviceId ?? null,
     activeDeviceToken: driverProfile.activeDeviceToken ?? null,
+    lastSeenAt: driverProfile.lastSeenAt ?? null,
     createdAt: driverProfile.createdAt ?? new Date().toISOString(),
     updatedAt: driverProfile.updatedAt ?? new Date().toISOString(),
   };
@@ -463,7 +469,9 @@ export async function upsertCurrentDriverProfile(db, subject, rawInput) {
     trialStartDate: currentDriverProfile.trialStartDate ?? null,
     trialEndsAt: currentDriverProfile.trialEndsAt ?? null,
     lastPaywallShownAt: currentDriverProfile.lastPaywallShownAt ?? null,
+    activeDeviceId: currentDriverProfile.activeDeviceId ?? null,
     activeDeviceToken: currentDriverProfile.activeDeviceToken ?? null,
+    lastSeenAt: currentDriverProfile.lastSeenAt ?? null,
     createdAt: currentDriverProfile.createdAt ?? nowIso,
     updatedAt: nowIso,
   };
@@ -495,5 +503,59 @@ export async function upsertCurrentDriverProfile(db, subject, rawInput) {
     driverId: uid,
     updatedAt: nowIso,
     driverProfile: sanitizeDriverProfile(nextDriverProfile),
+  };
+}
+
+export async function registerCurrentDriverDevice(db, subject, rawInput) {
+  const uid = requireUid(subject);
+  let profile = await readUserProfileByUid(db, uid);
+  profile = await hydrateLegacyAuthBundle(db, subject, profile);
+
+  const currentDriverProfile = sanitizeDriverProfile(profile?.driverProfile);
+  if (!currentDriverProfile) {
+    throw new HttpError(412, "failed-precondition", "Sofor profili bulunamadi.");
+  }
+
+  const input = asRecord(rawInput) ?? {};
+  const nowIso = new Date().toISOString();
+  const deviceId = normalizeRequiredText(input.deviceId, "Cihaz kimligi", 4, 128);
+  const activeDeviceToken = normalizeRequiredText(input.activeDeviceToken, "Bildirim tokeni", 8, 4096);
+  const lastSeenAt = normalizeOptionalText(input.lastSeenAt, "Son gorulme", 64) ?? nowIso;
+  const previousDeviceId = currentDriverProfile.activeDeviceId ?? null;
+  const previousDeviceRevoked = previousDeviceId != null && previousDeviceId !== deviceId;
+
+  const nextDriverProfile = {
+    ...currentDriverProfile,
+    activeDeviceId: deviceId,
+    activeDeviceToken,
+    lastSeenAt,
+    updatedAt: nowIso,
+    createdAt: currentDriverProfile.createdAt ?? nowIso,
+  };
+
+  const fallbackDisplayName =
+    currentDriverProfile.name ?? profile?.displayName ?? subject?.displayName ?? "Sofor";
+  const user = await upsertAuthUserProfile(db, buildBaseAuthUser(profile, subject, fallbackDisplayName), {
+    createdAt: profile?.createdAt ?? nowIso,
+    updatedAt: nowIso,
+    deletedAt: profile?.deletedAt ?? null,
+    role: profile?.role ?? "driver",
+    phone: currentDriverProfile.phone ?? profile?.phone ?? null,
+    photoUrl: currentDriverProfile.photoUrl ?? profile?.photoUrl ?? null,
+    photoPath: currentDriverProfile.photoPath ?? profile?.photoPath ?? null,
+    driverProfile: nextDriverProfile,
+  });
+
+  await bestEffortMirrorDriverDoc(
+    db,
+    uid,
+    nextDriverProfile,
+    user.displayName ?? fallbackDisplayName,
+  );
+
+  return {
+    activeDeviceId: deviceId,
+    previousDeviceRevoked,
+    updatedAt: nowIso,
   };
 }
