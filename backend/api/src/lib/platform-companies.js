@@ -109,6 +109,34 @@ async function sendPasswordSetupEmail(email) {
 }
 
 async function resolveCompanyOwnerIdentity(companyRef, companyData) {
+  if (isPostgresConfigured()) {
+    const pool = getPostgresPool();
+    if (pool) {
+      const result = await pool.query(
+        `
+          SELECT
+            cm.uid,
+            COALESCE(au.email, $2) AS owner_email
+          FROM company_members cm
+          LEFT JOIN auth_users au ON au.uid = cm.uid
+          WHERE cm.company_id = $1
+            AND cm.role = 'owner'
+            AND cm.status = 'active'
+          ORDER BY cm.accepted_at ASC NULLS LAST, cm.created_at ASC NULLS LAST, cm.uid ASC
+          LIMIT 1
+        `,
+        [companyRef.id, pickString(companyData, "contactEmail")],
+      );
+      const row = result.rows[0] ?? null;
+      if (row) {
+        return {
+          ownerUid: normalizeNullableText(row.uid),
+          ownerEmail: normalizeNullableText(row.owner_email),
+        };
+      }
+    }
+  }
+
   const ownerQuerySnapshot = await companyRef.collection("members").where("role", "==", "owner").limit(1).get();
   const ownerMemberSnapshot = ownerQuerySnapshot.docs[0] ?? null;
   if (!ownerMemberSnapshot) {
@@ -127,6 +155,54 @@ async function resolveCompanyOwnerIdentity(companyRef, companyData) {
       pickString(ownerMemberData, "email") ??
       ownerAuthUser?.email ??
       pickString(companyData, "contactEmail"),
+  };
+}
+
+async function readPlatformCompanyDeleteStateFromPostgres(companyId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const [companyResult, membersResult, routesResult] = await Promise.all([
+    pool.query(
+      `
+        SELECT company_id
+        FROM companies
+        WHERE company_id = $1
+        LIMIT 1
+      `,
+      [companyId],
+    ),
+    pool.query(
+      `
+        SELECT uid
+        FROM company_members
+        WHERE company_id = $1
+      `,
+      [companyId],
+    ),
+    pool.query(
+      `
+        SELECT route_id
+        FROM company_routes
+        WHERE company_id = $1
+      `,
+      [companyId],
+    ),
+  ]);
+
+  if (companyResult.rowCount === 0) {
+    return null;
+  }
+
+  return {
+    memberUids: membersResult.rows
+      .map((row) => normalizeNullableText(row.uid))
+      .filter((item) => item !== null),
+    routeIds: routesResult.rows
+      .map((row) => normalizeNullableText(row.route_id))
+      .filter((item) => item !== null),
   };
 }
 
@@ -909,12 +985,19 @@ export async function setPlatformCompanyStatus(db, input) {
 export async function resetPlatformCompanyOwnerPassword(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   const companyRef = db.collection("companies").doc(companyId);
-  const companySnapshot = await companyRef.get();
-  if (!companySnapshot.exists) {
+  const postgresCompany = isPostgresConfigured()
+    ? await readCompanyFromPostgres(companyId).catch(() => null)
+    : null;
+  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const companyData = asRecord(companySnapshot.data()) ?? {};
+  const companyData = postgresCompany
+    ? {
+        contactEmail: postgresCompany.contactEmail,
+      }
+    : asRecord(companySnapshot.data()) ?? {};
   const ownerIdentity = await resolveCompanyOwnerIdentity(companyRef, companyData);
   const ownerEmail = ownerIdentity.ownerEmail;
   if (!ownerEmail) {
@@ -931,45 +1014,121 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
 export async function deletePlatformCompany(db, rtdb, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   const companyRef = db.collection("companies").doc(companyId);
-  const companySnapshot = await companyRef.get();
-  if (!companySnapshot.exists) {
+  const usePostgres = isPostgresConfigured();
+  const [postgresState, companySnapshot] = await Promise.all([
+    usePostgres ? readPlatformCompanyDeleteStateFromPostgres(companyId).catch(() => null) : null,
+    db.collection("companies").doc(companyId).get().catch(() => null),
+  ]);
+  if (!postgresState && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const [membersSnapshot, routesSnapshot, auditLogsSnapshot] = await Promise.all([
-    companyRef.collection("members").get(),
-    db.collection("routes").where("companyId", "==", companyId).get(),
-    db.collection("audit_logs").where("companyId", "==", companyId).get(),
-  ]);
-  const memberUids = membersSnapshot.docs.map((documentSnapshot) => documentSnapshot.id);
-  const routeRefs = routesSnapshot.docs.map((documentSnapshot) => documentSnapshot.ref);
-  const routeIds = routesSnapshot.docs.map((documentSnapshot) => documentSnapshot.id);
+  const [membersSnapshot, routesSnapshot, auditLogsSnapshot] = companySnapshot?.exists
+    ? await Promise.all([
+        companyRef.collection("members").get(),
+        db.collection("routes").where("companyId", "==", companyId).get(),
+        db.collection("audit_logs").where("companyId", "==", companyId).get(),
+      ])
+    : [null, null, null];
+  const memberUids = postgresState?.memberUids ?? membersSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
+  const routeIds = postgresState?.routeIds ?? routesSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
+  const routeRefs = routesSnapshot?.docs.map((documentSnapshot) => documentSnapshot.ref) ?? [];
+
+  if (usePostgres) {
+    await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
+  }
 
   for (const routeRef of routeRefs) {
-    await db.recursiveDelete(routeRef);
+    await db.recursiveDelete(routeRef).catch((error) => {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "firestore_platform_route_delete_mirror_failed",
+          companyId,
+          routeId: routeRef.id,
+          message: error instanceof Error ? error.message : "unknown_error",
+        }),
+      );
+      return null;
+    });
   }
 
   if (routeIds.length > 0) {
     await Promise.all([
-      deleteQueryByField(db, "trips", "routeId", routeIds),
-      deleteQueryByField(db, "_audit_route_events", "routeId", routeIds),
+      deleteQueryByField(db, "trips", "routeId", routeIds).catch((error) => {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            event: "firestore_platform_trips_delete_mirror_failed",
+            companyId,
+            routeCount: routeIds.length,
+            message: error instanceof Error ? error.message : "unknown_error",
+          }),
+        );
+        return null;
+      }),
+      deleteQueryByField(db, "_audit_route_events", "routeId", routeIds).catch((error) => {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            event: "firestore_platform_route_audit_delete_mirror_failed",
+            companyId,
+            routeCount: routeIds.length,
+            message: error instanceof Error ? error.message : "unknown_error",
+          }),
+        );
+        return null;
+      }),
     ]);
   }
 
-  if (!auditLogsSnapshot.empty) {
+  if (auditLogsSnapshot && !auditLogsSnapshot.empty) {
     await deleteDocumentRefs(
       db,
       auditLogsSnapshot.docs.map((documentSnapshot) => documentSnapshot.ref),
-    );
+    ).catch((error) => {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "firestore_platform_company_audit_delete_mirror_failed",
+          companyId,
+          message: error instanceof Error ? error.message : "unknown_error",
+        }),
+      );
+      return null;
+    });
   }
 
-  await db.recursiveDelete(companyRef);
+  if (companySnapshot?.exists) {
+    await db.recursiveDelete(companyRef).catch((error) => {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "firestore_platform_company_delete_mirror_failed",
+          companyId,
+          message: error instanceof Error ? error.message : "unknown_error",
+        }),
+      );
+      return null;
+    });
+  }
 
   if (memberUids.length > 0) {
     const membershipRefs = memberUids.map((uid) =>
       db.collection("users").doc(uid).collection("company_memberships").doc(companyId),
     );
-    await deleteDocumentRefs(db, membershipRefs);
+    await deleteDocumentRefs(db, membershipRefs).catch((error) => {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "firestore_platform_membership_delete_mirror_failed",
+          companyId,
+          memberCount: memberUids.length,
+          message: error instanceof Error ? error.message : "unknown_error",
+        }),
+      );
+      return null;
+    });
   }
 
   if (rtdb && routeIds.length > 0) {
@@ -980,10 +1139,6 @@ export async function deletePlatformCompany(db, rtdb, input) {
         rtdb.ref(`guestReaders/${routeId}`).remove().catch(() => {}),
       ]),
     );
-  }
-
-  if (isPostgresConfigured()) {
-    await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
   }
 
   return {
