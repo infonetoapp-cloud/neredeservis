@@ -322,3 +322,86 @@ export async function loadDriverMyTrips(db, uid) {
     tripRows,
   };
 }
+
+export async function listDriverRouteCandidates(db, uid) {
+  const normalizedUid = readTrimmedString(uid);
+  if (!normalizedUid) {
+    return [];
+  }
+
+  const managedRouteDocs = {
+    ...(await loadManagedRoutesFromPostgres(normalizedUid)),
+    ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
+  };
+
+  return Object.entries(managedRouteDocs).map(([routeId, routeData]) => ({
+    routeId,
+    routeName: readTrimmedString(routeData?.name) ?? "Sofor Rotasi",
+    updatedAtUtc: parseIsoDate(routeData?.updatedAt) ?? new Date(0).toISOString(),
+    isOwnedByCurrentDriver: readTrimmedString(routeData?.driverId) === normalizedUid,
+  }));
+}
+
+export async function listDriverRouteStops(db, uid, routeId) {
+  const normalizedUid = readTrimmedString(uid);
+  const normalizedRouteId = readTrimmedString(routeId);
+  if (!normalizedUid || !normalizedRouteId) {
+    return [];
+  }
+
+  const managedRouteDocs = {
+    ...(await loadManagedRoutesFromPostgres(normalizedUid)),
+    ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
+  };
+  if (!managedRouteDocs[normalizedRouteId]) {
+    return [];
+  }
+
+  const pool = getPostgresPool();
+  if (pool) {
+    const result = await pool.query(
+      `
+        SELECT stop_id, name, stop_order
+        FROM company_route_stops
+        WHERE route_id = $1
+        ORDER BY stop_order ASC, updated_at DESC, stop_id ASC
+      `,
+      [normalizedRouteId],
+    );
+    if (result.rows.length > 0) {
+      return result.rows.map((row) => ({
+        stopId: readTrimmedString(row?.stop_id) ?? "",
+        name: readTrimStringOrFallback(row?.name, "Durak"),
+        order: normalizeInteger(row?.stop_order) ?? 9999,
+        passengersWaiting: null,
+      }));
+    }
+  }
+
+  const firestoreDb = requireFirestoreDb(db);
+  const snapshot = await firestoreDb
+    .collection("routes")
+    .doc(normalizedRouteId)
+    .collection("stops")
+    .orderBy("order")
+    .limit(40)
+    .get()
+    .catch(() => null);
+  if (!snapshot) {
+    return [];
+  }
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      stopId: doc.id,
+      name: readTrimStringOrFallback(data?.name, "Durak"),
+      order: normalizeInteger(data?.order) ?? 9999,
+      passengersWaiting: normalizeInteger(data?.passengersWaiting),
+    };
+  });
+}
+
+function readTrimStringOrFallback(value, fallback) {
+  return readTrimmedString(value) ?? fallback;
+}

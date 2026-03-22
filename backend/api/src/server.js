@@ -79,7 +79,12 @@ import {
   startDriverTrip,
   upsertDriverLiveLocation,
 } from "./lib/driver-trip-runtime.js";
-import { loadDriverMyTrips, loadDriverTripHistory } from "./lib/driver-read-model.js";
+import {
+  listDriverRouteCandidates,
+  listDriverRouteStops,
+  loadDriverMyTrips,
+  loadDriverTripHistory,
+} from "./lib/driver-read-model.js";
 import {
   cleanupStoredCompanyLogos,
   readCompanyLogoMedia,
@@ -767,6 +772,22 @@ function isDriverMyTripsPath(pathname) {
   return pathname === "/api/driver/my-trips";
 }
 
+function isDriverRouteCandidatesPath(pathname) {
+  return pathname === "/api/driver/route-candidates";
+}
+
+function extractDriverRouteStopsPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/stops$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function extractDriverLiveLocationPathParams(pathname) {
   const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/live-location$/);
   if (!match) {
@@ -1261,6 +1282,21 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const result = await loadDriverMyTrips(db, decodedToken.uid);
       sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "GET" && isDriverRouteCandidatesPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const items = await listDriverRouteCandidates(db, decodedToken.uid);
+      sendApiOk(response, 200, { items });
+      return;
+    }
+
+    const driverRouteStopsParams = extractDriverRouteStopsPathParams(requestUrl.pathname);
+    if (driverRouteStopsParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const items = await listDriverRouteStops(db, decodedToken.uid, driverRouteStopsParams.routeId);
+      sendApiOk(response, 200, { items });
       return;
     }
 
