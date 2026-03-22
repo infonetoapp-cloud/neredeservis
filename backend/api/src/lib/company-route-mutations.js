@@ -1,14 +1,13 @@
 import { randomBytes } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
-import {
-  backfillCompanyRecordFromFirestore,
-  syncCompanyRouteAndStopsFromFirestore,
-} from "./company-route-postgres-sync.js";
+import { readCompanyDriverFromPostgres } from "./company-fleet-store.js";
+import { syncCompanyRouteAndStopsFromFirestore } from "./company-route-postgres-sync.js";
 import {
   deleteCompanyRouteFromPostgres,
   releaseReservedCompanyRouteSrvCode,
   shouldUsePostgresCompanyRouteStore,
+  syncCompanyRouteToPostgres,
   tryReserveCompanyRouteSrvCode,
 } from "./company-route-store.js";
 import { HttpError } from "./http.js";
@@ -246,10 +245,10 @@ function generateSrvCodeCandidate() {
 async function createRouteWithSrvCode(db, actorUid, nowIso, routeData) {
   for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
     const srvCode = generateSrvCodeCandidate();
-    const routeRef = db.collection("routes").doc();
+    const routeId = db.collection("routes").doc().id;
 
     if (shouldUsePostgresCompanyRouteStore()) {
-      const reserved = await tryReserveCompanyRouteSrvCode(srvCode, routeRef.id, actorUid).catch(
+      const reserved = await tryReserveCompanyRouteSrvCode(srvCode, routeId, actorUid).catch(
         () => false,
       );
       if (!reserved) {
@@ -257,24 +256,28 @@ async function createRouteWithSrvCode(db, actorUid, nowIso, routeData) {
       }
 
       try {
-        await db.runTransaction(async (transaction) => {
-          transaction.set(routeRef, {
-            ...routeData,
-            srvCode,
-          });
+        await syncCompanyRouteToPostgres({
+          routeId,
+          ...routeData,
+          srvCode,
+          createdAt: routeData.createdAt ?? nowIso,
+          updatedAt: routeData.updatedAt ?? nowIso,
         });
+        await mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, nowIso, routeData);
 
         return {
-          routeId: routeRef.id,
+          routeId,
           srvCode,
           srvCodeReservedInPostgres: true,
+          createdInPostgres: true,
         };
       } catch (error) {
-        await releaseReservedCompanyRouteSrvCode(srvCode, routeRef.id).catch(() => false);
+        await releaseReservedCompanyRouteSrvCode(srvCode, routeId).catch(() => false);
         throw error;
       }
     }
 
+    const routeRef = db.collection("routes").doc(routeId);
     const srvCodeRef = db.collection("_srv_codes").doc(srvCode);
 
     try {
@@ -319,6 +322,16 @@ async function assertPrimaryDriverValid(db, companyId, driverId) {
     return;
   }
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const postgresDriver = await readCompanyDriverFromPostgres(companyId, driverId).catch(() => null);
+    if (postgresDriver) {
+      if (postgresDriver.status === "passive") {
+        throw new HttpError(412, "failed-precondition", "Pasif sofor rotaya atanamaz.");
+      }
+      return;
+    }
+  }
+
   const driverSnapshot = await db.collection("drivers").doc(driverId).get();
   if (!driverSnapshot.exists) {
     throw new HttpError(404, "not-found", "Sofor bulunamadi.");
@@ -342,6 +355,42 @@ function assertCompanyRoute(routeData, companyId) {
   const visibility = pickString(routeData, "visibility");
   if (visibility && visibility !== "company") {
     throw new HttpError(412, "failed-precondition", "ROUTE_NOT_COMPANY_SCOPED");
+  }
+}
+
+async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, nowIso, routeData) {
+  try {
+    const batch = db.batch();
+    batch.set(
+      db.collection("routes").doc(routeId),
+      {
+        ...routeData,
+        srvCode,
+      },
+      { merge: true },
+    );
+    batch.set(
+      db.collection("_srv_codes").doc(srvCode),
+      {
+        routeId,
+        createdBy: actorUid,
+        createdAt: nowIso,
+      },
+      { merge: true },
+    );
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_create_mirror_failed",
+        routeId,
+        srvCode,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
   }
 }
 
@@ -454,13 +503,11 @@ export async function createCompanyRoute(db, actorUid, actorRole, input) {
   });
 
   if (shouldUsePostgresCompanyRouteStore()) {
-    await backfillCompanyRecordFromFirestore(db, companyId).catch(() => false);
-    const syncSucceeded = await syncCompanyRouteAndStopsFromFirestore(
-      db,
-      companyId,
-      created.routeId,
-      nowIso,
-    ).catch(() => false);
+    const syncSucceeded = created.createdInPostgres
+      ? true
+      : await syncCompanyRouteAndStopsFromFirestore(db, companyId, created.routeId, nowIso).catch(
+          () => false,
+        );
     if (syncSucceeded && created.srvCodeReservedInPostgres === true) {
       await releaseReservedCompanyRouteSrvCode(created.srvCode, created.routeId).catch(() => false);
     }

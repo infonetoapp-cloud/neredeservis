@@ -398,6 +398,40 @@ export async function listCompanyDriversFromPostgres(companyId, limit) {
   return result.rows.map(formatDriverRow).filter((item) => item !== null);
 }
 
+export async function readCompanyDriverFromPostgres(companyId, driverId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedDriverId = normalizeNullableText(driverId);
+  if (!normalizedCompanyId || !normalizedDriverId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        driver_id,
+        company_id,
+        name,
+        status,
+        phone,
+        plate,
+        login_email,
+        temporary_password,
+        updated_at
+      FROM company_drivers
+      WHERE company_id = $1 AND driver_id = $2
+      LIMIT 1
+    `,
+    [normalizedCompanyId, normalizedDriverId],
+  );
+
+  return result.rows.map(formatDriverRow).find((item) => item !== null) ?? null;
+}
+
 export async function replaceCompanyDriversForCompany(companyId, items, syncedAt) {
   const pool = getPostgresPool();
   if (!pool) {
