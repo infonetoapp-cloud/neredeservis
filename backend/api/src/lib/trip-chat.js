@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { readUserProfileByUid } from "./auth-user-store.js";
+import { readCompanyDriverFromPostgres } from "./company-fleet-store.js";
 import { readRouteFromPostgres } from "./company-route-store.js";
 import { HttpError } from "./http.js";
 import {
@@ -9,15 +10,30 @@ import {
   shouldUsePostgresPassengerStore,
 } from "./passenger-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
+import {
+  listTripConversationMessagesFromPostgres,
+  markTripConversationReadInPostgres,
+  readTripConversationFromPostgres,
+  shouldUsePostgresTripChatStore,
+  upsertTripConversationMessageToPostgres,
+  upsertTripConversationToPostgres,
+} from "./trip-chat-store.js";
 
 const MESSAGE_LIMIT_DEFAULT = 200;
 const MESSAGE_LIMIT_MAX = 500;
 
-function requireFirestoreDb(db) {
-  if (!db || typeof db.collection !== "function" || typeof db.runTransaction !== "function") {
-    throw new HttpError(412, "failed-precondition", "Trip chat depolamasi hazir degil.");
+function hasFirestoreDb(db) {
+  return Boolean(
+    db && typeof db.collection === "function" && typeof db.runTransaction === "function",
+  );
+}
+
+function requireTripChatStorage(db) {
+  if (shouldUsePostgresTripChatStore() || hasFirestoreDb(db)) {
+    return db;
   }
-  return db;
+
+  throw new HttpError(412, "failed-precondition", "Trip chat depolamasi hazir degil.");
 }
 
 function normalizeRequiredString(rawValue, fieldLabel, maxLength = 128) {
@@ -91,6 +107,10 @@ async function findActiveGuestSession(db, routeId, guestUid) {
     }
   }
 
+  if (!hasFirestoreDb(db)) {
+    return null;
+  }
+
   const sessionsSnapshot = await db
     .collection("guest_sessions")
     .where("guestUid", "==", guestUid)
@@ -136,7 +156,7 @@ async function readRouteData(db, routeId) {
       }
 
       return {
-        routeRef: db.collection("routes").doc(routeId),
+        routeRef: hasFirestoreDb(db) ? db.collection("routes").doc(routeId) : null,
         routeData: postgresRoute,
       };
     }
@@ -187,13 +207,19 @@ async function requireConversationParticipant(db, uid, input) {
     await requireRouteMember(db, routeId, uid);
   }
 
-  const conversationRef = db.collection("trip_conversations").doc(conversationId);
-  const conversationSnapshot = await conversationRef.get();
-  if (!conversationSnapshot.exists) {
+  const postgresConversation = shouldUsePostgresTripChatStore()
+    ? await readTripConversationFromPostgres(conversationId).catch(() => null)
+    : null;
+  const conversationRef =
+    postgresConversation == null && hasFirestoreDb(db)
+      ? db.collection("trip_conversations").doc(conversationId)
+      : null;
+  const conversationSnapshot = conversationRef ? await conversationRef.get() : null;
+  if (postgresConversation == null && !conversationSnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sohbet bulunamadi.");
   }
 
-  const conversationData = asRecord(conversationSnapshot.data()) ?? {};
+  const conversationData = postgresConversation ?? (asRecord(conversationSnapshot?.data()) ?? {});
   if (pickString(conversationData, "routeId") !== routeId) {
     throw new HttpError(412, "failed-precondition", "Sohbet route bilgisi uyusmuyor.");
   }
@@ -221,20 +247,28 @@ async function requireConversationParticipant(db, uid, input) {
   };
 }
 
-async function readDriverDisplayContext(db, driverUid) {
+async function readDriverDisplayContext(db, driverUid, companyId) {
+  const normalizedCompanyId = normalizeOptionalString(companyId, "companyId");
+  const postgresDriver = normalizedCompanyId
+    ? await readCompanyDriverFromPostgres(normalizedCompanyId, driverUid).catch(() => null)
+    : null;
   const [driverSnapshot, driverUser] = await Promise.all([
-    db.collection("drivers").doc(driverUid).get(),
+    hasFirestoreDb(db) ? db.collection("drivers").doc(driverUid).get() : Promise.resolve(null),
     readUserProfileByUid(db, driverUid).catch(() => null),
   ]);
 
-  const driverData = asRecord(driverSnapshot.data()) ?? {};
-  if (!driverSnapshot.exists) {
+  const driverData = asRecord(driverSnapshot?.data()) ?? {};
+  if (!postgresDriver && !driverSnapshot?.exists) {
     throw new HttpError(412, "failed-precondition", "Sofor profili bulunamadi.");
   }
 
   return {
-    driverName: pickString(driverData, "name") ?? pickString(driverUser, "displayName") ?? "Sofor",
-    driverPlate: pickString(driverData, "plate"),
+    driverName:
+      pickString(postgresDriver, "name") ??
+      pickString(driverData, "name") ??
+      pickString(driverUser, "displayName") ??
+      "Sofor",
+    driverPlate: pickString(postgresDriver, "plateMasked") ?? pickString(driverData, "plate"),
   };
 }
 
@@ -243,22 +277,24 @@ async function readPassengerDisplayContext(db, routeRef, routeId, passengerUid, 
     ? await readRoutePassengerFromPostgres(routeId, passengerUid).catch(() => null)
     : null;
   const [passengerSnapshot, passengerUser] = await Promise.all([
-    routeRef.collection("passengers").doc(passengerUid).get(),
+    routeRef?.collection
+      ? routeRef.collection("passengers").doc(passengerUid).get()
+      : Promise.resolve(null),
     readUserProfileByUid(db, passengerUid).catch(() => null),
   ]);
 
-  if (!passengerSnapshot.exists && !postgresPassenger && guestSession == null) {
+  if (!passengerSnapshot?.exists && !postgresPassenger && guestSession == null) {
     throw new HttpError(403, "permission-denied", "Route passenger/misafir kaydi bulunamadi.");
   }
 
-  const passengerData = asRecord(passengerSnapshot.data()) ?? {};
+  const passengerData = asRecord(passengerSnapshot?.data()) ?? {};
   return {
     passengerName:
       pickString(postgresPassenger, "name") ??
       pickString(passengerData, "name") ??
       guestSession?.guestDisplayName ??
       pickString(passengerUser, "displayName") ??
-      (passengerSnapshot.exists || postgresPassenger ? "Yolcu" : "Misafir"),
+      (passengerSnapshot?.exists || postgresPassenger ? "Yolcu" : "Misafir"),
   };
 }
 
@@ -276,7 +312,7 @@ function normalizeMessageLimit(rawValue) {
 }
 
 export async function openTripConversation(dbInput, uid, input) {
-  const db = requireFirestoreDb(dbInput);
+  const db = requireTripChatStorage(dbInput);
   const callerRole = await readCallerRole(db, uid);
   const routeId = normalizeRequiredString(input?.routeId, "routeId");
   const requestedDriverUid = normalizeOptionalString(input?.driverUid, "driverUid");
@@ -326,46 +362,65 @@ export async function openTripConversation(dbInput, uid, input) {
   }
 
   const [{ driverName, driverPlate }, { passengerName }] = await Promise.all([
-    readDriverDisplayContext(db, driverUid),
+    readDriverDisplayContext(db, driverUid, pickString(routeData, "companyId")),
     readPassengerDisplayContext(db, routeRef, routeId, passengerUid, guestSession),
   ]);
 
   const conversationId = buildTripConversationId(routeId, driverUid, passengerUid);
-  const conversationRef = db.collection("trip_conversations").doc(conversationId);
   const nowIso = new Date().toISOString();
   let created = false;
 
-  await db.runTransaction(async (transaction) => {
-    const conversationSnapshot = await transaction.get(conversationRef);
-    const conversationData = asRecord(conversationSnapshot.data()) ?? {};
-    const existingRouteId = pickString(conversationData, "routeId");
-    if (existingRouteId != null && existingRouteId !== routeId) {
-      throw new HttpError(412, "failed-precondition", "Sohbet kaydi route ile uyumsuz.");
-    }
+  if (shouldUsePostgresTripChatStore()) {
+    const postgresResult = await upsertTripConversationToPostgres({
+      conversationId,
+      routeId,
+      companyId: pickString(routeData, "companyId"),
+      driverUid,
+      passengerUid,
+      participantUids: [driverUid, passengerUid],
+      driverName,
+      passengerName,
+      driverPlate: driverPlate ?? null,
+      passengerRole: guestSession == null ? "passenger" : "guest",
+      lastOpenedAt: nowIso,
+      updatedAt: nowIso,
+    });
+    created = postgresResult?.created === true;
+  } else {
+    const conversationRef = db.collection("trip_conversations").doc(conversationId);
+    await db.runTransaction(async (transaction) => {
+      const conversationSnapshot = await transaction.get(conversationRef);
+      const conversationData = asRecord(conversationSnapshot.data()) ?? {};
+      const existingRouteId = pickString(conversationData, "routeId");
+      if (existingRouteId != null && existingRouteId !== routeId) {
+        throw new HttpError(412, "failed-precondition", "Sohbet kaydi route ile uyumsuz.");
+      }
 
-    if (!conversationSnapshot.exists) {
-      created = true;
-    }
+      if (!conversationSnapshot.exists) {
+        created = true;
+      }
 
-    const createdAt = pickString(conversationData, "createdAt") ?? nowIso;
-    transaction.set(
-      conversationRef,
-      {
-        routeId,
-        driverUid,
-        passengerUid,
-        participantUids: [driverUid, passengerUid],
-        driverName,
-        passengerName,
-        driverPlate: driverPlate ?? null,
-        passengerRole: guestSession == null ? "passenger" : "guest",
-        lastOpenedAt: nowIso,
-        createdAt,
-        updatedAt: nowIso,
-      },
-      { merge: true },
-    );
-  });
+      const createdAt = pickString(conversationData, "createdAt") ?? nowIso;
+      transaction.set(
+        conversationRef,
+        {
+          routeId,
+          companyId: pickString(routeData, "companyId"),
+          driverUid,
+          passengerUid,
+          participantUids: [driverUid, passengerUid],
+          driverName,
+          passengerName,
+          driverPlate: driverPlate ?? null,
+          passengerRole: guestSession == null ? "passenger" : "guest",
+          lastOpenedAt: nowIso,
+          createdAt,
+          updatedAt: nowIso,
+        },
+        { merge: true },
+      );
+    });
+  }
 
   return {
     conversationId,
@@ -381,9 +436,18 @@ export async function openTripConversation(dbInput, uid, input) {
 }
 
 export async function listTripConversationMessages(dbInput, uid, input) {
-  const db = requireFirestoreDb(dbInput);
+  const db = requireTripChatStorage(dbInput);
   const context = await requireConversationParticipant(db, uid, input);
   const limit = normalizeMessageLimit(input?.limit);
+
+  if (shouldUsePostgresTripChatStore()) {
+    const messages = await listTripConversationMessagesFromPostgres(context.conversationId, { limit });
+    return {
+      conversationId: context.conversationId,
+      routeId: context.routeId,
+      messages,
+    };
+  }
 
   const messagesSnapshot = await context.conversationRef
     .collection("messages")
@@ -409,15 +473,39 @@ export async function listTripConversationMessages(dbInput, uid, input) {
 }
 
 export async function sendTripConversationMessage(dbInput, uid, input) {
-  const db = requireFirestoreDb(dbInput);
+  const db = requireTripChatStorage(dbInput);
   const context = await requireConversationParticipant(db, uid, input);
   const text = normalizeMessageText(input?.text);
   const clientMessageId = normalizeOptionalString(input?.clientMessageId, "clientMessageId");
+  const nowIso = new Date().toISOString();
+  let createdAt = nowIso;
+
+  if (shouldUsePostgresTripChatStore()) {
+    const messageResult = await upsertTripConversationMessageToPostgres({
+      messageId: clientMessageId,
+      conversationId: context.conversationId,
+      routeId: context.routeId,
+      senderUid: uid,
+      senderRole: context.role,
+      text,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    });
+    if (!messageResult?.message) {
+      throw new HttpError(412, "failed-precondition", "Mesaj depolamasi hazir degil.");
+    }
+    createdAt = pickString(messageResult?.message, "createdAt") ?? nowIso;
+    return {
+      conversationId: context.conversationId,
+      messageId: pickString(messageResult?.message, "messageId") ?? clientMessageId ?? "",
+      senderUid: uid,
+      createdAt,
+    };
+  }
+
   const messageRef = clientMessageId
     ? context.conversationRef.collection("messages").doc(clientMessageId)
     : context.conversationRef.collection("messages").doc();
-  const nowIso = new Date().toISOString();
-  let createdAt = nowIso;
 
   await db.runTransaction(async (transaction) => {
     const conversationSnapshot = await transaction.get(context.conversationRef);
@@ -479,9 +567,17 @@ export async function sendTripConversationMessage(dbInput, uid, input) {
 }
 
 export async function markTripConversationRead(dbInput, uid, input) {
-  const db = requireFirestoreDb(dbInput);
+  const db = requireTripChatStorage(dbInput);
   const context = await requireConversationParticipant(db, uid, input);
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresTripChatStore()) {
+    await markTripConversationReadInPostgres(context.conversationId, uid, nowIso);
+    return {
+      conversationId: context.conversationId,
+      readAt: nowIso,
+    };
+  }
 
   await context.conversationRef.set(
     {

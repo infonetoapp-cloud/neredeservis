@@ -505,6 +505,55 @@ export async function ensurePostgresAuthSchema() {
       ON guest_tracking_sessions (guest_uid, status, expires_at DESC);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS trip_conversations (
+      conversation_id TEXT PRIMARY KEY,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NOT NULL,
+      driver_uid TEXT NOT NULL,
+      passenger_uid TEXT NOT NULL,
+      participant_uids JSONB NOT NULL DEFAULT '[]'::jsonb,
+      driver_name TEXT NOT NULL,
+      passenger_name TEXT NOT NULL,
+      driver_plate TEXT NULL,
+      passenger_role TEXT NOT NULL DEFAULT 'passenger',
+      last_opened_at TIMESTAMPTZ NULL,
+      last_message_text TEXT NULL,
+      last_message_sender_uid TEXT NULL,
+      last_message_at TIMESTAMPTZ NULL,
+      read_at_by_uid JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trip_conversations_route_updated_idx
+      ON trip_conversations (route_id, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trip_conversations_driver_uid_idx
+      ON trip_conversations (driver_uid, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trip_conversations_passenger_uid_idx
+      ON trip_conversations (passenger_uid, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS trip_conversation_messages (
+      message_id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES trip_conversations(conversation_id) ON DELETE CASCADE,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      sender_uid TEXT NOT NULL,
+      sender_role TEXT NULL,
+      message_text TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS trip_conversation_messages_conversation_created_idx
+      ON trip_conversation_messages (conversation_id, created_at ASC, message_id ASC);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS route_preview_rate_limits (
       rate_key TEXT PRIMARY KEY,
       window_start_ms BIGINT NOT NULL,
