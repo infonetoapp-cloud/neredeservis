@@ -330,6 +330,64 @@ export async function readCompanyMemberRoleFromPostgres(companyId, uid) {
   return role;
 }
 
+export async function readCompanyMemberFromPostgres(companyId, uid) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedUid = normalizeNullableText(uid);
+  if (!normalizedCompanyId || !normalizedUid) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        company_id,
+        uid,
+        role,
+        status,
+        permissions,
+        invited_by,
+        invited_at,
+        accepted_at,
+        company_name_snapshot,
+        created_at,
+        updated_at
+      FROM company_members
+      WHERE company_id = $1 AND uid = $2
+      LIMIT 1
+    `,
+    [normalizedCompanyId, normalizedUid],
+  );
+  const row = result.rows[0] ?? null;
+  if (!row) {
+    return null;
+  }
+
+  const role = normalizeMemberRole(row.role);
+  const memberStatus = normalizeMemberStatus(row.status);
+  if (!role || !memberStatus) {
+    return null;
+  }
+
+  return {
+    companyId: normalizedCompanyId,
+    uid: normalizedUid,
+    role,
+    status: memberStatus,
+    permissions: row.permissions ?? null,
+    invitedBy: normalizeNullableText(row.invited_by),
+    invitedAt: toIsoString(row.invited_at),
+    acceptedAt: toIsoString(row.accepted_at),
+    companyNameSnapshot: normalizeNullableText(row.company_name_snapshot),
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at),
+  };
+}
+
 export async function assertCompanyMembersActiveFromPostgres(companyId, uids) {
   const pool = getPostgresPool();
   if (!pool) {

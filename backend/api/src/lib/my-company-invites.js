@@ -4,10 +4,18 @@ import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company
 import { syncCompanyInvitesFromFirestore } from "./company-invite-postgres-sync.js";
 import {
   areMyPendingCompanyInvitesSyncedInPostgres,
+  listPendingCompanyInvitesForMemberFromPostgres,
   listMyPendingCompanyInvitesFromPostgres,
   shouldUsePostgresCompanyInviteStore,
+  syncCompanyInviteToPostgres,
+  touchCompanyInviteSyncState,
 } from "./company-invite-store.js";
-import { shouldUsePostgresCompanyStore, syncCompanyMemberToPostgres } from "./company-membership-store.js";
+import {
+  readCompanyFromPostgres,
+  readCompanyMemberFromPostgres,
+  shouldUsePostgresCompanyStore,
+  syncCompanyMemberToPostgres,
+} from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -85,6 +93,109 @@ async function syncInviteMembershipToPostgres(input) {
         message: error instanceof Error ? error.message : "unknown_error",
       }),
     );
+  }
+}
+
+function hasFirestoreDb(db) {
+  return Boolean(db?.collection);
+}
+
+async function mirrorInviteMembershipStateToFirestore(db, input) {
+  if (!hasFirestoreDb(db)) {
+    return false;
+  }
+
+  try {
+    const companyRef = db.collection("companies").doc(input.companyId);
+    const memberRef = companyRef.collection("members").doc(input.uid);
+    const userMembershipRef = db.collection("users").doc(input.uid).collection("company_memberships").doc(input.companyId);
+    await Promise.all([
+      memberRef.set(
+        {
+          companyId: input.companyId,
+          uid: input.uid,
+          role: input.role,
+          status: input.status,
+          invitedBy: input.invitedBy ?? null,
+          invitedAt: input.invitedAt ?? null,
+          acceptedAt: input.acceptedAt ?? null,
+          declinedAt: input.declinedAt ?? null,
+          updatedAt: input.updatedAt,
+          createdAt: input.createdAt ?? input.updatedAt,
+        },
+        { merge: true },
+      ),
+      userMembershipRef.set(
+        {
+          companyId: input.companyId,
+          uid: input.uid,
+          role: input.role,
+          status: input.status,
+          companyName: input.companyName,
+          companyStatus: input.companyStatus,
+          billingStatus: input.billingStatus,
+          invitedAt: input.invitedAt ?? null,
+          acceptedAt: input.acceptedAt ?? null,
+          declinedAt: input.declinedAt ?? null,
+          updatedAt: input.updatedAt,
+          createdAt: input.createdAt ?? input.updatedAt,
+        },
+        { merge: true },
+      ),
+    ]);
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_my_company_invite_membership_mirror_failed",
+        companyId: input?.companyId ?? null,
+        uid: input?.uid ?? null,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorInviteStatusToFirestore(db, input) {
+  if (!hasFirestoreDb(db)) {
+    return false;
+  }
+
+  try {
+    await Promise.all(
+      (Array.isArray(input?.invites) ? input.invites : []).map((invite) =>
+        db
+          .collection("companies")
+          .doc(input.companyId)
+          .collection("member_invites")
+          .doc(invite.inviteId)
+          .set(
+            {
+              status: invite.status,
+              acceptedAt: invite.acceptedAt ?? null,
+              declinedAt: invite.declinedAt ?? null,
+              acceptedBy: invite.acceptedBy ?? null,
+              declinedBy: invite.declinedBy ?? null,
+              updatedAt: invite.updatedAt,
+            },
+            { merge: true },
+          ),
+      ),
+    );
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_my_company_invite_status_mirror_failed",
+        companyId: input?.companyId ?? null,
+        uid: input?.uid ?? null,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
   }
 }
 
@@ -204,6 +315,130 @@ export async function acceptMyCompanyInvite(db, uid, input) {
   const memberRef = companyRef.collection("members").doc(uid);
   const userMembershipRef = db.collection("users").doc(uid).collection("company_memberships").doc(companyId);
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresCompanyStore()) {
+    const [company, member] = await Promise.all([
+      readCompanyFromPostgres(companyId).catch(() => null),
+      readCompanyMemberFromPostgres(companyId, uid).catch(() => null),
+    ]);
+    if (!company) {
+      throw new HttpError(404, "not-found", "Firma bulunamadi.");
+    }
+    if (!member) {
+      throw new HttpError(404, "not-found", "Bu firma icin bekleyen davet bulunamadi.");
+    }
+
+    const currentRole = assertMemberRole(member.role);
+    const currentMemberStatus = assertMemberStatus(member.status);
+    const companyName = company.name ?? companyId;
+    const companyStatus = company.status ?? "active";
+    const billingStatus = company.billingStatus ?? "active";
+    const acceptedAt = member.acceptedAt ?? nowIso;
+
+    if (currentMemberStatus === "active") {
+      return {
+        companyId,
+        companyName,
+        companyStatus,
+        billingStatus,
+        memberUid: uid,
+        role: currentRole,
+        memberStatus: "active",
+        acceptedAt,
+      };
+    }
+    if (currentMemberStatus !== "invited") {
+      throw new HttpError(412, "failed-precondition", "Bekleyen davet bu durumda kabul edilemez.");
+    }
+
+    const auditLog = stageCompanyAuditLogWrite(db, null, {
+      companyId,
+      actorUid: uid,
+      actorType: "company_member",
+      eventType: "company_member_invite_accepted",
+      targetType: "company_member",
+      targetId: uid,
+      status: "success",
+      reason: null,
+      metadata: {
+        role: currentRole,
+      },
+      requestId: createHash("sha256")
+        .update(`acceptCompanyInvite:${uid}:${companyId}:${nowIso}`)
+        .digest("hex")
+        .slice(0, 24),
+      createdAt: nowIso,
+    });
+
+    const companySync = {
+      ...companySyncPayloadFromSnapshot(companyId, company),
+      uid,
+      role: currentRole,
+      status: "active",
+      invitedBy: member.invitedBy,
+      invitedAt: member.invitedAt,
+      acceptedAt: nowIso,
+      companyNameSnapshot: companyName,
+      createdAt: member.createdAt,
+      updatedAt: nowIso,
+    };
+    await syncInviteMembershipToPostgres(companySync);
+
+    const pendingInvites = await listPendingCompanyInvitesForMemberFromPostgres(companyId, uid).catch(
+      () => [],
+    );
+    await Promise.all(
+      pendingInvites.map((invite) =>
+        syncCompanyInviteToPostgres({
+          ...invite,
+          status: "accepted",
+          acceptedAt: nowIso,
+          updatedAt: nowIso,
+        }).catch(() => false),
+      ),
+    );
+    await touchCompanyInviteSyncState(companyId, nowIso).catch(() => false);
+
+    await mirrorInviteMembershipStateToFirestore(db, {
+      companyId,
+      uid,
+      role: currentRole,
+      status: "active",
+      invitedBy: member.invitedBy,
+      invitedAt: member.invitedAt,
+      acceptedAt: nowIso,
+      updatedAt: nowIso,
+      createdAt: member.createdAt ?? nowIso,
+      companyName,
+      companyStatus,
+      billingStatus,
+    });
+    await mirrorInviteStatusToFirestore(db, {
+      companyId,
+      uid,
+      invites: pendingInvites.map((invite) => ({
+        inviteId: invite.inviteId,
+        status: "accepted",
+        acceptedAt: nowIso,
+        acceptedBy: uid,
+        updatedAt: nowIso,
+      })),
+    });
+    await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+    return {
+      companyId,
+      companyName,
+      companyStatus,
+      billingStatus,
+      memberUid: uid,
+      role: currentRole,
+      memberStatus: "active",
+      acceptedAt: nowIso,
+      auditLog,
+      companySync,
+    };
+  }
 
   return db.runTransaction(async (transaction) => {
     const [companySnapshot, memberSnapshot] = await Promise.all([
@@ -346,6 +581,131 @@ export async function declineMyCompanyInvite(db, uid, input) {
   const memberRef = companyRef.collection("members").doc(uid);
   const userMembershipRef = db.collection("users").doc(uid).collection("company_memberships").doc(companyId);
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresCompanyStore()) {
+    const [company, member] = await Promise.all([
+      readCompanyFromPostgres(companyId).catch(() => null),
+      readCompanyMemberFromPostgres(companyId, uid).catch(() => null),
+    ]);
+    if (!company) {
+      throw new HttpError(404, "not-found", "Firma bulunamadi.");
+    }
+    if (!member) {
+      throw new HttpError(404, "not-found", "Bu firma icin bekleyen davet bulunamadi.");
+    }
+
+    const currentRole = assertMemberRole(member.role);
+    const currentMemberStatus = assertMemberStatus(member.status);
+    const companyName = company.name ?? companyId;
+    const companyStatus = company.status ?? "active";
+    const billingStatus = company.billingStatus ?? "active";
+    const declinedAt = member.updatedAt ?? nowIso;
+
+    if (currentMemberStatus === "suspended") {
+      return {
+        companyId,
+        companyName,
+        companyStatus,
+        billingStatus,
+        memberUid: uid,
+        role: currentRole,
+        memberStatus: "suspended",
+        declinedAt,
+      };
+    }
+    if (currentMemberStatus !== "invited") {
+      throw new HttpError(412, "failed-precondition", "Bekleyen davet bu durumda reddedilemez.");
+    }
+
+    const auditLog = stageCompanyAuditLogWrite(db, null, {
+      companyId,
+      actorUid: uid,
+      actorType: "company_member",
+      eventType: "company_member_invite_declined",
+      targetType: "company_member",
+      targetId: uid,
+      status: "success",
+      reason: null,
+      metadata: {
+        role: currentRole,
+      },
+      requestId: createHash("sha256")
+        .update(`declineCompanyInvite:${uid}:${companyId}:${nowIso}`)
+        .digest("hex")
+        .slice(0, 24),
+      createdAt: nowIso,
+    });
+
+    const companySync = {
+      ...companySyncPayloadFromSnapshot(companyId, company),
+      uid,
+      role: currentRole,
+      status: "suspended",
+      invitedBy: member.invitedBy,
+      invitedAt: member.invitedAt,
+      acceptedAt: member.acceptedAt,
+      companyNameSnapshot: companyName,
+      createdAt: member.createdAt,
+      updatedAt: nowIso,
+    };
+    await syncInviteMembershipToPostgres(companySync);
+
+    const pendingInvites = await listPendingCompanyInvitesForMemberFromPostgres(companyId, uid).catch(
+      () => [],
+    );
+    await Promise.all(
+      pendingInvites.map((invite) =>
+        syncCompanyInviteToPostgres({
+          ...invite,
+          status: "declined",
+          declinedAt: nowIso,
+          updatedAt: nowIso,
+        }).catch(() => false),
+      ),
+    );
+    await touchCompanyInviteSyncState(companyId, nowIso).catch(() => false);
+
+    await mirrorInviteMembershipStateToFirestore(db, {
+      companyId,
+      uid,
+      role: currentRole,
+      status: "suspended",
+      invitedBy: member.invitedBy,
+      invitedAt: member.invitedAt,
+      acceptedAt: member.acceptedAt,
+      declinedAt: nowIso,
+      updatedAt: nowIso,
+      createdAt: member.createdAt ?? nowIso,
+      companyName,
+      companyStatus,
+      billingStatus,
+    });
+    await mirrorInviteStatusToFirestore(db, {
+      companyId,
+      uid,
+      invites: pendingInvites.map((invite) => ({
+        inviteId: invite.inviteId,
+        status: "declined",
+        declinedAt: nowIso,
+        declinedBy: uid,
+        updatedAt: nowIso,
+      })),
+    });
+    await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+    return {
+      companyId,
+      companyName,
+      companyStatus,
+      billingStatus,
+      memberUid: uid,
+      role: currentRole,
+      memberStatus: "suspended",
+      declinedAt: nowIso,
+      auditLog,
+      companySync,
+    };
+  }
 
   return db.runTransaction(async (transaction) => {
     const [companySnapshot, memberSnapshot] = await Promise.all([

@@ -246,6 +246,46 @@ export async function listCompanyInvitesFromPostgres(companyId, limit) {
   return result.rows.map(formatCompanyInviteRow).filter((item) => item !== null);
 }
 
+export async function readCompanyInviteFromPostgres(companyId, inviteId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedInviteId = normalizeNullableText(inviteId);
+  if (!normalizedCompanyId || !normalizedInviteId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        ci.invite_id,
+        ci.company_id,
+        c.name AS company_name,
+        ci.invited_uid,
+        ci.invited_email,
+        ci.role,
+        ci.status,
+        ci.invited_by,
+        ci.created_at,
+        ci.updated_at,
+        ci.expires_at,
+        ci.accepted_at,
+        ci.declined_at,
+        ci.revoked_at
+      FROM company_invites ci
+      INNER JOIN companies c ON c.company_id = ci.company_id
+      WHERE ci.company_id = $1 AND ci.invite_id = $2
+      LIMIT 1
+    `,
+    [normalizedCompanyId, normalizedInviteId],
+  );
+
+  return formatCompanyInviteRow(result.rows[0] ?? null);
+}
+
 export async function listMyPendingCompanyInvitesFromPostgres(uid) {
   const pool = getPostgresPool();
   if (!pool) {
@@ -286,6 +326,48 @@ export async function listMyPendingCompanyInvitesFromPostgres(uid) {
       ORDER BY cm.company_id, ci.updated_at DESC, ci.created_at DESC, ci.invite_id DESC
     `,
     [normalizedUid],
+  );
+
+  return result.rows.map(formatCompanyInviteRow).filter((item) => item !== null);
+}
+
+export async function listPendingCompanyInvitesForMemberFromPostgres(companyId, uid) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return [];
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedUid = normalizeNullableText(uid);
+  if (!normalizedCompanyId || !normalizedUid) {
+    return [];
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        ci.invite_id,
+        ci.company_id,
+        c.name AS company_name,
+        ci.invited_uid,
+        ci.invited_email,
+        ci.role,
+        ci.status,
+        ci.invited_by,
+        ci.created_at,
+        ci.updated_at,
+        ci.expires_at,
+        ci.accepted_at,
+        ci.declined_at,
+        ci.revoked_at
+      FROM company_invites ci
+      INNER JOIN companies c ON c.company_id = ci.company_id
+      WHERE ci.company_id = $1
+        AND ci.invited_uid = $2
+        AND ci.status = 'pending'
+      ORDER BY ci.updated_at DESC, ci.created_at DESC, ci.invite_id DESC
+    `,
+    [normalizedCompanyId, normalizedUid],
   );
 
   return result.rows.map(formatCompanyInviteRow).filter((item) => item !== null);
@@ -345,4 +427,13 @@ export async function syncCompanyInviteToPostgres(input) {
   }
 
   return upsertCompanyInviteRow(pool, input);
+}
+
+export async function touchCompanyInviteSyncState(companyId, syncedAt) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  return markCompanyInviteSyncState(pool, companyId, syncedAt);
 }
