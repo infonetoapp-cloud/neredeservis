@@ -114,6 +114,10 @@ import {
   updatePassengerSettings,
 } from "./lib/passenger-ops.js";
 import {
+  loadPassengerTripHistory,
+  readPrimaryPassengerMembership,
+} from "./lib/passenger-read-model.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -678,6 +682,14 @@ function isPassengerRouteJoinPath(pathname) {
   return pathname === "/api/passenger/routes/join";
 }
 
+function isPassengerMembershipPath(pathname) {
+  return pathname === "/api/passenger/membership";
+}
+
+function isPassengerTripHistoryPath(pathname) {
+  return pathname === "/api/passenger/trip-history";
+}
+
 function isPassengerRouteLeavePath(pathname) {
   return pathname === "/api/passenger/routes/leave";
 }
@@ -1052,6 +1064,20 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await joinPassengerRouteBySrvCode(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "GET" && isPassengerMembershipPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const membership = await readPrimaryPassengerMembership(db, decodedToken.uid);
+      sendApiOk(response, 200, { membership });
+      return;
+    }
+
+    if (request.method === "GET" && isPassengerTripHistoryPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await loadPassengerTripHistory(db, decodedToken.uid);
       sendApiOk(response, 200, result);
       return;
     }
