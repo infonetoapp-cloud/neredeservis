@@ -1,5 +1,7 @@
 import { FieldPath } from "firebase-admin/firestore";
 
+import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
+
 function requireFirestoreDb(db) {
   if (!db || typeof db.collection !== "function") {
     throw new Error("Driver read model storage is not available.");
@@ -66,6 +68,48 @@ function readTrimmedString(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
+function normalizeBoolean(value, fallback = false) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function normalizeInteger(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.trunc(parsed);
+    }
+  }
+  return null;
+}
+
+function formatManagedRouteRow(row) {
+  const routeId = readTrimmedString(row?.route_id);
+  if (!routeId) {
+    return null;
+  }
+
+  return {
+    name: readTrimmedString(row?.name),
+    driverId: readTrimmedString(row?.driver_id),
+    authorizedDriverIds: Array.isArray(row?.authorized_driver_ids) ? row.authorized_driver_ids : [],
+    scheduledTime: readTrimmedString(row?.scheduled_time),
+    timeSlot: readTrimmedString(row?.time_slot),
+    isArchived: normalizeBoolean(row?.is_archived, false),
+    allowGuestTracking: normalizeBoolean(row?.allow_guest_tracking, false),
+    startAddress: readTrimmedString(row?.start_address),
+    endAddress: readTrimmedString(row?.end_address),
+    startPoint: serializeFirestoreValue(row?.start_point),
+    endPoint: serializeFirestoreValue(row?.end_point),
+    passengerCount: normalizeInteger(row?.passenger_count) ?? 0,
+    srvCode: readTrimmedString(row?.srv_code),
+    routePolyline: serializeFirestoreValue(row?.route_polyline),
+    updatedAt: parseIsoDate(row?.updated_at),
+  };
+}
+
 async function fetchCollectionDocumentsByIds(db, { collectionPath, documentIds }) {
   const firestoreDb = requireFirestoreDb(db);
   const uniqueIds = Array.from(
@@ -88,6 +132,123 @@ async function fetchCollectionDocumentsByIds(db, { collectionPath, documentIds }
   }
 
   return result;
+}
+
+async function loadManagedRoutesFromPostgres(uid) {
+  if (!isPostgresConfigured()) {
+    return {};
+  }
+
+  const normalizedUid = readTrimmedString(uid);
+  const pool = getPostgresPool();
+  if (!normalizedUid || !pool) {
+    return {};
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        route_id,
+        name,
+        driver_id,
+        authorized_driver_ids,
+        scheduled_time,
+        time_slot,
+        is_archived,
+        allow_guest_tracking,
+        start_address,
+        end_address,
+        start_point,
+        end_point,
+        passenger_count,
+        srv_code,
+        route_polyline,
+        updated_at
+      FROM company_routes
+      WHERE is_archived = FALSE
+        AND (
+          driver_id = $1
+          OR authorized_driver_ids ? $1
+        )
+      ORDER BY updated_at DESC NULLS LAST, route_id ASC
+      LIMIT 160
+    `,
+    [normalizedUid],
+  );
+
+  const routesById = {};
+  for (const row of result.rows) {
+    const routeId = readTrimmedString(row?.route_id);
+    const route = formatManagedRouteRow(row);
+    if (!routeId || !route) {
+      continue;
+    }
+    routesById[routeId] = route;
+  }
+  return routesById;
+}
+
+async function loadManagedRoutesFromFirestore(db, uid) {
+  const firestoreDb = requireFirestoreDb(db);
+  const normalizedUid = readTrimmedString(uid);
+  if (!normalizedUid) {
+    return {};
+  }
+
+  const routeSnapshots = [];
+  const routesCollection = firestoreDb.collection("routes");
+  try {
+    routeSnapshots.push(await routesCollection.where("driverId", "==", normalizedUid).limit(80).get());
+  } catch {
+    // Best effort.
+  }
+  try {
+    routeSnapshots.push(
+      await routesCollection.where("authorizedDriverIds", "array-contains", normalizedUid).limit(80).get(),
+    );
+  } catch {
+    // Best effort.
+  }
+
+  const managedRouteDocs = {};
+  for (const snapshot of routeSnapshots) {
+    for (const doc of snapshot.docs) {
+      const data = serializeFirestoreValue(doc.data());
+      if (data?.isArchived === true) {
+        continue;
+      }
+      managedRouteDocs[doc.id] = data;
+    }
+  }
+  return managedRouteDocs;
+}
+
+async function loadDriverTripRowsFromFirestore(db, uid) {
+  const firestoreDb = requireFirestoreDb(db);
+  const normalizedUid = readTrimmedString(uid);
+  if (!normalizedUid) {
+    return [];
+  }
+
+  let tripsSnapshot = null;
+  try {
+    tripsSnapshot = await firestoreDb
+      .collection("trips")
+      .where("driverId", "==", normalizedUid)
+      .limit(220)
+      .get();
+  } catch {
+    tripsSnapshot = null;
+  }
+
+  const tripRows = [];
+  for (const doc of tripsSnapshot?.docs ?? []) {
+    tripRows.push({
+      tripId: doc.id,
+      tripData: serializeFirestoreValue(doc.data()),
+    });
+  }
+  return tripRows;
 }
 
 export async function loadDriverTripHistory(db, uid) {
@@ -135,5 +296,29 @@ export async function loadDriverTripHistory(db, uid) {
   return {
     tripRows,
     routesById,
+  };
+}
+
+export async function loadDriverMyTrips(db, uid) {
+  const managedRouteDocs = {
+    ...(await loadManagedRoutesFromPostgres(uid)),
+    ...(await loadManagedRoutesFromFirestore(db, uid).catch(() => ({}))),
+  };
+  const tripRows = await loadDriverTripRowsFromFirestore(db, uid);
+
+  const missingRouteIds = tripRows
+    .map((row) => readTrimmedString(row?.tripData?.routeId))
+    .filter((routeId) => routeId && !managedRouteDocs[routeId]);
+  if (missingRouteIds.length > 0) {
+    const fetchedRoutes = await fetchCollectionDocumentsByIds(db, {
+      collectionPath: "routes",
+      documentIds: missingRouteIds,
+    }).catch(() => ({}));
+    Object.assign(managedRouteDocs, fetchedRoutes);
+  }
+
+  return {
+    managedRouteDocs,
+    tripRows,
   };
 }
