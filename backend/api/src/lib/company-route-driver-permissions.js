@@ -3,13 +3,16 @@ import { createHash } from "node:crypto";
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
 import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import {
+  deleteRouteDriverPermissionFromPostgres,
   isRouteDriverPermissionsSyncedInPostgres,
   listRouteDriverPermissionsFromPostgres,
   shouldUsePostgresRouteDriverPermissionStore,
+  upsertRouteDriverPermissionToPostgres,
 } from "./company-route-driver-permission-store.js";
 import { syncRouteDriverPermissionsFromFirestore } from "./company-route-driver-permission-postgres-sync.js";
 import { syncCompanyRouteFromFirestore } from "./company-route-postgres-sync.js";
 import { HttpError } from "./http.js";
+import { readCompanyRouteFromPostgres, syncCompanyRouteToPostgres } from "./company-route-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const DEFAULT_ROUTE_DRIVER_PERMISSIONS = {
@@ -120,6 +123,63 @@ function normalizePermissionKeys(rawValue) {
   return Array.from(uniqueKeys.values());
 }
 
+async function mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
+  try {
+    const batch = db.batch();
+    batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
+    batch.set(
+      db.collection("routes").doc(routeId).collection("driver_permissions").doc(driverUid),
+      permissionDoc,
+      { merge: true },
+    );
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_permission_grant_mirror_failed",
+        routeId,
+        driverUid,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorRoutePermissionRevokeToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
+  try {
+    const batch = db.batch();
+    if (routePatch) {
+      batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
+    }
+    const permissionRef = db
+      .collection("routes")
+      .doc(routeId)
+      .collection("driver_permissions")
+      .doc(driverUid);
+    if (permissionDoc) {
+      batch.set(permissionRef, permissionDoc, { merge: true });
+    } else {
+      batch.delete(permissionRef);
+    }
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_permission_revoke_mirror_failed",
+        routeId,
+        driverUid,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
 export async function listRouteDriverPermissions(db, input) {
   const companyId = normalizeId(input?.companyId, "companyId");
   const routeId = normalizeId(input?.routeId, "routeId");
@@ -187,6 +247,101 @@ export async function grantDriverRoutePermissions(db, actorUid, actorRole, input
   const permissions = normalizeRoutePermissionFlags(input?.permissions);
   const nowIso = new Date().toISOString();
   await assertCompanyMembersExistAndActive(db, companyId, [driverUid]);
+
+  if (shouldUsePostgresRouteDriverPermissionStore()) {
+    const [route, permissionsState] = await Promise.all([
+      readCompanyRouteFromPostgres(companyId, routeId).catch(() => null),
+      listRouteDriverPermissionsFromPostgres(companyId, routeId).catch(() => null),
+    ]);
+
+    if (route) {
+      const routeDriverUid = pickString(route, "driverId");
+      if (!routeDriverUid) {
+        throw new HttpError(412, "failed-precondition", "ROUTE_DRIVER_MISSING");
+      }
+
+      const existingAuthorized = pickStringArray(route, "authorizedDriverIds");
+      const nextAuthorized =
+        driverUid === routeDriverUid || existingAuthorized.includes(driverUid)
+          ? existingAuthorized
+          : [...existingAuthorized, driverUid];
+
+      const existingMemberIds = pickStringArray(route, "memberIds");
+      const passengerMemberIds = existingMemberIds.filter(
+        (uid) => uid !== routeDriverUid && !existingAuthorized.includes(uid),
+      );
+      const nextMemberIds = Array.from(
+        new Set([routeDriverUid, ...nextAuthorized, ...passengerMemberIds]),
+      );
+
+      const routePatch = {
+        authorizedDriverIds: nextAuthorized,
+        memberIds: nextMemberIds,
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      };
+      await syncCompanyRouteToPostgres({
+        ...route,
+        ...routePatch,
+        routeId,
+        companyId,
+        createdAt: route.createdAt ?? nowIso,
+        updatedAt: nowIso,
+      });
+      await upsertRouteDriverPermissionToPostgres({
+        companyId,
+        routeId,
+        driverUid,
+        permissions,
+        createdAt: nowIso,
+        createdBy: actorUid,
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      });
+
+      await mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, routePatch, {
+        companyId,
+        routeId,
+        driverUid,
+        permissions,
+        createdAt: nowIso,
+        createdBy: actorUid,
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      });
+
+      const auditLog = stageCompanyAuditLogWrite(db, null, {
+        companyId,
+        actorUid,
+        actorType: "company_member",
+        eventType: "route_driver_permissions_granted",
+        targetType: "route_driver_permission",
+        targetId: `${routeId}_${driverUid}`,
+        status: "success",
+        reason: null,
+        metadata: {
+          actorRole,
+          routeId,
+          driverUid,
+          permissions,
+        },
+        requestId: createHash("sha256")
+          .update(`grantDriverRoutePermissions:${actorUid}:${routeId}:${driverUid}:${nowIso}`)
+          .digest("hex")
+          .slice(0, 24),
+        createdAt: nowIso,
+      });
+      await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+      return {
+        routeId,
+        driverUid,
+        permissions,
+        updatedAt: nowIso,
+        auditLog,
+      };
+    }
+  }
 
   const companyRef = db.collection("companies").doc(companyId);
   const routeRef = db.collection("routes").doc(routeId);
@@ -294,6 +449,109 @@ export async function revokeDriverRoutePermissions(db, actorUid, actorRole, inpu
   const permissionKeys = normalizePermissionKeys(input?.permissionKeys);
   const resetToDefault = input?.resetToDefault === true;
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresRouteDriverPermissionStore()) {
+    const [route, permissionsState] = await Promise.all([
+      readCompanyRouteFromPostgres(companyId, routeId).catch(() => null),
+      listRouteDriverPermissionsFromPostgres(companyId, routeId).catch(() => null),
+    ]);
+
+    if (route) {
+      const routeDriverUid = pickString(route, "driverId");
+      if (!routeDriverUid) {
+        throw new HttpError(412, "failed-precondition", "ROUTE_DRIVER_MISSING");
+      }
+
+      const existingAuthorized = pickStringArray(route, "authorizedDriverIds");
+      const existingMemberIds = pickStringArray(route, "memberIds");
+      const existingPermissionItem =
+        permissionsState?.items?.find((item) => item.driverUid === driverUid) ?? null;
+      let routePatch = null;
+      let permissionDoc = null;
+
+      if (resetToDefault) {
+        if (driverUid === routeDriverUid) {
+          throw new HttpError(412, "failed-precondition", "ROUTE_PRIMARY_DRIVER_IMMUTABLE");
+        }
+
+        const nextAuthorized = existingAuthorized.filter((uid) => uid !== driverUid);
+        const passengerMemberIds = existingMemberIds.filter(
+          (uid) => uid !== routeDriverUid && !existingAuthorized.includes(uid),
+        );
+        const nextMemberIds = Array.from(
+          new Set([routeDriverUid, ...nextAuthorized, ...passengerMemberIds]),
+        );
+
+        routePatch = {
+          authorizedDriverIds: nextAuthorized,
+          memberIds: nextMemberIds,
+          updatedAt: nowIso,
+          updatedBy: actorUid,
+        };
+        await syncCompanyRouteToPostgres({
+          ...route,
+          ...routePatch,
+          routeId,
+          companyId,
+          createdAt: route.createdAt ?? nowIso,
+          updatedAt: nowIso,
+        });
+        await deleteRouteDriverPermissionFromPostgres(companyId, routeId, driverUid, nowIso);
+      } else {
+        const currentPermissions = toRoutePermissionFlags(existingPermissionItem?.permissions);
+        const nextPermissions = { ...currentPermissions };
+        permissionKeys.forEach((key) => {
+          nextPermissions[key] = false;
+        });
+
+        permissionDoc = {
+          companyId,
+          routeId,
+          driverUid,
+          permissions: nextPermissions,
+          createdAt: nowIso,
+          createdBy: actorUid,
+          updatedAt: nowIso,
+          updatedBy: actorUid,
+        };
+        await upsertRouteDriverPermissionToPostgres(permissionDoc);
+      }
+
+      await mirrorRoutePermissionRevokeToFirestore(db, routeId, driverUid, routePatch, permissionDoc);
+
+      const auditLog = stageCompanyAuditLogWrite(db, null, {
+        companyId,
+        actorUid,
+        actorType: "company_member",
+        eventType: "route_driver_permissions_revoked",
+        targetType: "route_driver_permission",
+        targetId: `${routeId}_${driverUid}`,
+        status: "success",
+        reason: null,
+        metadata: {
+          actorRole,
+          routeId,
+          driverUid,
+          resetToDefault,
+          permissionKeys: resetToDefault ? [] : permissionKeys,
+        },
+        requestId: createHash("sha256")
+          .update(`revokeDriverRoutePermissions:${actorUid}:${routeId}:${driverUid}:${nowIso}`)
+          .digest("hex")
+          .slice(0, 24),
+        createdAt: nowIso,
+      });
+      await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+      return {
+        routeId,
+        driverUid,
+        updatedAt: nowIso,
+        auditLog,
+      };
+    }
+  }
+
   const companyRef = db.collection("companies").doc(companyId);
   const routeRef = db.collection("routes").doc(routeId);
   const routePermissionRef = routeRef.collection("driver_permissions").doc(driverUid);

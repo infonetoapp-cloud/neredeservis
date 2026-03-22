@@ -244,3 +244,51 @@ export async function replaceRouteDriverPermissionsForRoute(companyId, routeId, 
     client.release();
   }
 }
+
+export async function upsertRouteDriverPermissionToPostgres(input) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  return upsertRouteDriverPermissionRow(pool, input);
+}
+
+export async function deleteRouteDriverPermissionFromPostgres(companyId, routeId, driverUid, syncedAt) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return false;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedRouteId = normalizeNullableText(routeId);
+  const normalizedDriverUid = normalizeNullableText(driverUid);
+  if (!normalizedCompanyId || !normalizedRouteId || !normalizedDriverUid) {
+    return false;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        DELETE FROM company_route_driver_permissions
+        WHERE company_id = $1 AND route_id = $2 AND driver_uid = $3
+      `,
+      [normalizedCompanyId, normalizedRouteId, normalizedDriverUid],
+    );
+    await markRouteDriverPermissionSyncState(
+      client,
+      normalizedCompanyId,
+      normalizedRouteId,
+      syncedAt,
+    );
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
+}

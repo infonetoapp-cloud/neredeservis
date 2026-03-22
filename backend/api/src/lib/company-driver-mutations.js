@@ -490,6 +490,34 @@ export async function updateCompanyDriverStatus(db, actorUid, input) {
   const driverId = normalizeDriverId(input?.driverId);
   const status = normalizeStatus(input?.status);
 
+  if (shouldUsePostgresCompanyFleetStore()) {
+    const postgresDriver = await readCompanyDriverFromPostgres(companyId, driverId).catch(() => null);
+    if (postgresDriver) {
+      const updatedAt = new Date().toISOString();
+      await syncCompanyDriverToPostgres({
+        driverId,
+        companyId,
+        name: pickString(postgresDriver, "name"),
+        status,
+        phone: pickString(postgresDriver, "phoneMasked"),
+        plate: pickString(postgresDriver, "plateMasked"),
+        loginEmail: pickString(postgresDriver, "loginEmail"),
+        temporaryPassword: pickString(postgresDriver, "temporaryPassword"),
+        mobileOnly: true,
+        createdBy: pickString(postgresDriver, "createdBy"),
+        updatedBy: actorUid,
+        createdAt: pickString(postgresDriver, "createdAt"),
+        updatedAt,
+      });
+      await mirrorDriverToFirestore(db, driverId, {
+        status,
+        updatedAt,
+        updatedBy: actorUid,
+      });
+      return { driverId, status };
+    }
+  }
+
   const driverRef = db.collection("drivers").doc(driverId);
   const driverSnapshot = await driverRef.get();
   if (!driverSnapshot.exists) {

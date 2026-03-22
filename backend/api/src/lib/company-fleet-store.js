@@ -80,6 +80,10 @@ function formatDriverRow(row) {
     loginEmail: normalizeNullableText(row?.login_email),
     temporaryPassword: normalizeNullableText(row?.temporary_password),
     status: normalizeDriverStatus(row?.status),
+    createdBy: normalizeNullableText(row?.created_by),
+    updatedBy: normalizeNullableText(row?.updated_by),
+    createdAt: normalizeIsoString(row?.created_at),
+    updatedAt: normalizeIsoString(row?.updated_at),
     lastSeenAt: normalizeIsoString(row?.updated_at),
   };
 }
@@ -421,6 +425,9 @@ export async function listCompanyDriversFromPostgres(companyId, limit) {
         plate,
         login_email,
         temporary_password,
+        created_by,
+        updated_by,
+        created_at,
         updated_at
       FROM company_drivers
       WHERE company_id = $1
@@ -456,6 +463,9 @@ export async function readCompanyDriverFromPostgres(companyId, driverId) {
         plate,
         login_email,
         temporary_password,
+        created_by,
+        updated_by,
+        created_at,
         updated_at
       FROM company_drivers
       WHERE company_id = $1 AND driver_id = $2
