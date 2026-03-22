@@ -12,10 +12,10 @@ function readBearerToken(request) {
   return token;
 }
 
-function assertSupportedAuthToken(decodedToken) {
+function assertSupportedAuthToken(decodedToken, options = {}) {
   const signInProvider =
     typeof decodedToken?.signInProvider === "string" ? decodedToken.signInProvider : null;
-  if (signInProvider === "anonymous") {
+  if (signInProvider === "anonymous" && options.allowAnonymous !== true) {
     throw new HttpError(
       412,
       "failed-precondition",
@@ -25,7 +25,7 @@ function assertSupportedAuthToken(decodedToken) {
   return decodedToken;
 }
 
-export async function requireAuthenticatedUser(request) {
+export async function requireAuthenticatedUser(request, options = {}) {
   const idToken = readBearerToken(request);
   const sessionUser = readAuthenticatedWebSession(request);
   let lastError = null;
@@ -33,7 +33,7 @@ export async function requireAuthenticatedUser(request) {
   if (idToken) {
     try {
       const decodedToken = await lookupIdentityToolkitUserByIdToken(idToken);
-      return assertSupportedAuthToken(decodedToken);
+      return assertSupportedAuthToken(decodedToken, options);
     } catch (error) {
       lastError = error;
     }
@@ -41,7 +41,7 @@ export async function requireAuthenticatedUser(request) {
 
   if (sessionUser) {
     try {
-      return assertSupportedAuthToken(sessionUser);
+      return assertSupportedAuthToken(sessionUser, options);
     } catch (error) {
       lastError = error;
     }

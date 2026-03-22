@@ -107,6 +107,13 @@ import {
   sendTripConversationMessage,
 } from "./lib/trip-chat.js";
 import {
+  createGuestSession,
+  joinPassengerRouteBySrvCode,
+  leavePassengerRoute,
+  submitPassengerSkipToday,
+  updatePassengerSettings,
+} from "./lib/passenger-ops.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -147,6 +154,10 @@ const startedAt = new Date();
 const db = getOptionalFirebaseAdminDb();
 const liveOpsOnlineThresholdMs = Number.parseInt(
   process.env.LIVE_OPS_ONLINE_THRESHOLD_MS ?? "60000",
+  10,
+);
+const guestSessionTtlMinutesDefault = Number.parseInt(
+  process.env.GUEST_SESSION_TTL_MINUTES_DEFAULT ?? "30",
   10,
 );
 
@@ -663,6 +674,26 @@ function isAuthConsentPath(pathname) {
   return pathname === "/api/auth/consent";
 }
 
+function isPassengerRouteJoinPath(pathname) {
+  return pathname === "/api/passenger/routes/join";
+}
+
+function isPassengerRouteLeavePath(pathname) {
+  return pathname === "/api/passenger/routes/leave";
+}
+
+function isPassengerSettingsPath(pathname) {
+  return pathname === "/api/passenger/settings";
+}
+
+function isPassengerSkipTodayPath(pathname) {
+  return pathname === "/api/passenger/skip-today";
+}
+
+function isGuestSessionsPath(pathname) {
+  return pathname === "/api/guest-sessions";
+}
+
 function isTripConversationOpenPath(pathname) {
   return pathname === "/api/trip-conversations/open";
 }
@@ -1013,6 +1044,53 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await updateCurrentAuthConsent(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isPassengerRouteJoinPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await joinPassengerRouteBySrvCode(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isPassengerRouteLeavePath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await leavePassengerRoute(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "PATCH" && isPassengerSettingsPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await updatePassengerSettings(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isPassengerSkipTodayPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await submitPassengerSkipToday(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isGuestSessionsPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request, { allowAnonymous: true });
+      const body = await readJsonBody(request);
+      const result = await createGuestSession({
+        db,
+        rtdb: getOptionalFirebaseAdminRtdb(),
+        uid: decodedToken.uid,
+        authUser: decodedToken,
+        input: asRecord(body) ?? {},
+        guestSessionTtlMinutesDefault,
+      });
       sendApiOk(response, 200, result);
       return;
     }
