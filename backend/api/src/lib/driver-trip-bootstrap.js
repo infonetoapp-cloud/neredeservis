@@ -2,6 +2,12 @@ import { listCompanyRouteStops } from "./company-route-stops.js";
 import { readDriverLiveLocation } from "./driver-trip-runtime.js";
 import { getOptionalFirebaseAdminDb } from "./firebase-admin.js";
 import { HttpError } from "./http.js";
+import {
+  listActiveGuestSessionsByRouteFromPostgres,
+  listRoutePassengersFromPostgres,
+  listRouteSkipPassengerIdsFromPostgres,
+  shouldUsePostgresPassengerStore,
+} from "./passenger-store.js";
 import { loadDriverMyTrips } from "./driver-read-model.js";
 
 function readTrimmedString(value) {
@@ -67,6 +73,26 @@ async function readDriverManagedRoute(db, uid, routeId) {
 }
 
 async function readRoutePassengers(routeId) {
+  if (shouldUsePostgresPassengerStore()) {
+    const rows = await listRoutePassengersFromPostgres(routeId, { limit: 300 }).catch(() => []);
+    if (rows.length > 0) {
+      return rows.map((row) => ({
+        passengerId: readTrimmedString(row?.passengerUid) ?? "",
+        passengerData: {
+          name: readTrimmedString(row?.name),
+          phone: readTrimmedString(row?.phone),
+          showPhoneToDriver: row?.showPhoneToDriver === true,
+          boardingArea: readTrimmedString(row?.boardingArea) ?? "",
+          virtualStop: row?.virtualStop ?? null,
+          virtualStopLabel: readTrimmedString(row?.virtualStopLabel),
+          notificationTime: readTrimmedString(row?.notificationTime) ?? "",
+          joinedAt: readTrimmedString(row?.joinedAt),
+          updatedAt: readTrimmedString(row?.updatedAt),
+        },
+      }));
+    }
+  }
+
   const db = getOptionalFirebaseAdminDb();
   if (!db) {
     return [];
@@ -86,6 +112,15 @@ async function readRoutePassengers(routeId) {
 async function readRouteSkipTodayPassengerIds(routeId, dateKey) {
   const normalizedRouteId = readTrimmedString(routeId);
   const normalizedDateKey = readTrimmedString(dateKey);
+  if (shouldUsePostgresPassengerStore() && normalizedRouteId && normalizedDateKey) {
+    const rows = await listRouteSkipPassengerIdsFromPostgres(normalizedRouteId, normalizedDateKey).catch(
+      () => [],
+    );
+    if (rows.length > 0) {
+      return rows;
+    }
+  }
+
   const db = getOptionalFirebaseAdminDb();
   if (!db || !normalizedRouteId || !normalizedDateKey) {
     return [];
@@ -123,6 +158,26 @@ async function readRouteSkipTodayPassengerIds(routeId, dateKey) {
 
 async function readActiveGuestSessions(routeId) {
   const normalizedRouteId = readTrimmedString(routeId);
+  if (shouldUsePostgresPassengerStore() && normalizedRouteId) {
+    const rows = await listActiveGuestSessionsByRouteFromPostgres(normalizedRouteId, {
+      limit: 300,
+    }).catch(() => []);
+    if (rows.length > 0) {
+      return rows.map((row) => ({
+        sessionId: row.sessionId,
+        routeId: row.routeId,
+        routeName: row.routeName,
+        guestUid: row.guestUid,
+        guestDisplayName: row.guestDisplayName,
+        expiresAt: row.expiresAt,
+        status: row.status,
+        revokeReason: row.revokeReason,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      }));
+    }
+  }
+
   const db = getOptionalFirebaseAdminDb();
   if (!db || !normalizedRouteId) {
     return [];

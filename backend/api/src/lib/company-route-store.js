@@ -450,6 +450,111 @@ export async function readCompanyRouteFromPostgres(companyId, routeId) {
   return formatRouteRow(result.rows[0] ?? null);
 }
 
+export async function readRouteFromPostgres(routeId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedRouteId = normalizeNullableText(routeId);
+  if (!normalizedRouteId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        route_id,
+        company_id,
+        name,
+        srv_code,
+        driver_id,
+        authorized_driver_ids,
+        member_ids,
+        scheduled_time,
+        time_slot,
+        is_archived,
+        allow_guest_tracking,
+        start_address,
+        end_address,
+        start_point,
+        end_point,
+        vehicle_id,
+        vehicle_plate,
+        passenger_count,
+        visibility,
+        creation_mode,
+        route_polyline,
+        vacation_until,
+        last_trip_started_notification_at,
+        created_by,
+        updated_by,
+        created_at,
+        updated_at,
+        stops_synced_at
+      FROM company_routes
+      WHERE route_id = $1
+      LIMIT 1
+    `,
+    [normalizedRouteId],
+  );
+
+  return formatRouteRow(result.rows[0] ?? null);
+}
+
+export async function readRouteBySrvCodeFromPostgres(srvCode) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedSrvCode = normalizeSrvCode(srvCode);
+  if (!normalizedSrvCode) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        route_id,
+        company_id,
+        name,
+        srv_code,
+        driver_id,
+        authorized_driver_ids,
+        member_ids,
+        scheduled_time,
+        time_slot,
+        is_archived,
+        allow_guest_tracking,
+        start_address,
+        end_address,
+        start_point,
+        end_point,
+        vehicle_id,
+        vehicle_plate,
+        passenger_count,
+        visibility,
+        creation_mode,
+        route_polyline,
+        vacation_until,
+        last_trip_started_notification_at,
+        created_by,
+        updated_by,
+        created_at,
+        updated_at,
+        stops_synced_at
+      FROM company_routes
+      WHERE UPPER(srv_code) = $1
+      ORDER BY updated_at DESC NULLS LAST, route_id ASC
+      LIMIT 1
+    `,
+    [normalizedSrvCode],
+  );
+
+  return formatRouteRow(result.rows[0] ?? null);
+}
+
 export async function listCompanyRoutesFromPostgres(companyId, options = {}) {
   const pool = getPostgresPool();
   if (!pool) {

@@ -440,6 +440,71 @@ export async function ensurePostgresAuthSchema() {
       ON driver_location_history (company_id, driver_uid, sampled_at DESC);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_passengers (
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NOT NULL,
+      passenger_uid TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT NULL,
+      show_phone_to_driver BOOLEAN NOT NULL DEFAULT FALSE,
+      boarding_area TEXT NOT NULL DEFAULT '',
+      virtual_stop JSONB NULL,
+      virtual_stop_label TEXT NULL,
+      notification_time TEXT NOT NULL DEFAULT '',
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (route_id, passenger_uid)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_passengers_route_joined_idx
+      ON route_passengers (route_id, joined_at ASC, passenger_uid ASC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_passengers_passenger_uid_idx
+      ON route_passengers (passenger_uid);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_skip_requests (
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NOT NULL,
+      passenger_uid TEXT NOT NULL,
+      date_key TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'skip_today',
+      idempotency_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (route_id, passenger_uid, date_key)
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_skip_requests_route_date_idx
+      ON route_skip_requests (route_id, date_key, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS guest_tracking_sessions (
+      session_id TEXT PRIMARY KEY,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NOT NULL,
+      route_name TEXT NULL,
+      guest_uid TEXT NOT NULL,
+      guest_display_name TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      revoke_reason TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS guest_tracking_sessions_route_status_idx
+      ON guest_tracking_sessions (route_id, status, expires_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS guest_tracking_sessions_guest_status_idx
+      ON guest_tracking_sessions (guest_uid, status, expires_at DESC);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS route_preview_rate_limits (
       rate_key TEXT PRIMARY KEY,
       window_start_ms BIGINT NOT NULL,

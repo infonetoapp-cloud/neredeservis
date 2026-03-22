@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 
 import { readUserProfileByUid } from "./auth-user-store.js";
+import { readRouteFromPostgres } from "./company-route-store.js";
 import { HttpError } from "./http.js";
+import {
+  readActiveGuestSessionForGuestFromPostgres,
+  readRoutePassengerFromPostgres,
+  shouldUsePostgresPassengerStore,
+} from "./passenger-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const MESSAGE_LIMIT_DEFAULT = 200;
@@ -73,6 +79,18 @@ async function readCallerRole(db, uid) {
 }
 
 async function findActiveGuestSession(db, routeId, guestUid) {
+  if (shouldUsePostgresPassengerStore()) {
+    const session = await readActiveGuestSessionForGuestFromPostgres(routeId, guestUid).catch(
+      () => null,
+    );
+    if (session) {
+      return {
+        sessionId: session.sessionId,
+        guestDisplayName: session.guestDisplayName,
+      };
+    }
+  }
+
   const sessionsSnapshot = await db
     .collection("guest_sessions")
     .where("guestUid", "==", guestUid)
@@ -110,6 +128,20 @@ async function findActiveGuestSession(db, routeId, guestUid) {
 }
 
 async function readRouteData(db, routeId) {
+  if (shouldUsePostgresPassengerStore()) {
+    const postgresRoute = await readRouteFromPostgres(routeId).catch(() => null);
+    if (postgresRoute) {
+      if (postgresRoute.isArchived === true) {
+        throw new HttpError(412, "failed-precondition", "Arsivlenmis route icin sohbet acilamaz.");
+      }
+
+      return {
+        routeRef: db.collection("routes").doc(routeId),
+        routeData: postgresRoute,
+      };
+    }
+  }
+
   const routeSnapshot = await db.collection("routes").doc(routeId).get();
   if (!routeSnapshot.exists) {
     throw new HttpError(404, "not-found", "Route bulunamadi.");
@@ -206,23 +238,27 @@ async function readDriverDisplayContext(db, driverUid) {
   };
 }
 
-async function readPassengerDisplayContext(db, routeRef, passengerUid, guestSession) {
+async function readPassengerDisplayContext(db, routeRef, routeId, passengerUid, guestSession) {
+  const postgresPassenger = shouldUsePostgresPassengerStore()
+    ? await readRoutePassengerFromPostgres(routeId, passengerUid).catch(() => null)
+    : null;
   const [passengerSnapshot, passengerUser] = await Promise.all([
     routeRef.collection("passengers").doc(passengerUid).get(),
     readUserProfileByUid(db, passengerUid).catch(() => null),
   ]);
 
-  if (!passengerSnapshot.exists && guestSession == null) {
+  if (!passengerSnapshot.exists && !postgresPassenger && guestSession == null) {
     throw new HttpError(403, "permission-denied", "Route passenger/misafir kaydi bulunamadi.");
   }
 
   const passengerData = asRecord(passengerSnapshot.data()) ?? {};
   return {
     passengerName:
+      pickString(postgresPassenger, "name") ??
       pickString(passengerData, "name") ??
       guestSession?.guestDisplayName ??
       pickString(passengerUser, "displayName") ??
-      (passengerSnapshot.exists ? "Yolcu" : "Misafir"),
+      (passengerSnapshot.exists || postgresPassenger ? "Yolcu" : "Misafir"),
   };
 }
 
@@ -291,7 +327,7 @@ export async function openTripConversation(dbInput, uid, input) {
 
   const [{ driverName, driverPlate }, { passengerName }] = await Promise.all([
     readDriverDisplayContext(db, driverUid),
-    readPassengerDisplayContext(db, routeRef, passengerUid, guestSession),
+    readPassengerDisplayContext(db, routeRef, routeId, passengerUid, guestSession),
   ]);
 
   const conversationId = buildTripConversationId(routeId, driverUid, passengerUid);

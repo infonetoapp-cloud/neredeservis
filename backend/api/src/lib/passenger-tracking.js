@@ -1,4 +1,10 @@
+import { listCompanyRouteStopsFromPostgres } from "./company-route-store.js";
 import { HttpError } from "./http.js";
+import {
+  readGuestTrackingSessionByIdFromPostgres,
+  readRoutePassengerFromPostgres,
+  shouldUsePostgresPassengerStore,
+} from "./passenger-store.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
@@ -556,6 +562,34 @@ async function readGuestSessionDocumentFromFirestore(db, sessionId) {
   return record ? { sessionId, ...record } : null;
 }
 
+async function readRouteStopsFromPostgres(companyId, routeId) {
+  if (!shouldUsePostgresPassengerStore()) {
+    return [];
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedRouteId = normalizeNullableText(routeId);
+  if (!normalizedCompanyId || !normalizedRouteId) {
+    return [];
+  }
+
+  const result = await listCompanyRouteStopsFromPostgres(normalizedCompanyId, normalizedRouteId).catch(
+    () => null,
+  );
+  const items = Array.isArray(result?.items) ? result.items : [];
+  return items.map((item) => ({
+    stopId: normalizeNullableText(item?.stopId) ?? "",
+    name: pickString(item, "name") ?? "Durak",
+    order: normalizeInteger(item?.order) ?? 0,
+    isPassed: false,
+    isNext: false,
+    passengersWaiting: null,
+    location: item?.location ?? null,
+    createdAt: normalizeIsoString(item?.createdAt),
+    updatedAt: normalizeIsoString(item?.updatedAt),
+  }));
+}
+
 function mergeTrackingRecord(primaryRecord, secondaryRecord) {
   const primary = asRecord(primaryRecord) ?? {};
   const secondary = asRecord(secondaryRecord) ?? {};
@@ -617,9 +651,20 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     throw new HttpError(400, "invalid-argument", "routeId veya sessionId gerekli.");
   }
 
-  const guestSessionData = normalizedGuestSessionId
-    ? await readGuestSessionDocumentFromFirestore(db, normalizedGuestSessionId)
-    : null;
+  let guestSessionData = null;
+  if (normalizedGuestSessionId) {
+    if (shouldUsePostgresPassengerStore()) {
+      guestSessionData = await readGuestTrackingSessionByIdFromPostgres(normalizedGuestSessionId).catch(
+        () => null,
+      );
+    }
+    if (!guestSessionData && db) {
+      guestSessionData = await readGuestSessionDocumentFromFirestore(
+        db,
+        normalizedGuestSessionId,
+      ).catch(() => null);
+    }
+  }
   if (normalizedGuestSessionId) {
     ensureGuestSessionAccess(guestSessionData, uid);
   }
@@ -642,12 +687,19 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     };
   }
 
-  const [postgresRoute, firestoreRoute, passengerData] = await Promise.all([
+  let passengerData = null;
+  if (!normalizedGuestSessionId && shouldUsePostgresPassengerStore()) {
+    passengerData = await readRoutePassengerFromPostgres(effectiveRouteId, uid).catch(() => null);
+  }
+  if (!normalizedGuestSessionId && !passengerData && db) {
+    passengerData = await readPassengerDocumentFromFirestore(db, effectiveRouteId, uid).catch(
+      () => null,
+    );
+  }
+
+  const [postgresRoute, firestoreRoute] = await Promise.all([
     readRouteFromPostgres(effectiveRouteId).catch(() => null),
-    readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null),
-    normalizedGuestSessionId
-      ? Promise.resolve(null)
-      : readPassengerDocumentFromFirestore(db, effectiveRouteId, uid).catch(() => null),
+    db ? readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
   ]);
   const routeData = normalizeTrackingRoute(
     mergeTrackingRecord(postgresRoute, firestoreRoute),
@@ -661,15 +713,25 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     ensurePassengerRouteAccess(routeData, passengerData, uid);
   }
 
+  const postgresStops = routeData.companyId
+    ? await readRouteStopsFromPostgres(routeData.companyId, effectiveRouteId).catch(() => [])
+    : [];
+
   const [postgresActiveTrip, firestoreActiveTrip, firestoreDriverData, latestAnnouncement, stops] =
     await Promise.all([
       readActiveTripFromPostgres(effectiveRouteId).catch(() => null),
-      readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null),
+      db ? readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
       routeData.driverId
-        ? readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null)
+        ? (db
+            ? readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null)
+            : Promise.resolve(null))
         : Promise.resolve(null),
-      readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null),
-      readRouteStopsFromFirestore(db, effectiveRouteId).catch(() => []),
+      db ? readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
+      postgresStops.length > 0
+        ? Promise.resolve(postgresStops)
+        : db
+          ? readRouteStopsFromFirestore(db, effectiveRouteId).catch(() => [])
+          : Promise.resolve([]),
     ]);
 
   const activeTripDriverId =
