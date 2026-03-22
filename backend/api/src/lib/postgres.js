@@ -554,6 +554,29 @@ export async function ensurePostgresAuthSchema() {
       ON trip_conversation_messages (conversation_id, created_at ASC, message_id ASC);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS route_announcements (
+      announcement_id TEXT PRIMARY KEY,
+      route_id TEXT NOT NULL REFERENCES company_routes(route_id) ON DELETE CASCADE,
+      company_id TEXT NULL,
+      driver_id TEXT NOT NULL,
+      template_key TEXT NOT NULL,
+      custom_text TEXT NULL,
+      channels JSONB NOT NULL DEFAULT '[]'::jsonb,
+      share_url TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS route_announcements_route_driver_idempotency_idx
+      ON route_announcements (route_id, driver_id, idempotency_key);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS route_announcements_route_created_idx
+      ON route_announcements (route_id, created_at DESC);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS route_preview_rate_limits (
       rate_key TEXT PRIMARY KEY,
       window_start_ms BIGINT NOT NULL,

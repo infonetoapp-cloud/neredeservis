@@ -2,6 +2,10 @@ import { readUserProfileByUid } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
 import { generateRouteShareLink } from "./route-share-preview.js";
 import {
+  shouldUsePostgresRouteAnnouncementStore,
+  upsertRouteAnnouncementToPostgres,
+} from "./route-announcement-store.js";
+import {
   readRouteShareContextFromPostgresByRouteId,
   shouldUsePostgresRouteShareStore,
 } from "./route-share-store.js";
@@ -173,9 +177,26 @@ export async function sendDriverAnnouncement(db, uid, rawInput) {
 
   const announcementId = buildAnnouncementId(routeId, uid, idempotencyKey);
   const createdAt = new Date().toISOString();
+  const companyId = pickString(routeData, "companyId");
+  if (shouldUsePostgresRouteAnnouncementStore()) {
+    await upsertRouteAnnouncementToPostgres({
+      announcementId,
+      routeId,
+      companyId,
+      driverId: uid,
+      templateKey,
+      customText,
+      channels: ["fcm", "whatsapp_link"],
+      shareUrl,
+      idempotencyKey,
+      createdAt,
+      updatedAt: createdAt,
+    }).catch(() => null);
+  }
   await bestEffortMirrorAnnouncement(db, {
     announcementId,
     routeId,
+    companyId,
     driverId: uid,
     templateKey,
     customText,

@@ -6,6 +6,7 @@ import {
   shouldUsePostgresPassengerStore,
 } from "./passenger-store.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
+import { readLatestRouteAnnouncementFromPostgres } from "./route-announcement-store.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 function requireFirestoreDb(db) {
@@ -716,6 +717,9 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   const postgresStops = routeData.companyId
     ? await readRouteStopsFromPostgres(routeData.companyId, effectiveRouteId).catch(() => [])
     : [];
+  const postgresAnnouncement = await readLatestRouteAnnouncementFromPostgres(effectiveRouteId).catch(
+    () => null,
+  );
 
   const [postgresActiveTrip, firestoreActiveTrip, firestoreDriverData, latestAnnouncement, stops] =
     await Promise.all([
@@ -726,7 +730,11 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
             ? readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null)
             : Promise.resolve(null))
         : Promise.resolve(null),
-      db ? readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
+      postgresAnnouncement
+        ? Promise.resolve(postgresAnnouncement)
+        : db
+          ? readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null)
+          : Promise.resolve(null),
       postgresStops.length > 0
         ? Promise.resolve(postgresStops)
         : db
