@@ -79,6 +79,7 @@ import {
   startDriverTrip,
   upsertDriverLiveLocation,
 } from "./lib/driver-trip-runtime.js";
+import { loadDriverTripHistory } from "./lib/driver-read-model.js";
 import {
   cleanupStoredCompanyLogos,
   readCompanyLogoMedia,
@@ -758,6 +759,10 @@ function isDriverActiveTripContextPath(pathname) {
   return pathname === "/api/driver/active-trip-context";
 }
 
+function isDriverTripHistoryPath(pathname) {
+  return pathname === "/api/driver/trip-history";
+}
+
 function extractDriverLiveLocationPathParams(pathname) {
   const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/live-location$/);
   if (!match) {
@@ -1238,6 +1243,13 @@ const server = createServer(async (request, response) => {
         trip: context,
         transitionVersion: transition.transitionVersion,
       });
+      return;
+    }
+
+    if (request.method === "GET" && isDriverTripHistoryPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await loadDriverTripHistory(db, decodedToken.uid);
+      sendApiOk(response, 200, result);
       return;
     }
 
