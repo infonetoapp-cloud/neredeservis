@@ -18,3 +18,15 @@ export function pickFiniteNumber(record, key) {
   const value = record?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
+
+export function pickStringArray(record, key) {
+  const value = record?.[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item) => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
