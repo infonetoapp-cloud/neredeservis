@@ -135,6 +135,7 @@ import {
   readGuestTrackingSnapshot,
   readPassengerTrackingSnapshot,
 } from "./lib/passenger-tracking.js";
+import { resolvePassengerDirections } from "./lib/mapbox-directions.js";
 import { submitSupportReport } from "./lib/support-reports.js";
 import {
   generateRouteShareLink,
@@ -726,6 +727,19 @@ function extractPassengerTrackingPathParams(pathname) {
   }
 }
 
+function extractPassengerDirectionsPathParams(pathname) {
+  const match = pathname.match(/^\/api\/passenger\/routes\/([^/]+)\/directions$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function isPassengerTripHistoryPath(pathname) {
   return pathname === "/api/passenger/trip-history";
 }
@@ -1247,6 +1261,20 @@ const server = createServer(async (request, response) => {
         passengerTrackingParams.routeId,
       );
       sendApiOk(response, 200, snapshot);
+      return;
+    }
+
+    const passengerDirectionsParams = extractPassengerDirectionsPathParams(requestUrl.pathname);
+    if (request.method === "POST" && passengerDirectionsParams) {
+      const decodedToken = await requireAuthenticatedUser(request, { allowAnonymous: true });
+      const body = await readJsonBody(request);
+      const result = await resolvePassengerDirections(
+        db,
+        decodedToken.uid,
+        passengerDirectionsParams.routeId,
+        asRecord(body) ?? {},
+      );
+      sendApiOk(response, 200, result);
       return;
     }
 
