@@ -133,6 +133,7 @@ import {
   readGuestTrackingSnapshot,
   readPassengerTrackingSnapshot,
 } from "./lib/passenger-tracking.js";
+import { submitSupportReport } from "./lib/support-reports.js";
 import {
   generateRouteShareLink,
   getDynamicRoutePreview,
@@ -735,6 +736,10 @@ function isPassengerSkipTodayPath(pathname) {
   return pathname === "/api/passenger/skip-today";
 }
 
+function isSupportReportPath(pathname) {
+  return pathname === "/api/support/report";
+}
+
 function isGuestSessionsPath(pathname) {
   return pathname === "/api/guest-sessions";
 }
@@ -1176,6 +1181,14 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await registerCurrentDriverDevice(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isSupportReportPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await submitSupportReport(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }

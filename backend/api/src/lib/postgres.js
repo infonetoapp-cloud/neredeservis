@@ -484,6 +484,29 @@ export async function ensurePostgresAuthSchema() {
     CREATE INDEX IF NOT EXISTS route_srv_code_reservations_route_id_idx
       ON route_srv_code_reservations (route_id);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_reports (
+      report_id TEXT PRIMARY KEY,
+      uid TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'guest',
+      source TEXT NOT NULL,
+      route_id TEXT NULL,
+      trip_id TEXT NULL,
+      user_note TEXT NULL,
+      diagnostics JSONB NOT NULL DEFAULT '{}'::jsonb,
+      idempotency_key TEXT NOT NULL,
+      support_email TEXT NULL,
+      slack_dispatch TEXT NOT NULL DEFAULT 'skipped',
+      slack_dispatch_error TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'received',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS support_reports_uid_created_idx
+      ON support_reports (uid, created_at DESC);
+  `);
 
   return true;
 }
