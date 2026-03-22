@@ -102,6 +102,27 @@ export async function ensurePostgresAuthSchema() {
       ON auth_password_credentials (email_lowercase);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_password_reset_tokens (
+      token_hash TEXT PRIMARY KEY,
+      uid TEXT NOT NULL REFERENCES auth_users(uid) ON DELETE CASCADE,
+      email_lowercase TEXT NOT NULL,
+      purpose TEXT NOT NULL DEFAULT 'password_reset',
+      created_by TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS auth_password_reset_tokens_uid_idx
+      ON auth_password_reset_tokens (uid, expires_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS auth_password_reset_tokens_email_idx
+      ON auth_password_reset_tokens (email_lowercase, expires_at DESC);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS companies (
       company_id TEXT PRIMARY KEY,
       name TEXT NOT NULL,

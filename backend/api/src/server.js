@@ -110,8 +110,10 @@ import {
   verifyPasswordResetCodeViaIdentityToolkit,
 } from "./lib/identity-toolkit.js";
 import {
+  confirmPasswordResetLocally,
   registerWithEmailPasswordLocally,
   signInWithEmailPasswordLocally,
+  verifyPasswordResetCodeLocally,
 } from "./lib/auth-local.js";
 import {
   readCurrentAuthBundle,
@@ -1129,17 +1131,32 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && isAuthPasswordResetVerifyPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const result = await verifyPasswordResetCodeViaIdentityToolkit(asRecord(body)?.oobCode);
+      let result = null;
+      if (isPostgresConfigured()) {
+        result = await verifyPasswordResetCodeLocally(asRecord(body)?.oobCode);
+      }
+      if (!result) {
+        result = await verifyPasswordResetCodeViaIdentityToolkit(asRecord(body)?.oobCode);
+      }
       sendApiOk(response, 200, result);
       return;
     }
 
     if (request.method === "POST" && isAuthPasswordResetConfirmPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const result = await confirmPasswordResetViaIdentityToolkit({
-        oobCode: asRecord(body)?.oobCode,
-        password: asRecord(body)?.password,
-      });
+      let result = null;
+      if (isPostgresConfigured()) {
+        result = await confirmPasswordResetLocally(db, {
+          oobCode: asRecord(body)?.oobCode,
+          password: asRecord(body)?.password,
+        });
+      }
+      if (!result) {
+        result = await confirmPasswordResetViaIdentityToolkit({
+          oobCode: asRecord(body)?.oobCode,
+          password: asRecord(body)?.password,
+        });
+      }
       sendApiOk(response, 200, result);
       return;
     }

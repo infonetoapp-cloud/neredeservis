@@ -1,4 +1,4 @@
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
 import { findUserProfileByEmail, readUserProfileByUid, upsertAuthUserProfile } from "./auth-user-store.js";
@@ -8,6 +8,7 @@ import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 
 const scryptAsync = promisify(scryptCallback);
 const PASSWORD_HASH_ALGORITHM = "scrypt";
+const PASSWORD_RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
 function requirePostgresPool() {
   if (!isPostgresConfigured()) {
@@ -112,6 +113,75 @@ async function upsertPasswordCredential(uid, email, password) {
   return true;
 }
 
+function hashPasswordResetToken(rawToken) {
+  return createHash("sha256").update(rawToken).digest("hex");
+}
+
+function requirePasswordResetCode(rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : "";
+  if (!value) {
+    throw new HttpError(400, "auth/invalid-action-code", "Gecersiz veya kullanilmis link.");
+  }
+  return value;
+}
+
+function mapPasswordResetTokenRow(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  const uid = typeof row.uid === "string" ? row.uid.trim() : "";
+  const email = typeof row.email_lowercase === "string" ? row.email_lowercase.trim() : "";
+  if (!uid || !email) {
+    return null;
+  }
+
+  return {
+    uid,
+    email,
+    expiresAt: row.expires_at,
+    consumedAt: row.consumed_at,
+  };
+}
+
+function assertActivePasswordResetToken(tokenRow) {
+  if (!tokenRow) {
+    return null;
+  }
+
+  const expiresAtMs = Date.parse(String(tokenRow.expiresAt ?? ""));
+  if (!Number.isFinite(expiresAtMs)) {
+    throw new HttpError(400, "auth/invalid-action-code", "Gecersiz veya kullanilmis link.");
+  }
+  if (tokenRow.consumedAt) {
+    throw new HttpError(400, "auth/invalid-action-code", "Gecersiz veya kullanilmis link.");
+  }
+  if (expiresAtMs <= Date.now()) {
+    throw new HttpError(400, "auth/expired-action-code", "Bu linkin suresi dolmus.");
+  }
+
+  return tokenRow;
+}
+
+async function readPasswordResetTokenRow(rawToken) {
+  if (!isPostgresConfigured()) {
+    return null;
+  }
+
+  const pool = requirePostgresPool();
+  const tokenHash = hashPasswordResetToken(requirePasswordResetCode(rawToken));
+  const result = await pool.query(
+    `
+      SELECT token_hash, uid, email_lowercase, expires_at, consumed_at
+      FROM auth_password_reset_tokens
+      WHERE token_hash = $1
+      LIMIT 1
+    `,
+    [tokenHash],
+  );
+  return mapPasswordResetTokenRow(result.rows[0] ?? null);
+}
+
 export async function createManagedUserLocally(db, input) {
   const email = requireEmail(input?.email);
   const password = requirePassword(input?.password);
@@ -136,6 +206,148 @@ export async function createManagedUserLocally(db, input) {
   );
   await upsertPasswordCredential(authUser.uid, email, password);
   return authUser;
+}
+
+export async function issuePasswordResetTokenLocally(db, input) {
+  const uid = typeof input?.uid === "string" ? input.uid.trim() : "";
+  const email = requireEmail(input?.email);
+  const createdBy = typeof input?.createdBy === "string" ? input.createdBy.trim() : null;
+  if (!uid) {
+    throw new HttpError(400, "invalid-argument", "Kullanici kimligi gecersiz.");
+  }
+
+  const pool = requirePostgresPool();
+  const client = await pool.connect();
+  const rawToken = randomBytes(32).toString("base64url");
+  const tokenHash = hashPasswordResetToken(rawToken);
+  const nowIso = new Date().toISOString();
+  const expiresAtIso = new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS).toISOString();
+
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        DELETE FROM auth_password_reset_tokens
+        WHERE uid = $1 OR email_lowercase = $2
+      `,
+      [uid, email],
+    );
+    await client.query(
+      `
+        INSERT INTO auth_password_reset_tokens (
+          token_hash,
+          uid,
+          email_lowercase,
+          purpose,
+          created_by,
+          created_at,
+          expires_at,
+          consumed_at,
+          updated_at
+        )
+        VALUES (
+          $1, $2, $3, 'password_reset', $4, $5::timestamptz, $6::timestamptz, NULL, $5::timestamptz
+        )
+      `,
+      [tokenHash, uid, email, createdBy, nowIso, expiresAtIso],
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  return {
+    token: rawToken,
+    expiresAt: expiresAtIso,
+  };
+}
+
+export async function verifyPasswordResetCodeLocally(rawOobCode) {
+  const tokenRow = assertActivePasswordResetToken(await readPasswordResetTokenRow(rawOobCode));
+  if (!tokenRow) {
+    return null;
+  }
+
+  return {
+    uid: tokenRow.uid,
+    email: tokenRow.email,
+  };
+}
+
+export async function confirmPasswordResetLocally(db, input) {
+  const rawToken = requirePasswordResetCode(input?.oobCode);
+  const password = requirePassword(input?.password);
+  const pool = requirePostgresPool();
+  const client = await pool.connect();
+  const tokenHash = hashPasswordResetToken(rawToken);
+  const nowIso = new Date().toISOString();
+
+  try {
+    await client.query("BEGIN");
+    const tokenResult = await client.query(
+      `
+        SELECT token_hash, uid, email_lowercase, expires_at, consumed_at
+        FROM auth_password_reset_tokens
+        WHERE token_hash = $1
+        FOR UPDATE
+      `,
+      [tokenHash],
+    );
+    const tokenRow = assertActivePasswordResetToken(mapPasswordResetTokenRow(tokenResult.rows[0] ?? null));
+    if (!tokenRow) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const passwordHash = await hashPassword(password);
+    await client.query(
+      `
+        INSERT INTO auth_password_credentials (
+          uid,
+          email_lowercase,
+          password_hash,
+          password_algorithm,
+          created_at,
+          updated_at,
+          password_changed_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5::timestamptz, $5::timestamptz, $5::timestamptz
+        )
+        ON CONFLICT (uid) DO UPDATE
+        SET
+          email_lowercase = EXCLUDED.email_lowercase,
+          password_hash = EXCLUDED.password_hash,
+          password_algorithm = EXCLUDED.password_algorithm,
+          updated_at = EXCLUDED.updated_at,
+          password_changed_at = EXCLUDED.password_changed_at
+      `,
+      [tokenRow.uid, tokenRow.email, passwordHash, PASSWORD_HASH_ALGORITHM, nowIso],
+    );
+    await client.query(
+      `
+        UPDATE auth_password_reset_tokens
+        SET consumed_at = $2::timestamptz,
+            updated_at = $2::timestamptz
+        WHERE uid = $1
+      `,
+      [tokenRow.uid, nowIso],
+    );
+    await client.query("COMMIT");
+
+    return {
+      email: tokenRow.email,
+      success: true,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function registerWithEmailPasswordLocally(db, input) {

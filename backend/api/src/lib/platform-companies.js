@@ -6,6 +6,10 @@ import {
   upsertAuthUserProfile,
 } from "./auth-user-store.js";
 import {
+  createManagedUserLocally,
+  issuePasswordResetTokenLocally,
+} from "./auth-local.js";
+import {
   backfillCompanyFromFirestoreRecord,
   readCompanyFromPostgres,
   syncCompanyWithOwnerMembershipToPostgres,
@@ -76,6 +80,15 @@ function buildOwnerLoginUrl() {
   return `${readAppBaseUrl()}/giris`;
 }
 
+function buildOwnerPasswordSetupUrl(oobCode, email) {
+  const setupUrl = new URL(`${readAppBaseUrl()}/sifre-belirle`);
+  setupUrl.searchParams.set("oobCode", oobCode);
+  if (email) {
+    setupUrl.searchParams.set("email", email);
+  }
+  return setupUrl.toString();
+}
+
 async function sendPasswordSetupEmail(email) {
   const webApiKey = (process.env.APP_WEB_API_KEY ?? "").trim();
   if (!webApiKey) {
@@ -108,6 +121,20 @@ async function sendPasswordSetupEmail(email) {
       }),
     );
   }
+}
+
+async function issueOwnerPasswordSetupLink(db, uid, email, createdBy) {
+  if (isPostgresConfigured()) {
+    const resetToken = await issuePasswordResetTokenLocally(db, {
+      uid,
+      email,
+      createdBy,
+    });
+    return buildOwnerPasswordSetupUrl(resetToken.token, email);
+  }
+
+  await sendPasswordSetupEmail(email);
+  return buildOwnerLoginUrl();
 }
 
 async function resolveCompanyOwnerIdentity(companyRef, companyData) {
@@ -708,12 +735,21 @@ export async function createPlatformCompany(db, actorUid, input) {
   if (existingOwnerProfile?.uid) {
     ownerUid = existingOwnerProfile.uid;
   } else {
-    const createdUser = await createManagedUserViaIdentityToolkit({
-      email: ownerEmail,
-      password: generateBootstrapPassword(),
-      sendVerificationEmail: false,
-    });
-    ownerUid = createdUser.localId;
+    const bootstrapPassword = generateBootstrapPassword();
+    if (isPostgresConfigured()) {
+      const createdUser = await createManagedUserLocally(db, {
+        email: ownerEmail,
+        password: bootstrapPassword,
+      });
+      ownerUid = createdUser.uid;
+    } else {
+      const createdUser = await createManagedUserViaIdentityToolkit({
+        email: ownerEmail,
+        password: bootstrapPassword,
+        sendVerificationEmail: false,
+      });
+      ownerUid = createdUser.localId;
+    }
     await upsertAuthUserProfile(db, {
       uid: ownerUid,
       email: ownerEmail,
@@ -845,14 +881,14 @@ export async function createPlatformCompany(db, actorUid, input) {
     });
   }
 
-  await sendPasswordSetupEmail(ownerEmail);
+  const loginUrl = await issueOwnerPasswordSetupLink(db, ownerUid, ownerEmail, actorUid);
 
   return {
     companyId,
     ownerUid,
     ownerEmail,
     notificationSent: true,
-    loginUrl: buildOwnerLoginUrl(),
+    loginUrl,
     createdAt: nowIso,
   };
 }
@@ -1029,11 +1065,19 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
   if (!ownerEmail) {
     throw new HttpError(404, "not-found", "Sirket sahibinin e-postasi bulunamadi.");
   }
+  if (isPostgresConfigured() && !ownerIdentity.ownerUid) {
+    throw new HttpError(404, "not-found", "Sirket sahibi kullanici kimligi bulunamadi.");
+  }
 
-  await sendPasswordSetupEmail(ownerEmail);
+  const loginUrl = await issueOwnerPasswordSetupLink(
+    db,
+    ownerIdentity.ownerUid,
+    ownerEmail,
+    "platform_admin",
+  );
   return {
     notificationSent: true,
-    loginUrl: buildOwnerLoginUrl(),
+    loginUrl,
   };
 }
 
