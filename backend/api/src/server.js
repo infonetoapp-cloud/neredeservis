@@ -101,6 +101,12 @@ import {
   upsertCurrentDriverProfile,
 } from "./lib/current-auth-bundle.js";
 import {
+  listTripConversationMessages,
+  markTripConversationRead,
+  openTripConversation,
+  sendTripConversationMessage,
+} from "./lib/trip-chat.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -657,6 +663,34 @@ function isAuthConsentPath(pathname) {
   return pathname === "/api/auth/consent";
 }
 
+function isTripConversationOpenPath(pathname) {
+  return pathname === "/api/trip-conversations/open";
+}
+
+function extractTripConversationMessagesPathParams(pathname) {
+  const match = pathname.match(/^\/api\/trip-conversations\/([^/]+)\/messages$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { conversationId: decodeURIComponent(match[1]) };
+  } catch {
+    return { conversationId: match[1] };
+  }
+}
+
+function extractTripConversationReadPathParams(pathname) {
+  const match = pathname.match(/^\/api\/trip-conversations\/([^/]+)\/read$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { conversationId: decodeURIComponent(match[1]) };
+  } catch {
+    return { conversationId: match[1] };
+  }
+}
+
 function isDriverTripStartPath(pathname) {
   return pathname === "/api/driver/trips/start";
 }
@@ -979,6 +1013,55 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await updateCurrentAuthConsent(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isTripConversationOpenPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await openTripConversation(db, decodedToken.uid, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const tripConversationMessagesParams = extractTripConversationMessagesPathParams(
+      requestUrl.pathname,
+    );
+    if (tripConversationMessagesParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await listTripConversationMessages(db, decodedToken.uid, {
+        routeId: requestUrl.searchParams.get("routeId"),
+        conversationId: tripConversationMessagesParams.conversationId,
+        limit: requestUrl.searchParams.get("limit"),
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (tripConversationMessagesParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const rawBody = asRecord(body) ?? {};
+      const result = await sendTripConversationMessage(db, decodedToken.uid, {
+        routeId: rawBody.routeId,
+        conversationId: tripConversationMessagesParams.conversationId,
+        text: rawBody.text,
+        clientMessageId: rawBody.clientMessageId,
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const tripConversationReadParams = extractTripConversationReadPathParams(requestUrl.pathname);
+    if (tripConversationReadParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const rawBody = asRecord(body) ?? {};
+      const result = await markTripConversationRead(db, decodedToken.uid, {
+        routeId: rawBody.routeId,
+        conversationId: tripConversationReadParams.conversationId,
+      });
       sendApiOk(response, 200, result);
       return;
     }
