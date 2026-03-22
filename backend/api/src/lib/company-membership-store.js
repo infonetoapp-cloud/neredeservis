@@ -366,6 +366,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
   const companyId = normalizeNullableText(input?.companyId);
   const uid = normalizeNullableText(input?.uid);
   const name = normalizeNullableText(input?.name);
+  const createdBy = normalizeNullableText(input?.createdBy) ?? uid;
   const nowIso = normalizeNullableText(input?.updatedAt) ?? new Date().toISOString();
   if (!companyId || !uid || !name) {
     return false;
@@ -419,7 +420,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
         normalizeNullableText(input?.countryCode) ?? "TR",
         normalizeNullableText(input?.contactPhone),
         normalizeNullableText(input?.contactEmail),
-        uid,
+        createdBy,
         normalizeNullableText(input?.createdAt) ?? nowIso,
         nowIso,
       ],

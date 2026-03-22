@@ -168,6 +168,83 @@ function normalizeContactField(rawValue, options = {}) {
   return value;
 }
 
+async function mirrorCreatedCompanyToFirestore(db, input) {
+  try {
+    const batch = db.batch();
+    const companyRef = db.collection("companies").doc(input.companyId);
+    const memberRef = companyRef.collection("members").doc(input.uid);
+    const userMembershipRef = db
+      .collection("users")
+      .doc(input.uid)
+      .collection("company_memberships")
+      .doc(input.companyId);
+
+    batch.set(
+      companyRef,
+      {
+        name: input.name,
+        legalName: null,
+        status: "active",
+        timezone: "Europe/Istanbul",
+        countryCode: "TR",
+        contactPhone: input.contactPhone,
+        contactEmail: input.contactEmail,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+        createdBy: input.uid,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      memberRef,
+      {
+        companyId: input.companyId,
+        uid: input.uid,
+        role: "owner",
+        status: "active",
+        permissions: null,
+        invitedBy: null,
+        invitedAt: null,
+        acceptedAt: input.nowIso,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      userMembershipRef,
+      {
+        companyId: input.companyId,
+        uid: input.uid,
+        role: "owner",
+        status: "active",
+        companyName: input.name,
+        companyStatus: "active",
+        acceptedAt: input.nowIso,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+      },
+      { merge: true },
+    );
+
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_company_create_mirror_failed",
+        companyId: input.companyId,
+        uid: input.uid,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
 export async function createCompany(db, uid, input) {
   const name = normalizeContactField(input?.name, { label: "Sirket adi", maxLength: 120 });
   if (!name || name.length < 2) {
@@ -191,6 +268,64 @@ export async function createCompany(db, uid, input) {
   }
 
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresCompanyStore()) {
+    const companyId = db.collection("companies").doc().id;
+    const auditLog = stageCompanyAuditLogWrite(db, null, {
+      companyId,
+      actorUid: uid,
+      actorType: "company_member",
+      eventType: "company_created",
+      targetType: "company",
+      targetId: companyId,
+      status: "success",
+      reason: null,
+      metadata: {
+        role: "owner",
+      },
+      requestId: createHash("sha256")
+        .update(`${uid}:${companyId}:${nowIso}`)
+        .digest("hex")
+        .slice(0, 24),
+      createdAt: nowIso,
+    });
+
+    await syncCompanyWithOwnerMembershipToPostgres({
+      companyId,
+      uid,
+      name,
+      status: "active",
+      billingStatus: "active",
+      timezone: "Europe/Istanbul",
+      countryCode: "TR",
+      contactPhone,
+      contactEmail,
+      createdBy: uid,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    });
+
+    await mirrorCreatedCompanyToFirestore(db, {
+      companyId,
+      uid,
+      name,
+      contactPhone,
+      contactEmail,
+      nowIso,
+    });
+    await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+    return {
+      companyId,
+      ownerMember: {
+        uid,
+        role: "owner",
+        status: "active",
+      },
+      createdAt: nowIso,
+      auditLog,
+    };
+  }
 
   return db.runTransaction(async (transaction) => {
     const companyRef = db.collection("companies").doc();

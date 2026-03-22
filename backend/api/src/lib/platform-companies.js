@@ -8,6 +8,7 @@ import {
   readCompanyFromPostgres,
   syncCompanyWithOwnerMembershipToPostgres,
 } from "./company-membership-store.js";
+import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { HttpError } from "./http.js";
 import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
@@ -162,6 +163,86 @@ async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) 
         level: "warn",
         event: eventName,
         companyId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorCreatedPlatformCompanyToFirestore(db, input) {
+  try {
+    const batch = db.batch();
+    const companyRef = db.collection("companies").doc(input.companyId);
+    const memberRef = companyRef.collection("members").doc(input.ownerUid);
+    const userMembershipRef = db
+      .collection("users")
+      .doc(input.ownerUid)
+      .collection("company_memberships")
+      .doc(input.companyId);
+
+    batch.set(
+      companyRef,
+      {
+        name: input.companyName,
+        legalName: null,
+        status: "active",
+        timezone: "Europe/Istanbul",
+        countryCode: "TR",
+        contactEmail: input.ownerEmail,
+        contactPhone: null,
+        vehicleLimit: input.vehicleLimit,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+        createdByPlatform: input.actorUid,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      memberRef,
+      {
+        companyId: input.companyId,
+        uid: input.ownerUid,
+        role: "owner",
+        status: "active",
+        email: input.ownerEmail,
+        permissions: null,
+        invitedBy: null,
+        invitedAt: null,
+        acceptedAt: input.nowIso,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+      },
+      { merge: true },
+    );
+
+    batch.set(
+      userMembershipRef,
+      {
+        companyId: input.companyId,
+        uid: input.ownerUid,
+        role: "owner",
+        status: "active",
+        companyName: input.companyName,
+        companyStatus: "active",
+        joinedAt: input.nowIso,
+        acceptedAt: input.nowIso,
+        createdAt: input.nowIso,
+        updatedAt: input.nowIso,
+      },
+      { merge: true },
+    );
+
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_platform_company_create_mirror_failed",
+        companyId: input.companyId,
+        ownerUid: input.ownerUid,
         message: error instanceof Error ? error.message : "unknown_error",
       }),
     );
@@ -542,54 +623,31 @@ export async function createPlatformCompany(db, actorUid, input) {
   }
 
   let companyId = "";
-  await db.runTransaction(async (transaction) => {
-    const companyRef = db.collection("companies").doc();
-    companyId = companyRef.id;
-    const memberRef = companyRef.collection("members").doc(ownerUid);
-    const userMembershipRef = db.collection("users").doc(ownerUid).collection("company_memberships").doc(companyId);
-
-    transaction.set(companyRef, {
-      name: companyName,
-      legalName: null,
-      status: "active",
-      timezone: "Europe/Istanbul",
-      countryCode: "TR",
-      contactEmail: ownerEmail,
-      contactPhone: null,
-      vehicleLimit,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-      createdByPlatform: actorUid,
-    });
-
-    transaction.set(memberRef, {
-      companyId,
-      uid: ownerUid,
-      role: "owner",
-      status: "active",
-      email: ownerEmail,
-      permissions: null,
-      invitedBy: null,
-      invitedAt: null,
-      acceptedAt: nowIso,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
-
-    transaction.set(userMembershipRef, {
-      companyId,
-      role: "owner",
-      status: "active",
-      companyName,
-      companyStatus: "active",
-      joinedAt: nowIso,
-      updatedAt: nowIso,
-    });
-  });
-
-  await sendPasswordSetupEmail(ownerEmail);
+  const auditRequestId = createHash("sha256")
+    .update(`createPlatformCompany:${actorUid}:${ownerUid}:${companyName}:${nowIso}`)
+    .digest("hex")
+    .slice(0, 24);
 
   if (isPostgresConfigured()) {
+    companyId = db.collection("companies").doc().id;
+    const auditLog = stageCompanyAuditLogWrite(db, null, {
+      companyId,
+      actorUid,
+      actorType: "platform_admin",
+      eventType: "platform_company_created",
+      targetType: "company",
+      targetId: companyId,
+      status: "success",
+      reason: null,
+      metadata: {
+        ownerUid,
+        ownerEmail,
+        vehicleLimit,
+      },
+      requestId: auditRequestId,
+      createdAt: nowIso,
+    });
+
     await syncCompanyWithOwnerMembershipToPostgres({
       companyId,
       uid: ownerUid,
@@ -601,10 +659,91 @@ export async function createPlatformCompany(db, actorUid, input) {
       contactEmail: ownerEmail,
       contactPhone: null,
       vehicleLimit,
+      createdBy: actorUid,
       createdAt: nowIso,
       updatedAt: nowIso,
-    }).catch(() => false);
+    });
+
+    await mirrorCreatedPlatformCompanyToFirestore(db, {
+      companyId,
+      companyName,
+      ownerUid,
+      ownerEmail,
+      vehicleLimit,
+      actorUid,
+      nowIso,
+    });
+    await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+  } else {
+    await db.runTransaction(async (transaction) => {
+      const companyRef = db.collection("companies").doc();
+      companyId = companyRef.id;
+      const memberRef = companyRef.collection("members").doc(ownerUid);
+      const userMembershipRef = db
+        .collection("users")
+        .doc(ownerUid)
+        .collection("company_memberships")
+        .doc(companyId);
+
+      transaction.set(companyRef, {
+        name: companyName,
+        legalName: null,
+        status: "active",
+        timezone: "Europe/Istanbul",
+        countryCode: "TR",
+        contactEmail: ownerEmail,
+        contactPhone: null,
+        vehicleLimit,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        createdByPlatform: actorUid,
+      });
+
+      transaction.set(memberRef, {
+        companyId,
+        uid: ownerUid,
+        role: "owner",
+        status: "active",
+        email: ownerEmail,
+        permissions: null,
+        invitedBy: null,
+        invitedAt: null,
+        acceptedAt: nowIso,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+
+      transaction.set(userMembershipRef, {
+        companyId,
+        role: "owner",
+        status: "active",
+        companyName,
+        companyStatus: "active",
+        joinedAt: nowIso,
+        updatedAt: nowIso,
+      });
+
+      stageCompanyAuditLogWrite(db, transaction, {
+        companyId,
+        actorUid,
+        actorType: "platform_admin",
+        eventType: "platform_company_created",
+        targetType: "company",
+        targetId: companyId,
+        status: "success",
+        reason: null,
+        metadata: {
+          ownerUid,
+          ownerEmail,
+          vehicleLimit,
+        },
+        requestId: auditRequestId,
+        createdAt: nowIso,
+      });
+    });
   }
+
+  await sendPasswordSetupEmail(ownerEmail);
 
   return {
     companyId,
