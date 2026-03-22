@@ -92,6 +92,7 @@ function formatManagedRouteRow(row) {
   }
 
   return {
+    companyId: readTrimmedString(row?.company_id),
     name: readTrimmedString(row?.name),
     driverId: readTrimmedString(row?.driver_id),
     authorizedDriverIds: Array.isArray(row?.authorized_driver_ids) ? row.authorized_driver_ids : [],
@@ -149,6 +150,7 @@ async function loadManagedRoutesFromPostgres(uid) {
     `
       SELECT
         route_id,
+        company_id,
         name,
         driver_id,
         authorized_driver_ids,

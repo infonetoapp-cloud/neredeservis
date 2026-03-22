@@ -80,6 +80,10 @@ import {
   upsertDriverLiveLocation,
 } from "./lib/driver-trip-runtime.js";
 import {
+  readDriverTripCompletedBootstrap,
+  readDriverTripDetailBootstrap,
+} from "./lib/driver-trip-bootstrap.js";
+import {
   listDriverRouteCandidates,
   listDriverRouteStops,
   loadDriverMyTrips,
@@ -818,6 +822,36 @@ function extractDriverRouteStopsPathParams(pathname) {
   }
 }
 
+function extractDriverTripDetailPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/trip-detail$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
+function extractDriverTripCompletedPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/trip-completed\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return {
+      routeId: decodeURIComponent(match[1]),
+      tripId: decodeURIComponent(match[2]),
+    };
+  } catch {
+    return {
+      routeId: match[1],
+      tripId: match[2],
+    };
+  }
+}
+
 function extractDriverLiveLocationPathParams(pathname) {
   const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/live-location$/);
   if (!match) {
@@ -1351,6 +1385,28 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const items = await listDriverRouteStops(db, decodedToken.uid, driverRouteStopsParams.routeId);
       sendApiOk(response, 200, { items });
+      return;
+    }
+
+    const driverTripDetailParams = extractDriverTripDetailPathParams(requestUrl.pathname);
+    if (driverTripDetailParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await readDriverTripDetailBootstrap(db, decodedToken.uid, {
+        routeId: driverTripDetailParams.routeId,
+        tripId: requestUrl.searchParams.get("tripId")?.trim() || null,
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const driverTripCompletedParams = extractDriverTripCompletedPathParams(requestUrl.pathname);
+    if (driverTripCompletedParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await readDriverTripCompletedBootstrap(db, decodedToken.uid, {
+        routeId: driverTripCompletedParams.routeId,
+        tripId: driverTripCompletedParams.tripId,
+      });
+      sendApiOk(response, 200, result);
       return;
     }
 
