@@ -1,11 +1,17 @@
 import { randomBytes } from "node:crypto";
 
 import { assertCompanyMembersExistAndActive } from "./company-access.js";
-import { readCompanyDriverFromPostgres } from "./company-fleet-store.js";
+import {
+  readCompanyDriverFromPostgres,
+  readCompanyVehicleFromPostgres,
+} from "./company-fleet-store.js";
 import { syncCompanyRouteAndStopsFromFirestore } from "./company-route-postgres-sync.js";
 import {
   deleteCompanyRouteFromPostgres,
+  listCompanyRouteStopsFromPostgres,
+  readCompanyRouteFromPostgres,
   releaseReservedCompanyRouteSrvCode,
+  replaceCompanyRouteStopsForRoute,
   shouldUsePostgresCompanyRouteStore,
   syncCompanyRouteToPostgres,
   tryReserveCompanyRouteSrvCode,
@@ -394,6 +400,97 @@ async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, now
   }
 }
 
+async function mirrorRoutePatchToFirestore(db, routeId, patchPayload) {
+  try {
+    await db.collection("routes").doc(routeId).set(patchPayload, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_patch_mirror_failed",
+        routeId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorRouteStopUpsertToFirestore(db, routeId, stopId, stopData, routePatch) {
+  try {
+    const batch = db.batch();
+    batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
+    batch.set(db.collection("routes").doc(routeId).collection("stops").doc(stopId), stopData, {
+      merge: true,
+    });
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_stop_upsert_mirror_failed",
+        routeId,
+        stopId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorRouteStopDeleteToFirestore(db, routeId, stopId, routePatch) {
+  try {
+    const batch = db.batch();
+    batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
+    batch.delete(db.collection("routes").doc(routeId).collection("stops").doc(stopId));
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_stop_delete_mirror_failed",
+        routeId,
+        stopId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
+async function mirrorRouteStopReorderToFirestore(db, routeId, stopUpdates, routePatch) {
+  try {
+    const batch = db.batch();
+    batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
+    for (const stop of stopUpdates) {
+      batch.set(
+        db.collection("routes").doc(routeId).collection("stops").doc(stop.stopId),
+        {
+          order: stop.order,
+          updatedAt: stop.updatedAt,
+          updatedBy: stop.updatedBy,
+        },
+        { merge: true },
+      );
+    }
+    await batch.commit();
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_route_stop_reorder_mirror_failed",
+        routeId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
 async function writeRouteAuditEventSafe(db, input) {
   try {
     if (shouldUsePostgresCompanyRouteStore()) {
@@ -557,6 +654,137 @@ export async function updateCompanyRoute(db, actorUid, actorRole, input) {
   const companyRef = db.collection("companies").doc(companyId);
   const routeRef = db.collection("routes").doc(routeId);
   const nowIso = new Date().toISOString();
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const postgresRoute = await readCompanyRouteFromPostgres(companyId, routeId).catch(() => null);
+    if (postgresRoute) {
+      const currentUpdatedAt = pickString(postgresRoute, "updatedAt");
+      if (lastKnownUpdateToken && currentUpdatedAt && currentUpdatedAt !== lastKnownUpdateToken) {
+        throw new HttpError(412, "failed-precondition", "UPDATE_TOKEN_MISMATCH");
+      }
+
+      const patchPayload = {
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      };
+      const changedFields = [];
+
+      if (hasOwn(rawPatch, "name")) {
+        patchPayload.name = normalizeRequiredText(rawPatch.name, "Rota adi", {
+          minLength: 2,
+          maxLength: 80,
+        });
+        changedFields.push("name");
+      }
+
+      if (hasOwn(rawPatch, "scheduledTime")) {
+        patchPayload.scheduledTime = normalizeScheduledTime(rawPatch.scheduledTime);
+        changedFields.push("scheduledTime");
+      }
+
+      if (hasOwn(rawPatch, "timeSlot")) {
+        patchPayload.timeSlot = normalizeRouteTimeSlot(rawPatch.timeSlot);
+        changedFields.push("timeSlot");
+      }
+
+      if (hasOwn(rawPatch, "allowGuestTracking")) {
+        patchPayload.allowGuestTracking = normalizeBoolean(
+          rawPatch.allowGuestTracking,
+          "allowGuestTracking",
+        );
+        changedFields.push("allowGuestTracking");
+      }
+
+      if (hasOwn(rawPatch, "isArchived")) {
+        patchPayload.isArchived = normalizeBoolean(rawPatch.isArchived, "isArchived");
+        changedFields.push("isArchived");
+      }
+
+      if (hasOwn(rawPatch, "vehicleId")) {
+        const vehicleId = normalizeOptionalId(rawPatch.vehicleId, "vehicleId");
+        if (vehicleId) {
+          const postgresVehicle = await readCompanyVehicleFromPostgres(companyId, vehicleId).catch(
+            () => null,
+          );
+          if (postgresVehicle) {
+            patchPayload.vehicleId = vehicleId;
+            patchPayload.vehiclePlate = postgresVehicle.plate;
+          } else {
+            const vehicleSnapshot = await companyRef.collection("vehicles").doc(vehicleId).get();
+            if (!vehicleSnapshot.exists) {
+              throw new HttpError(404, "not-found", "Arac bulunamadi.");
+            }
+
+            const vehicleData = asRecord(vehicleSnapshot.data()) ?? {};
+            patchPayload.vehicleId = vehicleId;
+            patchPayload.vehiclePlate = pickString(vehicleData, "plate");
+          }
+        } else {
+          patchPayload.vehicleId = null;
+          patchPayload.vehiclePlate = null;
+        }
+        changedFields.push("vehicleId");
+      }
+
+      if (hasOwn(rawPatch, "authorizedDriverIds")) {
+        const nextAuthorizedDriverIds = normalizedAuthorizedDriverIdsForPatch ?? [];
+        const existingAuthorized = pickStringArray(postgresRoute, "authorizedDriverIds");
+        const existingMemberIds = pickStringArray(postgresRoute, "memberIds");
+        const passengerMembers = existingMemberIds.filter(
+          (memberUid) => memberUid !== actorUid && !existingAuthorized.includes(memberUid),
+        );
+        const nextMemberIds = Array.from(
+          new Set([actorUid, ...nextAuthorizedDriverIds, ...passengerMembers]),
+        );
+
+        patchPayload.authorizedDriverIds = nextAuthorizedDriverIds;
+        patchPayload.memberIds = nextMemberIds;
+        changedFields.push("authorizedDriverIds");
+      }
+
+      if (changedFields.length === 0) {
+        throw new HttpError(400, "invalid-argument", "En az bir gecerli patch alani gonderilmelidir.");
+      }
+
+      const nextRouteData = {
+        ...postgresRoute,
+        ...patchPayload,
+        routeId,
+        companyId,
+      };
+      await syncCompanyRouteToPostgres({
+        ...nextRouteData,
+        createdAt: postgresRoute.createdAt ?? nowIso,
+        updatedAt: nowIso,
+        stopsSyncedAt: postgresRoute.stopsSyncedAt ?? null,
+      });
+      await mirrorRoutePatchToFirestore(db, routeId, patchPayload);
+
+      const updated = {
+        routeId,
+        updatedAt: nowIso,
+        changedFields,
+        srvCode: postgresRoute.srvCode,
+        route: buildRouteItem(routeId, companyId, nextRouteData),
+      };
+
+      await writeRouteAuditEventSafe(db, {
+        companyId,
+        eventType: "route_updated",
+        actorUid,
+        routeId: updated.routeId,
+        srvCode: updated.srvCode ?? null,
+        metadata: {
+          companyId,
+          role: actorRole,
+          changedFields: updated.changedFields,
+          routeMutationScope: "company_summary_patch",
+        },
+      });
+
+      return updated;
+    }
+  }
 
   const updated = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot] = await Promise.all([
@@ -840,6 +1068,88 @@ export async function upsertCompanyRouteStop(db, actorUid, actorRole, input) {
     .where("status", "==", "active")
     .limit(1);
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const [activeTripSnapshot, routeStopsState] = await Promise.all([
+      activeTripQuery.get(),
+      listCompanyRouteStopsFromPostgres(companyId, routeId).catch(() => null),
+    ]);
+
+    if (!activeTripSnapshot.empty) {
+      throw new HttpError(412, "failed-precondition", "ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED");
+    }
+
+    if (routeStopsState?.routeExists) {
+      const routeData = routeStopsState.route ?? null;
+      if (!routeData) {
+        throw new HttpError(404, "not-found", "Route bulunamadi.");
+      }
+
+      const currentUpdatedAt = pickString(routeData, "updatedAt");
+      if (lastKnownUpdateToken && currentUpdatedAt && currentUpdatedAt !== lastKnownUpdateToken) {
+        throw new HttpError(412, "failed-precondition", "UPDATE_TOKEN_MISMATCH");
+      }
+
+      const existingStop = stopId
+        ? routeStopsState.items.find((item) => item.stopId === stopId) ?? null
+        : null;
+      if (stopId && !existingStop) {
+        throw new HttpError(404, "not-found", "Durak bulunamadi.");
+      }
+
+      const nextStopId =
+        existingStop?.stopId ??
+        stopId ??
+        db.collection("routes").doc(routeId).collection("stops").doc().id;
+      const stopData = {
+        name,
+        location,
+        order: orderRaw,
+        createdAt: existingStop?.createdAt ?? nowIso,
+        updatedAt: nowIso,
+        createdBy: existingStop?.createdBy ?? actorUid,
+        updatedBy: actorUid,
+      };
+      const nextItems = stopId
+        ? routeStopsState.items.map((item) =>
+            item.stopId === nextStopId ? { ...item, ...stopData, stopId: nextStopId } : item,
+          )
+        : [...routeStopsState.items, { stopId: nextStopId, routeId, companyId, ...stopData }];
+
+      await replaceCompanyRouteStopsForRoute(companyId, routeId, nextItems, nowIso);
+      await mirrorRouteStopUpsertToFirestore(db, routeId, nextStopId, stopData, {
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      });
+
+      const updated = {
+        companyId,
+        routeId,
+        stopId: nextStopId,
+        updatedAt: nowIso,
+        srvCode: pickString(routeData, "srvCode"),
+        operation: existingStop ? "updated" : "created",
+        stop: buildRouteStopItem(nextStopId, routeId, companyId, stopData),
+      };
+
+      await writeRouteAuditEventSafe(db, {
+        companyId,
+        eventType: "route_stop_upserted",
+        actorUid,
+        routeId: updated.routeId,
+        srvCode: updated.srvCode ?? null,
+        metadata: {
+          companyId,
+          role: actorRole,
+          stopId: updated.stopId,
+          stopOperation: updated.operation,
+          routeMutationScope: "company_stop_upsert",
+        },
+      });
+
+      return updated;
+    }
+  }
+
   const updated = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot] = await Promise.all([
       transaction.get(companyRef),
@@ -948,6 +1258,67 @@ export async function deleteCompanyRouteStop(db, actorUid, actorRole, input) {
     .where("status", "==", "active")
     .limit(1);
 
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const [activeTripSnapshot, routeStopsState] = await Promise.all([
+      activeTripQuery.get(),
+      listCompanyRouteStopsFromPostgres(companyId, routeId).catch(() => null),
+    ]);
+
+    if (!activeTripSnapshot.empty) {
+      throw new HttpError(412, "failed-precondition", "ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED");
+    }
+
+    if (routeStopsState?.routeExists) {
+      const routeData = routeStopsState.route ?? null;
+      if (!routeData) {
+        throw new HttpError(404, "not-found", "Route bulunamadi.");
+      }
+
+      const currentUpdatedAt = pickString(routeData, "updatedAt");
+      if (lastKnownUpdateToken && currentUpdatedAt && currentUpdatedAt !== lastKnownUpdateToken) {
+        throw new HttpError(412, "failed-precondition", "UPDATE_TOKEN_MISMATCH");
+      }
+
+      const existingStop = routeStopsState.items.find((item) => item.stopId === stopId) ?? null;
+      if (!existingStop) {
+        throw new HttpError(404, "not-found", "Durak bulunamadi.");
+      }
+
+      const nextItems = routeStopsState.items.filter((item) => item.stopId !== stopId);
+      await replaceCompanyRouteStopsForRoute(companyId, routeId, nextItems, nowIso);
+      await mirrorRouteStopDeleteToFirestore(db, routeId, stopId, {
+        updatedAt: nowIso,
+        updatedBy: actorUid,
+      });
+
+      const deleted = {
+        routeId,
+        stopId,
+        srvCode: pickString(routeData, "srvCode"),
+      };
+
+      await writeRouteAuditEventSafe(db, {
+        companyId,
+        eventType: "route_stop_deleted",
+        actorUid,
+        routeId: deleted.routeId,
+        srvCode: deleted.srvCode ?? null,
+        metadata: {
+          companyId,
+          role: actorRole,
+          stopId: deleted.stopId,
+          routeMutationScope: "company_stop_delete",
+        },
+      });
+
+      return {
+        routeId: deleted.routeId,
+        stopId: deleted.stopId,
+        deleted: true,
+      };
+    }
+  }
+
   const deleted = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot] = await Promise.all([
       transaction.get(companyRef),
@@ -1048,6 +1419,111 @@ export async function reorderCompanyRouteStops(db, actorUid, actorRole, input) {
     .where("routeId", "==", routeId)
     .where("status", "==", "active")
     .limit(1);
+
+  if (shouldUsePostgresCompanyRouteStore()) {
+    const [activeTripSnapshot, routeStopsState] = await Promise.all([
+      activeTripQuery.get(),
+      listCompanyRouteStopsFromPostgres(companyId, routeId).catch(() => null),
+    ]);
+
+    if (!activeTripSnapshot.empty) {
+      throw new HttpError(412, "failed-precondition", "ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED");
+    }
+
+    if (routeStopsState?.routeExists) {
+      const routeData = routeStopsState.route ?? null;
+      if (!routeData) {
+        throw new HttpError(404, "not-found", "Route bulunamadi.");
+      }
+
+      const currentUpdatedAt = pickString(routeData, "updatedAt");
+      if (lastKnownUpdateToken && currentUpdatedAt && currentUpdatedAt !== lastKnownUpdateToken) {
+        throw new HttpError(412, "failed-precondition", "UPDATE_TOKEN_MISMATCH");
+      }
+
+      const stopItems = [...routeStopsState.items].sort((left, right) => {
+        if (left.order !== right.order) {
+          return left.order - right.order;
+        }
+        return (parseIsoToMs(right.updatedAt) ?? 0) - (parseIsoToMs(left.updatedAt) ?? 0);
+      });
+
+      const currentIndex = stopItems.findIndex((item) => item.stopId === stopId);
+      if (currentIndex < 0) {
+        throw new HttpError(404, "not-found", "Durak bulunamadi.");
+      }
+
+      const swapIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      if (swapIndex < 0 || swapIndex >= stopItems.length) {
+        return {
+          routeId,
+          updatedAt: currentUpdatedAt ?? nowIso,
+          changed: false,
+        };
+      }
+
+      const currentItem = stopItems[currentIndex];
+      const swapItem = stopItems[swapIndex];
+      if (!currentItem || !swapItem) {
+        throw new HttpError(500, "internal", "ROUTE_STOP_REORDER_STATE_INVALID");
+      }
+
+      const currentOrder = currentItem.order;
+      const swapOrder = swapItem.order;
+      currentItem.order = swapOrder;
+      currentItem.updatedAt = nowIso;
+      currentItem.updatedBy = actorUid;
+      swapItem.order = currentOrder;
+      swapItem.updatedAt = nowIso;
+      swapItem.updatedBy = actorUid;
+
+      await replaceCompanyRouteStopsForRoute(companyId, routeId, stopItems, nowIso);
+      await mirrorRouteStopReorderToFirestore(
+        db,
+        routeId,
+        [
+          {
+            stopId: currentItem.stopId,
+            order: currentItem.order,
+            updatedAt: nowIso,
+            updatedBy: actorUid,
+          },
+          {
+            stopId: swapItem.stopId,
+            order: swapItem.order,
+            updatedAt: nowIso,
+            updatedBy: actorUid,
+          },
+        ],
+        {
+          updatedAt: nowIso,
+          updatedBy: actorUid,
+        },
+      );
+
+      await writeRouteAuditEventSafe(db, {
+        companyId,
+        eventType: "route_stops_reordered",
+        actorUid,
+        routeId,
+        srvCode: pickString(routeData, "srvCode"),
+        metadata: {
+          companyId,
+          role: actorRole,
+          movedStopId: currentItem.stopId,
+          swappedWithStopId: swapItem.stopId,
+          direction,
+          routeMutationScope: "company_stop_reorder",
+        },
+      });
+
+      return {
+        routeId,
+        updatedAt: nowIso,
+        changed: true,
+      };
+    }
+  }
 
   const reordered = await db.runTransaction(async (transaction) => {
     const [companySnapshot, routeSnapshot] = await Promise.all([

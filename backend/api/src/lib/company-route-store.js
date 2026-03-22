@@ -108,6 +108,11 @@ function formatRouteRow(row) {
     passengerCount: normalizeInteger(row?.passenger_count) ?? 0,
     visibility: normalizeNullableText(row?.visibility),
     creationMode: normalizeNullableText(row?.creation_mode),
+    routePolyline: row?.route_polyline ?? null,
+    vacationUntil: normalizeIsoString(row?.vacation_until),
+    lastTripStartedNotificationAt: normalizeIsoString(row?.last_trip_started_notification_at),
+    createdBy: normalizeNullableText(row?.created_by),
+    updatedBy: normalizeNullableText(row?.updated_by),
     createdAt: normalizeIsoString(row?.created_at),
     updatedAt: normalizeIsoString(row?.updated_at),
     stopsSyncedAt: normalizeIsoString(row?.stops_synced_at),
@@ -133,6 +138,8 @@ function formatRouteStopRow(row) {
     name,
     location: { lat, lng },
     order: order ?? 0,
+    createdBy: normalizeNullableText(row?.created_by),
+    updatedBy: normalizeNullableText(row?.updated_by),
     createdAt: normalizeIsoString(row?.created_at),
     updatedAt: normalizeIsoString(row?.updated_at),
   };
@@ -425,6 +432,11 @@ export async function readCompanyRouteFromPostgres(companyId, routeId) {
         passenger_count,
         visibility,
         creation_mode,
+        route_polyline,
+        vacation_until,
+        last_trip_started_notification_at,
+        created_by,
+        updated_by,
         created_at,
         updated_at,
         stops_synced_at
@@ -474,6 +486,11 @@ export async function listCompanyRoutesFromPostgres(companyId, options = {}) {
         passenger_count,
         visibility,
         creation_mode,
+        route_polyline,
+        vacation_until,
+        last_trip_started_notification_at,
+        created_by,
+        updated_by,
         created_at,
         updated_at,
         stops_synced_at
@@ -510,6 +527,8 @@ export async function listCompanyRouteStopsFromPostgres(companyId, routeId) {
         lat,
         lng,
         stop_order,
+        created_by,
+        updated_by,
         created_at,
         updated_at
       FROM company_route_stops

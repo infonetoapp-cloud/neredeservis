@@ -308,6 +308,41 @@ export async function listCompanyVehiclesFromPostgres(companyId, limit) {
   return result.rows.map(formatVehicleRow).filter((item) => item !== null);
 }
 
+export async function readCompanyVehicleFromPostgres(companyId, vehicleId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return null;
+  }
+
+  const normalizedCompanyId = normalizeNullableText(companyId);
+  const normalizedVehicleId = normalizeNullableText(vehicleId);
+  if (!normalizedCompanyId || !normalizedVehicleId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        vehicle_id,
+        company_id,
+        plate,
+        status,
+        brand,
+        model,
+        year,
+        capacity,
+        created_at,
+        updated_at
+      FROM company_vehicles
+      WHERE company_id = $1 AND vehicle_id = $2
+      LIMIT 1
+    `,
+    [normalizedCompanyId, normalizedVehicleId],
+  );
+
+  return result.rows.map(formatVehicleRow).find((item) => item !== null) ?? null;
+}
+
 export async function replaceCompanyVehiclesForCompany(companyId, items, syncedAt) {
   const pool = getPostgresPool();
   if (!pool) {
