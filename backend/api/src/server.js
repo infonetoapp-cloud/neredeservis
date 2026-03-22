@@ -96,6 +96,11 @@ import {
   verifyPasswordResetCodeViaIdentityToolkit,
 } from "./lib/identity-toolkit.js";
 import {
+  readCurrentAuthBundle,
+  updateCurrentAuthConsent,
+  upsertCurrentDriverProfile,
+} from "./lib/current-auth-bundle.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -648,8 +653,16 @@ function isAuthProfilePath(pathname) {
   return pathname === "/api/auth/profile";
 }
 
+function isAuthConsentPath(pathname) {
+  return pathname === "/api/auth/consent";
+}
+
 function isDriverTripStartPath(pathname) {
   return pathname === "/api/driver/trips/start";
+}
+
+function isDriverProfilePath(pathname) {
+  return pathname === "/api/driver/profile";
 }
 
 function extractDriverTripFinishPathParams(pathname) {
@@ -949,8 +962,8 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && isAuthProfilePath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
-      const user = await readCurrentAuthProfile(db, decodedToken);
-      sendApiOk(response, 200, { user });
+      const result = await readCurrentAuthBundle(db, decodedToken);
+      sendApiOk(response, 200, result);
       return;
     }
 
@@ -958,6 +971,14 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await updateCurrentAuthProfile(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "PATCH" && isAuthConsentPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await updateCurrentAuthConsent(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }
@@ -982,6 +1003,14 @@ const server = createServer(async (request, response) => {
         uid: decodedToken.uid,
         ...(asRecord(body) ?? {}),
       });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "PATCH" && isDriverProfilePath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await upsertCurrentDriverProfile(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }
