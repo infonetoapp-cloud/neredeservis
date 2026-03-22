@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 
 import { listActiveTripsByCompany } from "./lib/company-active-trips.js";
+import { scheduleCurrentAuthAccountDeletion } from "./lib/account-delete.js";
 import { requireAuthenticatedUser } from "./lib/auth.js";
 import { readCurrentAuthProfile, updateCurrentAuthProfile } from "./lib/auth-profile.js";
 import {
@@ -699,6 +700,10 @@ function isAuthDeviceRegistrationPath(pathname) {
   return pathname === "/api/auth/device-registration";
 }
 
+function isAuthDeleteDataPath(pathname) {
+  return pathname === "/api/auth/delete-data";
+}
+
 function isPassengerRouteJoinPath(pathname) {
   return pathname === "/api/passenger/routes/join";
 }
@@ -1181,6 +1186,18 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const body = await readJsonBody(request);
       const result = await registerCurrentDriverDevice(db, decodedToken, asRecord(body) ?? {});
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthDeleteDataPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await scheduleCurrentAuthAccountDeletion(
+        db,
+        decodedToken,
+        asRecord(body) ?? {},
+      );
       sendApiOk(response, 200, result);
       return;
     }

@@ -507,6 +507,18 @@ export async function ensurePostgresAuthSchema() {
     CREATE INDEX IF NOT EXISTS support_reports_uid_created_idx
       ON support_reports (uid, created_at DESC);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS delete_requests (
+      uid TEXT PRIMARY KEY,
+      role TEXT NOT NULL DEFAULT 'guest',
+      requested_at TIMESTAMPTZ NOT NULL,
+      hard_delete_after TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      dry_run BOOLEAN NOT NULL DEFAULT FALSE,
+      subscription_status_at_request TEXT NOT NULL DEFAULT 'none',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
 
   return true;
 }
