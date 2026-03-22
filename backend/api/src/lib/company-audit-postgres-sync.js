@@ -51,7 +51,7 @@ async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
 }
 
 export async function syncCompanyAuditLogsFromFirestore(db, companyId, syncedAt, options = {}) {
-  if (!shouldUsePostgresCompanyAuditStore()) {
+  if (!shouldUsePostgresCompanyAuditStore() || !db?.collection) {
     return false;
   }
 

@@ -91,6 +91,10 @@ export function buildCompanyRouteStopProjection(stopId, routeId, companyId, stop
 }
 
 export async function backfillCompanyRecordFromFirestore(db, companyId) {
+  if (!db?.collection) {
+    return false;
+  }
+
   const companySnapshot = await db.collection("companies").doc(companyId).get();
   if (!companySnapshot.exists) {
     return false;
@@ -117,7 +121,7 @@ export async function backfillCompanyRecordFromFirestore(db, companyId) {
 }
 
 export async function syncCompanyRouteFromFirestore(db, companyId, routeId, syncedAt) {
-  if (!shouldUsePostgresCompanyRouteStore()) {
+  if (!shouldUsePostgresCompanyRouteStore() || !db?.collection) {
     return false;
   }
 
@@ -143,7 +147,7 @@ export async function syncCompanyRouteFromFirestore(db, companyId, routeId, sync
 }
 
 export async function syncCompanyRouteAndStopsFromFirestore(db, companyId, routeId, syncedAt) {
-  if (!shouldUsePostgresCompanyRouteStore()) {
+  if (!shouldUsePostgresCompanyRouteStore() || !db?.collection) {
     return false;
   }
 

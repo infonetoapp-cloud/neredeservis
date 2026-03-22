@@ -88,7 +88,7 @@ import {
 } from "./lib/company-logo-storage.js";
 import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
 import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
-import { getFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
+import { getOptionalFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import {
   confirmPasswordResetViaIdentityToolkit,
   registerWithEmailPasswordViaIdentityToolkit,
@@ -133,7 +133,7 @@ const serviceName = process.env.SERVICE_NAME?.trim() || "neredeservis-backend-ap
 const host = process.env.HOST?.trim() || "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 const startedAt = new Date();
-const db = getFirebaseAdminDb();
+const db = getOptionalFirebaseAdminDb();
 const liveOpsOnlineThresholdMs = Number.parseInt(
   process.env.LIVE_OPS_ONLINE_THRESHOLD_MS ?? "60000",
   10,

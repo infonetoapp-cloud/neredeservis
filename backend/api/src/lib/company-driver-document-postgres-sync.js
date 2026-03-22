@@ -27,6 +27,10 @@ function buildDriverDocumentProjection(companyId, documentData) {
 }
 
 async function backfillCompanyRecordFromFirestore(db, companyId) {
+  if (!db?.collection) {
+    return false;
+  }
+
   const companySnapshot = await db.collection("companies").doc(companyId).get();
   if (!companySnapshot.exists) {
     return false;
@@ -53,7 +57,7 @@ async function backfillCompanyRecordFromFirestore(db, companyId) {
 }
 
 export async function syncCompanyDriverDocumentsFromFirestore(db, companyId, syncedAt) {
-  if (!shouldUsePostgresCompanyDriverDocumentStore()) {
+  if (!shouldUsePostgresCompanyDriverDocumentStore() || !db?.collection) {
     return false;
   }
 
