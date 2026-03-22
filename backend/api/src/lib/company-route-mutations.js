@@ -491,6 +491,30 @@ async function mirrorRouteStopReorderToFirestore(db, routeId, stopUpdates, route
   }
 }
 
+async function deleteFirestoreRouteRefsBestEffort(db, refs, routeId) {
+  for (let index = 0; index < refs.length; index += 400) {
+    const batch = db.batch();
+    for (const ref of refs.slice(index, index + 400)) {
+      batch.delete(ref);
+    }
+    try {
+      await batch.commit();
+    } catch (error) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "firestore_route_delete_mirror_failed",
+          routeId,
+          message: error instanceof Error ? error.message : "unknown_error",
+        }),
+      );
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function writeRouteAuditEventSafe(db, input) {
   try {
     if (shouldUsePostgresCompanyRouteStore()) {
@@ -933,6 +957,9 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
   const routeId = normalizeId(rawInput.routeId, "routeId");
   const companyRef = db.collection("companies").doc(companyId);
   const routeRef = db.collection("routes").doc(routeId);
+  const postgresRoute = shouldUsePostgresCompanyRouteStore()
+    ? await readCompanyRouteFromPostgres(companyId, routeId).catch(() => null)
+    : null;
   const activeTripQuery = db
     .collection("trips")
     .where("routeId", "==", routeId)
@@ -947,10 +974,10 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
     anyTripQuery.get(),
   ]);
 
-  if (!companySnapshot.exists) {
+  if (!postgresRoute && !companySnapshot.exists) {
     throw new HttpError(404, "not-found", "Firma bulunamadi.");
   }
-  if (!routeSnapshot.exists) {
+  if (!postgresRoute && !routeSnapshot.exists) {
     throw new HttpError(404, "not-found", "Route bulunamadi.");
   }
   if (!activeTripSnapshot.empty) {
@@ -960,8 +987,10 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
     throw new HttpError(412, "failed-precondition", "ROUTE_HAS_TRIP_HISTORY_DELETE_FORBIDDEN");
   }
 
-  const routeData = asRecord(routeSnapshot.data()) ?? {};
-  assertCompanyRoute(routeData, companyId);
+  const routeData = postgresRoute ?? (asRecord(routeSnapshot.data()) ?? {});
+  if (!postgresRoute) {
+    assertCompanyRoute(routeData, companyId);
+  }
 
   const [
     stopsSnapshot,
@@ -1004,12 +1033,20 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
     routeRef,
   ];
 
-  for (let index = 0; index < refsToDelete.length; index += 400) {
-    const batch = db.batch();
-    for (const ref of refsToDelete.slice(index, index + 400)) {
-      batch.delete(ref);
+  if (postgresRoute) {
+    await deleteCompanyRouteFromPostgres(companyId, routeId);
+    await releaseReservedCompanyRouteSrvCode(pickString(routeData, "srvCode"), routeId).catch(
+      () => false,
+    );
+    await deleteFirestoreRouteRefsBestEffort(db, refsToDelete, routeId);
+  } else {
+    for (let index = 0; index < refsToDelete.length; index += 400) {
+      const batch = db.batch();
+      for (const ref of refsToDelete.slice(index, index + 400)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   await writeRouteAuditEventSafe(db, {
@@ -1025,7 +1062,7 @@ export async function deleteCompanyRoute(db, actorUid, actorRole, input) {
     },
   });
 
-  if (shouldUsePostgresCompanyRouteStore()) {
+  if (shouldUsePostgresCompanyRouteStore() && !postgresRoute) {
     await deleteCompanyRouteFromPostgres(companyId, routeId).catch(() => false);
     await releaseReservedCompanyRouteSrvCode(pickString(routeData, "srvCode"), routeId).catch(
       () => false,
