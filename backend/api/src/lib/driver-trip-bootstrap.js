@@ -1,4 +1,5 @@
 import { listCompanyRouteStops } from "./company-route-stops.js";
+import { readDriverLiveLocation } from "./driver-trip-runtime.js";
 import { getOptionalFirebaseAdminDb } from "./firebase-admin.js";
 import { HttpError } from "./http.js";
 import { loadDriverMyTrips } from "./driver-read-model.js";
@@ -76,6 +77,68 @@ async function readRoutePassengers(routeId) {
     return snapshot.docs.map((documentSnapshot) => ({
       passengerId: documentSnapshot.id,
       passengerData: serializeFirestoreValue(documentSnapshot.data()) ?? {},
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function readRouteSkipTodayPassengerIds(routeId, dateKey) {
+  const normalizedRouteId = readTrimmedString(routeId);
+  const normalizedDateKey = readTrimmedString(dateKey);
+  const db = getOptionalFirebaseAdminDb();
+  if (!db || !normalizedRouteId || !normalizedDateKey) {
+    return [];
+  }
+
+  try {
+    const snapshot = await db
+      .collection("routes")
+      .doc(normalizedRouteId)
+      .collection("skip_requests")
+      .where("dateKey", "==", normalizedDateKey)
+      .limit(300)
+      .get();
+
+    return Array.from(
+      new Set(
+        snapshot.docs
+          .map((documentSnapshot) => {
+            const data = documentSnapshot.data();
+            const passengerId = readTrimmedString(data?.passengerId);
+            if (passengerId) {
+              return passengerId;
+            }
+
+            const separatorIndex = documentSnapshot.id.indexOf("_");
+            return separatorIndex > 0 ? documentSnapshot.id.slice(0, separatorIndex).trim() : null;
+          })
+          .filter((item) => item),
+      ),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function readActiveGuestSessions(routeId) {
+  const normalizedRouteId = readTrimmedString(routeId);
+  const db = getOptionalFirebaseAdminDb();
+  if (!db || !normalizedRouteId) {
+    return [];
+  }
+
+  try {
+    const snapshot = await db
+      .collection("guest_sessions")
+      .where("routeId", "==", normalizedRouteId)
+      .where("status", "==", "active")
+      .limit(300)
+      .get();
+
+    return snapshot.docs.map((documentSnapshot) => ({
+      sessionId: documentSnapshot.id,
+      ...(serializeFirestoreValue(documentSnapshot.data()) ?? {}),
     }));
   } catch {
     return [];
@@ -172,5 +235,35 @@ export async function readDriverTripCompletedBootstrap(db, uid, { routeId, tripI
     stops: stopRows.map((item) => item.stopData),
     passengerCountFromRoutePassengersCollection: passengerRows.length,
     tripData: selectTripData(tripRows, normalizedRouteId, normalizedTripId),
+  };
+}
+
+export async function readDriverFinishTripSnapshot(db, uid, { routeId, tripId, dateKey }) {
+  const normalizedUid = readTrimmedString(uid);
+  const normalizedRouteId = readTrimmedString(routeId);
+  if (!normalizedUid || !normalizedRouteId) {
+    throw new HttpError(400, "invalid-argument", "Rota bilgisi gecersiz.");
+  }
+
+  const bootstrap = await readDriverTripDetailBootstrap(db, normalizedUid, {
+    routeId: normalizedRouteId,
+    tripId,
+  });
+
+  const [liveLocation, skipTodayPassengerIds, guestSessions] = await Promise.all([
+    readDriverLiveLocation({
+      uid: normalizedUid,
+      routeId: normalizedRouteId,
+    }).catch(() => null),
+    readRouteSkipTodayPassengerIds(normalizedRouteId, dateKey),
+    readActiveGuestSessions(normalizedRouteId),
+  ]);
+
+  return {
+    ...bootstrap,
+    skipTodayPassengerIds,
+    guestSessions,
+    liveLocation,
+    generatedAt: new Date().toISOString(),
   };
 }

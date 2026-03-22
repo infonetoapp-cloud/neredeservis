@@ -80,6 +80,7 @@ import {
   upsertDriverLiveLocation,
 } from "./lib/driver-trip-runtime.js";
 import {
+  readDriverFinishTripSnapshot,
   readDriverTripCompletedBootstrap,
   readDriverTripDetailBootstrap,
 } from "./lib/driver-trip-bootstrap.js";
@@ -852,6 +853,18 @@ function extractDriverTripCompletedPathParams(pathname) {
   }
 }
 
+function extractDriverFinishTripSnapshotPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/finish-trip-snapshot$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function extractDriverLiveLocationPathParams(pathname) {
   const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/live-location$/);
   if (!match) {
@@ -1405,6 +1418,20 @@ const server = createServer(async (request, response) => {
       const result = await readDriverTripCompletedBootstrap(db, decodedToken.uid, {
         routeId: driverTripCompletedParams.routeId,
         tripId: driverTripCompletedParams.tripId,
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const driverFinishTripSnapshotParams = extractDriverFinishTripSnapshotPathParams(
+      requestUrl.pathname,
+    );
+    if (driverFinishTripSnapshotParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await readDriverFinishTripSnapshot(db, decodedToken.uid, {
+        routeId: driverFinishTripSnapshotParams.routeId,
+        tripId: requestUrl.searchParams.get("tripId")?.trim() || null,
+        dateKey: requestUrl.searchParams.get("dateKey")?.trim() || null,
       });
       sendApiOk(response, 200, result);
       return;
