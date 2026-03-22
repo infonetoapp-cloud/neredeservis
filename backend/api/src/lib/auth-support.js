@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import { FieldValue } from "firebase-admin/firestore";
-
 import { HttpError } from "./http.js";
 import { readUserProfileByUid } from "./auth-user-store.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
@@ -465,7 +463,7 @@ export async function reportCorporateLoginResult(db, request, input) {
         firstFailureMs: nextState.firstFailureMs,
         lastFailureMs: nextState.lastFailureMs,
         lockUntilMs: nextState.lockUntilMs,
-        updatedAt: FieldValue.serverTimestamp(),
+        updatedAt: new Date().toISOString(),
       },
       { merge: true },
     );

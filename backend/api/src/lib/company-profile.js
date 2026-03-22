@@ -7,6 +7,10 @@ import { HttpError } from "./http.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     await db.collection("companies").doc(companyId).set(updates, { merge: true });
     return true;

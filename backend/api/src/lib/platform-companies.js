@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+
 import {
   findUserProfileByEmail,
   readUserProfileByUid,
@@ -137,6 +139,13 @@ async function resolveCompanyOwnerIdentity(companyRef, companyData) {
     }
   }
 
+  if (!companyRef?.collection) {
+    return {
+      ownerUid: null,
+      ownerEmail: pickString(companyData, "contactEmail"),
+    };
+  }
+
   const ownerQuerySnapshot = await companyRef.collection("members").where("role", "==", "owner").limit(1).get();
   const ownerMemberSnapshot = ownerQuerySnapshot.docs[0] ?? null;
   if (!ownerMemberSnapshot) {
@@ -230,6 +239,10 @@ function normalizeIsoString(value) {
 }
 
 async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     await db.collection("companies").doc(companyId).set(updates, { merge: true });
     return true;
@@ -247,6 +260,10 @@ async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) 
 }
 
 async function mirrorCreatedPlatformCompanyToFirestore(db, input) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     const companyRef = db.collection("companies").doc(input.companyId);
@@ -496,6 +513,7 @@ async function deletePlatformCompanyFromPostgres(companyId) {
       [companyId],
     );
     await client.query(`DELETE FROM company_active_trips WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM driver_location_history WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_audit_logs WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_invites WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_driver_documents WHERE company_id = $1`, [companyId]);
@@ -517,6 +535,10 @@ async function deletePlatformCompanyFromPostgres(companyId) {
 }
 
 async function deleteDocumentRefs(db, documentRefs) {
+  if (!db?.batch) {
+    return;
+  }
+
   const batchSize = 400;
   for (let index = 0; index < documentRefs.length; index += batchSize) {
     const slice = documentRefs.slice(index, index + batchSize);
@@ -529,6 +551,10 @@ async function deleteDocumentRefs(db, documentRefs) {
 }
 
 async function deleteQueryByField(db, collectionName, fieldName, values) {
+  if (!db?.collection) {
+    return;
+  }
+
   const refs = [];
   for (const value of values) {
     const snapshot = await db.collection(collectionName).where(fieldName, "==", value).get();
@@ -705,7 +731,7 @@ export async function createPlatformCompany(db, actorUid, input) {
     .slice(0, 24);
 
   if (isPostgresConfigured()) {
-    companyId = db.collection("companies").doc().id;
+    companyId = db?.collection?.("companies")?.doc?.().id ?? randomUUID();
     const auditLog = stageCompanyAuditLogWrite(db, null, {
       companyId,
       actorUid,
@@ -839,8 +865,8 @@ export async function setPlatformCompanyVehicleLimit(db, input) {
     ? await readCompanyFromPostgres(companyId).catch(() => null)
     : null;
 
-  const companyRef = db.collection("companies").doc(companyId);
-  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
+  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
   if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
@@ -913,11 +939,11 @@ export async function setPlatformCompanyStatus(db, input) {
   }
 
   const nowIso = new Date().toISOString();
-  const companyRef = db.collection("companies").doc(companyId);
+  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
   const postgresCompany = isPostgresConfigured()
     ? await readCompanyFromPostgres(companyId).catch(() => null)
     : null;
-  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
   if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
@@ -984,11 +1010,11 @@ export async function setPlatformCompanyStatus(db, input) {
 
 export async function resetPlatformCompanyOwnerPassword(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  const companyRef = db.collection("companies").doc(companyId);
+  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
   const postgresCompany = isPostgresConfigured()
     ? await readCompanyFromPostgres(companyId).catch(() => null)
     : null;
-  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
   if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
@@ -1013,11 +1039,11 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
 
 export async function deletePlatformCompany(db, rtdb, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  const companyRef = db.collection("companies").doc(companyId);
+  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
   const usePostgres = isPostgresConfigured();
   const [postgresState, companySnapshot] = await Promise.all([
     usePostgres ? readPlatformCompanyDeleteStateFromPostgres(companyId).catch(() => null) : null,
-    db.collection("companies").doc(companyId).get().catch(() => null),
+    companyRef ? companyRef.get().catch(() => null) : null,
   ]);
   if (!postgresState && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");

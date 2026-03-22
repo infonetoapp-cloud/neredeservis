@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   backfillCompanyFromFirestoreRecord,
@@ -169,6 +169,10 @@ function normalizeContactField(rawValue, options = {}) {
 }
 
 async function mirrorCreatedCompanyToFirestore(db, input) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     const companyRef = db.collection("companies").doc(input.companyId);
@@ -270,7 +274,7 @@ export async function createCompany(db, uid, input) {
   const nowIso = new Date().toISOString();
 
   if (shouldUsePostgresCompanyStore()) {
-    const companyId = db.collection("companies").doc().id;
+    const companyId = db?.collection?.("companies")?.doc?.().id ?? randomUUID();
     const auditLog = stageCompanyAuditLogWrite(db, null, {
       companyId,
       actorUid: uid,

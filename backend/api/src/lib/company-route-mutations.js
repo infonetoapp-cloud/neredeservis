@@ -365,6 +365,10 @@ function assertCompanyRoute(routeData, companyId) {
 }
 
 async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, nowIso, routeData) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     batch.set(
@@ -401,6 +405,10 @@ async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, now
 }
 
 async function mirrorRoutePatchToFirestore(db, routeId, patchPayload) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     await db.collection("routes").doc(routeId).set(patchPayload, { merge: true });
     return true;
@@ -418,6 +426,10 @@ async function mirrorRoutePatchToFirestore(db, routeId, patchPayload) {
 }
 
 async function mirrorRouteStopUpsertToFirestore(db, routeId, stopId, stopData, routePatch) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
@@ -441,6 +453,10 @@ async function mirrorRouteStopUpsertToFirestore(db, routeId, stopId, stopData, r
 }
 
 async function mirrorRouteStopDeleteToFirestore(db, routeId, stopId, routePatch) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
@@ -462,6 +478,10 @@ async function mirrorRouteStopDeleteToFirestore(db, routeId, stopId, routePatch)
 }
 
 async function mirrorRouteStopReorderToFirestore(db, routeId, stopUpdates, routePatch) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
@@ -492,6 +512,10 @@ async function mirrorRouteStopReorderToFirestore(db, routeId, stopUpdates, route
 }
 
 async function deleteFirestoreRouteRefsBestEffort(db, refs, routeId) {
+  if (!db?.batch) {
+    return;
+  }
+
   for (let index = 0; index < refs.length; index += 400) {
     const batch = db.batch();
     for (const ref of refs.slice(index, index + 400)) {

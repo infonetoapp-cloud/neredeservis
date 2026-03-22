@@ -1,5 +1,3 @@
-import { FieldValue } from "firebase-admin/firestore";
-
 import { upsertAuthUserProfile } from "./auth-user-store.js";
 import {
   syncCompanyRouteFromFirestore,
@@ -149,6 +147,18 @@ function generateLoginEmail(name) {
   return `${slug}.${suffix}@neredeservis.app`;
 }
 
+function appendUniqueString(items, value) {
+  const nextItems = Array.isArray(items) ? items.filter((item) => typeof item === "string") : [];
+  if (!nextItems.includes(value)) {
+    nextItems.push(value);
+  }
+  return nextItems;
+}
+
+function removeString(items, value) {
+  return (Array.isArray(items) ? items : []).filter((item) => item !== value);
+}
+
 async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
   if (!companySnapshot?.exists) {
     return false;
@@ -174,6 +184,10 @@ async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
 }
 
 async function mirrorDriverToFirestore(db, driverId, driverData) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     await db.collection("drivers").doc(driverId).set(driverData, { merge: true });
     return true;
@@ -191,6 +205,10 @@ async function mirrorDriverToFirestore(db, driverId, driverData) {
 }
 
 async function mirrorRoutePatchToFirestore(db, routeId, patch) {
+  if (!db?.collection) {
+    return false;
+  }
+
   try {
     await db.collection("routes").doc(routeId).set(patch, { merge: true });
     return true;
@@ -421,7 +439,7 @@ export async function assignCompanyDriverToRoute(db, actorUid, input) {
   }
 
   const updatePatch = {
-    authorizedDriverIds: FieldValue.arrayUnion(driverId),
+    authorizedDriverIds: appendUniqueString(pickStringArray(routeData, "authorizedDriverIds"), driverId),
     updatedAt: new Date().toISOString(),
     updatedBy: actorUid,
     ...(pickString(routeData, "driverId") ? {} : { driverId }),
@@ -474,7 +492,7 @@ export async function unassignCompanyDriverFromRoute(db, actorUid, input) {
 
   const currentPrimaryDriverId = pickString(routeData, "driverId");
   const updatePatch = {
-    authorizedDriverIds: FieldValue.arrayRemove(driverId),
+    authorizedDriverIds: removeString(pickStringArray(routeData, "authorizedDriverIds"), driverId),
     updatedAt: new Date().toISOString(),
     updatedBy: actorUid,
     ...(currentPrimaryDriverId === driverId ? { driverId: null } : {}),

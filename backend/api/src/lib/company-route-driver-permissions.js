@@ -124,6 +124,10 @@ function normalizePermissionKeys(rawValue) {
 }
 
 async function mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     batch.set(db.collection("routes").doc(routeId), routePatch, { merge: true });
@@ -149,6 +153,10 @@ async function mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, rou
 }
 
 async function mirrorRoutePermissionRevokeToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
+  if (!db?.batch) {
+    return false;
+  }
+
   try {
     const batch = db.batch();
     if (routePatch) {
