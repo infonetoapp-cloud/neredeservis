@@ -1,13 +1,10 @@
 import {
   replaceCompanyActiveTripsForCompany,
-  isCompanyActiveTripsFreshInPostgres,
   listCompanyActiveTripsFromPostgres,
   shouldUsePostgresCompanyActiveTripStore,
 } from "./company-active-trip-store.js";
 import { backfillCompanyFromFirestoreRecord } from "./company-membership-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
-
-const COMPANY_ACTIVE_TRIPS_CACHE_MAX_AGE_MS = 15_000;
 
 function pickFiniteNumber(record, key) {
   const value = record?.[key];
@@ -225,19 +222,13 @@ export async function listActiveTripsByCompany(db, rtdb, input) {
   const driverFilterUid = input.driverUid ?? null;
 
   if (shouldUsePostgresCompanyActiveTripStore()) {
-    const tripsFresh = await isCompanyActiveTripsFreshInPostgres(
-      input.companyId,
-      COMPANY_ACTIVE_TRIPS_CACHE_MAX_AGE_MS,
-    ).catch(() => false);
-    if (tripsFresh) {
-      const items = await listCompanyActiveTripsFromPostgres(input.companyId, {
-        limit,
-        routeId: routeFilterId,
-        driverUid: driverFilterUid,
-      }).catch(() => null);
-      if (items) {
-        return { items };
-      }
+    const items = await listCompanyActiveTripsFromPostgres(input.companyId, {
+      limit,
+      routeId: routeFilterId,
+      driverUid: driverFilterUid,
+    }).catch(() => null);
+    if (items) {
+      return { items };
     }
   }
 

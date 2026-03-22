@@ -71,6 +71,15 @@ import {
   updateCompanyVehicle,
 } from "./lib/company-vehicles.js";
 import {
+  appendDriverLocationHistory,
+  finishDriverTrip,
+  readDriverLiveLocation,
+  readDriverRouteTransitionVersion,
+  resolveDriverActiveTripContext,
+  startDriverTrip,
+  upsertDriverLiveLocation,
+} from "./lib/driver-trip-runtime.js";
+import {
   cleanupStoredCompanyLogos,
   readCompanyLogoMedia,
   removeStoredCompanyLogo,
@@ -639,6 +648,50 @@ function isAuthProfilePath(pathname) {
   return pathname === "/api/auth/profile";
 }
 
+function isDriverTripStartPath(pathname) {
+  return pathname === "/api/driver/trips/start";
+}
+
+function extractDriverTripFinishPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/trips\/([^/]+)\/finish$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { tripId: decodeURIComponent(match[1]) };
+  } catch {
+    return { tripId: match[1] };
+  }
+}
+
+function isDriverActiveTripContextPath(pathname) {
+  return pathname === "/api/driver/active-trip-context";
+}
+
+function extractDriverLiveLocationPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/live-location$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
+function extractDriverLocationHistoryPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/location-history$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function isPlatformLandingConfigPath(pathname) {
   return pathname === "/api/platform/landing-config";
 }
@@ -918,6 +971,97 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && isAuthWebAccessPolicyPath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
       const result = await getCurrentUserWebAccessPolicy(db, decodedToken.uid);
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isDriverTripStartPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await startDriverTrip({
+        uid: decodedToken.uid,
+        ...(asRecord(body) ?? {}),
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const driverTripFinishParams = extractDriverTripFinishPathParams(requestUrl.pathname);
+    if (driverTripFinishParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await finishDriverTrip({
+        uid: decodedToken.uid,
+        tripId: driverTripFinishParams.tripId,
+        ...(asRecord(body) ?? {}),
+      });
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "GET" && isDriverActiveTripContextPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const routeId = requestUrl.searchParams.get("routeId");
+      const tripId = requestUrl.searchParams.get("tripId");
+      const context = await resolveDriverActiveTripContext({
+        uid: decodedToken.uid,
+        routeId,
+        tripId,
+      });
+      const transition = routeId
+        ? await readDriverRouteTransitionVersion({
+            uid: decodedToken.uid,
+            routeId,
+          })
+        : {
+            routeId: context?.routeId ?? null,
+            tripId: context?.tripId ?? null,
+            transitionVersion: context?.transitionVersion ?? 0,
+          };
+      sendApiOk(response, 200, {
+        trip: context,
+        transitionVersion: transition.transitionVersion,
+      });
+      return;
+    }
+
+    const driverLiveLocationParams = extractDriverLiveLocationPathParams(requestUrl.pathname);
+    if (driverLiveLocationParams && request.method === "GET") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const result = await readDriverLiveLocation({
+        uid: decodedToken.uid,
+        routeId: driverLiveLocationParams.routeId,
+      });
+      sendApiOk(response, 200, { liveLocation: result });
+      return;
+    }
+
+    if (driverLiveLocationParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await upsertDriverLiveLocation(
+        {
+          uid: decodedToken.uid,
+          routeId: driverLiveLocationParams.routeId,
+          ...(asRecord(body) ?? {}),
+        },
+        {
+          liveOpsOnlineThresholdMs,
+        },
+      );
+      sendApiOk(response, 200, result);
+      return;
+    }
+
+    const driverLocationHistoryParams = extractDriverLocationHistoryPathParams(requestUrl.pathname);
+    if (driverLocationHistoryParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await appendDriverLocationHistory({
+        uid: decodedToken.uid,
+        routeId: driverLocationHistoryParams.routeId,
+        ...(asRecord(body) ?? {}),
+      });
       sendApiOk(response, 200, result);
       return;
     }

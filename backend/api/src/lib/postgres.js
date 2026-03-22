@@ -372,6 +372,11 @@ export async function ensurePostgresAuthSchema() {
     );
   `);
   await pool.query(`
+    ALTER TABLE company_active_trips
+      ADD COLUMN IF NOT EXISTS started_by_device_id TEXT NULL,
+      ADD COLUMN IF NOT EXISTS transition_version INTEGER NOT NULL DEFAULT 0;
+  `);
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS company_active_trips_company_synced_idx
       ON company_active_trips (company_id, synced_at DESC);
   `);
@@ -382,6 +387,57 @@ export async function ensurePostgresAuthSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS company_active_trips_company_driver_idx
       ON company_active_trips (company_id, driver_uid);
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS company_active_trips_route_unique_idx
+      ON company_active_trips (route_id);
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS company_active_trips_driver_unique_idx
+      ON company_active_trips (driver_uid);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS driver_trip_requests (
+      request_id TEXT PRIMARY KEY,
+      uid TEXT NOT NULL,
+      request_type TEXT NOT NULL,
+      trip_id TEXT NOT NULL,
+      response_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+      expires_at TIMESTAMPTZ NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS driver_trip_requests_uid_type_idx
+      ON driver_trip_requests (uid, request_type, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS driver_location_history (
+      sample_id BIGSERIAL PRIMARY KEY,
+      route_id TEXT NOT NULL,
+      company_id TEXT NOT NULL,
+      driver_uid TEXT NOT NULL,
+      trip_id TEXT NULL,
+      lat DOUBLE PRECISION NOT NULL,
+      lng DOUBLE PRECISION NOT NULL,
+      accuracy DOUBLE PRECISION NOT NULL,
+      speed DOUBLE PRECISION NULL,
+      heading DOUBLE PRECISION NULL,
+      sampled_at_ms BIGINT NOT NULL,
+      sampled_at TIMESTAMPTZ NOT NULL,
+      recorded_at_ms BIGINT NOT NULL,
+      recorded_at TIMESTAMPTZ NOT NULL,
+      source TEXT NOT NULL DEFAULT 'offline_replay'
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS driver_location_history_route_sampled_idx
+      ON driver_location_history (route_id, sampled_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS driver_location_history_company_driver_idx
+      ON driver_location_history (company_id, driver_uid, sampled_at DESC);
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS route_preview_rate_limits (
