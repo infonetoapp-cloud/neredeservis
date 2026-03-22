@@ -6,6 +6,23 @@ import {
 import { HttpError } from "./http.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
+async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
+  try {
+    await db.collection("companies").doc(companyId).set(updates, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "firestore_company_profile_mirror_failed",
+        companyId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
 export async function getCompanyProfile(db, companyId) {
   if (shouldUsePostgresCompanyStore()) {
     const company = await readCompanyFromPostgres(companyId);
@@ -61,12 +78,34 @@ export async function getCompanyProfile(db, companyId) {
 }
 
 export async function updateCompanyProfile(db, input) {
-  const companySnapshot = await db.collection("companies").doc(input.companyId).get();
-  if (!companySnapshot.exists) {
+  const postgresCompany = shouldUsePostgresCompanyStore()
+    ? await readCompanyFromPostgres(input.companyId).catch(() => null)
+    : null;
+  const companySnapshot = postgresCompany
+    ? null
+    : await db.collection("companies").doc(input.companyId).get();
+  if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const data = asRecord(companySnapshot.data()) ?? {};
+  const data = postgresCompany
+    ? {
+        name: postgresCompany.name,
+        logoUrl: postgresCompany.logoUrl,
+        contactEmail: postgresCompany.contactEmail,
+        contactPhone: postgresCompany.contactPhone,
+        address: postgresCompany.address,
+        timezone: postgresCompany.timezone,
+        countryCode: postgresCompany.countryCode,
+        status: postgresCompany.status,
+        vehicleLimit: postgresCompany.vehicleLimit,
+        legalName: postgresCompany.legalName,
+        billingStatus: postgresCompany.billingStatus,
+        createdBy: postgresCompany.createdBy,
+        createdAt: postgresCompany.createdAt,
+        updatedAt: postgresCompany.updatedAt,
+      }
+    : asRecord(companySnapshot.data()) ?? {};
   const updates = {};
   const changedFields = [];
 
@@ -105,8 +144,6 @@ export async function updateCompanyProfile(db, input) {
   const updatedAt = new Date().toISOString();
   updates.updatedAt = updatedAt;
 
-  await db.collection("companies").doc(input.companyId).update(updates);
-
   if (shouldUsePostgresCompanyStore()) {
     const nextData = {
       ...data,
@@ -129,6 +166,10 @@ export async function updateCompanyProfile(db, input) {
       createdAt: pickString(nextData, "createdAt"),
       updatedAt,
     }).catch(() => false);
+
+    await mirrorCompanyPatchToFirestore(db, input.companyId, updates);
+  } else {
+    await db.collection("companies").doc(input.companyId).update(updates);
   }
 
   return {

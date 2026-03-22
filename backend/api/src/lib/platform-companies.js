@@ -152,6 +152,23 @@ function normalizeIsoString(value) {
   return null;
 }
 
+async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) {
+  try {
+    await db.collection("companies").doc(companyId).set(updates, { merge: true });
+    return true;
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: eventName,
+        companyId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      }),
+    );
+    return false;
+  }
+}
+
 async function listPlatformCompaniesFromPostgres() {
   const pool = getPostgresPool();
   if (!pool) {
@@ -603,20 +620,34 @@ export async function setPlatformCompanyVehicleLimit(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   const vehicleLimit = normalizeVehicleLimit(input?.vehicleLimit);
   const nowIso = new Date().toISOString();
+  const postgresCompany = isPostgresConfigured()
+    ? await readCompanyFromPostgres(companyId).catch(() => null)
+    : null;
 
   const companyRef = db.collection("companies").doc(companyId);
-  const companySnapshot = await companyRef.get();
-  if (!companySnapshot.exists) {
+  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  await companyRef.update({
-    vehicleLimit,
-    updatedAt: nowIso,
-  });
-
   if (isPostgresConfigured()) {
-    const companyData = asRecord(companySnapshot.data()) ?? {};
+    const companyData = postgresCompany
+      ? {
+          name: postgresCompany.name,
+          legalName: postgresCompany.legalName,
+          status: postgresCompany.status,
+          billingStatus: postgresCompany.billingStatus,
+          billingValidUntil: postgresCompany.billingValidUntil,
+          timezone: postgresCompany.timezone,
+          countryCode: postgresCompany.countryCode,
+          contactPhone: postgresCompany.contactPhone,
+          contactEmail: postgresCompany.contactEmail,
+          logoUrl: postgresCompany.logoUrl,
+          address: postgresCompany.address,
+          createdBy: postgresCompany.createdBy,
+          createdAt: postgresCompany.createdAt,
+        }
+      : asRecord(companySnapshot.data()) ?? {};
     await backfillCompanyFromFirestoreRecord({
       companyId,
       name: pickString(companyData, "name"),
@@ -635,6 +666,21 @@ export async function setPlatformCompanyVehicleLimit(db, input) {
       createdAt: pickString(companyData, "createdAt"),
       updatedAt: nowIso,
     }).catch(() => false);
+
+    await mirrorCompanyPatchToFirestore(
+      db,
+      companyId,
+      {
+        vehicleLimit,
+        updatedAt: nowIso,
+      },
+      "firestore_platform_vehicle_limit_mirror_failed",
+    );
+  } else {
+    await companyRef.update({
+      vehicleLimit,
+      updatedAt: nowIso,
+    });
   }
 
   return {
@@ -653,18 +699,32 @@ export async function setPlatformCompanyStatus(db, input) {
 
   const nowIso = new Date().toISOString();
   const companyRef = db.collection("companies").doc(companyId);
-  const companySnapshot = await companyRef.get();
-  if (!companySnapshot.exists) {
+  const postgresCompany = isPostgresConfigured()
+    ? await readCompanyFromPostgres(companyId).catch(() => null)
+    : null;
+  const companySnapshot = postgresCompany ? null : await companyRef.get();
+  if (!postgresCompany && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  await companyRef.update({
-    status: rawStatus,
-    updatedAt: nowIso,
-  });
-
   if (isPostgresConfigured()) {
-    const companyData = asRecord(companySnapshot.data()) ?? {};
+    const companyData = postgresCompany
+      ? {
+          name: postgresCompany.name,
+          legalName: postgresCompany.legalName,
+          billingStatus: postgresCompany.billingStatus,
+          billingValidUntil: postgresCompany.billingValidUntil,
+          timezone: postgresCompany.timezone,
+          countryCode: postgresCompany.countryCode,
+          contactPhone: postgresCompany.contactPhone,
+          contactEmail: postgresCompany.contactEmail,
+          logoUrl: postgresCompany.logoUrl,
+          address: postgresCompany.address,
+          vehicleLimit: postgresCompany.vehicleLimit,
+          createdBy: postgresCompany.createdBy,
+          createdAt: postgresCompany.createdAt,
+        }
+      : asRecord(companySnapshot.data()) ?? {};
     await backfillCompanyFromFirestoreRecord({
       companyId,
       name: pickString(companyData, "name"),
@@ -683,6 +743,21 @@ export async function setPlatformCompanyStatus(db, input) {
       createdAt: pickString(companyData, "createdAt"),
       updatedAt: nowIso,
     }).catch(() => false);
+
+    await mirrorCompanyPatchToFirestore(
+      db,
+      companyId,
+      {
+        status: rawStatus,
+        updatedAt: nowIso,
+      },
+      "firestore_platform_company_status_mirror_failed",
+    );
+  } else {
+    await companyRef.update({
+      status: rawStatus,
+      updatedAt: nowIso,
+    });
   }
 
   return {
