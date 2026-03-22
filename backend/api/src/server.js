@@ -124,6 +124,10 @@ import {
   readPrimaryPassengerMembership,
 } from "./lib/passenger-read-model.js";
 import {
+  readGuestTrackingSnapshot,
+  readPassengerTrackingSnapshot,
+} from "./lib/passenger-tracking.js";
+import {
   generateRouteShareLink,
   getDynamicRoutePreview,
 } from "./lib/route-share-preview.js";
@@ -692,6 +696,19 @@ function isPassengerMembershipPath(pathname) {
   return pathname === "/api/passenger/membership";
 }
 
+function extractPassengerTrackingPathParams(pathname) {
+  const match = pathname.match(/^\/api\/passenger\/routes\/([^/]+)\/tracking$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function isPassengerTripHistoryPath(pathname) {
   return pathname === "/api/passenger/trip-history";
 }
@@ -710,6 +727,19 @@ function isPassengerSkipTodayPath(pathname) {
 
 function isGuestSessionsPath(pathname) {
   return pathname === "/api/guest-sessions";
+}
+
+function extractGuestSessionTrackingPathParams(pathname) {
+  const match = pathname.match(/^\/api\/guest-sessions\/([^/]+)\/tracking$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return { sessionId: decodeURIComponent(match[1]) };
+  } catch {
+    return { sessionId: match[1] };
+  }
 }
 
 function isTripConversationOpenPath(pathname) {
@@ -1105,6 +1135,18 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const passengerTrackingParams = extractPassengerTrackingPathParams(requestUrl.pathname);
+    if (request.method === "GET" && passengerTrackingParams) {
+      const decodedToken = await requireAuthenticatedUser(request, { allowAnonymous: true });
+      const snapshot = await readPassengerTrackingSnapshot(
+        db,
+        decodedToken.uid,
+        passengerTrackingParams.routeId,
+      );
+      sendApiOk(response, 200, snapshot);
+      return;
+    }
+
     if (request.method === "GET" && isPassengerTripHistoryPath(requestUrl.pathname)) {
       const decodedToken = await requireAuthenticatedUser(request);
       const result = await loadPassengerTripHistory(db, decodedToken.uid);
@@ -1148,6 +1190,18 @@ const server = createServer(async (request, response) => {
         guestSessionTtlMinutesDefault,
       });
       sendApiOk(response, 200, result);
+      return;
+    }
+
+    const guestSessionTrackingParams = extractGuestSessionTrackingPathParams(requestUrl.pathname);
+    if (request.method === "GET" && guestSessionTrackingParams) {
+      const decodedToken = await requireAuthenticatedUser(request, { allowAnonymous: true });
+      const snapshot = await readGuestTrackingSnapshot(
+        db,
+        decodedToken.uid,
+        guestSessionTrackingParams.sessionId,
+      );
+      sendApiOk(response, 200, snapshot);
       return;
     }
 
