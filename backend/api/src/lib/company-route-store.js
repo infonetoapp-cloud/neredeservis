@@ -756,13 +756,51 @@ export async function deleteCompanyRouteFromPostgres(companyId, routeId) {
     return false;
   }
 
-  await pool.query(
-    `
-      DELETE FROM company_routes
-      WHERE company_id = $1 AND route_id = $2
-    `,
-    [normalizedCompanyId, normalizedRouteId],
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `
+        DELETE FROM route_srv_code_reservations
+        WHERE route_id = $1
+      `,
+      [normalizedRouteId],
+    );
+    await client.query(
+      `
+        DELETE FROM route_share_audit_events
+        WHERE route_id = $1
+      `,
+      [normalizedRouteId],
+    );
+    await client.query(
+      `
+        DELETE FROM driver_location_history
+        WHERE company_id = $1 AND route_id = $2
+      `,
+      [normalizedCompanyId, normalizedRouteId],
+    );
+    await client.query(
+      `
+        DELETE FROM company_active_trips
+        WHERE company_id = $1 AND route_id = $2
+      `,
+      [normalizedCompanyId, normalizedRouteId],
+    );
+    await client.query(
+      `
+        DELETE FROM company_routes
+        WHERE company_id = $1 AND route_id = $2
+      `,
+      [normalizedCompanyId, normalizedRouteId],
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => null);
+    throw error;
+  } finally {
+    client.release();
+  }
 
   return true;
 }
