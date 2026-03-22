@@ -78,6 +78,9 @@ function toUserProfile(record) {
     updatedAt: pickString(userRecord, "updatedAt"),
     deletedAt: pickString(userRecord, "deletedAt"),
     role: pickString(userRecord, "role"),
+    phone: pickString(userRecord, "phone"),
+    photoUrl: pickString(userRecord, "photoUrl"),
+    photoPath: pickString(userRecord, "photoPath"),
     mobileOnlyAuth: userRecord.mobileOnlyAuth === true,
     webPanelAccess:
       typeof userRecord.webPanelAccess === "boolean" ? userRecord.webPanelAccess : null,

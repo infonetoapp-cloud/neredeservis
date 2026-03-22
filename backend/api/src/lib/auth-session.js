@@ -222,6 +222,10 @@ export async function readCurrentAuthSessionUser(subject) {
   if (subject && typeof subject === "object" && !Array.isArray(subject)) {
     const uid = typeof subject.uid === "string" ? subject.uid.trim() : "";
     if (uid) {
+      const role = typeof subject.role === "string" ? subject.role.trim() : "";
+      const phone = typeof subject.phone === "string" ? subject.phone.trim() : "";
+      const photoUrl = typeof subject.photoUrl === "string" ? subject.photoUrl.trim() : "";
+      const photoPath = typeof subject.photoPath === "string" ? subject.photoPath.trim() : "";
       return {
         uid,
         email: typeof subject.email === "string" ? subject.email : null,
@@ -239,6 +243,13 @@ export async function readCurrentAuthSessionUser(subject) {
               })
               .filter(Boolean)
           : [],
+        role: role || null,
+        phone: phone || null,
+        photoUrl: photoUrl || null,
+        photoPath: photoPath || null,
+        mobileOnlyAuth: subject.mobileOnlyAuth === true,
+        webPanelAccess:
+          typeof subject.webPanelAccess === "boolean" ? subject.webPanelAccess : null,
       };
     }
   }

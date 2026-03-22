@@ -24,6 +24,8 @@ function normalizeAuthSubject(subject, profile) {
   const uid = requireUid(subject);
   const providerData =
     subject && typeof subject === "object" && !Array.isArray(subject) ? subject.providerData : [];
+  const subjectRecord =
+    subject && typeof subject === "object" && !Array.isArray(subject) ? subject : null;
 
   return {
     uid,
@@ -38,6 +40,24 @@ function normalizeAuthSubject(subject, profile) {
     providerData: Array.isArray(providerData) ? providerData : [],
     signInProvider:
       typeof subject?.signInProvider === "string" ? subject.signInProvider : profile?.signInProvider ?? null,
+    role:
+      profile?.role ?? (typeof subjectRecord?.role === "string" ? subjectRecord.role : null),
+    phone:
+      profile?.phone ?? (typeof subjectRecord?.phone === "string" ? subjectRecord.phone : null),
+    photoUrl:
+      profile?.photoUrl ??
+      (typeof subjectRecord?.photoUrl === "string" ? subjectRecord.photoUrl : null),
+    photoPath:
+      profile?.photoPath ??
+      (typeof subjectRecord?.photoPath === "string" ? subjectRecord.photoPath : null),
+    mobileOnlyAuth:
+      profile?.mobileOnlyAuth === true || subjectRecord?.mobileOnlyAuth === true,
+    webPanelAccess:
+      typeof profile?.webPanelAccess === "boolean"
+        ? profile.webPanelAccess
+        : typeof subjectRecord?.webPanelAccess === "boolean"
+          ? subjectRecord.webPanelAccess
+          : null,
   };
 }
 
@@ -72,13 +92,74 @@ function normalizeDisplayName(rawValue) {
   return normalized;
 }
 
+function normalizeOptionalText(rawValue, fieldLabel, maxLength = 512) {
+  if (rawValue === undefined) {
+    return undefined;
+  }
+  if (rawValue === null) {
+    return null;
+  }
+  if (typeof rawValue !== "string") {
+    throw new HttpError(400, "invalid-argument", `${fieldLabel} gecersiz.`);
+  }
+
+  const normalized = rawValue.trim();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.length > maxLength) {
+    throw new HttpError(400, "invalid-argument", `${fieldLabel} cok uzun.`);
+  }
+
+  return normalized;
+}
+
+function normalizePreferredRole(rawValue) {
+  if (rawValue === undefined) {
+    return undefined;
+  }
+  if (rawValue === null) {
+    return null;
+  }
+  if (typeof rawValue !== "string") {
+    throw new HttpError(400, "invalid-argument", "Rol bilgisi gecersiz.");
+  }
+
+  const normalized = rawValue.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "driver" || normalized === "passenger" || normalized === "guest") {
+    return normalized;
+  }
+
+  throw new HttpError(400, "invalid-argument", "Rol bilgisi gecersiz.");
+}
+
 export async function updateCurrentAuthProfile(db, subject, input) {
   const uid = requireUid(subject);
   const displayName = normalizeDisplayName(input?.displayName);
+  const phone = normalizeOptionalText(input?.phone, "Telefon", 32);
+  const photoUrl = normalizeOptionalText(input?.photoUrl, "Profil fotografi adresi", 2048);
+  const photoPath = normalizeOptionalText(input?.photoPath, "Profil fotografi yolu", 1024);
+  const preferredRole = normalizePreferredRole(input?.preferredRole);
   const nowIso = new Date().toISOString();
   const existingProfile = await readUserProfileByUid(db, uid);
   const nextSubject = normalizeAuthSubject(subject, existingProfile);
   nextSubject.displayName = displayName;
+  const resolvedRole = preferredRole ?? nextSubject.role ?? existingProfile?.role ?? null;
+  if (resolvedRole) {
+    nextSubject.role = resolvedRole;
+  }
+  if (phone !== undefined) {
+    nextSubject.phone = phone;
+  }
+  if (photoUrl !== undefined) {
+    nextSubject.photoUrl = photoUrl;
+  }
+  if (photoPath !== undefined) {
+    nextSubject.photoPath = photoPath;
+  }
 
   const user = await upsertAuthUserProfile(
     db,
@@ -91,11 +172,16 @@ export async function updateCurrentAuthProfile(db, subject, input) {
       createdAt: existingProfile?.createdAt ?? nowIso,
       updatedAt: nowIso,
       deletedAt: null,
+      ...(resolvedRole != null ? { role: resolvedRole } : {}),
+      ...(phone !== undefined ? { phone } : {}),
+      ...(photoUrl !== undefined ? { photoUrl } : {}),
+      ...(photoPath !== undefined ? { photoPath } : {}),
     },
   );
 
   return {
     user: await readCurrentAuthSessionUser(user),
     updatedAt: nowIso,
+    createdOrUpdated: true,
   };
 }
