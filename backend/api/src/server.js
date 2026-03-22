@@ -6,6 +6,7 @@ import { requireAuthenticatedUser } from "./lib/auth.js";
 import { readCurrentAuthProfile, updateCurrentAuthProfile } from "./lib/auth-profile.js";
 import {
   clearWebSessionCookie,
+  exchangeAuthenticatedUserForWebSession,
   exchangeIdTokenForWebSession,
   readCurrentAuthSessionUser,
 } from "./lib/auth-session.js";
@@ -108,6 +109,10 @@ import {
   signInWithEmailPasswordViaIdentityToolkit,
   verifyPasswordResetCodeViaIdentityToolkit,
 } from "./lib/identity-toolkit.js";
+import {
+  registerWithEmailPasswordLocally,
+  signInWithEmailPasswordLocally,
+} from "./lib/auth-local.js";
 import {
   readCurrentAuthBundle,
   registerCurrentDriverDevice,
@@ -1148,21 +1153,37 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && isAuthLoginPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
-      const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
-      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
+      let user = null;
+      if (isPostgresConfigured()) {
+        user = await signInWithEmailPasswordLocally(db, asRecord(body) ?? {});
+        exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+      } else {
+        const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
+        const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
+        user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
+      }
       sendApiOk(response, 200, { user });
       return;
     }
 
     if (request.method === "POST" && isAuthRegisterPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
-      const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
-      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
+      let user = null;
+      let verificationEmailSent = false;
+      if (isPostgresConfigured()) {
+        const registerResult = await registerWithEmailPasswordLocally(db, asRecord(body) ?? {});
+        user = registerResult.user;
+        verificationEmailSent = registerResult.verificationEmailSent === true;
+        exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+      } else {
+        const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
+        const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
+        user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
+        verificationEmailSent = registerResult.verificationEmailSent === true;
+      }
       sendApiOk(response, 201, {
         user,
-        verificationEmailSent: registerResult.verificationEmailSent,
+        verificationEmailSent,
       });
       return;
     }

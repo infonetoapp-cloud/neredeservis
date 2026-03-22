@@ -87,6 +87,21 @@ export async function ensurePostgresAuthSchema() {
       ON web_login_guard (email, ip_address);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_password_credentials (
+      uid TEXT PRIMARY KEY REFERENCES auth_users(uid) ON DELETE CASCADE,
+      email_lowercase TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      password_algorithm TEXT NOT NULL DEFAULT 'scrypt',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      password_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS auth_password_credentials_email_idx
+      ON auth_password_credentials (email_lowercase);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS companies (
       company_id TEXT PRIMARY KEY,
       name TEXT NOT NULL,

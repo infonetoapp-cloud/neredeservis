@@ -189,13 +189,7 @@ export function clearWebSessionCookie(response) {
   appendSetCookieHeader(response, buildCookieHeader("", 0));
 }
 
-export async function exchangeIdTokenForWebSession(response, rawIdToken) {
-  const idToken = typeof rawIdToken === "string" ? rawIdToken.trim() : "";
-  if (!idToken) {
-    throw new HttpError(400, "invalid-argument", "idToken zorunludur.");
-  }
-
-  const sessionUser = await lookupIdentityToolkitUserByIdToken(idToken);
+export function exchangeAuthenticatedUserForWebSession(response, sessionUser) {
   if (!sessionUser.uid) {
     throw new HttpError(401, "unauthenticated", "Oturum dogrulanamadi. Tekrar giris yap.");
   }
@@ -216,6 +210,16 @@ export async function exchangeIdTokenForWebSession(response, rawIdToken) {
   });
   appendSetCookieHeader(response, buildCookieHeader(sessionCookie, WEB_SESSION_MAX_AGE_SECONDS));
   return sessionUser;
+}
+
+export async function exchangeIdTokenForWebSession(response, rawIdToken) {
+  const idToken = typeof rawIdToken === "string" ? rawIdToken.trim() : "";
+  if (!idToken) {
+    throw new HttpError(400, "invalid-argument", "idToken zorunludur.");
+  }
+
+  const sessionUser = await lookupIdentityToolkitUserByIdToken(idToken);
+  return exchangeAuthenticatedUserForWebSession(response, sessionUser);
 }
 
 export async function readCurrentAuthSessionUser(subject) {
