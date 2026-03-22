@@ -80,6 +80,7 @@ import {
   startDriverTrip,
   upsertDriverLiveLocation,
 } from "./lib/driver-trip-runtime.js";
+import { sendDriverAnnouncement } from "./lib/driver-announcements.js";
 import {
   readDriverFinishTripSnapshot,
   readDriverTripCompletedBootstrap,
@@ -838,6 +839,18 @@ function extractDriverRouteStopsPathParams(pathname) {
   }
 }
 
+function extractDriverRouteAnnouncementPathParams(pathname) {
+  const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/announcement$/);
+  if (!match) {
+    return null;
+  }
+  try {
+    return { routeId: decodeURIComponent(match[1]) };
+  } catch {
+    return { routeId: match[1] };
+  }
+}
+
 function extractDriverTripDetailPathParams(pathname) {
   const match = pathname.match(/^\/api\/driver\/routes\/([^/]+)\/trip-detail$/);
   if (!match) {
@@ -1441,6 +1454,20 @@ const server = createServer(async (request, response) => {
       const decodedToken = await requireAuthenticatedUser(request);
       const items = await listDriverRouteStops(db, decodedToken.uid, driverRouteStopsParams.routeId);
       sendApiOk(response, 200, { items });
+      return;
+    }
+
+    const driverRouteAnnouncementParams = extractDriverRouteAnnouncementPathParams(
+      requestUrl.pathname,
+    );
+    if (driverRouteAnnouncementParams && request.method === "POST") {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const body = await readJsonBody(request);
+      const result = await sendDriverAnnouncement(db, decodedToken.uid, {
+        ...(asRecord(body) ?? {}),
+        routeId: driverRouteAnnouncementParams.routeId,
+      });
+      sendApiOk(response, 200, result);
       return;
     }
 
