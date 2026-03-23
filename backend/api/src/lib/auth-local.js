@@ -208,6 +208,26 @@ export async function createManagedUserLocally(db, input) {
   return authUser;
 }
 
+export async function createAnonymousUserLocally(db, input = {}) {
+  const displayName = normalizeDisplayName(input?.displayName);
+  return upsertAuthUserProfile(
+    db,
+    {
+      uid: `anon_${randomBytes(12).toString("hex")}`,
+      email: null,
+      displayName,
+      emailVerified: false,
+      providerData: [{ providerId: "anonymous" }],
+      signInProvider: "anonymous",
+    },
+    {
+      role: "guest",
+      mobileOnlyAuth: true,
+      webPanelAccess: false,
+    },
+  );
+}
+
 export async function issuePasswordResetTokenLocally(db, input) {
   const uid = typeof input?.uid === "string" ? input.uid.trim() : "";
   const email = requireEmail(input?.email);

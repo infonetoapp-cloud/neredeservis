@@ -117,6 +117,7 @@ import {
 } from "./lib/identity-toolkit.js";
 import {
   confirmPasswordResetLocally,
+  createAnonymousUserLocally,
   registerWithEmailPasswordLocally,
   signInWithEmailPasswordLocally,
   verifyPasswordResetCodeLocally,
@@ -679,6 +680,10 @@ function isAuthRegisterPath(pathname) {
   return pathname === "/api/auth/register";
 }
 
+function isAuthAnonymousPath(pathname) {
+  return pathname === "/api/auth/anonymous";
+}
+
 function isAuthSessionExchangePath(pathname) {
   return pathname === "/api/auth/session/exchange";
 }
@@ -1221,6 +1226,25 @@ const server = createServer(async (request, response) => {
         user,
         verificationEmailSent,
         ...(mobileTokens ?? {}),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && isAuthAnonymousPath(requestUrl.pathname)) {
+      if (!isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "failed-precondition",
+          "Anonim backend oturumu icin yerel auth depolamasi hazir degil.",
+        );
+      }
+
+      const body = await readJsonBody(request).catch(() => null);
+      const user = await createAnonymousUserLocally(db, asRecord(body) ?? {});
+      const mobileTokens = await issueMobileAuthTokens(db, user);
+      sendApiOk(response, 201, {
+        user,
+        ...mobileTokens,
       });
       return;
     }
