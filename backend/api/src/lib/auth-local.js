@@ -3,7 +3,6 @@ import { promisify } from "node:util";
 
 import { findUserProfileByEmail, readUserProfileByUid, upsertAuthUserProfile } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
-import { lookupIdentityToolkitUserByIdToken, signInWithEmailPasswordViaIdentityToolkit } from "./identity-toolkit.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 
 const scryptAsync = promisify(scryptCallback);
@@ -401,9 +400,14 @@ export async function signInWithEmailPasswordLocally(db, input) {
     return user;
   }
 
-  const legacyLogin = await signInWithEmailPasswordViaIdentityToolkit({ email, password });
-  const legacyUser = await lookupIdentityToolkitUserByIdToken(legacyLogin.idToken);
-  const hydratedUser = await upsertAuthUserProfile(db, legacyUser);
-  await upsertPasswordCredential(hydratedUser.uid, email, password);
-  return hydratedUser;
+  const existingUser = await findUserProfileByEmail(db, email).catch(() => null);
+  if (existingUser?.uid) {
+    throw new HttpError(
+      412,
+      "auth/password-reset-required",
+      "Bu hesap yeni sisteme tasindi. Lutfen sifre sifirlama baglantisi isteyip yeni sifre belirleyin.",
+    );
+  }
+
+  throw new HttpError(401, "auth/invalid-credential", "E-posta veya sifre hatali.");
 }
