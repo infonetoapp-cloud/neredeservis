@@ -105,6 +105,12 @@ import {
   removeStoredCompanyLogoFile,
   storeCompanyLogoFromRequest,
 } from "./lib/company-logo-storage.js";
+import {
+  cleanupStoredProfilePhotos,
+  readProfilePhotoMedia,
+  removeStoredProfilePhotoFile,
+  storeProfilePhotoFromRequest,
+} from "./lib/profile-photo-storage.js";
 import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
 import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
 import { getOptionalFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
@@ -644,6 +650,25 @@ function extractCompanyLogoMediaPathParams(pathname) {
   }
 }
 
+function extractProfilePhotoMediaPathParams(pathname) {
+  const match = pathname.match(/^\/media\/profile-photos\/([^/]+)\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return {
+      uid: decodeURIComponent(match[1]),
+      fileName: decodeURIComponent(match[2]),
+    };
+  } catch {
+    return {
+      uid: match[1],
+      fileName: match[2],
+    };
+  }
+}
+
 function isMyCompaniesPath(pathname) {
   return pathname === "/api/my/companies";
 }
@@ -714,6 +739,10 @@ function isAuthWebAccessPolicyPath(pathname) {
 
 function isAuthProfilePath(pathname) {
   return pathname === "/api/auth/profile";
+}
+
+function isAuthProfilePhotoPath(pathname) {
+  return pathname === "/api/auth/profile-photo";
 }
 
 function isAuthConsentPath(pathname) {
@@ -1113,6 +1142,20 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    const profilePhotoMediaParams = extractProfilePhotoMediaPathParams(requestUrl.pathname);
+    if (profilePhotoMediaParams && request.method === "GET") {
+      const mediaFile = await readProfilePhotoMedia(
+        profilePhotoMediaParams.uid,
+        profilePhotoMediaParams.fileName,
+      );
+      response.writeHead(200, {
+        "content-type": mediaFile.contentType,
+        "cache-control": mediaFile.cacheControl,
+      });
+      response.end(mediaFile.fileBuffer);
+      return;
+    }
+
     const publicRoutePreviewParams = extractPublicRoutePreviewPathParams(requestUrl.pathname);
     if (publicRoutePreviewParams && request.method === "GET") {
       const preview = await getDynamicRoutePreview(db, request, {
@@ -1314,6 +1357,24 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const result = await updateCurrentAuthProfile(db, decodedToken, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
+      return;
+    }
+
+    if (request.method === "POST" && isAuthProfilePhotoPath(requestUrl.pathname)) {
+      const decodedToken = await requireAuthenticatedUser(request);
+      const upload = await storeProfilePhotoFromRequest(request, decodedToken.uid);
+      await cleanupStoredProfilePhotos(decodedToken.uid, upload.fileName);
+
+      const previousPhotoPath = requestUrl.searchParams.get("previousPhotoPath");
+      if (previousPhotoPath) {
+        await removeStoredProfilePhotoFile(previousPhotoPath);
+      }
+
+      sendApiOk(response, 200, {
+        downloadUrl: upload.publicUrl,
+        storagePath: upload.relativePath,
+        bytesUploaded: upload.bytesUploaded,
+      });
       return;
     }
 
