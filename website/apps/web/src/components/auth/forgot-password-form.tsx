@@ -36,12 +36,15 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState<string>(initialEmail);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [manualResetUrl, setManualResetUrl] = useState<string | null>(null);
 
   const submitReset = async () => {
     setErrorMessage(null);
+    setManualResetUrl(null);
     setStatus("sending");
     try {
-      await sendPasswordResetEmailForAddress(email);
+      const result = await sendPasswordResetEmailForAddress(email);
+      setManualResetUrl(result.delivery === "manual" ? result.resetUrl : null);
       setStatus("sent");
     } catch (error) {
       setStatus("idle");
@@ -61,7 +64,19 @@ export function ForgotPasswordForm() {
 
       {status === "sent" ? (
         <div className="rounded-2xl border border-emerald-200/85 bg-emerald-50/80 p-3 text-sm text-emerald-900">
-          Reset e-postasi gonderildi. Gelen kutunu kontrol et.
+          {manualResetUrl ? (
+            <div className="space-y-2">
+              <p>Reset baglantisi hazirlandi. Asagidan dogrudan devam edebilirsin.</p>
+              <Link
+                href={manualResetUrl}
+                className="inline-flex items-center rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white transition hover:bg-emerald-800"
+              >
+                Sifre Belirleme Ekranini Ac
+              </Link>
+            </div>
+          ) : (
+            "Reset e-postasi gonderildi. Gelen kutunu kontrol et."
+          )}
         </div>
       ) : null}
 

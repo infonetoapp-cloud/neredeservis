@@ -19,6 +19,11 @@ export type EmailPasswordRegistrationResult = {
   verificationEmailSent: boolean;
 };
 
+export type PasswordResetRequestResult = {
+  delivery: "email" | "manual";
+  resetUrl: string | null;
+};
+
 export const AUTH_SESSION_CHANGED_EVENT_NAME = "ns-auth-session-changed";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -220,19 +225,31 @@ export async function updateCurrentUserProfile(input: {
   notifyAuthSessionChanged();
 }
 
-export async function sendPasswordResetEmailForAddress(email: string): Promise<void> {
+export async function sendPasswordResetEmailForAddress(
+  email: string,
+): Promise<PasswordResetRequestResult> {
   const normalized = email.trim();
   if (!normalized) {
     throw createAuthClientError("EMAIL_REQUIRED", "auth/missing-email");
   }
 
-  await callBackendApi<{ success: boolean }>({
+  const response = await callBackendApi<{
+    success?: unknown;
+    delivery?: unknown;
+    resetUrl?: unknown;
+  }>({
     baseUrl: requireAuthBackendApiBaseUrl(),
     path: "api/auth/password-reset",
     method: "POST",
     auth: false,
     body: { email: normalized },
   });
+
+  const responseData = asRecord(response.data);
+  return {
+    delivery: responseData?.delivery === "manual" ? "manual" : "email",
+    resetUrl: typeof responseData?.resetUrl === "string" ? responseData.resetUrl : null,
+  };
 }
 
 export async function verifyPasswordResetCodeForFlow(
