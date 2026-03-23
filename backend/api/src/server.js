@@ -1250,6 +1250,13 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
+      if (isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "auth/operation-not-supported",
+          "Bu kimlik dogrulama yontemi yeni backend modunda desteklenmiyor.",
+        );
+      }
       const body = await readJsonBody(request);
       const decodedToken = await lookupIdentityToolkitUserByIdToken(asRecord(body)?.idToken);
       const normalizedUser = await readCurrentAuthSessionUser(decodedToken);

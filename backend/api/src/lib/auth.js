@@ -3,6 +3,7 @@ import { readAuthenticatedMobileAccessToken } from "./auth-mobile-tokens.js";
 
 import { readAuthenticatedWebSession } from "./auth-session.js";
 import { lookupIdentityToolkitUserByIdToken } from "./identity-toolkit.js";
+import { isPostgresConfigured } from "./postgres.js";
 
 function readBearerToken(request) {
   const authorizationHeader = request.headers.authorization ?? "";
@@ -41,11 +42,13 @@ export async function requireAuthenticatedUser(request, options = {}) {
       lastError = error;
     }
 
-    try {
-      const decodedToken = await lookupIdentityToolkitUserByIdToken(idToken);
-      return assertSupportedAuthToken(decodedToken, options);
-    } catch (error) {
-      lastError = error;
+    if (!isPostgresConfigured()) {
+      try {
+        const decodedToken = await lookupIdentityToolkitUserByIdToken(idToken);
+        return assertSupportedAuthToken(decodedToken, options);
+      } catch (error) {
+        lastError = error;
+      }
     }
   }
 
