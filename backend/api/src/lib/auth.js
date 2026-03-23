@@ -1,4 +1,5 @@
 import { HttpError } from "./http.js";
+import { readAuthenticatedMobileAccessToken } from "./auth-mobile-tokens.js";
 
 import { readAuthenticatedWebSession } from "./auth-session.js";
 import { lookupIdentityToolkitUserByIdToken } from "./identity-toolkit.js";
@@ -31,6 +32,15 @@ export async function requireAuthenticatedUser(request, options = {}) {
   let lastError = null;
 
   if (idToken) {
+    try {
+      const mobileSessionUser = readAuthenticatedMobileAccessToken(idToken);
+      if (mobileSessionUser) {
+        return assertSupportedAuthToken(mobileSessionUser, options);
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
     try {
       const decodedToken = await lookupIdentityToolkitUserByIdToken(idToken);
       return assertSupportedAuthToken(decodedToken, options);

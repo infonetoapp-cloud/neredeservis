@@ -10,6 +10,11 @@ import {
   exchangeIdTokenForWebSession,
   readCurrentAuthSessionUser,
 } from "./lib/auth-session.js";
+import {
+  issueMobileAuthTokens,
+  refreshMobileAuthTokens,
+  revokeMobileAuthRefreshToken,
+} from "./lib/auth-mobile-tokens.js";
 import { upsertAuthUserProfile } from "./lib/auth-user-store.js";
 import {
   getCurrentUserWebAccessPolicy,
@@ -105,6 +110,7 @@ import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
 import { getOptionalFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import {
   confirmPasswordResetViaIdentityToolkit,
+  lookupIdentityToolkitUserByIdToken,
   registerWithEmailPasswordViaIdentityToolkit,
   signInWithEmailPasswordViaIdentityToolkit,
   verifyPasswordResetCodeViaIdentityToolkit,
@@ -677,6 +683,10 @@ function isAuthSessionExchangePath(pathname) {
   return pathname === "/api/auth/session/exchange";
 }
 
+function isAuthTokenRefreshPath(pathname) {
+  return pathname === "/api/auth/token/refresh";
+}
+
 function isAuthLogoutPath(pathname) {
   return pathname === "/api/auth/logout";
 }
@@ -1124,7 +1134,7 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "POST" && isAuthPasswordResetPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const result = await sendPasswordResetEmailForAddress(asRecord(body) ?? {});
+      const result = await sendPasswordResetEmailForAddress(db, asRecord(body) ?? {});
       sendApiOk(response, 200, result);
       return;
     }
@@ -1171,15 +1181,21 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && isAuthLoginPath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
       let user = null;
+      let mobileTokens = null;
       if (isPostgresConfigured()) {
         user = await signInWithEmailPasswordLocally(db, asRecord(body) ?? {});
         exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+        mobileTokens = await issueMobileAuthTokens(db, user);
       } else {
         const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
         const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
         user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
+        mobileTokens = await issueMobileAuthTokens(db, user);
       }
-      sendApiOk(response, 200, { user });
+      sendApiOk(response, 200, {
+        user,
+        ...(mobileTokens ?? {}),
+      });
       return;
     }
 
@@ -1187,29 +1203,48 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       let user = null;
       let verificationEmailSent = false;
+      let mobileTokens = null;
       if (isPostgresConfigured()) {
         const registerResult = await registerWithEmailPasswordLocally(db, asRecord(body) ?? {});
         user = registerResult.user;
         verificationEmailSent = registerResult.verificationEmailSent === true;
         exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+        mobileTokens = await issueMobileAuthTokens(db, user);
       } else {
         const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
         const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
         user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
         verificationEmailSent = registerResult.verificationEmailSent === true;
+        mobileTokens = await issueMobileAuthTokens(db, user);
       }
       sendApiOk(response, 201, {
         user,
         verificationEmailSent,
+        ...(mobileTokens ?? {}),
       });
       return;
     }
 
     if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
       const body = await readJsonBody(request);
-      const decodedToken = await exchangeIdTokenForWebSession(response, asRecord(body)?.idToken);
-      const user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
-      sendApiOk(response, 200, { user });
+      const decodedToken = await lookupIdentityToolkitUserByIdToken(asRecord(body)?.idToken);
+      const normalizedUser = await readCurrentAuthSessionUser(decodedToken);
+      if (normalizedUser.signInProvider !== "anonymous") {
+        exchangeAuthenticatedUserForWebSession(response, normalizedUser);
+      }
+      const user = await upsertAuthUserProfile(db, normalizedUser);
+      const mobileTokens = await issueMobileAuthTokens(db, user);
+      sendApiOk(response, 200, {
+        user,
+        ...(mobileTokens ?? {}),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && isAuthTokenRefreshPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request);
+      const mobileTokens = await refreshMobileAuthTokens(db, asRecord(body)?.refreshToken);
+      sendApiOk(response, 200, mobileTokens);
       return;
     }
 
@@ -1424,6 +1459,11 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthLogoutPath(requestUrl.pathname)) {
+      const body = await readJsonBody(request).catch(() => null);
+      const refreshToken = asRecord(body)?.refreshToken;
+      if (typeof refreshToken === "string" && refreshToken.trim().length > 0) {
+        await revokeMobileAuthRefreshToken(refreshToken, "logout");
+      }
       clearWebSessionCookie(response);
       sendApiOk(response, 200, { success: true });
       return;

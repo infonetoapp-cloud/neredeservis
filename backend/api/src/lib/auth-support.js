@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
+import { issuePasswordResetTokenLocally } from "./auth-local.js";
 import { HttpError } from "./http.js";
-import { readUserProfileByUid } from "./auth-user-store.js";
+import { findUserProfileByEmail, readUserProfileByUid } from "./auth-user-store.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { asRecord } from "./runtime-value.js";
 
@@ -61,6 +62,19 @@ function normalizeEmail(rawValue) {
 
   const isEmailLike = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
   return isEmailLike ? normalized : null;
+}
+
+function readAppBaseUrl() {
+  return (process.env.APP_BASE_URL?.trim() || "https://app.neredeservis.app").replace(/\/+$/, "");
+}
+
+function buildPasswordResetUrl(oobCode, email) {
+  const setupUrl = new URL(`${readAppBaseUrl()}/sifre-belirle`);
+  setupUrl.searchParams.set("oobCode", oobCode);
+  if (email) {
+    setupUrl.searchParams.set("email", email);
+  }
+  return setupUrl.toString();
 }
 
 function requireNormalizedEmail(rawValue) {
@@ -530,8 +544,26 @@ export async function getCurrentUserWebAccessPolicy(db, uid) {
   }
 }
 
-export async function sendPasswordResetEmailForAddress(input) {
+export async function sendPasswordResetEmailForAddress(db, input) {
   const email = requireNormalizedEmail(input?.email);
+
+  if (isPostgresConfigured()) {
+    const authUser = await findUserProfileByEmail(db, email).catch(() => null);
+    if (!authUser?.uid) {
+      throw new HttpError(404, "auth/user-not-found", "Bu e-posta ile kayitli hesap bulunamadi.");
+    }
+
+    const resetToken = await issuePasswordResetTokenLocally(db, {
+      uid: authUser.uid,
+      email,
+      createdBy: "self_service",
+    });
+    return {
+      success: true,
+      delivery: "manual",
+      resetUrl: buildPasswordResetUrl(resetToken.token, email),
+    };
+  }
 
   await sendPasswordResetEmailViaIdentityToolkit(email);
   return { success: true };

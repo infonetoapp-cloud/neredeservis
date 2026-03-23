@@ -198,7 +198,7 @@ export async function createManagedUserLocally(db, input) {
       uid: `usr_${randomBytes(12).toString("hex")}`,
       email,
       displayName,
-      emailVerified: false,
+      emailVerified: true,
       providerData: [{ providerId: "password" }],
       signInProvider: "password",
     },

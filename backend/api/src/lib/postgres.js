@@ -123,6 +123,29 @@ export async function ensurePostgresAuthSchema() {
       ON auth_password_reset_tokens (email_lowercase, expires_at DESC);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_refresh_tokens (
+      token_hash TEXT PRIMARY KEY,
+      uid TEXT NOT NULL REFERENCES auth_users(uid) ON DELETE CASCADE,
+      sign_in_provider TEXT NULL,
+      client_kind TEXT NOT NULL DEFAULT 'mobile',
+      session_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      revoked_at TIMESTAMPTZ NULL,
+      revoke_reason TEXT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS auth_refresh_tokens_uid_idx
+      ON auth_refresh_tokens (uid, expires_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS auth_refresh_tokens_active_idx
+      ON auth_refresh_tokens (revoked_at, expires_at DESC);
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS companies (
       company_id TEXT PRIMARY KEY,
       name TEXT NOT NULL,

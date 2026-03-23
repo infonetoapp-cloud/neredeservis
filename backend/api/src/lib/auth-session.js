@@ -45,7 +45,7 @@ function appendSetCookieHeader(response, cookieHeaderValue) {
   response.setHeader("Set-Cookie", [existing, cookieHeaderValue]);
 }
 
-function readWebSessionSecret() {
+export function readWebSessionSecret() {
   const explicitSecret = (process.env.WEB_SESSION_SECRET ?? "").trim();
   if (explicitSecret) {
     return explicitSecret;
@@ -182,6 +182,7 @@ export function readAuthenticatedWebSession(request) {
     emailVerified: payload.emailVerified === true,
     providerData,
     signInProvider: typeof payload.signInProvider === "string" ? payload.signInProvider : null,
+    isAnonymous: payload.signInProvider === "anonymous",
   };
 }
 
@@ -254,6 +255,9 @@ export async function readCurrentAuthSessionUser(subject) {
         mobileOnlyAuth: subject.mobileOnlyAuth === true,
         webPanelAccess:
           typeof subject.webPanelAccess === "boolean" ? subject.webPanelAccess : null,
+        isAnonymous:
+          subject.isAnonymous === true ||
+          (typeof subject.signInProvider === "string" && subject.signInProvider === "anonymous"),
       };
     }
   }
