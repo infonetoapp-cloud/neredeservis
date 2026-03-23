@@ -1,6 +1,12 @@
 import { FieldPath } from "firebase-admin/firestore";
 
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
+import {
+  listDriverActiveTripRowsFromPostgres,
+  listDriverTripHistoryRowsFromPostgres,
+  listRouteSnapshotsByIdsFromPostgres,
+  upsertTripHistoryBatchToPostgres,
+} from "./trip-history-store.js";
 
 function requireFirestoreDb(db) {
   if (!db || typeof db.collection !== "function") {
@@ -253,8 +259,104 @@ async function loadDriverTripRowsFromFirestore(db, uid) {
   return tripRows;
 }
 
+function mergeRouteSnapshotsIntoMap(routesById, tripRows) {
+  const snapshotMap = routesById && typeof routesById === "object" ? { ...routesById } : {};
+  for (const row of Array.isArray(tripRows) ? tripRows : []) {
+    const tripData = row?.tripData && typeof row.tripData === "object" ? row.tripData : null;
+    const routeId = readTrimmedString(tripData?.routeId);
+    if (!routeId) {
+      continue;
+    }
+
+    const existing = snapshotMap[routeId];
+    const routeName = readTrimmedString(tripData?.routeName);
+    const driverId = readTrimmedString(tripData?.driverId) ?? readTrimmedString(tripData?.driverUid);
+    const passengerCount = normalizeInteger(tripData?.passengerCount);
+    const updatedAt = parseIsoDate(tripData?.routeUpdatedAt) ?? parseIsoDate(tripData?.updatedAt);
+    snapshotMap[routeId] = {
+      ...(existing && typeof existing === "object" ? existing : {}),
+      ...(routeName ? { name: routeName } : {}),
+      ...(driverId ? { driverId } : {}),
+      ...(passengerCount != null ? { passengerCount } : {}),
+      ...(updatedAt ? { updatedAt } : {}),
+    };
+  }
+
+  return snapshotMap;
+}
+
+function buildTripHistoryProjection(row, routesById) {
+  const tripData = row?.tripData && typeof row.tripData === "object" ? row.tripData : null;
+  const tripId = readTrimmedString(row?.tripId);
+  const routeId = readTrimmedString(tripData?.routeId);
+  const status = readTrimmedString(tripData?.status)?.toLowerCase();
+  if (!tripId || !routeId || !status || status === "active") {
+    return null;
+  }
+
+  const routeData =
+    routesById && typeof routesById === "object" && routesById[routeId] && typeof routesById[routeId] === "object"
+      ? routesById[routeId]
+      : null;
+  const driverSnapshot =
+    tripData?.driverSnapshot && typeof tripData.driverSnapshot === "object" && !Array.isArray(tripData.driverSnapshot)
+      ? tripData.driverSnapshot
+      : {};
+  const driverUid = readTrimmedString(tripData?.driverId) ?? readTrimmedString(tripData?.driverUid);
+  const companyId = readTrimmedString(routeData?.companyId) ?? readTrimmedString(tripData?.companyId);
+  const routeName = readTrimmedString(routeData?.name) ?? readTrimmedString(tripData?.routeName);
+  const driverName = readTrimmedString(driverSnapshot?.name) ?? readTrimmedString(tripData?.driverName);
+  if (!companyId || !routeName || !driverUid || !driverName) {
+    return null;
+  }
+
+  return {
+    tripId,
+    companyId,
+    routeId,
+    routeName,
+    routeUpdatedAt: parseIsoDate(routeData?.updatedAt) ?? parseIsoDate(tripData?.routeUpdatedAt),
+    driverUid,
+    driverName,
+    driverPlate: readTrimmedString(driverSnapshot?.plate) ?? readTrimmedString(tripData?.driverPlate),
+    driverPhotoUrl: readTrimmedString(driverSnapshot?.photoUrl) ?? readTrimmedString(tripData?.driverPhotoUrl),
+    status,
+    startedAt: parseIsoDate(tripData?.startedAt),
+    endedAt: parseIsoDate(tripData?.endedAt),
+    updatedAt: parseIsoDate(tripData?.updatedAt) ?? parseIsoDate(tripData?.endedAt) ?? parseIsoDate(tripData?.startedAt),
+    vehicleId: readTrimmedString(routeData?.vehicleId) ?? readTrimmedString(tripData?.vehicleId),
+    scheduledTime: readTrimmedString(routeData?.scheduledTime) ?? readTrimmedString(tripData?.scheduledTime),
+    timeSlot: readTrimmedString(routeData?.timeSlot) ?? readTrimmedString(tripData?.timeSlot),
+    passengerCount: normalizeInteger(tripData?.passengerCount) ?? normalizeInteger(routeData?.passengerCount) ?? 0,
+    driverSnapshot,
+  };
+}
+
+async function backfillDriverTripHistoryRows(tripRows, routesById) {
+  const projections = (Array.isArray(tripRows) ? tripRows : [])
+    .map((row) => buildTripHistoryProjection(row, routesById))
+    .filter((item) => item !== null);
+  if (projections.length === 0) {
+    return false;
+  }
+
+  return upsertTripHistoryBatchToPostgres(projections);
+}
+
+async function loadDriverTripRowsFromPostgres(uid) {
+  const normalizedUid = readTrimmedString(uid);
+  if (!normalizedUid) {
+    return [];
+  }
+
+  const [activeTripRows, historyTripRows] = await Promise.all([
+    listDriverActiveTripRowsFromPostgres(normalizedUid, { limit: 80 }).catch(() => []),
+    listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []),
+  ]);
+  return [...activeTripRows, ...historyTripRows];
+}
+
 export async function loadDriverTripHistory(db, uid) {
-  const firestoreDb = requireFirestoreDb(db);
   const normalizedUid = readTrimmedString(uid);
   if (!normalizedUid) {
     return {
@@ -263,6 +365,28 @@ export async function loadDriverTripHistory(db, uid) {
     };
   }
 
+  if (isPostgresConfigured()) {
+    const tripRows = await listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []);
+    if (tripRows.length > 0) {
+      const routeIds = Array.from(
+        new Set(
+          tripRows
+            .map((row) => readTrimmedString(row?.tripData?.routeId))
+            .filter((routeId) => routeId),
+        ),
+      );
+      const routesById = mergeRouteSnapshotsIntoMap(
+        await listRouteSnapshotsByIdsFromPostgres(routeIds).catch(() => ({})),
+        tripRows,
+      );
+      return {
+        tripRows,
+        routesById,
+      };
+    }
+  }
+
+  const firestoreDb = requireFirestoreDb(db);
   const tripsSnapshot = await firestoreDb
     .collection("trips")
     .where("driverId", "==", normalizedUid)
@@ -295,6 +419,10 @@ export async function loadDriverTripHistory(db, uid) {
     documentIds: Array.from(routeIds),
   }).catch(() => ({}));
 
+  if (isPostgresConfigured()) {
+    await backfillDriverTripHistoryRows(tripRows, routesById).catch(() => false);
+  }
+
   return {
     tripRows,
     routesById,
@@ -308,22 +436,43 @@ export async function loadDriverMyTrips(db, uid) {
         ...(await loadManagedRoutesFromPostgres(uid)),
         ...(await loadManagedRoutesFromFirestore(db, uid).catch(() => ({}))),
       };
-  const tripRows = await loadDriverTripRowsFromFirestore(db, uid);
+  const tripRows = isPostgresConfigured()
+    ? await loadDriverTripRowsFromPostgres(uid)
+    : await loadDriverTripRowsFromFirestore(db, uid);
 
-  const missingRouteIds = tripRows
+  let shouldBackfillHistory = false;
+  let resolvedTripRows = tripRows;
+  if (isPostgresConfigured() && resolvedTripRows.length === 0) {
+    resolvedTripRows = await loadDriverTripRowsFromFirestore(db, uid);
+    shouldBackfillHistory = resolvedTripRows.length > 0;
+  }
+
+  const missingRouteIds = resolvedTripRows
     .map((row) => readTrimmedString(row?.tripData?.routeId))
     .filter((routeId) => routeId && !managedRouteDocs[routeId]);
   if (missingRouteIds.length > 0) {
-    const fetchedRoutes = await fetchCollectionDocumentsByIds(db, {
-      collectionPath: "routes",
-      documentIds: missingRouteIds,
-    }).catch(() => ({}));
+    const fetchedRoutes = isPostgresConfigured()
+      ? await listRouteSnapshotsByIdsFromPostgres(missingRouteIds).catch(() => ({}))
+      : {};
+    const unresolvedRouteIds = missingRouteIds.filter((routeId) => !fetchedRoutes[routeId]);
+    const firestoreRoutes =
+      unresolvedRouteIds.length > 0
+        ? await fetchCollectionDocumentsByIds(db, {
+            collectionPath: "routes",
+            documentIds: unresolvedRouteIds,
+          }).catch(() => ({}))
+        : {};
     Object.assign(managedRouteDocs, fetchedRoutes);
+    Object.assign(managedRouteDocs, firestoreRoutes);
+  }
+
+  if (shouldBackfillHistory) {
+    await backfillDriverTripHistoryRows(resolvedTripRows, managedRouteDocs).catch(() => false);
   }
 
   return {
     managedRouteDocs,
-    tripRows,
+    tripRows: resolvedTripRows,
   };
 }
 

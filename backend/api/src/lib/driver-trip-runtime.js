@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { HttpError } from "./http.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
+import { upsertTripHistoryRecord } from "./trip-history-store.js";
 
 const TRIP_REQUEST_TTL_DAYS = Number.parseInt(process.env.TRIP_REQUEST_TTL_DAYS ?? "7", 10) || 7;
 
@@ -787,6 +788,34 @@ export async function finishDriverTrip(input) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    await upsertTripHistoryRecord(client, {
+      tripId: activeTrip.tripId,
+      companyId: activeTrip.companyId,
+      routeId: activeTrip.routeId,
+      routeName: activeTrip.routeName,
+      routeUpdatedAt: activeTrip.routeUpdatedAt,
+      driverUid: activeTrip.driverUid,
+      driverName: activeTrip.driverName,
+      driverPlate: activeTrip.driverPlate,
+      status: "completed",
+      startedAt: activeTrip.startedAt,
+      endedAt: nowIso,
+      updatedAt: nowIso,
+      vehicleId: activeTrip.vehicleId,
+      scheduledTime: activeTrip.scheduledTime,
+      timeSlot: activeTrip.timeSlot,
+      passengerCount: activeTrip.passengerCount,
+      driverSnapshot: {
+        name: activeTrip.driverName,
+        plate: activeTrip.driverPlate,
+      },
+      tripMetadata: {
+        transitionVersion: responseData.transitionVersion,
+        startedByDeviceId: activeTrip.startedByDeviceId,
+        locationTimestampMs: activeTrip.locationTimestampMs,
+        liveState: activeTrip.liveState,
+      },
+    });
     await deleteCompanyActiveTrip(client, activeTrip.tripId);
     await touchCompanyActiveTripSync(client, activeTrip.companyId, nowIso);
     await writeTripRequest(client, {

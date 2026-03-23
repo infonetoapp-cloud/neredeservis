@@ -448,6 +448,41 @@ export async function ensurePostgresAuthSchema() {
       ON company_active_trips (company_id, driver_uid);
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS company_trip_history (
+      trip_id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      route_id TEXT NOT NULL,
+      route_name TEXT NOT NULL,
+      route_updated_at TIMESTAMPTZ NULL,
+      driver_uid TEXT NOT NULL,
+      driver_name TEXT NOT NULL,
+      driver_plate TEXT NULL,
+      driver_photo_url TEXT NULL,
+      status TEXT NOT NULL DEFAULT 'completed',
+      started_at TIMESTAMPTZ NULL,
+      ended_at TIMESTAMPTZ NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      vehicle_id TEXT NULL,
+      scheduled_time TEXT NULL,
+      time_slot TEXT NULL,
+      passenger_count INTEGER NOT NULL DEFAULT 0,
+      driver_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+      trip_metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_trip_history_driver_idx
+      ON company_trip_history (driver_uid, COALESCE(ended_at, updated_at, started_at) DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_trip_history_route_idx
+      ON company_trip_history (route_id, COALESCE(ended_at, updated_at, started_at) DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS company_trip_history_company_idx
+      ON company_trip_history (company_id, COALESCE(ended_at, updated_at, started_at) DESC);
+  `);
+  await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS company_active_trips_route_unique_idx
       ON company_active_trips (route_id);
   `);
