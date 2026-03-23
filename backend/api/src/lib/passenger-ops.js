@@ -722,7 +722,6 @@ export async function submitPassengerSkipToday(db, uid, input) {
 
 export async function createGuestSession({
   db,
-  rtdb,
   uid,
   authUser,
   input,
@@ -872,28 +871,13 @@ export async function createGuestSession({
     throw new HttpError(500, "internal", "Misafir oturumu hazirlanamadi.");
   }
 
-  if (!rtdb || typeof rtdb.ref !== "function") {
-    await revokeGuestSession(sessionContext, nowIso, "guest_reader_unavailable");
-    throw new HttpError(412, "failed-precondition", "Misafir takip RTDB hazir degil.");
-  }
-
-  try {
-    await rtdb.ref(`guestReaders/${routeId}/${uid}`).set({
-      active: true,
-      expiresAtMs,
-      updatedAtMs: nowMs,
-    });
-  } catch {
-    await revokeGuestSession(sessionContext, nowIso, "guest_reader_write_failed");
-    throw new HttpError(500, "internal", "Guest reader erisimi acilamadi.");
-  }
-
   return {
     sessionId,
     routeId,
     routeName,
     guestDisplayName,
     expiresAt: expiresAtIso,
-    rtdbReadPath: `/locations/${routeId}`,
+    trackingPath: `/api/guest-sessions/${sessionId}/tracking`,
+    rtdbReadPath: null,
   };
 }

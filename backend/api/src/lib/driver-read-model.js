@@ -370,7 +370,7 @@ export async function listDriverRouteStops(db, uid, routeId) {
       `,
       [normalizedRouteId],
     );
-    if (result.rows.length > 0) {
+    if (isPostgresConfigured()) {
       return result.rows.map((row) => ({
         stopId: readTrimmedString(row?.stop_id) ?? "",
         name: readTrimStringOrFallback(row?.name, "Durak"),

@@ -13,7 +13,6 @@ import {
 } from "./company-membership-store.js";
 import { createManagedUserLocally } from "./auth-local.js";
 import { HttpError } from "./http.js";
-import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { isPostgresConfigured } from "./postgres.js";
 import { asRecord, pickString } from "./runtime-value.js";
 import {
@@ -228,6 +227,10 @@ async function mirrorRoutePatchToFirestore(db, routeId, patch) {
 }
 
 export async function createCompanyDriverAccount(db, actorUid, input) {
+  if (!isPostgresConfigured()) {
+    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
+  }
+
   const companyId = normalizeCompanyId(input?.companyId);
   const name = normalizeName(input?.name);
   const phone = normalizePhone(input?.phone);
@@ -245,22 +248,12 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
 
   let uid = "";
   try {
-    if (isPostgresConfigured()) {
-      const userRecord = await createManagedUserLocally(db, {
-        email: loginEmail,
-        password: temporaryPassword,
-        displayName: name,
-      });
-      uid = userRecord.uid;
-    } else {
-      const userRecord = await createManagedUserViaIdentityToolkit({
-        email: loginEmail,
-        password: temporaryPassword,
-        displayName: name,
-        sendVerificationEmail: false,
-      });
-      uid = userRecord.localId;
-    }
+    const userRecord = await createManagedUserLocally(db, {
+      email: loginEmail,
+      password: temporaryPassword,
+      displayName: name,
+    });
+    uid = userRecord.uid;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Sofor hesabi olusturulamadi.";
     throw new HttpError(409, "already-exists", `Sofor hesabi olusturulamadi: ${message}`);

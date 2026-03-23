@@ -648,13 +648,14 @@ function normalizeTrackingRoute(routeData, routeId) {
 async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId }) {
   const normalizedRouteId = normalizeNullableText(routeId);
   const normalizedGuestSessionId = normalizeNullableText(guestSessionId);
+  const usePostgresPassengerStore = shouldUsePostgresPassengerStore();
   if (!normalizedRouteId && !normalizedGuestSessionId) {
     throw new HttpError(400, "invalid-argument", "routeId veya sessionId gerekli.");
   }
 
   let guestSessionData = null;
   if (normalizedGuestSessionId) {
-    if (shouldUsePostgresPassengerStore()) {
+    if (usePostgresPassengerStore) {
       guestSessionData = await readGuestTrackingSessionByIdFromPostgres(normalizedGuestSessionId).catch(
         () => null,
       );
@@ -689,7 +690,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   }
 
   let passengerData = null;
-  if (!normalizedGuestSessionId && shouldUsePostgresPassengerStore()) {
+  if (!normalizedGuestSessionId && usePostgresPassengerStore) {
     passengerData = await readRoutePassengerFromPostgres(effectiveRouteId, uid).catch(() => null);
   }
   if (!normalizedGuestSessionId && !passengerData && db) {
@@ -698,10 +699,11 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     );
   }
 
-  const [postgresRoute, firestoreRoute] = await Promise.all([
-    readRouteFromPostgres(effectiveRouteId).catch(() => null),
-    db ? readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
-  ]);
+  const postgresRoute = await readRouteFromPostgres(effectiveRouteId).catch(() => null);
+  const firestoreRoute =
+    postgresRoute || !db
+      ? null
+      : await readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null);
   const routeData = normalizeTrackingRoute(
     mergeTrackingRecord(postgresRoute, firestoreRoute),
     effectiveRouteId,
@@ -720,16 +722,24 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   const postgresAnnouncement = await readLatestRouteAnnouncementFromPostgres(effectiveRouteId).catch(
     () => null,
   );
+  const postgresActiveTrip = await readActiveTripFromPostgres(effectiveRouteId).catch(() => null);
+  const fallbackActiveTripNeeded = !postgresActiveTrip && Boolean(db);
+  const preliminaryDriverId =
+    normalizeNullableText(postgresActiveTrip?.driverId) ??
+    normalizeNullableText(postgresActiveTrip?.driverUid) ??
+    normalizeNullableText(routeData.driverId);
+  const postgresDriverData =
+    routeData.companyId && preliminaryDriverId
+      ? await readDriverFromPostgres(routeData.companyId, preliminaryDriverId).catch(() => null)
+      : null;
 
-  const [postgresActiveTrip, firestoreActiveTrip, firestoreDriverData, latestAnnouncement, stops] =
-    await Promise.all([
-      readActiveTripFromPostgres(effectiveRouteId).catch(() => null),
-      db ? readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null) : Promise.resolve(null),
-      routeData.driverId
-        ? (db
-            ? readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null)
-            : Promise.resolve(null))
+  const [firestoreActiveTrip, firestoreDriverData, latestAnnouncement, stops] = await Promise.all([
+      fallbackActiveTripNeeded
+        ? readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null)
         : Promise.resolve(null),
+      postgresDriverData || !routeData.driverId || !db
+        ? Promise.resolve(null)
+        : readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null),
       postgresAnnouncement
         ? Promise.resolve(postgresAnnouncement)
         : db
@@ -747,9 +757,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     normalizeNullableText(firestoreActiveTrip?.driverId) ??
     normalizeNullableText(routeData.driverId);
   const driverData = mergeTrackingRecord(
-    routeData.companyId && activeTripDriverId
-      ? await readDriverFromPostgres(routeData.companyId, activeTripDriverId).catch(() => null)
-      : null,
+    postgresDriverData,
     firestoreDriverData,
   );
 

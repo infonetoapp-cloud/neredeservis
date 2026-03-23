@@ -1,7 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 import { HttpError } from "./http.js";
-import { lookupIdentityToolkitUserByIdToken } from "./identity-toolkit.js";
 
 const WEB_SESSION_COOKIE_NAME = "ns_session_token";
 const WEB_SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
@@ -211,16 +210,6 @@ export function exchangeAuthenticatedUserForWebSession(response, sessionUser) {
   });
   appendSetCookieHeader(response, buildCookieHeader(sessionCookie, WEB_SESSION_MAX_AGE_SECONDS));
   return sessionUser;
-}
-
-export async function exchangeIdTokenForWebSession(response, rawIdToken) {
-  const idToken = typeof rawIdToken === "string" ? rawIdToken.trim() : "";
-  if (!idToken) {
-    throw new HttpError(400, "invalid-argument", "idToken zorunludur.");
-  }
-
-  const sessionUser = await lookupIdentityToolkitUserByIdToken(idToken);
-  return exchangeAuthenticatedUserForWebSession(response, sessionUser);
 }
 
 export async function readCurrentAuthSessionUser(subject) {

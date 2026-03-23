@@ -7,7 +7,6 @@ import { readCurrentAuthProfile, updateCurrentAuthProfile } from "./lib/auth-pro
 import {
   clearWebSessionCookie,
   exchangeAuthenticatedUserForWebSession,
-  exchangeIdTokenForWebSession,
   readCurrentAuthSessionUser,
 } from "./lib/auth-session.js";
 import {
@@ -114,13 +113,6 @@ import {
 import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
 import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
 import { getOptionalFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
-import {
-  confirmPasswordResetViaIdentityToolkit,
-  lookupIdentityToolkitUserByIdToken,
-  registerWithEmailPasswordViaIdentityToolkit,
-  signInWithEmailPasswordViaIdentityToolkit,
-  verifyPasswordResetCodeViaIdentityToolkit,
-} from "./lib/identity-toolkit.js";
 import {
   confirmPasswordResetLocally,
   createAnonymousUserLocally,
@@ -1188,45 +1180,46 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthPasswordResetVerifyPath(requestUrl.pathname)) {
-      const body = await readJsonBody(request);
-      if (isPostgresConfigured()) {
-        const result = await verifyPasswordResetCodeLocally(asRecord(body)?.oobCode);
-        if (!result) {
-          throw new HttpError(
-            400,
-            "auth/invalid-action-code",
-            "Gecersiz veya kullanilmis link.",
-          );
-        }
-        sendApiOk(response, 200, result);
-        return;
+      if (!isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "failed-precondition",
+          "Sifre sifirlama icin yerel auth depolamasi hazir degil.",
+        );
       }
-      const result = await verifyPasswordResetCodeViaIdentityToolkit(asRecord(body)?.oobCode);
+      const body = await readJsonBody(request);
+      const result = await verifyPasswordResetCodeLocally(asRecord(body)?.oobCode);
+      if (!result) {
+        throw new HttpError(
+          400,
+          "auth/invalid-action-code",
+          "Gecersiz veya kullanilmis link.",
+        );
+      }
       sendApiOk(response, 200, result);
       return;
     }
 
     if (request.method === "POST" && isAuthPasswordResetConfirmPath(requestUrl.pathname)) {
-      const body = await readJsonBody(request);
-      if (isPostgresConfigured()) {
-        const result = await confirmPasswordResetLocally(db, {
-          oobCode: asRecord(body)?.oobCode,
-          password: asRecord(body)?.password,
-        });
-        if (!result) {
-          throw new HttpError(
-            400,
-            "auth/invalid-action-code",
-            "Gecersiz veya kullanilmis link.",
-          );
-        }
-        sendApiOk(response, 200, result);
-        return;
+      if (!isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "failed-precondition",
+          "Sifre sifirlama onayi icin yerel auth depolamasi hazir degil.",
+        );
       }
-      const result = await confirmPasswordResetViaIdentityToolkit({
+      const body = await readJsonBody(request);
+      const result = await confirmPasswordResetLocally(db, {
         oobCode: asRecord(body)?.oobCode,
         password: asRecord(body)?.password,
       });
+      if (!result) {
+        throw new HttpError(
+          400,
+          "auth/invalid-action-code",
+          "Gecersiz veya kullanilmis link.",
+        );
+      }
       sendApiOk(response, 200, result);
       return;
     }
@@ -1239,19 +1232,17 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthLoginPath(requestUrl.pathname)) {
-      const body = await readJsonBody(request);
-      let user = null;
-      let mobileTokens = null;
-      if (isPostgresConfigured()) {
-        user = await signInWithEmailPasswordLocally(db, asRecord(body) ?? {});
-        exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
-        mobileTokens = await issueMobileAuthTokens(db, user);
-      } else {
-        const loginResult = await signInWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
-        const decodedToken = await exchangeIdTokenForWebSession(response, loginResult.idToken);
-        user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
-        mobileTokens = await issueMobileAuthTokens(db, user);
+      if (!isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "failed-precondition",
+          "E-posta girisi icin yerel auth depolamasi hazir degil.",
+        );
       }
+      const body = await readJsonBody(request);
+      const user = await signInWithEmailPasswordLocally(db, asRecord(body) ?? {});
+      exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+      const mobileTokens = await issueMobileAuthTokens(db, user);
       sendApiOk(response, 200, {
         user,
         ...(mobileTokens ?? {}),
@@ -1260,23 +1251,19 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthRegisterPath(requestUrl.pathname)) {
-      const body = await readJsonBody(request);
-      let user = null;
-      let verificationEmailSent = false;
-      let mobileTokens = null;
-      if (isPostgresConfigured()) {
-        const registerResult = await registerWithEmailPasswordLocally(db, asRecord(body) ?? {});
-        user = registerResult.user;
-        verificationEmailSent = registerResult.verificationEmailSent === true;
-        exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
-        mobileTokens = await issueMobileAuthTokens(db, user);
-      } else {
-        const registerResult = await registerWithEmailPasswordViaIdentityToolkit(asRecord(body) ?? {});
-        const decodedToken = await exchangeIdTokenForWebSession(response, registerResult.idToken);
-        user = await upsertAuthUserProfile(db, await readCurrentAuthSessionUser(decodedToken));
-        verificationEmailSent = registerResult.verificationEmailSent === true;
-        mobileTokens = await issueMobileAuthTokens(db, user);
+      if (!isPostgresConfigured()) {
+        throw new HttpError(
+          412,
+          "failed-precondition",
+          "Kayit icin yerel auth depolamasi hazir degil.",
+        );
       }
+      const body = await readJsonBody(request);
+      const registerResult = await registerWithEmailPasswordLocally(db, asRecord(body) ?? {});
+      const user = registerResult.user;
+      const verificationEmailSent = registerResult.verificationEmailSent === true;
+      exchangeAuthenticatedUserForWebSession(response, await readCurrentAuthSessionUser(user));
+      const mobileTokens = await issueMobileAuthTokens(db, user);
       sendApiOk(response, 201, {
         user,
         verificationEmailSent,
@@ -1305,26 +1292,11 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && isAuthSessionExchangePath(requestUrl.pathname)) {
-      if (isPostgresConfigured()) {
-        throw new HttpError(
-          412,
-          "auth/operation-not-supported",
-          "Bu kimlik dogrulama yontemi yeni backend modunda desteklenmiyor.",
-        );
-      }
-      const body = await readJsonBody(request);
-      const decodedToken = await lookupIdentityToolkitUserByIdToken(asRecord(body)?.idToken);
-      const normalizedUser = await readCurrentAuthSessionUser(decodedToken);
-      if (normalizedUser.signInProvider !== "anonymous") {
-        exchangeAuthenticatedUserForWebSession(response, normalizedUser);
-      }
-      const user = await upsertAuthUserProfile(db, normalizedUser);
-      const mobileTokens = await issueMobileAuthTokens(db, user);
-      sendApiOk(response, 200, {
-        user,
-        ...(mobileTokens ?? {}),
-      });
-      return;
+      throw new HttpError(
+        410,
+        "auth/operation-not-supported",
+        "Eski session exchange akisi kaldirildi. Lutfen yeni backend oturumunu kullan.",
+      );
     }
 
     if (request.method === "POST" && isAuthTokenRefreshPath(requestUrl.pathname)) {
@@ -1491,7 +1463,6 @@ const server = createServer(async (request, response) => {
       const body = await readJsonBody(request);
       const result = await createGuestSession({
         db,
-        rtdb: getOptionalFirebaseAdminRtdb(),
         uid: decodedToken.uid,
         authUser: decodedToken,
         input: asRecord(body) ?? {},

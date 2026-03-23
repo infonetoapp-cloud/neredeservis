@@ -313,57 +313,6 @@ async function verifyTurnstileToken(input) {
   }
 }
 
-async function sendPasswordResetEmailViaIdentityToolkit(email) {
-  const webApiKey = (process.env.APP_WEB_API_KEY ?? "").trim();
-  if (!webApiKey) {
-    throw new HttpError(500, "internal", "APP_WEB_API_KEY sunucu degiskeni tanimlanmamis.");
-  }
-
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${webApiKey}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ requestType: "PASSWORD_RESET", email }),
-    },
-  ).catch(() => null);
-
-  if (!response) {
-    throw new HttpError(500, "internal", "Sifre sifirlama servisine ulasilamadi.");
-  }
-
-  let payload = null;
-  try {
-    payload = asRecord(await response.json());
-  } catch {
-    payload = null;
-  }
-
-  if (response.ok) {
-    return;
-  }
-
-  const errorRecord = asRecord(payload?.error);
-  const providerCode =
-    typeof errorRecord?.message === "string" ? errorRecord.message.trim().toUpperCase() : "";
-
-  if (providerCode === "EMAIL_NOT_FOUND") {
-    throw new HttpError(404, "auth/user-not-found", "Bu e-posta ile kayitli hesap bulunamadi.");
-  }
-  if (providerCode === "INVALID_EMAIL") {
-    throw new HttpError(400, "auth/invalid-email", "E-posta formati gecersiz.");
-  }
-  if (providerCode === "TOO_MANY_ATTEMPTS_TRY_LATER") {
-    throw new HttpError(
-      429,
-      "auth/too-many-requests",
-      "Cok fazla deneme yapildi. Biraz sonra tekrar dene.",
-    );
-  }
-
-  throw new HttpError(500, "internal", "Sifre sifirlama e-postasi gonderilemedi.");
-}
-
 export async function prepareCorporateLoginAttempt(db, request, input) {
   const config = readLoginSecurityConfig();
   const email = requireNormalizedEmail(input?.email);
@@ -547,24 +496,23 @@ export async function getCurrentUserWebAccessPolicy(db, uid) {
 export async function sendPasswordResetEmailForAddress(db, input) {
   const email = requireNormalizedEmail(input?.email);
 
-  if (isPostgresConfigured()) {
-    const authUser = await findUserProfileByEmail(db, email).catch(() => null);
-    if (!authUser?.uid) {
-      throw new HttpError(404, "auth/user-not-found", "Bu e-posta ile kayitli hesap bulunamadi.");
-    }
-
-    const resetToken = await issuePasswordResetTokenLocally(db, {
-      uid: authUser.uid,
-      email,
-      createdBy: "self_service",
-    });
-    return {
-      success: true,
-      delivery: "manual",
-      resetUrl: buildPasswordResetUrl(resetToken.token, email),
-    };
+  if (!isPostgresConfigured()) {
+    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
   }
 
-  await sendPasswordResetEmailViaIdentityToolkit(email);
-  return { success: true };
+  const authUser = await findUserProfileByEmail(db, email).catch(() => null);
+  if (!authUser?.uid) {
+    throw new HttpError(404, "auth/user-not-found", "Bu e-posta ile kayitli hesap bulunamadi.");
+  }
+
+  const resetToken = await issuePasswordResetTokenLocally(db, {
+    uid: authUser.uid,
+    email,
+    createdBy: "self_service",
+  });
+  return {
+    success: true,
+    delivery: "manual",
+    resetUrl: buildPasswordResetUrl(resetToken.token, email),
+  };
 }

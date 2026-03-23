@@ -16,7 +16,6 @@ import {
 } from "./company-membership-store.js";
 import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { HttpError } from "./http.js";
-import { createManagedUserViaIdentityToolkit } from "./identity-toolkit.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
@@ -89,52 +88,17 @@ function buildOwnerPasswordSetupUrl(oobCode, email) {
   return setupUrl.toString();
 }
 
-async function sendPasswordSetupEmail(email) {
-  const webApiKey = (process.env.APP_WEB_API_KEY ?? "").trim();
-  if (!webApiKey) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "platform_password_setup_email_skipped",
-        reason: "APP_WEB_API_KEY_MISSING",
-      }),
-    );
-    return;
-  }
-
-  const response = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${webApiKey}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ requestType: "PASSWORD_RESET", email }),
-    },
-  ).catch(() => null);
-
-  if (!response?.ok) {
-    console.error(
-      JSON.stringify({
-        level: "warn",
-        event: "platform_password_setup_email_failed",
-        email,
-        status: response?.status ?? null,
-      }),
-    );
-  }
-}
-
 async function issueOwnerPasswordSetupLink(db, uid, email, createdBy) {
-  if (isPostgresConfigured()) {
-    const resetToken = await issuePasswordResetTokenLocally(db, {
-      uid,
-      email,
-      createdBy,
-    });
-    return buildOwnerPasswordSetupUrl(resetToken.token, email);
+  if (!isPostgresConfigured()) {
+    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
   }
 
-  await sendPasswordSetupEmail(email);
-  return buildOwnerLoginUrl();
+  const resetToken = await issuePasswordResetTokenLocally(db, {
+    uid,
+    email,
+    createdBy,
+  });
+  return buildOwnerPasswordSetupUrl(resetToken.token, email);
 }
 
 async function resolveCompanyOwnerIdentity(companyRef, companyData) {
@@ -725,6 +689,10 @@ export async function getPlatformCompanyDetail(db, input) {
 }
 
 export async function createPlatformCompany(db, actorUid, input) {
+  if (!isPostgresConfigured()) {
+    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
+  }
+
   const companyName = normalizeCompanyName(input?.companyName);
   const ownerEmail = normalizeOwnerEmail(input?.ownerEmail);
   const vehicleLimit = normalizeVehicleLimit(input?.vehicleLimit ?? 10);
@@ -736,20 +704,11 @@ export async function createPlatformCompany(db, actorUid, input) {
     ownerUid = existingOwnerProfile.uid;
   } else {
     const bootstrapPassword = generateBootstrapPassword();
-    if (isPostgresConfigured()) {
-      const createdUser = await createManagedUserLocally(db, {
-        email: ownerEmail,
-        password: bootstrapPassword,
-      });
-      ownerUid = createdUser.uid;
-    } else {
-      const createdUser = await createManagedUserViaIdentityToolkit({
-        email: ownerEmail,
-        password: bootstrapPassword,
-        sendVerificationEmail: false,
-      });
-      ownerUid = createdUser.localId;
-    }
+    const createdUser = await createManagedUserLocally(db, {
+      email: ownerEmail,
+      password: bootstrapPassword,
+    });
+    ownerUid = createdUser.uid;
     await upsertAuthUserProfile(db, {
       uid: ownerUid,
       email: ownerEmail,
@@ -766,120 +725,51 @@ export async function createPlatformCompany(db, actorUid, input) {
     .digest("hex")
     .slice(0, 24);
 
-  if (isPostgresConfigured()) {
-    companyId = db?.collection?.("companies")?.doc?.().id ?? randomUUID();
-    const auditLog = stageCompanyAuditLogWrite(db, null, {
-      companyId,
-      actorUid,
-      actorType: "platform_admin",
-      eventType: "platform_company_created",
-      targetType: "company",
-      targetId: companyId,
-      status: "success",
-      reason: null,
-      metadata: {
-        ownerUid,
-        ownerEmail,
-        vehicleLimit,
-      },
-      requestId: auditRequestId,
-      createdAt: nowIso,
-    });
-
-    await syncCompanyWithOwnerMembershipToPostgres({
-      companyId,
-      uid: ownerUid,
-      name: companyName,
-      status: "active",
-      billingStatus: "active",
-      timezone: "Europe/Istanbul",
-      countryCode: "TR",
-      contactEmail: ownerEmail,
-      contactPhone: null,
-      vehicleLimit,
-      createdBy: actorUid,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
-
-    await mirrorCreatedPlatformCompanyToFirestore(db, {
-      companyId,
-      companyName,
+  companyId = db?.collection?.("companies")?.doc?.().id ?? randomUUID();
+  const auditLog = stageCompanyAuditLogWrite(db, null, {
+    companyId,
+    actorUid,
+    actorType: "platform_admin",
+    eventType: "platform_company_created",
+    targetType: "company",
+    targetId: companyId,
+    status: "success",
+    reason: null,
+    metadata: {
       ownerUid,
       ownerEmail,
       vehicleLimit,
-      actorUid,
-      nowIso,
-    });
-    await flushStagedCompanyAuditLog(auditLog).catch(() => false);
-  } else {
-    await db.runTransaction(async (transaction) => {
-      const companyRef = db.collection("companies").doc();
-      companyId = companyRef.id;
-      const memberRef = companyRef.collection("members").doc(ownerUid);
-      const userMembershipRef = db
-        .collection("users")
-        .doc(ownerUid)
-        .collection("company_memberships")
-        .doc(companyId);
+    },
+    requestId: auditRequestId,
+    createdAt: nowIso,
+  });
 
-      transaction.set(companyRef, {
-        name: companyName,
-        legalName: null,
-        status: "active",
-        timezone: "Europe/Istanbul",
-        countryCode: "TR",
-        contactEmail: ownerEmail,
-        contactPhone: null,
-        vehicleLimit,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        createdByPlatform: actorUid,
-      });
+  await syncCompanyWithOwnerMembershipToPostgres({
+    companyId,
+    uid: ownerUid,
+    name: companyName,
+    status: "active",
+    billingStatus: "active",
+    timezone: "Europe/Istanbul",
+    countryCode: "TR",
+    contactEmail: ownerEmail,
+    contactPhone: null,
+    vehicleLimit,
+    createdBy: actorUid,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  });
 
-      transaction.set(memberRef, {
-        companyId,
-        uid: ownerUid,
-        role: "owner",
-        status: "active",
-        email: ownerEmail,
-        permissions: null,
-        invitedBy: null,
-        invitedAt: null,
-        acceptedAt: nowIso,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      });
-
-      transaction.set(userMembershipRef, {
-        companyId,
-        role: "owner",
-        status: "active",
-        companyName,
-        companyStatus: "active",
-        joinedAt: nowIso,
-        updatedAt: nowIso,
-      });
-
-      stageCompanyAuditLogWrite(db, transaction, {
-        companyId,
-        actorUid,
-        actorType: "platform_admin",
-        eventType: "platform_company_created",
-        targetType: "company",
-        targetId: companyId,
-        status: "success",
-        reason: null,
-        metadata: {
-          ownerUid,
-          ownerEmail,
-          vehicleLimit,
-        },
-        requestId: auditRequestId,
-        createdAt: nowIso,
-      });
-    });
-  }
+  await mirrorCreatedPlatformCompanyToFirestore(db, {
+    companyId,
+    companyName,
+    ownerUid,
+    ownerEmail,
+    vehicleLimit,
+    actorUid,
+    nowIso,
+  });
+  await flushStagedCompanyAuditLog(auditLog).catch(() => false);
 
   const loginUrl = await issueOwnerPasswordSetupLink(db, ownerUid, ownerEmail, actorUid);
 
