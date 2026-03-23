@@ -1,6 +1,7 @@
 import { readCurrentAuthProfile } from "./auth-profile.js";
 import { readUserProfileByUid, upsertAuthUserProfile } from "./auth-user-store.js";
 import { HttpError } from "./http.js";
+import { isPostgresConfigured } from "./postgres.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 const DRIVER_SUBSCRIPTION_FALLBACK_STATUS = "trial";
@@ -262,7 +263,7 @@ async function bestEffortMirrorConsentDoc(db, uid, rawConsent) {
 
 async function hydrateLegacyAuthBundle(db, subject, existingProfile) {
   const uid = requireUid(subject);
-  if (!hasFirestoreDb(db)) {
+  if (isPostgresConfigured() || !hasFirestoreDb(db)) {
     return existingProfile;
   }
 

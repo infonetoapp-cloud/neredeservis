@@ -99,12 +99,12 @@ async function findActiveGuestSession(db, routeId, guestUid) {
     const session = await readActiveGuestSessionForGuestFromPostgres(routeId, guestUid).catch(
       () => null,
     );
-    if (session) {
-      return {
-        sessionId: session.sessionId,
-        guestDisplayName: session.guestDisplayName,
-      };
-    }
+    return session
+      ? {
+          sessionId: session.sessionId,
+          guestDisplayName: session.guestDisplayName,
+        }
+      : null;
   }
 
   if (!hasFirestoreDb(db)) {
