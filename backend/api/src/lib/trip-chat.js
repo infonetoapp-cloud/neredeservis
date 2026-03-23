@@ -253,7 +253,9 @@ async function readDriverDisplayContext(db, driverUid, companyId) {
     ? await readCompanyDriverFromPostgres(normalizedCompanyId, driverUid).catch(() => null)
     : null;
   const [driverSnapshot, driverUser] = await Promise.all([
-    hasFirestoreDb(db) ? db.collection("drivers").doc(driverUid).get() : Promise.resolve(null),
+    postgresDriver || !hasFirestoreDb(db)
+      ? Promise.resolve(null)
+      : db.collection("drivers").doc(driverUid).get(),
     readUserProfileByUid(db, driverUid).catch(() => null),
   ]);
 
@@ -277,9 +279,9 @@ async function readPassengerDisplayContext(db, routeRef, routeId, passengerUid, 
     ? await readRoutePassengerFromPostgres(routeId, passengerUid).catch(() => null)
     : null;
   const [passengerSnapshot, passengerUser] = await Promise.all([
-    routeRef?.collection
-      ? routeRef.collection("passengers").doc(passengerUid).get()
-      : Promise.resolve(null),
+    postgresPassenger || !routeRef?.collection
+      ? Promise.resolve(null)
+      : routeRef.collection("passengers").doc(passengerUid).get(),
     readUserProfileByUid(db, passengerUid).catch(() => null),
   ]);
 
