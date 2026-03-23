@@ -302,10 +302,12 @@ export async function loadDriverTripHistory(db, uid) {
 }
 
 export async function loadDriverMyTrips(db, uid) {
-  const managedRouteDocs = {
-    ...(await loadManagedRoutesFromPostgres(uid)),
-    ...(await loadManagedRoutesFromFirestore(db, uid).catch(() => ({}))),
-  };
+  const managedRouteDocs = isPostgresConfigured()
+    ? await loadManagedRoutesFromPostgres(uid)
+    : {
+        ...(await loadManagedRoutesFromPostgres(uid)),
+        ...(await loadManagedRoutesFromFirestore(db, uid).catch(() => ({}))),
+      };
   const tripRows = await loadDriverTripRowsFromFirestore(db, uid);
 
   const missingRouteIds = tripRows
@@ -331,10 +333,12 @@ export async function listDriverRouteCandidates(db, uid) {
     return [];
   }
 
-  const managedRouteDocs = {
-    ...(await loadManagedRoutesFromPostgres(normalizedUid)),
-    ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
-  };
+  const managedRouteDocs = isPostgresConfigured()
+    ? await loadManagedRoutesFromPostgres(normalizedUid)
+    : {
+        ...(await loadManagedRoutesFromPostgres(normalizedUid)),
+        ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
+      };
 
   return Object.entries(managedRouteDocs).map(([routeId, routeData]) => ({
     routeId,
@@ -351,10 +355,12 @@ export async function listDriverRouteStops(db, uid, routeId) {
     return [];
   }
 
-  const managedRouteDocs = {
-    ...(await loadManagedRoutesFromPostgres(normalizedUid)),
-    ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
-  };
+  const managedRouteDocs = isPostgresConfigured()
+    ? await loadManagedRoutesFromPostgres(normalizedUid)
+    : {
+        ...(await loadManagedRoutesFromPostgres(normalizedUid)),
+        ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
+      };
   if (!managedRouteDocs[normalizedRouteId]) {
     return [];
   }
