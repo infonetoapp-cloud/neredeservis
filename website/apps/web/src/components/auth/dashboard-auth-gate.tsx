@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
 
 import { DashboardCompanyContextSync } from "@/components/dashboard/dashboard-company-context-sync";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
@@ -36,7 +35,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   if (status === "signed_out") {
     return (
       <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-sm">
-        Giriş sayfasına yönlendiriliyor...
+        Giris sayfasina yonlendiriliyor...
       </div>
     );
   }
@@ -44,7 +43,7 @@ export function DashboardAuthGate({ children }: { children: ReactNode }) {
   if (status === "disabled") {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Firebase public env eksik olduğu için dashboard auth gate pasif.
+        Backend auth env eksik oldugu icin dashboard auth gate pasif.
       </div>
     );
   }

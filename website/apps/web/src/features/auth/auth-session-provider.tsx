@@ -8,45 +8,54 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { User } from "firebase/auth";
 
-import { subscribeAuthState } from "@/features/auth/auth-client";
+import type { AuthSessionUser } from "@/features/auth/auth-session-types";
+import {
+  readAuthStateSnapshot,
+  refreshCurrentAuthSession,
+  subscribeAuthState,
+} from "@/features/auth/auth-client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
-import { getPublicConfigValidation } from "@/lib/env/firebase-public-config";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 
 type AuthSessionStatus = "loading" | "signed_out" | "signed_in" | "disabled";
 
 type AuthSessionContextValue = {
   status: AuthSessionStatus;
-  user: User | null;
+  user: AuthSessionUser | null;
   configReady: boolean;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
-  const configReady = getPublicConfigValidation().ok;
-  const [user, setUser] = useState<User | null>(null);
-  const [resolved, setResolved] = useState<boolean>(!configReady);
+  const configReady = Boolean(getBackendApiBaseUrl());
+  const initialSnapshot = readAuthStateSnapshot();
+  const [user, setUser] = useState<AuthSessionUser | null>(initialSnapshot.user);
+  const [resolved, setResolved] = useState<boolean>(
+    configReady ? initialSnapshot.resolved : true,
+  );
 
   useEffect(() => {
     if (!configReady) {
       setClientSessionCookie(false);
+      setUser(null);
+      setResolved(true);
       return;
     }
 
-    const unsubscribe = subscribeAuthState((nextUser) => {
-      setUser(nextUser);
-      setResolved(true);
-      setClientSessionCookie(Boolean(nextUser));
+    const unsubscribe = subscribeAuthState((snapshot) => {
+      setUser(snapshot.user);
+      setResolved(snapshot.resolved);
     });
 
-    if (!unsubscribe) {
+    void refreshCurrentAuthSession().catch(() => {
+      setUser(null);
+      setResolved(true);
       setClientSessionCookie(false);
-      return;
-    }
+    });
 
-    return unsubscribe;
+    return unsubscribe ?? undefined;
   }, [configReady]);
 
   const status: AuthSessionStatus = !configReady

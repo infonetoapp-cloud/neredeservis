@@ -10,4 +10,12 @@ export type AuthSessionUser = {
   displayName: string | null;
   emailVerified: boolean;
   providerData: AuthSessionProviderInfo[];
+  signInProvider?: string | null;
+  role?: string | null;
+  phone?: string | null;
+  photoUrl?: string | null;
+  photoPath?: string | null;
+  mobileOnlyAuth?: boolean;
+  webPanelAccess?: boolean | null;
+  isAnonymous?: boolean;
 };

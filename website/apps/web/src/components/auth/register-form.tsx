@@ -20,31 +20,25 @@ import { GoogleIcon, MicrosoftIcon } from "@/components/auth/auth-provider-icons
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
-    if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Kayıt tetiklenemiyor.";
-    }
     const code = (error as { code?: string }).code;
+    if (code === "BACKEND_API_MISSING") {
+      return "Backend auth baglantisi eksik. Kayit su an baslatilamiyor.";
+    }
     if (code === "auth/email-already-in-use") {
       return "Bu e-posta ile zaten bir hesap var.";
     }
     if (code === "auth/invalid-email") {
-      return "E-posta formatı geçersiz.";
+      return "E-posta formati gecersiz.";
     }
     if (code === "auth/weak-password") {
-      return "Şifre en az 6 karakter olmalı.";
+      return "Sifre en az 6 karakter olmali.";
     }
-    if (code === "auth/popup-closed-by-user") {
-      return "Sosyal giriş penceresi kapatıldı.";
+    if (code === "auth/operation-not-supported-in-this-environment") {
+      return "Sosyal kayit bu panelde desteklenmiyor.";
     }
-    if (code === "auth/popup-blocked") {
-      return "Popup engellendi. Tarayıcı popup iznini açıp tekrar dene.";
-    }
-    if (code === "auth/operation-not-allowed") {
-      return "Bu kayıt yöntemi şu anda aktif değil.";
-    }
-    return code ? `Kayıt hatası (${code})` : error.message;
+    return code ? `Kayit hatasi (${code})` : error.message;
   }
-  return "Beklenmeyen hata oluştu.";
+  return "Beklenmeyen hata olustu.";
 }
 
 export function RegisterForm() {
@@ -56,7 +50,9 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<"email" | "google" | "microsoft" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"email" | "google" | "microsoft" | null>(
+    null,
+  );
   const [isNavigating, startTransition] = useTransition();
 
   const nextPath = searchParams.get("next") || "/dashboard";
@@ -64,6 +60,7 @@ export function RegisterForm() {
   const emailEnabled = isEmailLoginEnabled();
   const googleEnabled = !backendSessionEnabled && isGoogleLoginEnabled();
   const microsoftEnabled = !backendSessionEnabled && isMicrosoftLoginEnabled();
+  const showSocialProviders = googleEnabled || microsoftEnabled;
 
   useEffect(() => {
     if (status === "signed_in") {
@@ -74,7 +71,7 @@ export function RegisterForm() {
   if (status === "signed_in") {
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-        Oturum açık. Genel bakışa yönlendiriliyor...
+        Oturum acik. Genel bakisa yonlendiriliyor...
       </div>
     );
   }
@@ -90,11 +87,11 @@ export function RegisterForm() {
   const submitEmailRegistration = async () => {
     setErrorMessage(null);
     if (password.length < 6) {
-      setErrorMessage("Şifre en az 6 karakter olmalı.");
+      setErrorMessage("Sifre en az 6 karakter olmali.");
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage("Şifreler aynı olmalı.");
+      setErrorMessage("Sifreler ayni olmali.");
       return;
     }
 
@@ -150,38 +147,52 @@ export function RegisterForm() {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        disabled={!googleEnabled || busy}
-        onClick={submitGoogle}
-        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <span className="inline-flex items-center gap-2">
-          <GoogleIcon className="h-4 w-4" />
-          {pendingAction === "google" ? "Google açılıyor..." : "Google ile Kayıt Ol"}
-        </span>
-      </button>
+      {showSocialProviders ? (
+        <>
+          {googleEnabled ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={submitGoogle}
+              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="inline-flex items-center gap-2">
+                <GoogleIcon className="h-4 w-4" />
+                {pendingAction === "google" ? "Google aciliyor..." : "Google ile Kayit Ol"}
+              </span>
+            </button>
+          ) : null}
 
-      <button
-        type="button"
-        disabled={!microsoftEnabled || busy}
-        onClick={submitMicrosoft}
-        className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <span className="inline-flex items-center gap-2">
-          <MicrosoftIcon className="h-4 w-4" />
-          {pendingAction === "microsoft" ? "Microsoft açılıyor..." : "Microsoft ile Kayıt Ol"}
-        </span>
-      </button>
+          {microsoftEnabled ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={submitMicrosoft}
+              className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="inline-flex items-center gap-2">
+                <MicrosoftIcon className="h-4 w-4" />
+                {pendingAction === "microsoft"
+                  ? "Microsoft aciliyor..."
+                  : "Microsoft ile Kayit Ol"}
+              </span>
+            </button>
+          ) : null}
 
-      <div className="relative py-1 text-center">
-        <div className="absolute left-0 right-0 top-1/2 border-t border-line/80" />
-        <span className="relative bg-white px-3 text-xs font-medium tracking-wide text-slate-500">VEYA</span>
-      </div>
+          <div className="relative py-1 text-center">
+            <div className="absolute left-0 right-0 top-1/2 border-t border-line/80" />
+            <span className="relative bg-white px-3 text-xs font-medium tracking-wide text-slate-500">
+              VEYA
+            </span>
+          </div>
+        </>
+      ) : null}
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-800">Ad Soyad (opsiyonel)</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">
+            Ad Soyad (opsiyonel)
+          </label>
           <input
             type="text"
             autoComplete="name"
@@ -203,7 +214,7 @@ export function RegisterForm() {
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-800">Şifre</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">Sifre</label>
           <input
             type="password"
             autoComplete="new-password"
@@ -214,13 +225,15 @@ export function RegisterForm() {
           />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-800">Şifre (Tekrar)</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">
+            Sifre (Tekrar)
+          </label>
           <input
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder="Şifreyi tekrar gir"
+            placeholder="Sifreyi tekrar gir"
             className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
           />
         </div>
@@ -232,13 +245,13 @@ export function RegisterForm() {
         onClick={submitEmailRegistration}
         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Kayıt yapılıyor..." : "Kayıt Ol"}
+        {pendingAction === "email" ? "Kayit yapiliyor..." : "Kayit Ol"}
       </button>
 
       <div className="pt-1 text-center text-sm text-muted">
-        Zaten hesabın var mı?{" "}
+        Zaten hesabin var mi?{" "}
         <Link href="/giris" className="font-semibold text-brand hover:text-brand-strong">
-          Giriş Yap
+          Giris Yap
         </Link>
       </div>
     </div>

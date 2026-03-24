@@ -2,7 +2,6 @@
 
 import { callBackendApi } from "@/lib/backend-api/client";
 import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
-import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 import {
   asRecord,
@@ -64,20 +63,14 @@ async function callBackendUploadApi<T>(input: {
   body?: BodyInit;
   contentType?: string;
 }): Promise<T> {
-  const currentUser = getFirebaseClientAuth()?.currentUser;
-  if (!currentUser) {
-    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
-  }
-
-  const idToken = await currentUser.getIdToken();
   const requestUrl = new URL(
     input.path,
     requireBackendApiBaseUrl().endsWith("/") ? requireBackendApiBaseUrl() : `${requireBackendApiBaseUrl()}/`,
   );
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
+    credentials: "include",
     headers: {
-      authorization: `Bearer ${idToken}`,
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),

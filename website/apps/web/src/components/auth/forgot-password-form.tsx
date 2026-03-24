@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
     setStatus("sending");
     try {
       const result = await sendPasswordResetEmailForAddress(email);
-      setManualResetUrl(result.delivery === "manual" ? result.resetUrl : null);
+      setManualResetUrl(result.delivery === "manual" ? result.resetUrl ?? null : null);
       setStatus("sent");
     } catch (error) {
       setStatus("idle");
