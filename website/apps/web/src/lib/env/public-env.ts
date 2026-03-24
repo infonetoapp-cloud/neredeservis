@@ -7,7 +7,7 @@ export function getBackendApiBaseUrl(): string | null {
   if (value) {
     return value;
   }
-  if (getPublicAppEnv() === "prod") {
+  if (getPublicAppEnv() === "prod" || process.env.NODE_ENV === "production") {
     return "https://api.neredeservis.app";
   }
   return null;
