@@ -267,46 +267,6 @@ function assertPassengerRouteAccess(routeData, uid, message) {
   }
 }
 
-async function bestEffortMirrorPassengerToFirestore(routeRef, passengerUid, payload) {
-  if (!routeRef?.collection || !passengerUid) {
-    return;
-  }
-
-  await routeRef.collection("passengers").doc(passengerUid).set(payload, { merge: true }).catch(() => undefined);
-}
-
-async function bestEffortDeletePassengerFromFirestore(routeRef, passengerUid) {
-  if (!routeRef?.collection || !passengerUid) {
-    return;
-  }
-
-  await routeRef.collection("passengers").doc(passengerUid).delete().catch(() => undefined);
-}
-
-async function bestEffortMirrorSkipRequestToFirestore(routeRef, docId, payload) {
-  if (!routeRef?.collection || !docId) {
-    return;
-  }
-
-  await routeRef.collection("skip_requests").doc(docId).set(payload, { merge: true }).catch(() => undefined);
-}
-
-async function bestEffortMirrorGuestUserToFirestore(db, uid, payload) {
-  if (!hasFirestoreDb(db) || !uid) {
-    return;
-  }
-
-  await db.collection("users").doc(uid).set(payload, { merge: true }).catch(() => undefined);
-}
-
-async function bestEffortMirrorGuestSessionToFirestore(sessionRef, payload) {
-  if (!sessionRef?.set) {
-    return;
-  }
-
-  await sessionRef.set(payload, { merge: true }).catch(() => undefined);
-}
-
 async function revokeGuestSession(sessionContext, nowIso, reason) {
   if (sessionContext?.sessionId) {
     await revokeGuestTrackingSessionInPostgres(sessionContext.sessionId, {
@@ -347,7 +307,7 @@ export async function joinPassengerRouteBySrvCode(db, uid, input) {
     notificationTime: normalizeText(input?.notificationTime ?? "", "Bildirim saati", 32),
   };
 
-  const { routeId, routeRef, routeData } = await findRouteBySrvCode(storageDb, normalizedInput.srvCode);
+    const { routeId, routeRef, routeData } = await findRouteBySrvCode(storageDb, normalizedInput.srvCode);
   assertPassengerRouteAccess(routeData, uid, "Route sahibi kendi route'una katilamaz.");
   if (routeData.isArchived === true) {
     throw new HttpError(412, "failed-precondition", "Arsivlenmis route'a katilim kapali.");
@@ -373,17 +333,6 @@ export async function joinPassengerRouteBySrvCode(db, uid, input) {
       updatedAt: nowIso,
     });
 
-    await bestEffortMirrorPassengerToFirestore(routeRef, uid, {
-      name: normalizedInput.name,
-      phone: normalizedInput.phone,
-      showPhoneToDriver: normalizedInput.showPhoneToDriver,
-      boardingArea: normalizedInput.boardingArea,
-      virtualStop: existingPassenger?.virtualStop ?? null,
-      virtualStopLabel: existingPassenger?.virtualStopLabel ?? null,
-      notificationTime: normalizedInput.notificationTime,
-      joinedAt: existingPassenger?.joinedAt ?? nowIso,
-      updatedAt: nowIso,
-    });
   } else {
     const firestoreDb = requireFirestoreDb(storageDb);
     await firestoreDb.runTransaction(async (transaction) => {
@@ -460,7 +409,6 @@ export async function leavePassengerRoute(db, uid, input) {
   let left = false;
   if (shouldUsePostgresPassengerStore()) {
     left = await deleteRoutePassengerFromPostgres(routeId, uid).catch(() => false);
-    await bestEffortDeletePassengerFromFirestore(routeRef, uid);
   } else {
     const firestoreDb = requireFirestoreDb(storageDb);
     const passengerRef = routeRef.collection("passengers").doc(uid);
@@ -545,15 +493,6 @@ export async function updatePassengerSettings(db, uid, input) {
       updatedAt: nowIso,
     });
 
-    await bestEffortMirrorPassengerToFirestore(routeRef, uid, {
-      showPhoneToDriver: nextPassenger.showPhoneToDriver,
-      phone: nextPassenger.phone,
-      boardingArea: nextPassenger.boardingArea,
-      virtualStop: nextPassenger.virtualStop,
-      virtualStopLabel: nextPassenger.virtualStopLabel,
-      notificationTime: nextPassenger.notificationTime,
-      updatedAt: nowIso,
-    });
   } else {
     const firestoreDb = requireFirestoreDb(storageDb);
     const passengerRef = routeRef.collection("passengers").doc(uid);
@@ -657,14 +596,6 @@ export async function submitPassengerSkipToday(db, uid, input) {
       updatedAt: nowIso,
     });
 
-    await bestEffortMirrorSkipRequestToFirestore(routeRef, `${uid}_${normalizedInput.dateKey}`, {
-      passengerId: uid,
-      dateKey: normalizedInput.dateKey,
-      status: "skip_today",
-      idempotencyKey,
-      createdAt: existingSkipRequest?.createdAt ?? nowIso,
-      updatedAt: nowIso,
-    });
   } else {
     const firestoreDb = requireFirestoreDb(storageDb);
     const passengerRef = routeRef.collection("passengers").doc(uid);
@@ -784,28 +715,6 @@ export async function createGuestSession({
       updatedAt: nowIso,
     });
 
-    if (effectiveRole === "guest") {
-      await bestEffortMirrorGuestUserToFirestore(storageDb, uid, {
-        role: "guest",
-        displayName: guestDisplayName,
-        phone: userPhone,
-        email: userEmail,
-        createdAt: userCreatedAt,
-        updatedAt: nowIso,
-        deletedAt: null,
-      });
-    }
-
-    await bestEffortMirrorGuestSessionToFirestore(sessionRef, {
-      routeId,
-      routeName,
-      guestUid: uid,
-      guestDisplayName,
-      expiresAt: expiresAtIso,
-      status: "active",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
   } else {
     const firestoreDb = requireFirestoreDb(storageDb);
     const userRef = firestoreDb.collection("users").doc(uid);

@@ -649,6 +649,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   const normalizedRouteId = normalizeNullableText(routeId);
   const normalizedGuestSessionId = normalizeNullableText(guestSessionId);
   const usePostgresPassengerStore = shouldUsePostgresPassengerStore();
+  const allowLegacyFirestoreFallback = !usePostgresPassengerStore && Boolean(db);
   if (!normalizedRouteId && !normalizedGuestSessionId) {
     throw new HttpError(400, "invalid-argument", "routeId veya sessionId gerekli.");
   }
@@ -660,7 +661,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
         () => null,
       );
     }
-    if (!guestSessionData && db) {
+    if (!guestSessionData && allowLegacyFirestoreFallback) {
       guestSessionData = await readGuestSessionDocumentFromFirestore(
         db,
         normalizedGuestSessionId,
@@ -693,7 +694,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   if (!normalizedGuestSessionId && usePostgresPassengerStore) {
     passengerData = await readRoutePassengerFromPostgres(effectiveRouteId, uid).catch(() => null);
   }
-  if (!normalizedGuestSessionId && !passengerData && db) {
+  if (!normalizedGuestSessionId && !passengerData && allowLegacyFirestoreFallback) {
     passengerData = await readPassengerDocumentFromFirestore(db, effectiveRouteId, uid).catch(
       () => null,
     );
@@ -701,7 +702,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
 
   const postgresRoute = await readRouteFromPostgres(effectiveRouteId).catch(() => null);
   const firestoreRoute =
-    postgresRoute || !db
+    postgresRoute || !allowLegacyFirestoreFallback
       ? null
       : await readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null);
   const routeData = normalizeTrackingRoute(
@@ -723,7 +724,7 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     () => null,
   );
   const postgresActiveTrip = await readActiveTripFromPostgres(effectiveRouteId).catch(() => null);
-  const fallbackActiveTripNeeded = !postgresActiveTrip && Boolean(db);
+  const fallbackActiveTripNeeded = !postgresActiveTrip && allowLegacyFirestoreFallback;
   const preliminaryDriverId =
     normalizeNullableText(postgresActiveTrip?.driverId) ??
     normalizeNullableText(postgresActiveTrip?.driverUid) ??
@@ -737,17 +738,17 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
       fallbackActiveTripNeeded
         ? readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null)
         : Promise.resolve(null),
-      postgresDriverData || !routeData.driverId || !db
+      postgresDriverData || !routeData.driverId || !allowLegacyFirestoreFallback
         ? Promise.resolve(null)
         : readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null),
       postgresAnnouncement
         ? Promise.resolve(postgresAnnouncement)
-        : db
+        : allowLegacyFirestoreFallback
           ? readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null)
           : Promise.resolve(null),
       postgresStops.length > 0
         ? Promise.resolve(postgresStops)
-        : db
+        : allowLegacyFirestoreFallback
           ? readRouteStopsFromFirestore(db, effectiveRouteId).catch(() => [])
           : Promise.resolve([]),
     ]);
