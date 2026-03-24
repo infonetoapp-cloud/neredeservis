@@ -1,4 +1,4 @@
-import { FirebaseClientBootstrapProbe } from "@/components/auth/firebase-client-bootstrap-probe";
+import { BackendClientBootstrapProbe } from "@/components/auth/backend-client-bootstrap-probe";
 import { LoginForm } from "@/components/auth/login-form";
 import { ConfigValidationBanner } from "@/components/shared/config-validation-banner";
 
@@ -58,7 +58,7 @@ export function LoginPageShell({
 
             <ConfigValidationBanner scopeLabel="Login Shell" />
             <div className="mb-4">
-              <FirebaseClientBootstrapProbe />
+              <BackendClientBootstrapProbe />
             </div>
 
             <LoginForm />

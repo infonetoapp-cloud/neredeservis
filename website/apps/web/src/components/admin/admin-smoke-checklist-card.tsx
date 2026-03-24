@@ -22,7 +22,7 @@ const DEFAULT_ITEMS: SmokeItem[] = [
   { id: "routes", label: "Routes + Stops smoke" },
   { id: "live_ops", label: "Live Ops list + map + detail smoke" },
   { id: "audit", label: "Audit log smoke (read-only)" },
-  { id: "env", label: "Env badge + Firebase target dogru" },
+  { id: "env", label: "Env badge + backend target dogru" },
 ];
 
 const STORAGE_KEY = ADMIN_STORAGE_KEYS.smokeChecklist;

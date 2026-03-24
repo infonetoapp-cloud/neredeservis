@@ -3,7 +3,7 @@
 import { CheckCircleIcon, RefreshIcon } from "@/components/shared/app-icons";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 
-export function FirebaseClientBootstrapProbe() {
+export function BackendClientBootstrapProbe() {
   const ready = Boolean(getBackendApiBaseUrl());
 
   if (ready) {
@@ -16,16 +16,9 @@ export function FirebaseClientBootstrapProbe() {
         <RefreshIcon className="h-3.5 w-3.5" />
         Backend API baglantisi
       </span>
-      {ready ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 font-medium text-emerald-800">
-          <CheckCircleIcon className="h-3.5 w-3.5" />
-          hazir
-        </span>
-      ) : (
-        <span className="rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
-          backend env eksik
-        </span>
-      )}
+      <span className="rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
+        backend env eksik
+      </span>
     </div>
   );
 }

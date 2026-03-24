@@ -77,15 +77,6 @@ export function getDefaultLiveRouteId(): string | null {
   return defaultLiveRouteId || null;
 }
 
-export function getFirebaseFunctionsRegion(): string {
-  const functionsRegion = (
-    process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION ?? "europe-west3"
-  )
-    .trim()
-    .toLowerCase();
-  return functionsRegion || "europe-west3";
-}
-
 export function getMapboxToken(): string | null {
   const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
   return mapboxToken || null;

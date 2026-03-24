@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { FirebaseClientBootstrapProbe } from "@/components/auth/firebase-client-bootstrap-probe";
+import { BackendClientBootstrapProbe } from "@/components/auth/backend-client-bootstrap-probe";
 import { NsLogo } from "@/components/brand/ns-logo";
 import { ArrowRightIcon } from "@/components/shared/app-icons";
 import { ConfigValidationBanner } from "@/components/shared/config-validation-banner";
@@ -62,7 +62,7 @@ export function AuthPageShell({
               <div className="mt-6">
                 <ConfigValidationBanner scopeLabel={scopeLabel} />
                 <div className="mb-4">
-                  <FirebaseClientBootstrapProbe />
+                  <BackendClientBootstrapProbe />
                 </div>
                 {children}
               </div>

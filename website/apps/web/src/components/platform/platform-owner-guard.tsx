@@ -7,8 +7,8 @@ import type { ReactNode } from "react";
 import { useAuthSession } from "@/features/auth/auth-session-provider";
 
 /**
- * Platform shell erişimi için istemci tarafında yalnızca auth kapısı uygulanır.
- * Yetki kontrolü backend callable katmanında server-side olarak zorunlu kalır.
+ * Platform shell erisimi icin istemci tarafinda yalnizca auth kapisi uygulanir.
+ * Yetki kontrolu backend katmaninda server-side olarak zorunlu kalir.
  */
 export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -32,7 +32,7 @@ export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   if (status === "signed_out") {
     return (
       <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-sm">
-        Giriş sayfasına yönlendiriliyor...
+        Giris sayfasina yonlendiriliyor...
       </div>
     );
   }
@@ -40,11 +40,10 @@ export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   if (status === "disabled") {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Firebase public env eksik oldugu için platform guard pasif.
+        Backend auth env eksik oldugu icin platform guard pasif.
       </div>
     );
   }
 
   return <>{children}</>;
 }
-
