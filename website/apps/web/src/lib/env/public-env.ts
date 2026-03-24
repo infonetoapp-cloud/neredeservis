@@ -4,7 +4,13 @@ export function getPublicAppEnv(): string {
 
 export function getBackendApiBaseUrl(): string | null {
   const value = (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "").trim();
-  return value || null;
+  if (value) {
+    return value;
+  }
+  if (getPublicAppEnv() === "prod") {
+    return "https://api.neredeservis.app";
+  }
+  return null;
 }
 
 export function requireBackendApiBaseUrl(): string {

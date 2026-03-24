@@ -10,8 +10,8 @@ import { sendPasswordResetEmailForAddress } from "@/features/auth/auth-client";
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
-    if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Sifre sifirlama tetiklenemiyor.";
+    if (code === "BACKEND_API_MISSING") {
+      return "Backend auth baglantisi eksik. Sifre sifirlama baslatilamiyor.";
     }
     if (code === "auth/missing-email" || code === "invalid-argument") {
       return "Lutfen e-posta alanini doldur.";

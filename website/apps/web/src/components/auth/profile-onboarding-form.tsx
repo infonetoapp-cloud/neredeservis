@@ -14,8 +14,8 @@ import { ArrowRightIcon, RefreshIcon, UserIcon } from "@/components/shared/app-i
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
-    if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase public config eksik. Profil guncelleme tetiklenemiyor.";
+    if (code === "BACKEND_API_MISSING") {
+      return "Backend auth baglantisi eksik. Profil guncellenemiyor.";
     }
     return code ? `Profil guncelleme hatasi (${code})` : error.message;
   }
