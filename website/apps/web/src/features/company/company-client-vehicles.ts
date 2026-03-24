@@ -4,11 +4,11 @@ import { callBackendApi } from "@/lib/backend-api/client";
 import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
-  type ApiOk,
   type CompanyVehicleItem,
   parseCompanyVehicleItems,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
+
 export async function listCompanyVehiclesForCompany(input: {
   companyId: string;
   limit?: number;
@@ -87,6 +87,8 @@ export async function updateCompanyVehicleForCompany(input: {
   status?: "active" | "maintenance" | "inactive";
 }): Promise<CompanyVehicleItem> {
   try {
+    const companyId = input.companyId.trim();
+    const vehicleId = input.vehicleId.trim();
     const patch: Record<string, unknown> = {};
     if (input.plate !== undefined) patch.plate = input.plate.trim();
     if (input.brand !== undefined) patch.brand = input.brand;
@@ -97,7 +99,7 @@ export async function updateCompanyVehicleForCompany(input: {
 
     const response = await callBackendApi<{ vehicle?: unknown }>({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/vehicles/${encodeURIComponent(input.vehicleId.trim())}`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles/${encodeURIComponent(vehicleId)}`,
       method: "PATCH",
       body: patch,
     });
@@ -117,9 +119,11 @@ export async function deleteCompanyVehicleForCompany(input: {
   vehicleId: string;
 }): Promise<void> {
   try {
+    const companyId = input.companyId.trim();
+    const vehicleId = input.vehicleId.trim();
     await callBackendApi({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/vehicles/${encodeURIComponent(input.vehicleId.trim())}`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/vehicles/${encodeURIComponent(vehicleId)}`,
       method: "DELETE",
     });
   } catch (error) {

@@ -1,7 +1,8 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 import {
   asRecord,
@@ -58,17 +59,25 @@ export type CompanyLogoUploadResult = {
 };
 
 async function callBackendUploadApi<T>(input: {
-  baseUrl: string;
   path: string;
   method: "PUT" | "DELETE";
   body?: BodyInit;
   contentType?: string;
 }): Promise<T> {
-  const requestUrl = new URL(input.path, input.baseUrl.endsWith("/") ? input.baseUrl : `${input.baseUrl}/`);
+  const currentUser = getFirebaseClientAuth()?.currentUser;
+  if (!currentUser) {
+    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
+  }
+
+  const idToken = await currentUser.getIdToken();
+  const requestUrl = new URL(
+    input.path,
+    requireBackendApiBaseUrl().endsWith("/") ? requireBackendApiBaseUrl() : `${requireBackendApiBaseUrl()}/`,
+  );
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
-    credentials: "include",
     headers: {
+      authorization: `Bearer ${idToken}`,
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),
@@ -87,13 +96,8 @@ export async function getCompanyProfileForCompany(input: {
   companyId: string;
 }): Promise<CompanyProfile> {
   try {
-    const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (!backendApiBaseUrl) {
-      throw new Error("BACKEND_API_BASE_URL_MISSING");
-    }
-
     const response = await callBackendApi<CompanyProfile>({
-      baseUrl: backendApiBaseUrl,
+      baseUrl: requireBackendApiBaseUrl(),
       path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
     });
     return parseCompanyProfile(response.data);
@@ -108,16 +112,11 @@ export async function updateCompanyProfileForCompany(input: {
   logoUrl?: string;
 }): Promise<{ changedFields: string[]; updatedAt: string }> {
   try {
-    const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (!backendApiBaseUrl) {
-      throw new Error("BACKEND_API_BASE_URL_MISSING");
-    }
-
     const response = await callBackendApi<{
       changedFields?: string[];
       updatedAt?: string;
     }>({
-      baseUrl: backendApiBaseUrl,
+      baseUrl: requireBackendApiBaseUrl(),
       path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
       method: "PATCH",
       body: {
@@ -141,16 +140,10 @@ export async function uploadCompanyLogo(
   companyId: string,
   file: File,
 ): Promise<CompanyLogoUploadResult> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    throw new Error("BACKEND_API_BASE_URL_MISSING");
-  }
-
   const data = await callBackendUploadApi<{
     logoUrl?: string;
     updatedAt?: string;
   }>({
-    baseUrl: backendApiBaseUrl,
     path: `api/companies/${encodeURIComponent(companyId)}/logo`,
     method: "PUT",
     body: file,
@@ -168,15 +161,9 @@ export async function uploadCompanyLogo(
 }
 
 export async function removeCompanyLogo(companyId: string): Promise<{ profileUpdated: boolean; updatedAt: string | null }> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    throw new Error("BACKEND_API_BASE_URL_MISSING");
-  }
-
   const data = await callBackendUploadApi<{
     updatedAt?: string;
   }>({
-    baseUrl: backendApiBaseUrl,
     path: `api/companies/${encodeURIComponent(companyId)}/logo`,
     method: "DELETE",
   });

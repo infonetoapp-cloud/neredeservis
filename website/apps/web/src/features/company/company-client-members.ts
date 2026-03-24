@@ -10,46 +10,57 @@ import {
   type CompanyMemberItem,
   type CompanyMemberRole,
   type CompanyMembershipItem,
-  parseCompanyDriverItems,
   parseCompanyDriverCredentialBundle,
+  parseCompanyDriverItems,
   parseCompanyInviteItems,
   parseCompanyMemberItems,
   parseMembershipItems,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
 
-function getCompanyBackendApiBaseUrl() {
-  return requireBackendApiBaseUrl();
-}
+function mapMembershipRecord(value: {
+  companyId?: string;
+  name?: string;
+  role?: string;
+  memberStatus?: string;
+  companyStatus?: string;
+  billingStatus?: string;
+}): CompanyMembershipItem {
+  const membership = parseMembershipItems([
+    {
+      companyId: value.companyId ?? "",
+      companyName: value.name ?? value.companyId ?? "",
+      memberRole: value.role,
+      membershipStatus: value.memberStatus,
+      companyStatus: value.companyStatus ?? "active",
+      billingStatus: value.billingStatus ?? "active",
+    },
+  ])[0];
 
-function mapMembershipRecord(item: unknown) {
-  const record = item as Record<string, unknown>;
-  return {
-    companyId: record.companyId,
-    companyName: record.companyName ?? record.name,
-    memberRole: record.memberRole ?? record.role,
-    membershipStatus: record.membershipStatus ?? record.memberStatus,
-    companyStatus: record.companyStatus ?? "active",
-    billingStatus: record.billingStatus ?? "active",
-  };
-}
+  if (!membership) {
+    throw new Error("COMPANY_MEMBERSHIP_RESPONSE_INVALID");
+  }
 
-function mapInviteRecord(item: unknown) {
-  const record = item as Record<string, unknown>;
-  return {
-    ...record,
-    email: record.email ?? record.invitedEmail,
-    targetUid: record.targetUid ?? record.invitedUid ?? record.memberUid,
-  };
+  return membership;
 }
 
 export async function listMyCompaniesForCurrentUser(): Promise<CompanyMembershipItem[]> {
   try {
-    const response = await callBackendApi<{ items?: unknown[] }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+    const response = await callBackendApi<{ items?: Array<Record<string, unknown>> }>({
+      baseUrl: requireBackendApiBaseUrl(),
       path: "/api/my/companies",
     });
-    return parseMembershipItems((response.data?.items ?? []).map(mapMembershipRecord));
+    const rawItems = Array.isArray(response.data?.items) ? response.data.items : [];
+    return parseMembershipItems(
+      rawItems.map((item) => ({
+        companyId: item.companyId,
+        companyName: item.name,
+        memberRole: item.role,
+        membershipStatus: item.memberStatus,
+        companyStatus: item.companyStatus ?? "active",
+        billingStatus: item.billingStatus ?? "active",
+      })),
+    );
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -67,25 +78,19 @@ export async function createCompanyForCurrentUser(input: {
         status?: string;
       };
     }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: "/api/my/companies",
       method: "POST",
       body: { name },
     });
-    const membership = parseMembershipItems([
-      {
-        companyId: response.data?.companyId ?? "",
-        companyName: name,
-        memberRole: response.data?.ownerMember?.role ?? "owner",
-        membershipStatus: response.data?.ownerMember?.status ?? "active",
-        companyStatus: "active",
-        billingStatus: "active",
-      },
-    ])[0];
-    if (!membership) {
-      throw new Error("COMPANY_CREATE_RESPONSE_INVALID");
-    }
-    return membership;
+    return mapMembershipRecord({
+      companyId: response.data?.companyId,
+      name,
+      role: response.data?.ownerMember?.role ?? "owner",
+      memberStatus: response.data?.ownerMember?.status ?? "active",
+      companyStatus: "active",
+      billingStatus: "active",
+    });
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -103,7 +108,7 @@ export async function listCompanyMembersForCompany(input: {
     }
 
     const response = await callBackendApi<{ items?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/members${
         query.size > 0 ? `?${query.toString()}` : ""
       }`,
@@ -119,44 +124,9 @@ export async function inviteCompanyMemberForCompany(input: {
   memberUid: string;
   role: CompanyMemberRole;
 }): Promise<CompanyMemberItem> {
-  try {
-    const companyId = input.companyId.trim();
-    const memberUid = input.memberUid.trim();
-    const response = await callBackendApi<{
-      companyId?: string;
-      memberUid?: string;
-      role?: string;
-      createdAt?: string;
-    }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(companyId)}/members`,
-      method: "POST",
-      body: {
-        memberUid,
-        role: input.role,
-      },
-    });
-
-    const invitedMember = parseCompanyMemberItems([
-      {
-        uid: response.data?.memberUid ?? memberUid,
-        displayName: null,
-        email: null,
-        phone: null,
-        role: response.data?.role ?? input.role,
-        status: "invited",
-        companyId: response.data?.companyId ?? companyId,
-        createdAt: response.data?.createdAt ?? null,
-        updatedAt: response.data?.createdAt ?? null,
-      },
-    ])[0];
-    if (!invitedMember) {
-      throw new Error("INVITE_COMPANY_MEMBER_RESPONSE_INVALID");
-    }
-    return invitedMember;
-  } catch (error) {
-    throw new Error(toFriendlyErrorMessage(error));
-  }
+  throw new Error(
+    "Dogrudan uye UID daveti desteklenmiyor. E-posta ile davet akisini kullan.",
+  );
 }
 
 export async function setCompanyMemberRoleForCompany(input: {
@@ -174,30 +144,28 @@ export async function setCompanyMemberRoleForCompany(input: {
       memberStatus?: string;
       updatedAt?: string;
     }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberUid)}`,
       method: "PATCH",
       body: {
         patch: { role: input.role },
       },
     });
-    const member = parseCompanyMemberItems([
-      {
-        uid: response.data?.memberUid,
-        displayName: null,
-        email: null,
-        phone: null,
-        role: response.data?.role ?? input.role,
-        status: response.data?.memberStatus ?? "active",
-        companyId: response.data?.companyId ?? companyId,
-        createdAt: null,
-        updatedAt: response.data?.updatedAt ?? null,
-      },
-    ])[0];
-    if (!member) {
+    const data = response.data;
+    if (!data?.memberUid) {
       throw new Error("SET_COMPANY_MEMBER_ROLE_RESPONSE_INVALID");
     }
-    return member;
+    return {
+      uid: data.memberUid,
+      displayName: null,
+      email: null,
+      phone: null,
+      role: (data.role as CompanyMemberRole) ?? input.role,
+      status: (data.memberStatus as CompanyMemberItem["status"]) ?? "active",
+      companyId: data.companyId ?? input.companyId,
+      createdAt: null,
+      updatedAt: data.updatedAt ?? null,
+    };
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -215,7 +183,7 @@ export async function listCompanyDriversForCompany(input: {
     }
 
     const response = await callBackendApi<{ items?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/drivers${
         query.size > 0 ? `?${query.toString()}` : ""
       }`,
@@ -251,7 +219,7 @@ export async function createCompanyDriverAccountForCompany(input: {
     }
 
     const response = await callBackendApi<{ credentials?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/drivers`,
       method: "POST",
       body: payload,
@@ -275,8 +243,8 @@ export async function assignCompanyDriverToRouteForCompany(input: {
     const companyId = input.companyId.trim();
     const driverId = input.driverId.trim();
     const routeId = input.routeId.trim();
-    await callBackendApi<{ route?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/routes/${encodeURIComponent(routeId)}`,
       method: "POST",
     });
@@ -294,8 +262,8 @@ export async function unassignCompanyDriverFromRouteForCompany(input: {
     const companyId = input.companyId.trim();
     const driverId = input.driverId.trim();
     const routeId = input.routeId.trim();
-    await callBackendApi<{ route?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/routes/${encodeURIComponent(routeId)}`,
       method: "DELETE",
     });
@@ -312,8 +280,8 @@ export async function updateCompanyDriverStatusForCompany(input: {
   try {
     const companyId = input.companyId.trim();
     const driverId = input.driverId.trim();
-    await callBackendApi<{ driverId?: string; status?: string }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/status`,
       method: "PATCH",
       body: {
@@ -341,7 +309,7 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
       status?: string;
       createdAt?: string;
     }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/members`,
       method: "POST",
       body: {
@@ -349,24 +317,22 @@ export async function inviteCompanyMemberByEmailForCompany(input: {
         role: input.role,
       },
     });
-    const invite = parseCompanyInviteItems([
-      {
-        inviteId: response.data?.inviteId,
-        companyId: response.data?.companyId ?? companyId,
-        companyName: "",
-        email: response.data?.invitedEmail,
-        role: response.data?.role ?? input.role,
-        status: response.data?.status ?? "pending",
-        targetUid: response.data?.memberUid ?? null,
-        invitedBy: null,
-        createdAt: response.data?.createdAt ?? null,
-        updatedAt: null,
-      },
-    ])[0];
-    if (!invite) {
+    const data = response.data;
+    if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("INVITE_COMPANY_MEMBER_BY_EMAIL_RESPONSE_INVALID");
     }
-    return invite;
+    return {
+      inviteId: data.inviteId,
+      companyId: data.companyId ?? input.companyId,
+      companyName: "",
+      email: data.invitedEmail,
+      role: (data.role as CompanyMemberRole) ?? input.role,
+      status: (data.status as CompanyInviteItem["status"]) ?? "pending",
+      targetUid: data.memberUid ?? null,
+      invitedBy: null,
+      createdAt: data.createdAt ?? null,
+      updatedAt: null,
+    };
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -384,12 +350,22 @@ export async function listCompanyInvitesForCompany(input: {
     }
 
     const response = await callBackendApi<{ invites?: unknown[] }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/invites${
         query.size > 0 ? `?${query.toString()}` : ""
       }`,
     });
-    return parseCompanyInviteItems((response.data?.invites ?? []).map(mapInviteRecord));
+    const rawInvites = Array.isArray(response.data?.invites) ? response.data.invites : [];
+    return parseCompanyInviteItems(
+      rawInvites.map((item) => {
+        const record = (item ?? {}) as Record<string, unknown>;
+        return {
+          ...record,
+          email: record.email ?? record.invitedEmail,
+          targetUid: record.targetUid ?? record.invitedUid,
+        };
+      }),
+    );
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -410,28 +386,26 @@ export async function revokeCompanyInviteForCompany(input: {
       role?: string;
       revokedAt?: string;
     }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/invites/${encodeURIComponent(inviteId)}`,
       method: "DELETE",
     });
-    const invite = parseCompanyInviteItems([
-      {
-        inviteId: response.data?.inviteId,
-        companyId: response.data?.companyId ?? companyId,
-        companyName: response.data?.companyName ?? "",
-        email: response.data?.invitedEmail,
-        role: response.data?.role ?? "viewer",
-        status: "revoked",
-        targetUid: null,
-        invitedBy: null,
-        createdAt: null,
-        updatedAt: response.data?.revokedAt ?? null,
-      },
-    ])[0];
-    if (!invite) {
+    const data = response.data;
+    if (!data?.inviteId || !data?.invitedEmail) {
       throw new Error("REVOKE_COMPANY_INVITE_RESPONSE_INVALID");
     }
-    return invite;
+    return {
+      inviteId: data.inviteId,
+      companyId: data.companyId ?? input.companyId,
+      companyName: data.companyName ?? "",
+      email: data.invitedEmail,
+      role: (data.role as CompanyMemberRole) ?? "viewer",
+      status: "revoked",
+      targetUid: null,
+      invitedBy: null,
+      createdAt: null,
+      updatedAt: data.revokedAt ?? null,
+    };
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -440,7 +414,7 @@ export async function revokeCompanyInviteForCompany(input: {
 export async function listMyPendingCompanyInvitesForCurrentUser(): Promise<CompanyInviteItem[]> {
   try {
     const response = await callBackendApi<{ invites?: unknown }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: "/api/my/company-invites",
     });
     return parseCompanyInviteItems(response.data?.invites);
@@ -462,24 +436,18 @@ export async function acceptCompanyInviteForCurrentUser(input: {
       role?: string;
       memberStatus?: string;
     }>({
-      baseUrl: getCompanyBackendApiBaseUrl(),
+      baseUrl: requireBackendApiBaseUrl(),
       path: `/api/my/company-invites/${encodeURIComponent(companyId)}/accept`,
       method: "POST",
     });
-    const membership = parseMembershipItems([
-      {
-        companyId: response.data?.companyId ?? companyId,
-        companyName: response.data?.companyName ?? companyId,
-        memberRole: response.data?.role,
-        membershipStatus: response.data?.memberStatus,
-        companyStatus: response.data?.companyStatus ?? "active",
-        billingStatus: response.data?.billingStatus ?? "active",
-      },
-    ])[0];
-    if (!membership) {
-      throw new Error("ACCEPT_COMPANY_INVITE_RESPONSE_INVALID");
-    }
-    return membership;
+    return mapMembershipRecord({
+      companyId: response.data?.companyId ?? companyId,
+      name: response.data?.companyName ?? companyId,
+      role: response.data?.role,
+      memberStatus: response.data?.memberStatus,
+      companyStatus: response.data?.companyStatus ?? "active",
+      billingStatus: response.data?.billingStatus ?? "active",
+    });
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }

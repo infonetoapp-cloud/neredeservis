@@ -4,13 +4,10 @@ import { callBackendApi } from "@/lib/backend-api/client";
 import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
-  type ApiOk,
   asRecord,
   readString,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
-
-/* ─── Types ─── */
 
 export type DriverDocType = "ehliyet" | "src" | "psikoteknik" | "saglik";
 export type DriverDocStatus = "valid" | "expiring_soon" | "expired" | "not_uploaded";
@@ -36,8 +33,6 @@ export type DriverDocumentSummary = {
   overallStatus: DriverDocOverallStatus;
   documents: DriverDocumentItem[];
 };
-
-/* ─── Parsers ─── */
 
 const DOC_TYPES: DriverDocType[] = ["ehliyet", "src", "psikoteknik", "saglik"];
 const DOC_STATUSES: DriverDocStatus[] = ["valid", "expiring_soon", "expired", "not_uploaded"];
@@ -110,8 +105,6 @@ export function parseDriverDocumentSummaries(value: unknown): DriverDocumentSumm
   }
   return items;
 }
-
-/* ─── API functions ─── */
 
 export async function listDriverDocumentsForCompany(input: {
   companyId: string;

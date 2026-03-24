@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 interface CmsImageUploaderProps {
   storagePath: string;
@@ -35,13 +36,19 @@ async function callPlatformMediaApi<T>(input: {
     throw new Error("Backend API baglantisi bulunamadi.");
   }
 
+  const currentUser = getFirebaseClientAuth()?.currentUser;
+  if (!currentUser) {
+    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
+  }
+
+  const idToken = await currentUser.getIdToken();
   const requestUrl = new URL("api/platform/media", ensureTrailingSlash(backendApiBaseUrl));
   requestUrl.searchParams.set("storagePath", input.storagePath);
 
   const response = await fetch(requestUrl.toString(), {
     method: input.method,
-    credentials: "include",
     headers: {
+      authorization: `Bearer ${idToken}`,
       ...(input.contentType ? { "content-type": input.contentType } : {}),
     },
     ...(input.body !== undefined ? { body: input.body } : {}),
@@ -82,12 +89,6 @@ export function CmsImageUploader({
 
     setUploading(true);
     try {
-      const backendApiBaseUrl = getBackendApiBaseUrl();
-      if (!backendApiBaseUrl) {
-        setError("Backend API baglantisi kurulamadi.");
-        return;
-      }
-
       const result = await callPlatformMediaApi<{ url?: string }>({
         storagePath,
         method: "PUT",
@@ -126,12 +127,6 @@ export function CmsImageUploader({
 
   async function handleRemove() {
     if (!value) {
-      return;
-    }
-
-    const backendApiBaseUrl = getBackendApiBaseUrl();
-    if (!backendApiBaseUrl) {
-      onChange("");
       return;
     }
 

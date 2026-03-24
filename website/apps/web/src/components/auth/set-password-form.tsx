@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import {
-  confirmPasswordResetForFlow,
-  verifyPasswordResetCodeForFlow,
-} from "@/features/auth/auth-client";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 function toFriendlyError(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
+    if (error.message === "BACKEND_API_BASE_URL_MISSING") {
+      return "Backend API baglantisi eksik. Lutfen daha sonra tekrar deneyin.";
+    }
     if (code === "auth/expired-action-code") {
       return "Bu linkin suresi dolmus. Platform yoneticinizden yeni bir link isteyin.";
     }
@@ -35,13 +36,10 @@ export function SetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const oobCode = searchParams.get("oobCode") ?? "";
-  const initialEmail = searchParams.get("email")
-    ? decodeURIComponent(searchParams.get("email")!)
-    : "";
+  const email = searchParams.get("email") ? decodeURIComponent(searchParams.get("email")!) : "";
 
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [resolvedEmail, setResolvedEmail] = useState(initialEmail);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -51,7 +49,7 @@ export function SetPasswordForm() {
       <main className="min-h-screen bg-background px-6 py-12 text-foreground">
         <div className="mx-auto max-w-md space-y-4">
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-            Gecersiz baglanti. <code>oobCode</code> parametresi eksik. Platform yoneticinizden
+            Gecersiz baglanti - <code>oobCode</code> parametresi eksik. Platform yoneticinizden
             yeni bir davet linki isteyin.
           </div>
           <a
@@ -100,11 +98,24 @@ export function SetPasswordForm() {
 
     startTransition(async () => {
       try {
-        const verification = await verifyPasswordResetCodeForFlow(oobCode);
-        if (verification.email) {
-          setResolvedEmail(verification.email);
-        }
-        await confirmPasswordResetForFlow({ oobCode, password });
+        const backendApiBaseUrl = requireBackendApiBaseUrl();
+        await callBackendApi<{ email: string | null; requestType: string | null }>({
+          baseUrl: backendApiBaseUrl,
+          path: "api/auth/password-reset/verify",
+          method: "POST",
+          auth: false,
+          body: { oobCode },
+        });
+        await callBackendApi<{ success: boolean; email: string | null }>({
+          baseUrl: backendApiBaseUrl,
+          path: "api/auth/password-reset/confirm",
+          method: "POST",
+          auth: false,
+          body: {
+            oobCode,
+            newPassword: password,
+          },
+        });
         setDone(true);
         setTimeout(() => {
           router.replace("/giris");
@@ -120,10 +131,10 @@ export function SetPasswordForm() {
       <div className="mx-auto max-w-md space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Sifrenizi Belirleyin</h1>
-          {resolvedEmail ? (
+          {email ? (
             <p className="mt-1 text-sm text-muted">
-              <span className="font-medium text-slate-700">{resolvedEmail}</span> hesabi icin yeni
-              bir sifre olusturun.
+              <span className="font-medium text-slate-700">{email}</span> hesabi icin yeni bir
+              sifre olusturun.
             </p>
           ) : (
             <p className="mt-1 text-sm text-muted">Bu hesap icin yeni bir sifre olusturun.</p>

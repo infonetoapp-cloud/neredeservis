@@ -1,12 +1,26 @@
 "use client";
 
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  OAuthProvider,
+  onAuthStateChanged,
+  reload,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  type User,
+  updateProfile,
+} from "firebase/auth";
+
 import { callBackendApi } from "@/lib/backend-api/client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
 import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
-import type { AuthSessionUser } from "./auth-session-types";
-
-export type AuthStateListener = (user: AuthSessionUser | null) => void;
+export type AuthStateListener = (user: User | null) => void;
 export type WebAccessBlockReason = "DRIVER_MOBILE_ONLY_WEB_BLOCK";
 
 export type CurrentUserWebAccessPolicy = {
@@ -15,285 +29,156 @@ export type CurrentUserWebAccessPolicy = {
   reason: WebAccessBlockReason | null;
 };
 
-export type EmailPasswordRegistrationResult = {
-  verificationEmailSent: boolean;
-};
-
-export type PasswordResetRequestResult = {
-  delivery: "email" | "manual";
-  resetUrl: string | null;
-};
-
-export const AUTH_SESSION_CHANGED_EVENT_NAME = "ns-auth-session-changed";
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+export function subscribeAuthState(listener: AuthStateListener): (() => void) | null {
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
     return null;
   }
-  return value as Record<string, unknown>;
-}
-
-function createAuthClientError(message: string, code?: string) {
-  const error = new Error(message) as Error & { code?: string };
-  if (code) {
-    error.code = code;
-  }
-  return error;
-}
-
-function requireAuthBackendApiBaseUrl(): string {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    throw createAuthClientError(
-      "BACKEND_AUTH_UNAVAILABLE",
-      "auth/operation-not-supported-in-this-environment",
-    );
-  }
-  return backendApiBaseUrl;
-}
-
-function parseBackendSessionUser(value: unknown): AuthSessionUser | null {
-  const record = asRecord(value);
-  if (!record) {
-    return null;
-  }
-
-  const uid = typeof record.uid === "string" ? record.uid.trim() : "";
-  if (!uid) {
-    return null;
-  }
-
-  const providerData = Array.isArray(record.providerData)
-    ? record.providerData
-        .map((provider) => {
-          const providerRecord = asRecord(provider);
-          if (!providerRecord) {
-            return null;
-          }
-
-          return {
-            providerId:
-              typeof providerRecord.providerId === "string" ? providerRecord.providerId : null,
-          };
-        })
-        .filter((provider): provider is { providerId: string | null } => provider !== null)
-    : [];
-
-  return {
-    uid,
-    email: typeof record.email === "string" ? record.email : null,
-    displayName: typeof record.displayName === "string" ? record.displayName : null,
-    emailVerified: record.emailVerified === true,
-    providerData,
-  };
-}
-
-export function notifyAuthSessionChanged(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT_NAME));
-}
-
-export async function readCurrentAuthSessionFromBackend(): Promise<AuthSessionUser | null> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    return null;
-  }
-
-  try {
-    const response = await callBackendApi<{ user?: unknown }>({
-      baseUrl: backendApiBaseUrl,
-      path: "api/auth/session",
-    });
-    return parseBackendSessionUser(asRecord(response.data)?.user);
-  } catch (error) {
-    const status = (error as { status?: number } | null)?.status ?? null;
-    const code = (error as { code?: string } | null)?.code ?? null;
-    if (status === 401 || code === "unauthenticated") {
-      return null;
-    }
-    throw error;
-  }
-}
-
-export function subscribeAuthState(_listener: AuthStateListener): (() => void) | null {
-  return null;
+  return onAuthStateChanged(auth, listener);
 }
 
 export async function signInWithEmailPassword(input: {
   email: string;
   password: string;
 }): Promise<void> {
-  await callBackendApi<{ user?: unknown }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/login",
-    method: "POST",
-    auth: false,
-    body: {
-      email: input.email.trim(),
-      password: input.password,
-    },
-  });
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  await signInWithEmailAndPassword(auth, input.email.trim(), input.password);
   setClientSessionCookie(true);
-  notifyAuthSessionChanged();
 }
 
 export async function registerWithEmailPassword(input: {
   email: string;
   password: string;
-  displayName?: string;
-}): Promise<EmailPasswordRegistrationResult> {
-  const response = await callBackendApi<{ verificationEmailSent?: unknown }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/register",
-    method: "POST",
-    auth: false,
-    body: {
-      email: input.email.trim(),
-      password: input.password,
-      displayName: input.displayName?.trim() || undefined,
-    },
-  });
+}): Promise<void> {
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  await createUserWithEmailAndPassword(auth, input.email.trim(), input.password);
   setClientSessionCookie(true);
-  notifyAuthSessionChanged();
-  return {
-    verificationEmailSent: asRecord(response.data)?.verificationEmailSent === true,
-  };
 }
 
 export async function signInWithGooglePopup(): Promise<void> {
-  throw createAuthClientError(
-    "SOCIAL_LOGIN_UNAVAILABLE",
-    "auth/operation-not-supported-in-this-environment",
-  );
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  await signInWithPopup(auth, provider);
+  setClientSessionCookie(true);
 }
 
 export async function signInWithMicrosoftPopup(): Promise<void> {
-  throw createAuthClientError(
-    "SOCIAL_LOGIN_UNAVAILABLE",
-    "auth/operation-not-supported-in-this-environment",
-  );
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const provider = new OAuthProvider("microsoft.com");
+  provider.setCustomParameters({ prompt: "select_account" });
+  await signInWithPopup(auth, provider);
+  setClientSessionCookie(true);
 }
 
 export async function signOutCurrentUser(): Promise<void> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (backendApiBaseUrl) {
-    try {
-      await callBackendApi<{ success?: boolean }>({
-        baseUrl: backendApiBaseUrl,
-        path: "api/auth/logout",
-        method: "POST",
-        auth: false,
-      });
-    } catch {
-      // Continue with local cleanup even if logout request fails.
-    }
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    return;
   }
-
+  await signOut(auth);
   setClientSessionCookie(false);
-  notifyAuthSessionChanged();
 }
 
 export async function sendEmailVerificationForCurrentUser(): Promise<void> {
-  throw createAuthClientError(
-    "EMAIL_VERIFICATION_RESEND_UNAVAILABLE",
-    "auth/operation-not-supported-in-this-environment",
-  );
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    const error = new Error("USER_NOT_AUTHENTICATED");
+    (error as { code?: string }).code = "auth/user-not-found";
+    throw error;
+  }
+
+  await sendEmailVerification(currentUser);
 }
 
-export async function reloadCurrentUserSession(): Promise<AuthSessionUser | null> {
-  const backendUser = await readCurrentAuthSessionFromBackend();
-  setClientSessionCookie(Boolean(backendUser));
-  notifyAuthSessionChanged();
-  return backendUser;
+export async function reloadCurrentUserSession(): Promise<User | null> {
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    return null;
+  }
+
+  await reload(currentUser);
+  return auth.currentUser;
 }
 
 export async function updateCurrentUserProfile(input: {
   displayName: string;
 }): Promise<void> {
-  await callBackendApi<{ user?: unknown }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/profile",
-    method: "PATCH",
-    auth: false,
-    body: {
-      displayName: input.displayName.trim(),
-    },
-  });
-  setClientSessionCookie(true);
-  notifyAuthSessionChanged();
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    const error = new Error("USER_NOT_AUTHENTICATED");
+    (error as { code?: string }).code = "auth/user-not-found";
+    throw error;
+  }
+
+  await updateProfile(currentUser, { displayName: input.displayName.trim() });
+  await reload(currentUser);
 }
 
-export async function sendPasswordResetEmailForAddress(
-  email: string,
-): Promise<PasswordResetRequestResult> {
+export async function sendPasswordResetEmailForAddress(email: string): Promise<void> {
   const normalized = email.trim();
   if (!normalized) {
-    throw createAuthClientError("EMAIL_REQUIRED", "auth/missing-email");
+    const error = new Error("EMAIL_REQUIRED");
+    (error as { code?: string }).code = "auth/missing-email";
+    throw error;
   }
 
-  const response = await callBackendApi<{
-    success?: unknown;
-    delivery?: unknown;
-    resetUrl?: unknown;
-  }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/password-reset",
-    method: "POST",
-    auth: false,
-    body: { email: normalized },
-  });
-
-  const responseData = asRecord(response.data);
-  return {
-    delivery: responseData?.delivery === "manual" ? "manual" : "email",
-    resetUrl: typeof responseData?.resetUrl === "string" ? responseData.resetUrl : null,
-  };
-}
-
-export async function verifyPasswordResetCodeForFlow(
-  oobCode: string,
-): Promise<{ email: string | null }> {
-  const normalizedCode = oobCode.trim();
-  if (!normalizedCode) {
-    throw createAuthClientError("OOB_CODE_REQUIRED", "auth/invalid-action-code");
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ success: boolean }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/password-reset",
+      method: "POST",
+      auth: false,
+      body: { email: normalized },
+    });
+    return;
   }
 
-  const response = await callBackendApi<{ email?: unknown }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/password-reset/verify",
-    method: "POST",
-    auth: false,
-    body: { oobCode: normalizedCode },
-  });
-  const responseData = asRecord(response.data);
-  return {
-    email: typeof responseData?.email === "string" ? responseData.email : null,
-  };
-}
-
-export async function confirmPasswordResetForFlow(input: {
-  oobCode: string;
-  password: string;
-}): Promise<void> {
-  const normalizedCode = input.oobCode.trim();
-  if (!normalizedCode) {
-    throw createAuthClientError("OOB_CODE_REQUIRED", "auth/invalid-action-code");
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
   }
 
-  await callBackendApi<{ success?: boolean }>({
-    baseUrl: requireAuthBackendApiBaseUrl(),
-    path: "api/auth/password-reset/confirm",
-    method: "POST",
-    auth: false,
-    body: { oobCode: normalizedCode, password: input.password },
-  });
+  await sendPasswordResetEmail(auth, normalized);
 }
 
 export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAccessPolicy> {
+  const auth = getFirebaseClientAuth();
+  const currentUser = auth?.currentUser;
   const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
+  if (!auth || !currentUser || !backendApiBaseUrl) {
     return {
       role: null,
       allowWebPanel: true,

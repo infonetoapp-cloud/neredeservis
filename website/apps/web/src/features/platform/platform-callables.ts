@@ -3,9 +3,9 @@
 import { callBackendApi } from "@/lib/backend-api/client";
 import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import type {
-  CreateCompanyInput,
-  PlatformCompanyDetail,
   PlatformCompanySummary,
+  PlatformCompanyDetail,
+  CreateCompanyInput,
 } from "@/features/platform/platform-types";
 
 interface BackendCompanyListItem {
@@ -58,8 +58,7 @@ interface BackendCreateCompanyResult {
   companyId: string;
   ownerUid: string;
   ownerEmail: string;
-  notificationSent?: boolean;
-  loginUrl?: string;
+  passwordResetLink: string;
   createdAt: string;
 }
 
@@ -104,23 +103,23 @@ export async function platformGetCompanyDetail(
       path: `api/platform/companies/${encodeURIComponent(companyId)}`,
     });
 
-    const data = result.data;
-    if (!data) {
+    const detail = result.data;
+    if (!detail) {
       return null;
     }
 
     return {
-      id: data.companyId,
-      name: data.name,
-      ownerEmail: data.ownerEmail ?? "",
-      ownerUid: data.ownerUid,
-      status: data.status,
-      vehicleLimit: data.vehicleLimit,
-      vehicleCount: data.vehicles.length,
-      memberCount: data.members.length,
-      routeCount: data.routes.length,
-      createdAt: data.createdAt,
-      members: data.members.map((member) => ({
+      id: detail.companyId,
+      name: detail.name,
+      ownerEmail: detail.ownerEmail ?? "",
+      ownerUid: detail.ownerUid,
+      status: detail.status,
+      vehicleLimit: detail.vehicleLimit,
+      vehicleCount: detail.vehicles.length,
+      memberCount: detail.members.length,
+      routeCount: detail.routes.length,
+      createdAt: detail.createdAt,
+      members: detail.members.map((member) => ({
         uid: member.uid,
         email: member.email ?? "",
         displayName: member.displayName,
@@ -128,17 +127,15 @@ export async function platformGetCompanyDetail(
         status: member.status,
         joinedAt: member.joinedAt,
       })),
-      vehicles: data.vehicles.map((vehicle) => ({
+      vehicles: detail.vehicles.map((vehicle) => ({
         id: vehicle.vehicleId,
         plate: vehicle.plate,
         brand: vehicle.brand,
         model: vehicle.model,
         capacity: vehicle.capacity,
-        status: (vehicle.status === "active" ? "active" : "inactive") as
-          | "active"
-          | "inactive",
+        status: (vehicle.status === "active" ? "active" : "inactive") as "active" | "inactive",
       })),
-      routes: data.routes.map((route) => ({
+      routes: detail.routes.map((route) => ({
         id: route.routeId,
         name: route.name,
         stopCount: route.stopCount,
@@ -153,7 +150,7 @@ export async function platformGetCompanyDetail(
 
 export async function platformCreateCompany(
   input: CreateCompanyInput,
-): Promise<{ companyId: string; notificationSent: boolean; loginUrl: string | null }> {
+): Promise<{ companyId: string; passwordResetLink: string }> {
   const result = await callBackendApi<BackendCreateCompanyResult>({
     baseUrl: requireBackendApiBaseUrl(),
     path: "api/platform/companies",
@@ -167,8 +164,7 @@ export async function platformCreateCompany(
 
   return {
     companyId: result.data?.companyId ?? "",
-    notificationSent: result.data?.notificationSent === true,
-    loginUrl: result.data?.loginUrl ?? null,
+    passwordResetLink: result.data?.passwordResetLink ?? "",
   };
 }
 
@@ -198,17 +194,13 @@ export async function platformSetCompanyStatus(
 
 export async function platformResetOwnerPassword(
   companyId: string,
-): Promise<{ notificationSent: boolean; loginUrl: string | null }> {
-  const result = await callBackendApi<{ notificationSent?: boolean; loginUrl?: string }>({
+): Promise<{ loginLink: string }> {
+  const result = await callBackendApi<{ loginLink: string }>({
     baseUrl: requireBackendApiBaseUrl(),
     path: `api/platform/companies/${encodeURIComponent(companyId)}/reset-owner-password`,
     method: "POST",
   });
-
-  return {
-    notificationSent: result.data?.notificationSent === true,
-    loginUrl: result.data?.loginUrl ?? null,
-  };
+  return { loginLink: result.data?.loginLink ?? "" };
 }
 
 export async function platformDeleteCompany(companyId: string): Promise<void> {

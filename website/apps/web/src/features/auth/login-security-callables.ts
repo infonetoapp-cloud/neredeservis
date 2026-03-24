@@ -84,7 +84,8 @@ export async function resolveCorporateLoginDestination(
     return "/dashboard";
   }
 
-  const defaultPath = context.defaultPath === "/select-company" ? "/dashboard" : context.defaultPath;
+  const defaultPath =
+    context.defaultPath === "/select-company" ? "/dashboard" : context.defaultPath;
 
   if (requestedPath === "/dashboard" || requestedPath === "/select-company") {
     return defaultPath;

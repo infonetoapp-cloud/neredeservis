@@ -8,69 +8,45 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { User } from "firebase/auth";
 
-import {
-  AUTH_SESSION_CHANGED_EVENT_NAME,
-  readCurrentAuthSessionFromBackend,
-} from "@/features/auth/auth-client";
-import type { AuthSessionUser } from "@/features/auth/auth-session-types";
+import { subscribeAuthState } from "@/features/auth/auth-client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getPublicConfigValidation } from "@/lib/env/firebase-public-config";
 
 type AuthSessionStatus = "loading" | "signed_out" | "signed_in" | "disabled";
 
 type AuthSessionContextValue = {
   status: AuthSessionStatus;
-  user: AuthSessionUser | null;
+  user: User | null;
   configReady: boolean;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
-  const configReady = Boolean(getBackendApiBaseUrl());
-  const [user, setUser] = useState<AuthSessionUser | null>(null);
+  const configReady = getPublicConfigValidation().ok;
+  const [user, setUser] = useState<User | null>(null);
   const [resolved, setResolved] = useState<boolean>(!configReady);
 
   useEffect(() => {
     if (!configReady) {
-      setUser(null);
-      setResolved(true);
       setClientSessionCookie(false);
       return;
     }
 
-    let active = true;
+    const unsubscribe = subscribeAuthState((nextUser) => {
+      setUser(nextUser);
+      setResolved(true);
+      setClientSessionCookie(Boolean(nextUser));
+    });
 
-    const syncFromBackend = async () => {
-      try {
-        const nextUser = await readCurrentAuthSessionFromBackend();
-        if (!active) {
-          return;
-        }
-        setUser(nextUser);
-        setResolved(true);
-        setClientSessionCookie(Boolean(nextUser));
-      } catch {
-        if (!active) {
-          return;
-        }
-        setUser(null);
-        setResolved(true);
-        setClientSessionCookie(false);
-      }
-    };
+    if (!unsubscribe) {
+      setClientSessionCookie(false);
+      return;
+    }
 
-    void syncFromBackend();
-    const handleSessionChanged = () => {
-      void syncFromBackend();
-    };
-
-    window.addEventListener(AUTH_SESSION_CHANGED_EVENT_NAME, handleSessionChanged);
-    return () => {
-      active = false;
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT_NAME, handleSessionChanged);
-    };
+    return unsubscribe;
   }, [configReady]);
 
   const status: AuthSessionStatus = !configReady

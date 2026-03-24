@@ -1,10 +1,8 @@
 "use client";
 
 import { callBackendApi } from "@/lib/backend-api/client";
-import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getBackendApiBaseUrl, requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import type { LandingPageConfig } from "@/components/marketing/landing-config-types";
-
-// ─── Public: self-hosted backend'den landing config oku ───────────────────────
 
 type PublicLandingConfigEnvelope<T> = {
   data?: T;
@@ -37,9 +35,6 @@ async function callPublicLandingConfigApi<T>(input: {
   return payload?.data as T;
 }
 
-/**
- * Landing page config'ini self-hosted backend API'den okur.
- */
 export async function fetchLandingConfig(): Promise<LandingPageConfig | null> {
   const backendApiBaseUrl = getBackendApiBaseUrl();
   if (!backendApiBaseUrl) {
@@ -56,8 +51,6 @@ export async function fetchLandingConfig(): Promise<LandingPageConfig | null> {
   return response?.exists ? response.config ?? null : null;
 }
 
-// ─── Platform: CMS backend wrapper'ları ───────────────────────────────────────
-
 interface GetConfigResponse {
   exists: boolean;
   config: LandingPageConfig | null;
@@ -66,13 +59,8 @@ interface GetConfigResponse {
 }
 
 export async function platformGetLandingConfig(): Promise<GetConfigResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    throw new Error("Backend API baglantisi bulunamadi.");
-  }
-
   const result = await callBackendApi<GetConfigResponse>({
-    baseUrl: backendApiBaseUrl,
+    baseUrl: requireBackendApiBaseUrl(),
     path: "api/platform/landing-config",
   });
   return result.data ?? {
@@ -90,13 +78,8 @@ interface SaveConfigResponse {
 export async function platformSaveLandingConfig(
   config: Partial<LandingPageConfig>,
 ): Promise<SaveConfigResponse> {
-  const backendApiBaseUrl = getBackendApiBaseUrl();
-  if (!backendApiBaseUrl) {
-    throw new Error("Backend API baglantisi bulunamadi.");
-  }
-
   const result = await callBackendApi<SaveConfigResponse>({
-    baseUrl: backendApiBaseUrl,
+    baseUrl: requireBackendApiBaseUrl(),
     path: "api/platform/landing-config",
     method: "PATCH",
     body: { config },

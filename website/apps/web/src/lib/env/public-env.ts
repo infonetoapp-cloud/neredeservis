@@ -9,10 +9,10 @@ export function getBackendApiBaseUrl(): string | null {
 
 export function requireBackendApiBaseUrl(): string {
   const value = getBackendApiBaseUrl();
-  if (value) {
-    return value;
+  if (!value) {
+    throw new Error("BACKEND_API_BASE_URL_MISSING");
   }
-  throw new Error("BACKEND_API_BASE_URL_REQUIRED");
+  return value;
 }
 
 export function isDevAppEnv(): boolean {

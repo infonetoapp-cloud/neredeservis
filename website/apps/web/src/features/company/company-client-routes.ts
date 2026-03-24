@@ -4,7 +4,6 @@ import { callBackendApi } from "@/lib/backend-api/client";
 import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
-  type ApiOk,
   asRecord,
   type CompanyLiveOpsSnapshot,
   type CompanyRouteItem,
@@ -16,6 +15,7 @@ import {
   readString,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
+
 export async function listCompanyRoutesForCompany(input: {
   companyId: string;
   limit?: number;
@@ -62,7 +62,7 @@ export async function listCompanyLiveOpsForCompany(input: {
     });
     const payload = asRecord(response.data);
     return {
-      companyId,
+      companyId: readString(payload?.companyId) ?? companyId,
       generatedAt: readString(payload?.generatedAt),
       items: parseCompanyLiveOpsItems(payload?.items),
     };
@@ -87,30 +87,27 @@ export async function createCompanyRouteForCompany(input: {
 }): Promise<CompanyRouteItem> {
   try {
     const companyId = input.companyId.trim();
-    const payload = {
-      name: input.name.trim(),
-      ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
-      startPoint: input.startPoint,
-      startAddress: input.startAddress.trim(),
-      endPoint: input.endPoint,
-      endAddress: input.endAddress.trim(),
-      scheduledTime: input.scheduledTime.trim(),
-      timeSlot: input.timeSlot,
-      ...(input.vehicleId !== undefined ? { vehicleId: input.vehicleId } : {}),
-      allowGuestTracking: input.allowGuestTracking,
-      ...(Array.isArray(input.authorizedDriverIds)
-        ? { authorizedDriverIds: input.authorizedDriverIds }
-        : {}),
-    };
-
     const response = await callBackendApi<{ route?: unknown }>({
       baseUrl: requireBackendApiBaseUrl(),
       path: `/api/companies/${encodeURIComponent(companyId)}/routes`,
       method: "POST",
-      body: payload,
+      body: {
+        name: input.name.trim(),
+        ...(input.driverId !== undefined ? { driverId: input.driverId } : {}),
+        startPoint: input.startPoint,
+        startAddress: input.startAddress.trim(),
+        endPoint: input.endPoint,
+        endAddress: input.endAddress.trim(),
+        scheduledTime: input.scheduledTime.trim(),
+        timeSlot: input.timeSlot,
+        ...(input.vehicleId !== undefined ? { vehicleId: input.vehicleId } : {}),
+        allowGuestTracking: input.allowGuestTracking ?? false,
+        ...(Array.isArray(input.authorizedDriverIds)
+          ? { authorizedDriverIds: input.authorizedDriverIds }
+          : {}),
+      },
     });
-    const routes = parseCompanyRouteItems([response.data?.route]);
-    const route = routes[0];
+    const route = parseCompanyRouteItems([response.data?.route])[0];
     if (!route) {
       throw new Error("CREATE_COMPANY_ROUTE_RESPONSE_INVALID");
     }
@@ -137,16 +134,14 @@ export async function updateCompanyRouteForCompany(input: {
   vacationUntil?: string | null;
 }): Promise<CompanyRouteItem> {
   try {
-    const patch: {
-      name?: string;
-      scheduledTime?: string;
-      timeSlot?: Exclude<CompanyRouteTimeSlot, null>;
-      vehicleId?: string | null;
-      allowGuestTracking?: boolean;
-      authorizedDriverIds?: string[];
-      isArchived?: boolean;
-    } = {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
+    const patch: Record<string, unknown> = {
       ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      ...(input.startPoint !== undefined ? { startPoint: input.startPoint } : {}),
+      ...(input.startAddress !== undefined ? { startAddress: input.startAddress.trim() } : {}),
+      ...(input.endPoint !== undefined ? { endPoint: input.endPoint } : {}),
+      ...(input.endAddress !== undefined ? { endAddress: input.endAddress.trim() } : {}),
       ...(input.scheduledTime !== undefined ? { scheduledTime: input.scheduledTime.trim() } : {}),
       ...(input.timeSlot !== undefined ? { timeSlot: input.timeSlot } : {}),
       ...(input.vehicleId !== undefined ? { vehicleId: input.vehicleId } : {}),
@@ -157,17 +152,16 @@ export async function updateCompanyRouteForCompany(input: {
         ? { authorizedDriverIds: input.authorizedDriverIds }
         : {}),
       ...(input.isArchived !== undefined ? { isArchived: input.isArchived } : {}),
+      ...(input.vacationUntil !== undefined ? { vacationUntil: input.vacationUntil } : {}),
     };
+
     const response = await callBackendApi<{ route?: unknown }>({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/routes/${encodeURIComponent(input.routeId.trim())}`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
       method: "PATCH",
-      body: {
-        patch,
-      },
+      body: { patch },
     });
-    const routes = parseCompanyRouteItems([response.data?.route]);
-    const route = routes[0];
+    const route = parseCompanyRouteItems([response.data?.route])[0];
     if (!route) {
       throw new Error("UPDATE_COMPANY_ROUTE_RESPONSE_INVALID");
     }
@@ -182,9 +176,11 @@ export async function deleteCompanyRouteForCompany(input: {
   routeId: string;
 }): Promise<void> {
   try {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
     await callBackendApi({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/routes/${encodeURIComponent(input.routeId.trim())}`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}`,
       method: "DELETE",
     });
   } catch (error) {
@@ -197,9 +193,11 @@ export async function listCompanyRouteStopsForRoute(input: {
   routeId: string;
 }): Promise<CompanyRouteStopItem[]> {
   try {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
     const response = await callBackendApi<{ items?: unknown }>({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/routes/${encodeURIComponent(input.routeId.trim())}/stops`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
     });
     return parseCompanyRouteStopItems(response.data?.items);
   } catch (error) {
@@ -216,9 +214,11 @@ export async function upsertCompanyRouteStopForRoute(input: {
   order: number;
 }): Promise<CompanyRouteStopItem> {
   try {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
     const response = await callBackendApi<{ stop?: unknown }>({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/routes/${encodeURIComponent(input.routeId.trim())}/stops`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops`,
       method: "POST",
       body: {
         stopId: input.stopId?.trim(),
@@ -227,8 +227,7 @@ export async function upsertCompanyRouteStopForRoute(input: {
         order: input.order,
       },
     });
-    const stops = parseCompanyRouteStopItems([response.data?.stop]);
-    const stop = stops[0];
+    const stop = parseCompanyRouteStopItems([response.data?.stop])[0];
     if (!stop) {
       throw new Error("UPSERT_COMPANY_ROUTE_STOP_RESPONSE_INVALID");
     }
@@ -244,9 +243,12 @@ export async function deleteCompanyRouteStopForRoute(input: {
   stopId: string;
 }): Promise<void> {
   try {
+    const companyId = input.companyId.trim();
+    const routeId = input.routeId.trim();
+    const stopId = input.stopId.trim();
     await callBackendApi({
       baseUrl: requireBackendApiBaseUrl(),
-      path: `/api/companies/${encodeURIComponent(input.companyId.trim())}/routes/${encodeURIComponent(input.routeId.trim())}/stops/${encodeURIComponent(input.stopId.trim())}`,
+      path: `/api/companies/${encodeURIComponent(companyId)}/routes/${encodeURIComponent(routeId)}/stops/${encodeURIComponent(stopId)}`,
       method: "DELETE",
     });
   } catch (error) {
