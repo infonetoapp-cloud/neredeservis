@@ -77,13 +77,13 @@ export function LiveOpsTripDetailPanel({
         <DashboardStatePlaceholder
           tone="empty"
           title="Secili sefer yok"
-          description="Listeden bir aktif sefer secildiginde detaylar burada görünür."
+          description="Listeden bir aktif sefer secildiginde detaylar burada gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼nÃƒÆ’Ã‚Â¼r."
         />
       ) : (
         <div className="space-y-2">
           {[
-            ["Şoför", selectedTrip.driverName],
-            ["Araç", selectedTrip.driverPlate ?? "-"],
+            ["Ãƒâ€¦Ã‚ÂofÃƒÆ’Ã‚Â¶r", selectedTrip.driverName],
+            ["AraÃƒÆ’Ã‚Â§", selectedTrip.driverPlate ?? "-"],
             ["Rota", selectedTrip.routeName],
             [
               "Durum",
@@ -95,10 +95,10 @@ export function LiveOpsTripDetailPanel({
                 ? `${effectiveLiveCoords.lat.toFixed(5)}, ${effectiveLiveCoords.lng.toFixed(5)} (${effectiveLiveCoords.source})`
                 : `Koordinat yok (${selectedTrip.live.source})`,
             ],
-            ["RTDB Stream", streamStatusLabel(selectedTripLiveStream.status)],
-            ["RTDB Baglanti", rtdbConnectionStatusLabel(rtdbConnection.status)],
+            ["Canli akis", streamStatusLabel(selectedTripLiveStream.status)],
+            ["Canli akis baglantisi", rtdbConnectionStatusLabel(rtdbConnection.status)],
             [
-              "RTDB Hata",
+              "Canli akis hatasi",
               selectedTripStreamErrorSemantic === "access_denied"
                 ? "Yetki reddedildi"
                 : selectedTripLiveStream.error ?? rtdbConnection.error ?? "-",
@@ -141,7 +141,7 @@ export function LiveOpsTripDetailPanel({
               </div>
             ) : selectedTripStopsQuery.items.length === 0 ? (
               <div className="text-xs text-muted">
-                Bu rota için durak bulunamadi. Route editor uzerinden durak
+                Bu rota iÃƒÆ’Ã‚Â§in durak bulunamadi. Route editor uzerinden durak
                 eklenebilir.
               </div>
             ) : (
@@ -189,7 +189,7 @@ export function LiveOpsTripDetailPanel({
               disabled={!selectedTrip}
               className="rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
             >
-              Şoför Kaydina Git
+              Ãƒâ€¦Ã‚ÂofÃƒÆ’Ã‚Â¶r Kaydina Git
             </button>
             <button
               type="button"

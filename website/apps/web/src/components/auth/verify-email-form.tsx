@@ -16,8 +16,8 @@ import { getBackendApiBaseUrl } from "@/lib/env/public-env";
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const code = (error as { code?: string }).code;
-    if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Kimlik dogrulama yapilandirmasi eksik. E-posta dogrulama baslatilamadi.";
+    if (code === "BACKEND_API_MISSING") {
+      return "Backend kimlik dogrulama baglantisi eksik. E-posta dogrulama baslatilamadi.";
     }
     if (code === "auth/too-many-requests") {
       return "Cok fazla deneme yapildi. Biraz sonra tekrar dene.";

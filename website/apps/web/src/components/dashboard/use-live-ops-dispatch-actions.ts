@@ -355,7 +355,7 @@ export function useLiveOpsDispatchActions(params: {
   const handleSendWhatsApp = () => {
     if (!selectedTrip) return;
     if (!selectedTripWhatsAppUrl) {
-      setWhatsAppMessage("Şoför telefonu bulunamadi, WhatsApp aksiyonu acilamadi.");
+      setWhatsAppMessage("ÅofÃ¶r telefonu bulunamadi, WhatsApp aksiyonu acilamadi.");
       window.setTimeout(() => setWhatsAppMessage(null), 2600);
       return;
     }
@@ -404,7 +404,7 @@ export function useLiveOpsDispatchActions(params: {
     if (!selectedTrip) return;
     const normalizedPhone = normalizePhoneForWhatsApp(selectedDriverPhone);
     if (!normalizedPhone) {
-      setDispatchTemplateWhatsAppMessage("Şoför telefonu bulunamadi, hazir mesaj gonderilemedi.");
+      setDispatchTemplateWhatsAppMessage("ÅofÃ¶r telefonu bulunamadi, hazir mesaj gonderilemedi.");
       window.setTimeout(() => setDispatchTemplateWhatsAppMessage(null), 2600);
       return;
     }
@@ -446,7 +446,7 @@ export function useLiveOpsDispatchActions(params: {
       `Stream Issue: ${buildLiveOpsStreamContextLine(streamIssueState)}`,
       `Recovery: ${buildLiveOpsStreamRecoveryContextLine(streamRecoverySummary)}`,
       `Filter Context: ${buildLiveOpsFilterContextLine(filterContext)}`,
-      `RTDB Connection: ${rtdbConnectionStatus}`,
+      `Live feed connection: ${rtdbConnectionStatus}`,
       `Last Location At: ${selectedTrip.lastLocationAt ?? "-"}`,
       `Started At: ${selectedTrip.startedAt ?? "-"}`,
       effectiveLiveCoords?.lat != null && effectiveLiveCoords?.lng != null
@@ -493,7 +493,7 @@ export function useLiveOpsDispatchActions(params: {
       .filter((item) => item.tripId === tripId)
       .slice(0, 10);
     if (entries.length === 0) {
-      setDispatchHistoryCopyMessage("Bu sefer için kopyalanacak dispatch gecmisi yok.");
+      setDispatchHistoryCopyMessage("Bu sefer iÃ§in kopyalanacak dispatch gecmisi yok.");
       window.setTimeout(() => setDispatchHistoryCopyMessage(null), 2400);
       return;
     }

@@ -23,7 +23,7 @@ export function useRtdbConnectionState(enabled: boolean) {
     };
   }
 
-  // Web panel artik RTDB istemcisine baglanmiyor; read-side snapshot akisi online kabul edilir.
+  // Web panel artik dogrudan canli akis istemcisine baglanmiyor; read-side snapshot online kabul edilir.
   return {
     status: "online" as RtdbConnectionStatus,
     error: null as string | null,

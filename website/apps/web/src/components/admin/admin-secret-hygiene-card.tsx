@@ -18,9 +18,9 @@ const STORAGE_KEY = ADMIN_STORAGE_KEYS.secrets;
 const DEFAULT_ITEMS: HygieneItem[] = [
   { id: "no_env_commit", label: ".env dosyalari repoya commit edilmedi" },
   { id: "vercel_envs", label: "Vercel ortam degiskenleri (dev/stg/prod) dogru" },
-  { id: "firebase_admin", label: "Firebase admin/service account provider tarafinda" },
+  { id: "backend_admin", label: "Backend secret/session provider tarafinda" },
   { id: "mapbox_token", label: "Mapbox token sadece provider'da (repo icinde yok)" },
-  { id: "rules_deploy", label: "Firestore/RTDB rules son deploy tarihi dogrulandi" },
+  { id: "rules_deploy", label: "Canli akis erisim politikalari son deploy tarihi dogrulandi" },
 ];
 
 function readStored(): Set<string> {

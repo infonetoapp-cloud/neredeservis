@@ -160,7 +160,7 @@ export function LiveOpsSelectedTripDetailPane({
         <DashboardStatePlaceholder
           tone="empty"
           title="Secili sefer yok"
-          description="Listeden bir aktif sefer secildiginde detaylar burada görünür."
+          description="Listeden bir aktif sefer secildiginde detaylar burada gÃƒÆ’Ã‚Â¶rÃƒÆ’Ã‚Â¼nÃƒÆ’Ã‚Â¼r."
         />
       ) : (
         <div className="space-y-2">
@@ -181,15 +181,15 @@ export function LiveOpsSelectedTripDetailPane({
                   streamRecoverySummary.tone,
                 )}`}
               >
-                Toparlanma: {streamRecoverySummary.tone === "critical" ? "Kritik" : "Uyarı"}
+                Toparlanma: {streamRecoverySummary.tone === "critical" ? "Kritik" : "UyarÃƒâ€Ã‚Â±"}
               </span>
             ) : null}
           </div>
           <LiveOpsStreamIssueBanner issueState={streamIssueState} className="rounded-xl px-3 py-2" />
           <LiveOpsStreamRecoveryCallout summary={streamRecoverySummary} className="rounded-xl" />
           {[ 
-            ["Şoför", selectedTrip.driverName],
-            ["Araç", selectedTrip.driverPlate ?? "-"],
+            ["Ãƒâ€¦Ã‚ÂofÃƒÆ’Ã‚Â¶r", selectedTrip.driverName],
+            ["AraÃƒÆ’Ã‚Â§", selectedTrip.driverPlate ?? "-"],
             ["Rota", selectedTrip.routeName],
             [
               "Durum",
@@ -201,7 +201,7 @@ export function LiveOpsSelectedTripDetailPane({
                 ? `${effectiveLiveCoords.lat.toFixed(5)}, ${effectiveLiveCoords.lng.toFixed(5)} (${effectiveLiveCoords.source})`
                 : `Koordinat yok (${selectedTrip.live.source})`,
             ],
-            ["RTDB Stream", streamStatusLabel(streamStatus)],
+            ["Canli akis", streamStatusLabel(streamStatus)],
             [
               "Stream Ozet",
               resolveLiveOpsStreamContextMessage({
@@ -225,9 +225,9 @@ export function LiveOpsSelectedTripDetailPane({
                 ? `Deneme ${streamRetryAttempt} - ${formatStreamRetryCountdown(streamNextRetryAt)} sonra`
                 : "-",
             ],
-            ["RTDB Baglanti", rtdbConnectionStatusLabel(rtdbConnectionStatus)],
+            ["Canli akis baglantisi", rtdbConnectionStatusLabel(rtdbConnectionStatus)],
             [
-              "RTDB Hata",
+              "Canli akis hatasi",
               streamErrorSemantic === "access_denied"
                 ? "Yetki reddedildi"
                 : streamError ?? rtdbConnectionError ?? "-",
@@ -255,7 +255,7 @@ export function LiveOpsSelectedTripDetailPane({
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between rounded-lg border border-line bg-slate-50/70 px-2.5 py-2 text-xs">
-                  <span className="font-semibold text-slate-900">Canlı Risk</span>
+                  <span className="font-semibold text-slate-900">CanlÃƒâ€Ã‚Â± Risk</span>
                   <span
                     className={`rounded-full border px-2 py-0.5 font-semibold ${
                       tripInsight.riskTone === "critical"
@@ -268,7 +268,7 @@ export function LiveOpsSelectedTripDetailPane({
                     {tripInsight.riskTone === "critical"
                       ? "Kritik"
                       : tripInsight.riskTone === "warning"
-                        ? "Uyarı"
+                        ? "UyarÃƒâ€Ã‚Â±"
                         : "Stabil"}
                   </span>
                 </div>
@@ -315,7 +315,7 @@ export function LiveOpsSelectedTripDetailPane({
               </div>
             ) : stops.length === 0 ? (
               <div className="text-xs text-muted">
-                Bu rota için durak bulunamadi. Route editor uzerinden durak eklenebilir.
+                Bu rota iÃƒÆ’Ã‚Â§in durak bulunamadi. Route editor uzerinden durak eklenebilir.
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -359,7 +359,7 @@ export function LiveOpsSelectedTripDetailPane({
               onClick={onOpenDriverRecord}
               className="rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
             >
-              Şoför Kaydina Git
+              Ãƒâ€¦Ã‚ÂofÃƒÆ’Ã‚Â¶r Kaydina Git
             </button>
             <button
               type="button"
@@ -467,7 +467,7 @@ export function LiveOpsSelectedTripDetailPane({
               </div>
               {selectedTripDispatchHistory.length === 0 ? (
                 <div className="text-xs text-muted">
-                  Bu sefer için dispatch aksiyonu henuz yok.
+                  Bu sefer iÃƒÆ’Ã‚Â§in dispatch aksiyonu henuz yok.
                 </div>
               ) : (
                 <div className="space-y-1.5">

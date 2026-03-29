@@ -75,13 +75,13 @@ function resolveRisk(params: {
   if (rtdbConnectionStatus === "offline" || rtdbConnectionStatus === "error") {
     return {
       riskTone: "critical",
-      riskReason: "RTDB baglantisi kesik, konum akisi güvenilir degil.",
+      riskReason: "Canli akis baglantisi kesik, konum akisi guvenilir degil.",
     };
   }
   if (streamStatus === "error") {
     return {
       riskTone: "critical",
-      riskReason: "RTDB stream hatasi var, fallback modunda izleniyor.",
+      riskReason: "Canli akis hatasi var, fallback modunda izleniyor.",
     };
   }
   if (streamStatus === "mismatch") {
@@ -98,7 +98,7 @@ function resolveRisk(params: {
   }
   return {
     riskTone: "ok",
-    riskReason: "Canlı konum akisi stabil.",
+    riskReason: "CanlÄ± konum akisi stabil.",
   };
 }
 

@@ -20,7 +20,7 @@ export function LiveOpsStreamIssueChip({
   return (
     <span
       className={`rounded-full border text-[10px] font-semibold ${summary.shortClass} ${className ?? "px-2.5 py-1"}`}
-      title={title ?? issueState.label ?? "RTDB stream stabil"}
+      title={title ?? issueState.label ?? "Canli akis stabil"}
     >
       {summary.shortLabel}
     </span>

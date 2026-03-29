@@ -32,7 +32,7 @@ export function useRouteLiveLocationStream(
     };
   }
 
-  // RTDB istemci zinciri kaldirildigi icin web panel canli konumda read-side snapshot'a duser.
+  // Web panel dogrudan canli akis istemcisi acmiyor; read-side snapshot'a duser.
   return {
     status: "idle" as StreamStatus,
     error: null as string | null,
