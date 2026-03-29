@@ -9,13 +9,6 @@ import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import { readLatestRouteAnnouncementFromPostgres } from "./route-announcement-store.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
-function requireFirestoreDb(db) {
-  if (!db || typeof db.collection !== "function") {
-    throw new HttpError(412, "failed-precondition", "Passenger tracking depolamasi hazir degil.");
-  }
-  return db;
-}
-
 function normalizeNullableText(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
@@ -91,59 +84,6 @@ function parseIsoToMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function parseFirestoreTimestampToIso(value) {
-  if (value == null) {
-    return null;
-  }
-
-  const iso = normalizeIsoString(value);
-  if (iso) {
-    return iso;
-  }
-
-  if (typeof value === "object" && typeof value.toDate === "function") {
-    try {
-      const parsed = value.toDate();
-      return normalizeIsoString(parsed);
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
-
-function serializeFirestoreValue(value) {
-  if (
-    value == null ||
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return value;
-  }
-
-  const iso = parseFirestoreTimestampToIso(value);
-  if (iso) {
-    return iso;
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => serializeFirestoreValue(item));
-  }
-
-  const record = asRecord(value);
-  if (!record) {
-    return null;
-  }
-
-  const result = {};
-  for (const [key, nestedValue] of Object.entries(record)) {
-    result[key] = serializeFirestoreValue(nestedValue);
-  }
-  return result;
-}
-
 function buildDriverSnapshot({ driverName, driverPlate, driverPhone }) {
   if (!driverName && !driverPlate && !driverPhone) {
     return null;
@@ -184,14 +124,6 @@ function buildLiveLocationFromActiveTrip(activeTripData) {
       parseIsoToMs(activeTripData?.lastLocationAt) ??
       parseIsoToMs(activeTripData?.updatedAt),
   };
-}
-
-async function readFirestoreDocumentData(documentReference) {
-  const snapshot = await documentReference.get().catch(() => null);
-  if (!snapshot?.exists) {
-    return null;
-  }
-  return serializeFirestoreValue(snapshot.data());
 }
 
 async function readRouteFromPostgres(routeId) {
@@ -449,120 +381,6 @@ async function readDriverFromPostgres(companyId, driverId) {
   };
 }
 
-async function readActiveTripFromFirestore(db, routeId) {
-  const firestoreDb = requireFirestoreDb(db);
-  const snapshot = await firestoreDb
-    .collection("trips")
-    .where("routeId", "==", routeId)
-    .where("status", "==", "active")
-    .limit(1)
-    .get()
-    .catch(() => null);
-  const documentSnapshot = snapshot?.docs?.[0] ?? null;
-  if (!documentSnapshot) {
-    return null;
-  }
-
-  const data = serializeFirestoreValue(documentSnapshot.data());
-  const record = asRecord(data);
-  if (!record) {
-    return null;
-  }
-
-  const driverId = pickString(record, "driverId");
-  return {
-    tripId: documentSnapshot.id,
-    ...record,
-    ...(driverId ? { driverUid: driverId, driverId } : {}),
-  };
-}
-
-async function readLatestAnnouncementFromFirestore(db, routeId) {
-  const firestoreDb = requireFirestoreDb(db);
-  const snapshot = await firestoreDb
-    .collection("announcements")
-    .where("routeId", "==", routeId)
-    .limit(20)
-    .get()
-    .catch(() => null);
-  if (!snapshot?.docs?.length) {
-    return null;
-  }
-
-  let latest = null;
-  let latestCreatedAt = null;
-  for (const documentSnapshot of snapshot.docs) {
-    const data = serializeFirestoreValue(documentSnapshot.data());
-    const record = asRecord(data);
-    const createdAt = pickString(record, "createdAt");
-    if (!record || !createdAt) {
-      continue;
-    }
-    if (latestCreatedAt == null || createdAt.localeCompare(latestCreatedAt) > 0) {
-      latest = record;
-      latestCreatedAt = createdAt;
-    }
-  }
-
-  return latest;
-}
-
-async function readRouteStopsFromFirestore(db, routeId) {
-  const firestoreDb = requireFirestoreDb(db);
-  const snapshot = await firestoreDb
-    .collection("routes")
-    .doc(routeId)
-    .collection("stops")
-    .orderBy("order")
-    .get()
-    .catch(() => null);
-  if (!snapshot?.docs?.length) {
-    return [];
-  }
-
-  return snapshot.docs
-    .map((documentSnapshot) => {
-      const data = serializeFirestoreValue(documentSnapshot.data());
-      const record = asRecord(data) ?? {};
-      return {
-        stopId: documentSnapshot.id,
-        name: pickString(record, "name") ?? "Durak",
-        order: normalizeInteger(record.order) ?? 0,
-        isPassed: normalizeBoolean(record.isPassed, false),
-        isNext: normalizeBoolean(record.isNext, false),
-        passengersWaiting: normalizeInteger(record.passengersWaiting),
-        location: normalizeLatLng(record.location),
-        createdAt: normalizeIsoString(record.createdAt),
-        updatedAt: normalizeIsoString(record.updatedAt),
-      };
-    })
-    .sort((left, right) => left.order - right.order);
-}
-
-async function readRouteDocumentFromFirestore(db, routeId) {
-  const firestoreDb = requireFirestoreDb(db);
-  return readFirestoreDocumentData(firestoreDb.collection("routes").doc(routeId));
-}
-
-async function readDriverDocumentFromFirestore(db, driverId) {
-  const firestoreDb = requireFirestoreDb(db);
-  return readFirestoreDocumentData(firestoreDb.collection("drivers").doc(driverId));
-}
-
-async function readPassengerDocumentFromFirestore(db, routeId, uid) {
-  const firestoreDb = requireFirestoreDb(db);
-  return readFirestoreDocumentData(
-    firestoreDb.collection("routes").doc(routeId).collection("passengers").doc(uid),
-  );
-}
-
-async function readGuestSessionDocumentFromFirestore(db, sessionId) {
-  const firestoreDb = requireFirestoreDb(db);
-  const data = await readFirestoreDocumentData(firestoreDb.collection("guest_sessions").doc(sessionId));
-  const record = asRecord(data);
-  return record ? { sessionId, ...record } : null;
-}
-
 async function readRouteStopsFromPostgres(companyId, routeId) {
   if (!shouldUsePostgresPassengerStore()) {
     return [];
@@ -589,12 +407,6 @@ async function readRouteStopsFromPostgres(companyId, routeId) {
     createdAt: normalizeIsoString(item?.createdAt),
     updatedAt: normalizeIsoString(item?.updatedAt),
   }));
-}
-
-function mergeTrackingRecord(primaryRecord, secondaryRecord) {
-  const primary = asRecord(primaryRecord) ?? {};
-  const secondary = asRecord(secondaryRecord) ?? {};
-  return { ...secondary, ...primary };
 }
 
 function ensurePassengerRouteAccess(routeData, passengerData, uid) {
@@ -645,35 +457,26 @@ function normalizeTrackingRoute(routeData, routeId) {
   };
 }
 
-async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId }) {
+async function buildPassengerTrackingSnapshot({ uid, routeId, guestSessionId }) {
+  if (!shouldUsePostgresPassengerStore()) {
+    throw new HttpError(412, "failed-precondition", "Passenger tracking depolamasi hazir degil.");
+  }
+
   const normalizedRouteId = normalizeNullableText(routeId);
   const normalizedGuestSessionId = normalizeNullableText(guestSessionId);
-  const usePostgresPassengerStore = shouldUsePostgresPassengerStore();
-  const allowLegacyFirestoreFallback = !usePostgresPassengerStore && Boolean(db);
   if (!normalizedRouteId && !normalizedGuestSessionId) {
     throw new HttpError(400, "invalid-argument", "routeId veya sessionId gerekli.");
   }
 
   let guestSessionData = null;
   if (normalizedGuestSessionId) {
-    if (usePostgresPassengerStore) {
-      guestSessionData = await readGuestTrackingSessionByIdFromPostgres(normalizedGuestSessionId).catch(
-        () => null,
-      );
-    }
-    if (!guestSessionData && allowLegacyFirestoreFallback) {
-      guestSessionData = await readGuestSessionDocumentFromFirestore(
-        db,
-        normalizedGuestSessionId,
-      ).catch(() => null);
-    }
-  }
-  if (normalizedGuestSessionId) {
+    guestSessionData = await readGuestTrackingSessionByIdFromPostgres(normalizedGuestSessionId).catch(
+      () => null,
+    );
     ensureGuestSessionAccess(guestSessionData, uid);
   }
 
-  const effectiveRouteId =
-    normalizedRouteId ?? normalizeNullableText(guestSessionData?.routeId);
+  const effectiveRouteId = normalizedRouteId ?? normalizeNullableText(guestSessionData?.routeId);
   if (!effectiveRouteId) {
     return {
       routeId: null,
@@ -690,25 +493,12 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     };
   }
 
-  let passengerData = null;
-  if (!normalizedGuestSessionId && usePostgresPassengerStore) {
-    passengerData = await readRoutePassengerFromPostgres(effectiveRouteId, uid).catch(() => null);
-  }
-  if (!normalizedGuestSessionId && !passengerData && allowLegacyFirestoreFallback) {
-    passengerData = await readPassengerDocumentFromFirestore(db, effectiveRouteId, uid).catch(
-      () => null,
-    );
-  }
+  const passengerData =
+    normalizedGuestSessionId == null
+      ? await readRoutePassengerFromPostgres(effectiveRouteId, uid).catch(() => null)
+      : null;
 
-  const postgresRoute = await readRouteFromPostgres(effectiveRouteId).catch(() => null);
-  const firestoreRoute =
-    postgresRoute || !allowLegacyFirestoreFallback
-      ? null
-      : await readRouteDocumentFromFirestore(db, effectiveRouteId).catch(() => null);
-  const routeData = normalizeTrackingRoute(
-    mergeTrackingRecord(postgresRoute, firestoreRoute),
-    effectiveRouteId,
-  );
+  const routeData = normalizeTrackingRoute(await readRouteFromPostgres(effectiveRouteId).catch(() => null), effectiveRouteId);
   if (!routeData) {
     throw new HttpError(404, "not-found", "Route bulunamadi.");
   }
@@ -717,69 +507,40 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
     ensurePassengerRouteAccess(routeData, passengerData, uid);
   }
 
-  const postgresStops = routeData.companyId
-    ? await readRouteStopsFromPostgres(routeData.companyId, effectiveRouteId).catch(() => [])
-    : [];
-  const postgresAnnouncement = await readLatestRouteAnnouncementFromPostgres(effectiveRouteId).catch(
-    () => null,
-  );
-  const postgresActiveTrip = await readActiveTripFromPostgres(effectiveRouteId).catch(() => null);
-  const fallbackActiveTripNeeded = !postgresActiveTrip && allowLegacyFirestoreFallback;
-  const preliminaryDriverId =
-    normalizeNullableText(postgresActiveTrip?.driverId) ??
-    normalizeNullableText(postgresActiveTrip?.driverUid) ??
-    normalizeNullableText(routeData.driverId);
-  const postgresDriverData =
-    routeData.companyId && preliminaryDriverId
-      ? await readDriverFromPostgres(routeData.companyId, preliminaryDriverId).catch(() => null)
-      : null;
-
-  const [firestoreActiveTrip, firestoreDriverData, latestAnnouncement, stops] = await Promise.all([
-      fallbackActiveTripNeeded
-        ? readActiveTripFromFirestore(db, effectiveRouteId).catch(() => null)
-        : Promise.resolve(null),
-      postgresDriverData || !routeData.driverId || !allowLegacyFirestoreFallback
-        ? Promise.resolve(null)
-        : readDriverDocumentFromFirestore(db, routeData.driverId).catch(() => null),
-      postgresAnnouncement
-        ? Promise.resolve(postgresAnnouncement)
-        : allowLegacyFirestoreFallback
-          ? readLatestAnnouncementFromFirestore(db, effectiveRouteId).catch(() => null)
-          : Promise.resolve(null),
-      postgresStops.length > 0
-        ? Promise.resolve(postgresStops)
-        : allowLegacyFirestoreFallback
-          ? readRouteStopsFromFirestore(db, effectiveRouteId).catch(() => [])
-          : Promise.resolve([]),
-    ]);
+  const [stops, latestAnnouncement, activeTripBase] = await Promise.all([
+    routeData.companyId
+      ? readRouteStopsFromPostgres(routeData.companyId, effectiveRouteId).catch(() => [])
+      : Promise.resolve([]),
+    readLatestRouteAnnouncementFromPostgres(effectiveRouteId).catch(() => null),
+    readActiveTripFromPostgres(effectiveRouteId).catch(() => null),
+  ]);
 
   const activeTripDriverId =
-    normalizeNullableText(postgresActiveTrip?.driverId) ??
-    normalizeNullableText(firestoreActiveTrip?.driverId) ??
+    normalizeNullableText(activeTripBase?.driverId) ??
+    normalizeNullableText(activeTripBase?.driverUid) ??
     normalizeNullableText(routeData.driverId);
-  const driverData = mergeTrackingRecord(
-    postgresDriverData,
-    firestoreDriverData,
-  );
+  const driverData =
+    routeData.companyId && activeTripDriverId
+      ? await readDriverFromPostgres(routeData.companyId, activeTripDriverId).catch(() => null)
+      : null;
 
-  const mergedActiveTrip = mergeTrackingRecord(postgresActiveTrip, firestoreActiveTrip);
-  const activeTripData = asRecord(mergedActiveTrip)
+  const activeTripData = asRecord(activeTripBase)
     ? {
-        ...mergedActiveTrip,
-        routeId: normalizeNullableText(mergedActiveTrip.routeId) ?? effectiveRouteId,
-        companyId: normalizeNullableText(mergedActiveTrip.companyId) ?? routeData.companyId,
+        ...activeTripBase,
+        routeId: normalizeNullableText(activeTripBase.routeId) ?? effectiveRouteId,
+        companyId: normalizeNullableText(activeTripBase.companyId) ?? routeData.companyId,
         driverId: activeTripDriverId,
         driverUid: activeTripDriverId,
         driverSnapshot:
-          asRecord(mergedActiveTrip.driverSnapshot) ??
+          asRecord(activeTripBase.driverSnapshot) ??
           buildDriverSnapshot({
             driverName:
-              normalizeNullableText(mergedActiveTrip.driverName) ??
-              normalizeNullableText(driverData.name),
+              normalizeNullableText(activeTripBase.driverName) ??
+              normalizeNullableText(driverData?.name),
             driverPlate:
-              normalizeNullableText(mergedActiveTrip.driverPlate) ??
-              normalizeNullableText(driverData.plate),
-            driverPhone: normalizeNullableText(driverData.phone),
+              normalizeNullableText(activeTripBase.driverPlate) ??
+              normalizeNullableText(driverData?.plate),
+            driverPhone: normalizeNullableText(driverData?.phone),
           }),
       }
     : null;
@@ -799,18 +560,16 @@ async function buildPassengerTrackingSnapshot({ db, uid, routeId, guestSessionId
   };
 }
 
-export async function readPassengerTrackingSnapshot(db, uid, routeId) {
+export async function readPassengerTrackingSnapshot(_db, uid, routeId) {
   return buildPassengerTrackingSnapshot({
-    db,
     uid,
     routeId,
     guestSessionId: null,
   });
 }
 
-export async function readGuestTrackingSnapshot(db, uid, sessionId) {
+export async function readGuestTrackingSnapshot(_db, uid, sessionId) {
   return buildPassengerTrackingSnapshot({
-    db,
     uid,
     routeId: null,
     guestSessionId: sessionId,
