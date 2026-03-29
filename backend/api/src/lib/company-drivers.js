@@ -1,10 +1,8 @@
 import {
-  isCompanyDriversSyncedInPostgres,
   listCompanyDriversFromPostgres,
-  replaceCompanyDriversForCompany,
   shouldUsePostgresCompanyFleetStore,
 } from "./company-fleet-store.js";
-import { backfillCompanyFromFirestoreRecord } from "./company-membership-store.js";
+import { getPostgresPool } from "./postgres.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 function pickStringArray(record, key) {
@@ -14,31 +12,6 @@ function pickStringArray(record, key) {
   }
 
   return value.filter((item) => typeof item === "string" && item.trim().length > 0);
-}
-
-async function backfillCompanyRecordFromFirestore(db, companyId) {
-  const companySnapshot = await db.collection("companies").doc(companyId).get();
-  if (!companySnapshot.exists) {
-    return false;
-  }
-
-  const companyData = asRecord(companySnapshot.data()) ?? {};
-  return backfillCompanyFromFirestoreRecord({
-    companyId,
-    name: pickString(companyData, "name"),
-    legalName: pickString(companyData, "legalName"),
-    status: pickString(companyData, "status"),
-    billingStatus: pickString(companyData, "billingStatus"),
-    timezone: pickString(companyData, "timezone"),
-    countryCode: pickString(companyData, "countryCode"),
-    contactPhone: pickString(companyData, "contactPhone"),
-    contactEmail: pickString(companyData, "contactEmail"),
-    logoUrl: pickString(companyData, "logoUrl"),
-    address: pickString(companyData, "address"),
-    createdBy: pickString(companyData, "createdBy"),
-    createdAt: pickString(companyData, "createdAt"),
-    updatedAt: pickString(companyData, "updatedAt"),
-  });
 }
 
 async function buildAssignedRoutesByDriverId(db, companyId) {
@@ -72,29 +45,76 @@ async function buildAssignedRoutesByDriverId(db, companyId) {
   return assignedRoutesByDriverId;
 }
 
+async function buildAssignedRoutesByDriverIdFromPostgres(companyId) {
+  const pool = getPostgresPool();
+  if (!pool) {
+    return new Map();
+  }
+
+  const routesResult = await pool.query(
+    `
+      SELECT route_id, name, scheduled_time, driver_id, authorized_driver_ids
+      FROM company_routes
+      WHERE company_id = $1
+        AND is_archived = FALSE
+      ORDER BY updated_at DESC NULLS LAST, route_id ASC
+    `,
+    [companyId],
+  );
+
+  const assignedRoutesByDriverId = new Map();
+  for (const row of routesResult.rows) {
+    const routeId = typeof row?.route_id === "string" ? row.route_id.trim() : "";
+    if (!routeId) {
+      continue;
+    }
+
+    const routeName =
+      (typeof row?.name === "string" && row.name.trim().length > 0 ? row.name.trim() : null) ??
+      `Route (${routeId.slice(0, 6)})`;
+    const scheduledTime =
+      typeof row?.scheduled_time === "string" && row.scheduled_time.trim().length > 0
+        ? row.scheduled_time.trim()
+        : null;
+    const relatedDriverIds = new Set(
+      Array.isArray(row?.authorized_driver_ids)
+        ? row.authorized_driver_ids.filter(
+            (item) => typeof item === "string" && item.trim().length > 0,
+          )
+        : [],
+    );
+    if (typeof row?.driver_id === "string" && row.driver_id.trim().length > 0) {
+      relatedDriverIds.add(row.driver_id.trim());
+    }
+
+    for (const driverId of relatedDriverIds) {
+      const existing = assignedRoutesByDriverId.get(driverId) ?? [];
+      existing.push({ routeId, routeName, scheduledTime });
+      assignedRoutesByDriverId.set(driverId, existing);
+    }
+  }
+
+  return assignedRoutesByDriverId;
+}
+
 export async function listCompanyDrivers(db, input) {
   const driverLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 100;
   if (shouldUsePostgresCompanyFleetStore()) {
-    const driversSynced = await isCompanyDriversSyncedInPostgres(input.companyId).catch(() => false);
-    if (driversSynced) {
-      const [drivers, assignedRoutesByDriverId] = await Promise.all([
-        listCompanyDriversFromPostgres(input.companyId, driverLimit).catch(() => null),
-        buildAssignedRoutesByDriverId(db, input.companyId),
-      ]);
-      if (drivers) {
-        const items = drivers.map((driver) => {
-          const assignedRoutes = assignedRoutesByDriverId.get(driver.driverId) ?? [];
-          return {
-            ...driver,
-            assignmentStatus: assignedRoutes.length > 0 ? "assigned" : "unassigned",
-            assignedRoutes,
-          };
-        });
+    const [drivers, assignedRoutesByDriverId] = await Promise.all([
+      listCompanyDriversFromPostgres(input.companyId, driverLimit),
+      buildAssignedRoutesByDriverIdFromPostgres(input.companyId),
+    ]);
+    const items = drivers.map((driver) => {
+      const assignedRoutes = assignedRoutesByDriverId.get(driver.driverId) ?? [];
+      return {
+        ...driver,
+        assignmentStatus: assignedRoutes.length > 0 ? "assigned" : "unassigned",
+        assignedRoutes,
+      };
+    });
 
-        items.sort((left, right) => left.name.localeCompare(right.name, "tr"));
-        return { items };
-      }
-    }
+    items.sort((left, right) => left.name.localeCompare(right.name, "tr"));
+    return { items };
   }
 
   const [driversSnapshot, assignedRoutesByDriverId] = await Promise.all([
@@ -129,11 +149,5 @@ export async function listCompanyDrivers(db, input) {
   }
 
   items.sort((left, right) => left.name.localeCompare(right.name, "tr"));
-  if (shouldUsePostgresCompanyFleetStore()) {
-    await backfillCompanyRecordFromFirestore(db, input.companyId).catch(() => false);
-    await replaceCompanyDriversForCompany(input.companyId, items, new Date().toISOString()).catch(
-      () => false,
-    );
-  }
   return { items };
 }

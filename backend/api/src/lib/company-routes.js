@@ -1,9 +1,6 @@
-import { backfillCompanyRecordFromFirestore, buildCompanyRouteProjection } from "./company-route-postgres-sync.js";
 import {
-  isCompanyRoutesSyncedInPostgres,
   listCompanyRoutesFromPostgres,
   shouldUsePostgresCompanyRouteStore,
-  syncCompanyRoutesSnapshotForCompany,
 } from "./company-route-store.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
@@ -58,16 +55,11 @@ export async function listCompanyRoutes(db, input) {
   const includeArchived = input.includeArchived === true;
 
   if (shouldUsePostgresCompanyRouteStore()) {
-    const routesSynced = await isCompanyRoutesSyncedInPostgres(input.companyId).catch(() => false);
-    if (routesSynced) {
-      const items = await listCompanyRoutesFromPostgres(input.companyId, {
-        limit: queryLimit,
-        includeArchived,
-      }).catch(() => null);
-      if (items) {
-        return { items };
-      }
-    }
+    const items = await listCompanyRoutesFromPostgres(input.companyId, {
+      limit: queryLimit,
+      includeArchived,
+    });
+    return { items };
   }
 
   const baseQuery = db.collection("routes").where("companyId", "==", input.companyId);
@@ -83,27 +75,6 @@ export async function listCompanyRoutes(db, input) {
   const items = routeItems
     .slice()
     .sort((left, right) => (parseIsoToMs(right.updatedAt) ?? 0) - (parseIsoToMs(left.updatedAt) ?? 0));
-
-  if (shouldUsePostgresCompanyRouteStore()) {
-    await backfillCompanyRecordFromFirestore(db, input.companyId).catch(() => false);
-    const allRoutesSnapshot = await baseQuery.get().catch(() => null);
-    if (allRoutesSnapshot) {
-      const routeProjections = allRoutesSnapshot.docs
-        .map((documentSnapshot) =>
-          buildCompanyRouteProjection(
-            documentSnapshot.id,
-            asRecord(documentSnapshot.data()) ?? {},
-            input.companyId,
-          ),
-        )
-        .filter((item) => item !== null);
-      await syncCompanyRoutesSnapshotForCompany(
-        input.companyId,
-        routeProjections,
-        new Date().toISOString(),
-      ).catch(() => false);
-    }
-  }
 
   return { items };
 }

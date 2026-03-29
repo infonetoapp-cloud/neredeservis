@@ -3,7 +3,6 @@ import {
   listCompanyActiveTripsFromPostgres,
   shouldUsePostgresCompanyActiveTripStore,
 } from "./company-active-trip-store.js";
-import { backfillCompanyFromFirestoreRecord } from "./company-membership-store.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
 function pickFiniteNumber(record, key) {
@@ -18,33 +17,6 @@ function parseIsoToMs(value) {
 
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : null;
-}
-
-async function backfillCompanyRecordFromFirestore(db, companyId) {
-  const companySnapshot = await db.collection("companies").doc(companyId).get();
-  if (!companySnapshot.exists) {
-    return false;
-  }
-
-  const companyData = asRecord(companySnapshot.data()) ?? {};
-  return backfillCompanyFromFirestoreRecord({
-    companyId,
-    name: pickString(companyData, "name"),
-    legalName: pickString(companyData, "legalName"),
-    status: pickString(companyData, "status"),
-    billingStatus: pickString(companyData, "billingStatus"),
-    billingValidUntil: pickString(companyData, "billingValidUntil"),
-    timezone: pickString(companyData, "timezone"),
-    countryCode: pickString(companyData, "countryCode"),
-    contactPhone: pickString(companyData, "contactPhone"),
-    contactEmail: pickString(companyData, "contactEmail"),
-    logoUrl: pickString(companyData, "logoUrl"),
-    address: pickString(companyData, "address"),
-    vehicleLimit: companyData?.vehicleLimit,
-    createdBy: pickString(companyData, "createdBy"),
-    createdAt: pickString(companyData, "createdAt"),
-    updatedAt: pickString(companyData, "updatedAt"),
-  });
 }
 
 async function readActiveTripsFromFirestore(db, rtdb, input) {
@@ -226,25 +198,15 @@ export async function listActiveTripsByCompany(db, rtdb, input) {
       limit,
       routeId: routeFilterId,
       driverUid: driverFilterUid,
-    }).catch(() => null);
-    if (items) {
-      return { items };
-    }
+    });
+    return { items };
   }
 
   const result = await readActiveTripsFromFirestore(db, rtdb, input);
-
-  if (
-    shouldUsePostgresCompanyActiveTripStore() &&
-    routeFilterId == null &&
-    driverFilterUid == null
-  ) {
-    await backfillCompanyRecordFromFirestore(db, input.companyId).catch(() => false);
-    await replaceCompanyActiveTripsForCompany(
-      input.companyId,
-      result.items,
-      new Date().toISOString(),
-    ).catch(() => false);
+  if (routeFilterId == null && driverFilterUid == null) {
+    await replaceCompanyActiveTripsForCompany(input.companyId, result.items, new Date().toISOString()).catch(
+      () => false,
+    );
   }
 
   return result;

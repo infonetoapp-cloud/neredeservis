@@ -17,9 +17,7 @@ const VALID_MEMBER_STATUSES = new Set(["active", "invited", "suspended"]);
 export async function listMyCompanies(db, uid) {
   if (shouldUsePostgresCompanyStore()) {
     const postgresItems = await listMyCompaniesFromPostgres(uid);
-    if (postgresItems.length > 0) {
-      return { items: postgresItems };
-    }
+    return { items: postgresItems };
   }
 
   const membershipSnapshot = await db
@@ -309,14 +307,6 @@ export async function createCompany(db, uid, input) {
       updatedAt: nowIso,
     });
 
-    await mirrorCreatedCompanyToFirestore(db, {
-      companyId,
-      uid,
-      name,
-      contactPhone,
-      contactEmail,
-      nowIso,
-    });
     await flushStagedCompanyAuditLog(auditLog).catch(() => false);
 
     return {

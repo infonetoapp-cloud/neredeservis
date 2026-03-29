@@ -323,10 +323,10 @@ async function backfillPassengerTripHistoryRows(tripRows, routesById, driversByI
 }
 
 export async function readPrimaryPassengerMembership(db, uid) {
-  return (
-    (await readPrimaryPassengerMembershipFromPostgres(uid)) ??
-    (await readPrimaryPassengerMembershipFromFirestore(db, uid))
-  );
+  if (isPostgresConfigured()) {
+    return readPrimaryPassengerMembershipFromPostgres(uid);
+  }
+  return readPrimaryPassengerMembershipFromFirestore(db, uid);
 }
 
 export async function loadPassengerTripHistory(db, uid) {
@@ -343,27 +343,23 @@ export async function loadPassengerTripHistory(db, uid) {
     const candidateRoutesById = await listCurrentPassengerRoutesFromPostgres(normalizedUid, {
       limit: 80,
     }).catch(() => ({}));
-    if (Object.keys(candidateRoutesById).length > 0) {
-      const tripRows = await listPassengerTripHistoryRowsFromPostgres(normalizedUid, {
-        limit: 180,
-      }).catch(() => []);
-      if (tripRows.length > 0) {
-        const mergedRoutesById = mergeRouteSnapshotsIntoMap(candidateRoutesById, tripRows);
-        const driverIds = Array.from(
-          new Set(
-            tripRows
-              .map((row) => readTrimmedString(row?.tripData?.driverId) ?? readTrimmedString(row?.tripData?.driverUid))
-              .filter((driverId) => driverId),
-          ),
-        );
-        const driversById = await listDriverSnapshotsByIdsFromPostgres(driverIds).catch(() => ({}));
-        return {
-          tripRows,
-          candidateRoutesById: mergedRoutesById,
-          driversById,
-        };
-      }
-    }
+    const tripRows = await listPassengerTripHistoryRowsFromPostgres(normalizedUid, {
+      limit: 180,
+    }).catch(() => []);
+    const mergedRoutesById = mergeRouteSnapshotsIntoMap(candidateRoutesById, tripRows);
+    const driverIds = Array.from(
+      new Set(
+        tripRows
+          .map((row) => readTrimmedString(row?.tripData?.driverId) ?? readTrimmedString(row?.tripData?.driverUid))
+          .filter((driverId) => driverId),
+      ),
+    );
+    const driversById = await listDriverSnapshotsByIdsFromPostgres(driverIds).catch(() => ({}));
+    return {
+      tripRows,
+      candidateRoutesById: mergedRoutesById,
+      driversById,
+    };
   }
 
   const firestoreDb = requireFirestoreDb(db);

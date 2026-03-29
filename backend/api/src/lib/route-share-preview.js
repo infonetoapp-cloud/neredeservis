@@ -2,7 +2,6 @@ import { createHash, createHmac } from "node:crypto";
 
 import { HttpError } from "./http.js";
 import { readUserProfileByUid } from "./auth-user-store.js";
-import { syncCompanyRouteFromFirestore } from "./company-route-postgres-sync.js";
 import {
   enforceRoutePreviewRateLimitInPostgres,
   readRouteShareContextFromPostgresByRouteId,
@@ -103,16 +102,17 @@ async function requireAllowedUserRole(db, uid, allowedRoles) {
 async function requireRouteMember(db, routeId, uid) {
   if (shouldUsePostgresRouteShareStore()) {
     const postgresRoute = await readRouteShareContextFromPostgresByRouteId(routeId).catch(() => null);
-    if (postgresRoute) {
-      const isMember =
-        postgresRoute.driverId === uid ||
-        postgresRoute.authorizedDriverIds.includes(uid) ||
-        postgresRoute.memberIds.includes(uid);
-      if (!isMember) {
-        throw new HttpError(403, "permission-denied", "Bu route icin erisim yetkin yok.");
-      }
-      return postgresRoute;
+    if (!postgresRoute) {
+      throw new HttpError(404, "not-found", "Route bulunamadi.");
     }
+    const isMember =
+      postgresRoute.driverId === uid ||
+      postgresRoute.authorizedDriverIds.includes(uid) ||
+      postgresRoute.memberIds.includes(uid);
+    if (!isMember) {
+      throw new HttpError(403, "permission-denied", "Bu route icin erisim yetkin yok.");
+    }
+    return postgresRoute;
   }
 
   const routeSnapshot = await db.collection("routes").doc(routeId).get();
@@ -128,13 +128,6 @@ async function requireRouteMember(db, routeId, uid) {
     routeOwnerUid === uid || authorizedDriverIds.includes(uid) || memberIds.includes(uid);
   if (!isMember) {
     throw new HttpError(403, "permission-denied", "Bu route icin erisim yetkin yok.");
-  }
-
-  const companyId = pickString(routeData, "companyId");
-  if (companyId && shouldUsePostgresRouteShareStore()) {
-    await syncCompanyRouteFromFirestore(db, companyId, routeId, new Date().toISOString()).catch(
-      () => false,
-    );
   }
 
   return routeData;
@@ -428,6 +421,10 @@ export async function getDynamicRoutePreview(db, request, input) {
       routePreview = await readRouteShareContextFromPostgresBySrvCode(srvCode).catch(() => null);
     }
 
+    if (!routePreview && shouldUsePostgresRouteShareStore()) {
+      throw new HttpError(404, "not-found", "Route preview bulunamadi.");
+    }
+
     if (!routePreview) {
       const routeQuerySnapshot = await db
         .collection("routes")
@@ -451,16 +448,6 @@ export async function getDynamicRoutePreview(db, request, input) {
         timeSlot: readRouteTimeSlot(routeData.timeSlot),
         allowGuestTracking: routeData.allowGuestTracking === true,
       };
-
-      const companyId = pickString(routeData, "companyId");
-      if (companyId && shouldUsePostgresRouteShareStore()) {
-        await syncCompanyRouteFromFirestore(
-          db,
-          companyId,
-          routeDocument.id,
-          new Date().toISOString(),
-        ).catch(() => false);
-      }
     }
 
     const routeName = pickString(routePreview, "name");
@@ -470,7 +457,7 @@ export async function getDynamicRoutePreview(db, request, input) {
 
     let driverDisplayName = pickString(routePreview, "driverDisplayName");
     const driverUid = pickString(routePreview, "driverId");
-    if (driverUid && !driverDisplayName) {
+    if (driverUid && !driverDisplayName && !shouldUsePostgresRouteShareStore()) {
       const [driverSnapshot, userData] = await Promise.all([
         db.collection("drivers").doc(driverUid).get(),
         readUserProfileByUid(db, driverUid).catch(() => null),

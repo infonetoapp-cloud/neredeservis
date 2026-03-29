@@ -759,16 +759,6 @@ export async function createPlatformCompany(db, actorUid, input) {
     createdAt: nowIso,
     updatedAt: nowIso,
   });
-
-  await mirrorCreatedPlatformCompanyToFirestore(db, {
-    companyId,
-    companyName,
-    ownerUid,
-    ownerEmail,
-    vehicleLimit,
-    actorUid,
-    nowIso,
-  });
   await flushStagedCompanyAuditLog(auditLog).catch(() => false);
 
   const loginUrl = await issueOwnerPasswordSetupLink(db, ownerUid, ownerEmail, actorUid);
@@ -834,15 +824,6 @@ export async function setPlatformCompanyVehicleLimit(db, input) {
       updatedAt: nowIso,
     }).catch(() => false);
 
-    await mirrorCompanyPatchToFirestore(
-      db,
-      companyId,
-      {
-        vehicleLimit,
-        updatedAt: nowIso,
-      },
-      "firestore_platform_vehicle_limit_mirror_failed",
-    );
   } else {
     await companyRef.update({
       vehicleLimit,
@@ -911,15 +892,6 @@ export async function setPlatformCompanyStatus(db, input) {
       updatedAt: nowIso,
     }).catch(() => false);
 
-    await mirrorCompanyPatchToFirestore(
-      db,
-      companyId,
-      {
-        status: rawStatus,
-        updatedAt: nowIso,
-      },
-      "firestore_platform_company_status_mirror_failed",
-    );
   } else {
     await companyRef.update({
       status: rawStatus,
@@ -973,30 +945,33 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
 
 export async function deletePlatformCompany(db, rtdb, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
   const usePostgres = isPostgresConfigured();
-  const [postgresState, companySnapshot] = await Promise.all([
-    usePostgres ? readPlatformCompanyDeleteStateFromPostgres(companyId).catch(() => null) : null,
-    companyRef ? companyRef.get().catch(() => null) : null,
-  ]);
-  if (!postgresState && !companySnapshot?.exists) {
+  if (usePostgres) {
+    const postgresState = await readPlatformCompanyDeleteStateFromPostgres(companyId).catch(() => null);
+    if (!postgresState) {
+      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
+    }
+    await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
+    return {
+      companyId,
+      deletedAt: new Date().toISOString(),
+    };
+  }
+
+  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
+  const companySnapshot = companyRef ? await companyRef.get().catch(() => null) : null;
+  if (!companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const [membersSnapshot, routesSnapshot, auditLogsSnapshot] = companySnapshot?.exists
-    ? await Promise.all([
-        companyRef.collection("members").get(),
-        db.collection("routes").where("companyId", "==", companyId).get(),
-        db.collection("audit_logs").where("companyId", "==", companyId).get(),
-      ])
-    : [null, null, null];
-  const memberUids = postgresState?.memberUids ?? membersSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
-  const routeIds = postgresState?.routeIds ?? routesSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
+  const [membersSnapshot, routesSnapshot, auditLogsSnapshot] = await Promise.all([
+    companyRef.collection("members").get(),
+    db.collection("routes").where("companyId", "==", companyId).get(),
+    db.collection("audit_logs").where("companyId", "==", companyId).get(),
+  ]);
+  const memberUids = membersSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
+  const routeIds = routesSnapshot?.docs.map((documentSnapshot) => documentSnapshot.id) ?? [];
   const routeRefs = routesSnapshot?.docs.map((documentSnapshot) => documentSnapshot.ref) ?? [];
-
-  if (usePostgres) {
-    await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
-  }
 
   for (const routeRef of routeRefs) {
     await db.recursiveDelete(routeRef).catch((error) => {

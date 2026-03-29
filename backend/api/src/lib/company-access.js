@@ -17,6 +17,8 @@ export async function requireActiveCompanyMemberRole(db, companyId, uid) {
     if (postgresRole) {
       return postgresRole;
     }
+
+    throw new HttpError(403, "permission-denied", "Bu sirket icin uye kaydi bulunamadi.");
   }
 
   const memberSnapshot = await db
@@ -138,9 +140,14 @@ export async function assertCompanyMembersExistAndActive(db, companyId, uids) {
 
   if (shouldUsePostgresCompanyStore()) {
     const postgresOk = await assertCompanyMembersActiveFromPostgres(companyId, uniqueUids);
-    if (postgresOk) {
-      return;
+    if (!postgresOk) {
+      throw new HttpError(
+        412,
+        "failed-precondition",
+        "authorizedDriverIds icinde company member olmayan veya aktif olmayan uid var.",
+      );
     }
+    return;
   }
 
   const snapshots = await Promise.all(

@@ -1781,7 +1781,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "DELETE" && platformCompanyItemPath) {
       const decodedToken = await requireAuthenticatedUser(request);
       requirePlatformOwner(decodedToken);
-      const rtdb = getOptionalFirebaseAdminRtdb();
+      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
       const result = await deletePlatformCompany(db, rtdb, platformCompanyItemPath);
       sendApiOk(response, 200, result);
       return;
@@ -2069,7 +2069,7 @@ const server = createServer(async (request, response) => {
 
       const rawLimit = requestUrl.searchParams.get("limit");
       const limit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
-      const rtdb = getOptionalFirebaseAdminRtdb();
+      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
       const snapshot = await listCompanyLiveOpsSnapshot(db, rtdb, {
         companyId: companyLiveOpsParams.companyId,
         limit,
@@ -2217,7 +2217,7 @@ const server = createServer(async (request, response) => {
       const limit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
       const routeId = requestUrl.searchParams.get("routeId")?.trim() || null;
       const driverUid = requestUrl.searchParams.get("driverUid")?.trim() || null;
-      const rtdb = getOptionalFirebaseAdminRtdb();
+      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
       const activeTrips = await listActiveTripsByCompany(db, rtdb, {
         companyId: companyActiveTripsParams.companyId,
         routeId,
