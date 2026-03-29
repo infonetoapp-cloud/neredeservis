@@ -1,19 +1,9 @@
-import { FieldPath } from "firebase-admin/firestore";
-
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
 import {
   listDriverActiveTripRowsFromPostgres,
   listDriverTripHistoryRowsFromPostgres,
   listRouteSnapshotsByIdsFromPostgres,
-  upsertTripHistoryBatchToPostgres,
 } from "./trip-history-store.js";
-
-function requireFirestoreDb(db) {
-  if (!db || typeof db.collection !== "function") {
-    throw new Error("Driver read model storage is not available.");
-  }
-  return db;
-}
 
 function parseIsoDate(value) {
   if (value instanceof Date && Number.isFinite(value.getTime())) {
@@ -25,21 +15,10 @@ function parseIsoDate(value) {
     return Number.isFinite(parsed) ? new Date(parsed).toISOString() : value.trim();
   }
 
-  if (value && typeof value === "object" && typeof value.toDate === "function") {
-    try {
-      const parsed = value.toDate();
-      if (parsed instanceof Date && Number.isFinite(parsed.getTime())) {
-        return parsed.toISOString();
-      }
-    } catch {
-      return null;
-    }
-  }
-
   return null;
 }
 
-function serializeFirestoreValue(value) {
+function serializeValue(value) {
   if (
     value === null ||
     value === undefined ||
@@ -56,13 +35,13 @@ function serializeFirestoreValue(value) {
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => serializeFirestoreValue(item));
+    return value.map((item) => serializeValue(item));
   }
 
   if (value && typeof value === "object") {
     const result = {};
     for (const [key, nestedValue] of Object.entries(value)) {
-      result[key] = serializeFirestoreValue(nestedValue);
+      result[key] = serializeValue(nestedValue);
     }
     return result;
   }
@@ -108,37 +87,13 @@ function formatManagedRouteRow(row) {
     allowGuestTracking: normalizeBoolean(row?.allow_guest_tracking, false),
     startAddress: readTrimmedString(row?.start_address),
     endAddress: readTrimmedString(row?.end_address),
-    startPoint: serializeFirestoreValue(row?.start_point),
-    endPoint: serializeFirestoreValue(row?.end_point),
+    startPoint: serializeValue(row?.start_point),
+    endPoint: serializeValue(row?.end_point),
     passengerCount: normalizeInteger(row?.passenger_count) ?? 0,
     srvCode: readTrimmedString(row?.srv_code),
-    routePolyline: serializeFirestoreValue(row?.route_polyline),
+    routePolyline: serializeValue(row?.route_polyline),
     updatedAt: parseIsoDate(row?.updated_at),
   };
-}
-
-async function fetchCollectionDocumentsByIds(db, { collectionPath, documentIds }) {
-  const firestoreDb = requireFirestoreDb(db);
-  const uniqueIds = Array.from(
-    new Set(documentIds.filter((item) => typeof item === "string" && item.trim().length > 0)),
-  );
-  if (uniqueIds.length === 0) {
-    return {};
-  }
-
-  const result = {};
-  for (let index = 0; index < uniqueIds.length; index += 10) {
-    const batch = uniqueIds.slice(index, index + 10);
-    const snapshot = await firestoreDb
-      .collection(collectionPath)
-      .where(FieldPath.documentId(), "in", batch)
-      .get();
-    for (const documentSnapshot of snapshot.docs) {
-      result[documentSnapshot.id] = serializeFirestoreValue(documentSnapshot.data());
-    }
-  }
-
-  return result;
 }
 
 async function loadManagedRoutesFromPostgres(uid) {
@@ -196,69 +151,6 @@ async function loadManagedRoutesFromPostgres(uid) {
   return routesById;
 }
 
-async function loadManagedRoutesFromFirestore(db, uid) {
-  const firestoreDb = requireFirestoreDb(db);
-  const normalizedUid = readTrimmedString(uid);
-  if (!normalizedUid) {
-    return {};
-  }
-
-  const routeSnapshots = [];
-  const routesCollection = firestoreDb.collection("routes");
-  try {
-    routeSnapshots.push(await routesCollection.where("driverId", "==", normalizedUid).limit(80).get());
-  } catch {
-    // Best effort.
-  }
-  try {
-    routeSnapshots.push(
-      await routesCollection.where("authorizedDriverIds", "array-contains", normalizedUid).limit(80).get(),
-    );
-  } catch {
-    // Best effort.
-  }
-
-  const managedRouteDocs = {};
-  for (const snapshot of routeSnapshots) {
-    for (const doc of snapshot.docs) {
-      const data = serializeFirestoreValue(doc.data());
-      if (data?.isArchived === true) {
-        continue;
-      }
-      managedRouteDocs[doc.id] = data;
-    }
-  }
-  return managedRouteDocs;
-}
-
-async function loadDriverTripRowsFromFirestore(db, uid) {
-  const firestoreDb = requireFirestoreDb(db);
-  const normalizedUid = readTrimmedString(uid);
-  if (!normalizedUid) {
-    return [];
-  }
-
-  let tripsSnapshot = null;
-  try {
-    tripsSnapshot = await firestoreDb
-      .collection("trips")
-      .where("driverId", "==", normalizedUid)
-      .limit(220)
-      .get();
-  } catch {
-    tripsSnapshot = null;
-  }
-
-  const tripRows = [];
-  for (const doc of tripsSnapshot?.docs ?? []) {
-    tripRows.push({
-      tripId: doc.id,
-      tripData: serializeFirestoreValue(doc.data()),
-    });
-  }
-  return tripRows;
-}
-
 function mergeRouteSnapshotsIntoMap(routesById, tripRows) {
   const snapshotMap = routesById && typeof routesById === "object" ? { ...routesById } : {};
   for (const row of Array.isArray(tripRows) ? tripRows : []) {
@@ -285,143 +177,27 @@ function mergeRouteSnapshotsIntoMap(routesById, tripRows) {
   return snapshotMap;
 }
 
-function buildTripHistoryProjection(row, routesById) {
-  const tripData = row?.tripData && typeof row.tripData === "object" ? row.tripData : null;
-  const tripId = readTrimmedString(row?.tripId);
-  const routeId = readTrimmedString(tripData?.routeId);
-  const status = readTrimmedString(tripData?.status)?.toLowerCase();
-  if (!tripId || !routeId || !status || status === "active") {
-    return null;
-  }
-
-  const routeData =
-    routesById && typeof routesById === "object" && routesById[routeId] && typeof routesById[routeId] === "object"
-      ? routesById[routeId]
-      : null;
-  const driverSnapshot =
-    tripData?.driverSnapshot && typeof tripData.driverSnapshot === "object" && !Array.isArray(tripData.driverSnapshot)
-      ? tripData.driverSnapshot
-      : {};
-  const driverUid = readTrimmedString(tripData?.driverId) ?? readTrimmedString(tripData?.driverUid);
-  const companyId = readTrimmedString(routeData?.companyId) ?? readTrimmedString(tripData?.companyId);
-  const routeName = readTrimmedString(routeData?.name) ?? readTrimmedString(tripData?.routeName);
-  const driverName = readTrimmedString(driverSnapshot?.name) ?? readTrimmedString(tripData?.driverName);
-  if (!companyId || !routeName || !driverUid || !driverName) {
-    return null;
-  }
-
-  return {
-    tripId,
-    companyId,
-    routeId,
-    routeName,
-    routeUpdatedAt: parseIsoDate(routeData?.updatedAt) ?? parseIsoDate(tripData?.routeUpdatedAt),
-    driverUid,
-    driverName,
-    driverPlate: readTrimmedString(driverSnapshot?.plate) ?? readTrimmedString(tripData?.driverPlate),
-    driverPhotoUrl: readTrimmedString(driverSnapshot?.photoUrl) ?? readTrimmedString(tripData?.driverPhotoUrl),
-    status,
-    startedAt: parseIsoDate(tripData?.startedAt),
-    endedAt: parseIsoDate(tripData?.endedAt),
-    updatedAt: parseIsoDate(tripData?.updatedAt) ?? parseIsoDate(tripData?.endedAt) ?? parseIsoDate(tripData?.startedAt),
-    vehicleId: readTrimmedString(routeData?.vehicleId) ?? readTrimmedString(tripData?.vehicleId),
-    scheduledTime: readTrimmedString(routeData?.scheduledTime) ?? readTrimmedString(tripData?.scheduledTime),
-    timeSlot: readTrimmedString(routeData?.timeSlot) ?? readTrimmedString(tripData?.timeSlot),
-    passengerCount: normalizeInteger(tripData?.passengerCount) ?? normalizeInteger(routeData?.passengerCount) ?? 0,
-    driverSnapshot,
-  };
-}
-
-async function backfillDriverTripHistoryRows(tripRows, routesById) {
-  const projections = (Array.isArray(tripRows) ? tripRows : [])
-    .map((row) => buildTripHistoryProjection(row, routesById))
-    .filter((item) => item !== null);
-  if (projections.length === 0) {
-    return false;
-  }
-
-  return upsertTripHistoryBatchToPostgres(projections);
-}
-
-async function loadDriverTripRowsFromPostgres(uid) {
+export async function loadDriverTripHistory(_db, uid) {
   const normalizedUid = readTrimmedString(uid);
-  if (!normalizedUid) {
-    return [];
-  }
-
-  const [activeTripRows, historyTripRows] = await Promise.all([
-    listDriverActiveTripRowsFromPostgres(normalizedUid, { limit: 80 }).catch(() => []),
-    listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []),
-  ]);
-  return [...activeTripRows, ...historyTripRows];
-}
-
-export async function loadDriverTripHistory(db, uid) {
-  const normalizedUid = readTrimmedString(uid);
-  if (!normalizedUid) {
+  if (!normalizedUid || !isPostgresConfigured()) {
     return {
       tripRows: [],
       routesById: {},
     };
   }
 
-  if (isPostgresConfigured()) {
-    const tripRows = await listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []);
-    if (tripRows.length > 0) {
-      const routeIds = Array.from(
-        new Set(
-          tripRows
-            .map((row) => readTrimmedString(row?.tripData?.routeId))
-            .filter((routeId) => routeId),
-        ),
-      );
-      const routesById = mergeRouteSnapshotsIntoMap(
-        await listRouteSnapshotsByIdsFromPostgres(routeIds).catch(() => ({})),
-        tripRows,
-      );
-      return {
-        tripRows,
-        routesById,
-      };
-    }
-  }
-
-  const firestoreDb = requireFirestoreDb(db);
-  const tripsSnapshot = await firestoreDb
-    .collection("trips")
-    .where("driverId", "==", normalizedUid)
-    .limit(180)
-    .get();
-  if (tripsSnapshot.empty) {
-    return {
-      tripRows: [],
-      routesById: {},
-    };
-  }
-
-  const tripRows = [];
-  const routeIds = new Set();
-  for (const doc of tripsSnapshot.docs) {
-    const tripData = serializeFirestoreValue(doc.data());
-    tripRows.push({
-      tripId: doc.id,
-      tripData,
-    });
-
-    const routeId = readTrimmedString(tripData?.routeId);
-    if (routeId) {
-      routeIds.add(routeId);
-    }
-  }
-
-  const routesById = await fetchCollectionDocumentsByIds(firestoreDb, {
-    collectionPath: "routes",
-    documentIds: Array.from(routeIds),
-  }).catch(() => ({}));
-
-  if (isPostgresConfigured()) {
-    await backfillDriverTripHistoryRows(tripRows, routesById).catch(() => false);
-  }
+  const tripRows = await listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []);
+  const routeIds = Array.from(
+    new Set(
+      tripRows
+        .map((row) => readTrimmedString(row?.tripData?.routeId))
+        .filter((routeId) => routeId),
+    ),
+  );
+  const routesById = mergeRouteSnapshotsIntoMap(
+    await listRouteSnapshotsByIdsFromPostgres(routeIds).catch(() => ({})),
+    tripRows,
+  );
 
   return {
     tripRows,
@@ -429,65 +205,41 @@ export async function loadDriverTripHistory(db, uid) {
   };
 }
 
-export async function loadDriverMyTrips(db, uid) {
-  const managedRouteDocs = isPostgresConfigured()
-    ? await loadManagedRoutesFromPostgres(uid)
-    : {
-        ...(await loadManagedRoutesFromPostgres(uid)),
-        ...(await loadManagedRoutesFromFirestore(db, uid).catch(() => ({}))),
-      };
-  const tripRows = isPostgresConfigured()
-    ? await loadDriverTripRowsFromPostgres(uid)
-    : await loadDriverTripRowsFromFirestore(db, uid);
+export async function loadDriverMyTrips(_db, uid) {
+  const managedRouteDocs = await loadManagedRoutesFromPostgres(uid);
+  const tripRows = await (async () => {
+    const normalizedUid = readTrimmedString(uid);
+    if (!normalizedUid || !isPostgresConfigured()) {
+      return [];
+    }
+    const [activeTripRows, historyTripRows] = await Promise.all([
+      listDriverActiveTripRowsFromPostgres(normalizedUid, { limit: 80 }).catch(() => []),
+      listDriverTripHistoryRowsFromPostgres(normalizedUid, { limit: 180 }).catch(() => []),
+    ]);
+    return [...activeTripRows, ...historyTripRows];
+  })();
 
-  let shouldBackfillHistory = false;
-  let resolvedTripRows = tripRows;
-  if (isPostgresConfigured() && resolvedTripRows.length === 0) {
-    resolvedTripRows = await loadDriverTripRowsFromFirestore(db, uid);
-    shouldBackfillHistory = resolvedTripRows.length > 0;
-  }
-
-  const missingRouteIds = resolvedTripRows
+  const missingRouteIds = tripRows
     .map((row) => readTrimmedString(row?.tripData?.routeId))
     .filter((routeId) => routeId && !managedRouteDocs[routeId]);
   if (missingRouteIds.length > 0) {
-    const fetchedRoutes = isPostgresConfigured()
-      ? await listRouteSnapshotsByIdsFromPostgres(missingRouteIds).catch(() => ({}))
-      : {};
-    const unresolvedRouteIds = missingRouteIds.filter((routeId) => !fetchedRoutes[routeId]);
-    const firestoreRoutes =
-      unresolvedRouteIds.length > 0
-        ? await fetchCollectionDocumentsByIds(db, {
-            collectionPath: "routes",
-            documentIds: unresolvedRouteIds,
-          }).catch(() => ({}))
-        : {};
+    const fetchedRoutes = await listRouteSnapshotsByIdsFromPostgres(missingRouteIds).catch(() => ({}));
     Object.assign(managedRouteDocs, fetchedRoutes);
-    Object.assign(managedRouteDocs, firestoreRoutes);
-  }
-
-  if (shouldBackfillHistory) {
-    await backfillDriverTripHistoryRows(resolvedTripRows, managedRouteDocs).catch(() => false);
   }
 
   return {
     managedRouteDocs,
-    tripRows: resolvedTripRows,
+    tripRows,
   };
 }
 
-export async function listDriverRouteCandidates(db, uid) {
+export async function listDriverRouteCandidates(_db, uid) {
   const normalizedUid = readTrimmedString(uid);
   if (!normalizedUid) {
     return [];
   }
 
-  const managedRouteDocs = isPostgresConfigured()
-    ? await loadManagedRoutesFromPostgres(normalizedUid)
-    : {
-        ...(await loadManagedRoutesFromPostgres(normalizedUid)),
-        ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
-      };
+  const managedRouteDocs = await loadManagedRoutesFromPostgres(normalizedUid);
 
   return Object.entries(managedRouteDocs).map(([routeId, routeData]) => ({
     routeId,
@@ -497,68 +249,49 @@ export async function listDriverRouteCandidates(db, uid) {
   }));
 }
 
-export async function listDriverRouteStops(db, uid, routeId) {
+export async function listDriverRouteStops(_db, uid, routeId) {
   const normalizedUid = readTrimmedString(uid);
   const normalizedRouteId = readTrimmedString(routeId);
-  if (!normalizedUid || !normalizedRouteId) {
+  if (!normalizedUid || !normalizedRouteId || !isPostgresConfigured()) {
     return [];
   }
 
-  const managedRouteDocs = isPostgresConfigured()
-    ? await loadManagedRoutesFromPostgres(normalizedUid)
-    : {
-        ...(await loadManagedRoutesFromPostgres(normalizedUid)),
-        ...(await loadManagedRoutesFromFirestore(db, normalizedUid).catch(() => ({}))),
-      };
+  const managedRouteDocs = await loadManagedRoutesFromPostgres(normalizedUid);
   if (!managedRouteDocs[normalizedRouteId]) {
     return [];
   }
 
   const pool = getPostgresPool();
-  if (pool) {
-    const result = await pool.query(
-      `
-        SELECT stop_id, name, stop_order
-        FROM company_route_stops
-        WHERE route_id = $1
-        ORDER BY stop_order ASC, updated_at DESC, stop_id ASC
-      `,
-      [normalizedRouteId],
-    );
-    if (isPostgresConfigured()) {
-      return result.rows.map((row) => ({
-        stopId: readTrimmedString(row?.stop_id) ?? "",
-        name: readTrimStringOrFallback(row?.name, "Durak"),
-        order: normalizeInteger(row?.stop_order) ?? 9999,
-        passengersWaiting: null,
-      }));
-    }
-  }
-
-  const firestoreDb = requireFirestoreDb(db);
-  const snapshot = await firestoreDb
-    .collection("routes")
-    .doc(normalizedRouteId)
-    .collection("stops")
-    .orderBy("order")
-    .limit(40)
-    .get()
-    .catch(() => null);
-  if (!snapshot) {
+  if (!pool) {
     return [];
   }
 
-  return snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      stopId: doc.id,
-      name: readTrimStringOrFallback(data?.name, "Durak"),
-      order: normalizeInteger(data?.order) ?? 9999,
-      passengersWaiting: normalizeInteger(data?.passengersWaiting),
-    };
-  });
-}
+  const result = await pool.query(
+    `
+      SELECT
+        stop_id,
+        name,
+        stop_order,
+        location,
+        address,
+        note,
+        created_at,
+        updated_at
+      FROM company_route_stops
+      WHERE route_id = $1
+      ORDER BY stop_order ASC, stop_id ASC
+    `,
+    [normalizedRouteId],
+  );
 
-function readTrimStringOrFallback(value, fallback) {
-  return readTrimmedString(value) ?? fallback;
+  return result.rows.map((row) => ({
+    stopId: readTrimmedString(row?.stop_id) ?? "",
+    name: readTrimmedString(row?.name) ?? "Durak",
+    order: normalizeInteger(row?.stop_order) ?? 0,
+    location: serializeValue(row?.location),
+    address: readTrimmedString(row?.address),
+    note: readTrimmedString(row?.note),
+    createdAt: parseIsoDate(row?.created_at),
+    updatedAt: parseIsoDate(row?.updated_at),
+  }));
 }

@@ -112,7 +112,6 @@ import {
 } from "./lib/profile-photo-storage.js";
 import { listCompanyLiveOpsSnapshot } from "./lib/company-live-ops.js";
 import { applyCorsHeaders, handleCorsPreflight } from "./lib/cors.js";
-import { getOptionalFirebaseAdminDb, getOptionalFirebaseAdminRtdb } from "./lib/firebase-admin.js";
 import {
   confirmPasswordResetLocally,
   createAnonymousUserLocally,
@@ -187,7 +186,7 @@ const serviceName = process.env.SERVICE_NAME?.trim() || "neredeservis-backend-ap
 const host = process.env.HOST?.trim() || "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3001", 10);
 const startedAt = new Date();
-const db = getOptionalFirebaseAdminDb();
+const db = null;
 const liveOpsOnlineThresholdMs = Number.parseInt(
   process.env.LIVE_OPS_ONLINE_THRESHOLD_MS ?? "60000",
   10,
@@ -1781,7 +1780,7 @@ const server = createServer(async (request, response) => {
     if (request.method === "DELETE" && platformCompanyItemPath) {
       const decodedToken = await requireAuthenticatedUser(request);
       requirePlatformOwner(decodedToken);
-      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
+      const rtdb = null;
       const result = await deletePlatformCompany(db, rtdb, platformCompanyItemPath);
       sendApiOk(response, 200, result);
       return;
@@ -2069,7 +2068,7 @@ const server = createServer(async (request, response) => {
 
       const rawLimit = requestUrl.searchParams.get("limit");
       const limit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
-      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
+      const rtdb = null;
       const snapshot = await listCompanyLiveOpsSnapshot(db, rtdb, {
         companyId: companyLiveOpsParams.companyId,
         limit,
@@ -2217,7 +2216,7 @@ const server = createServer(async (request, response) => {
       const limit = rawLimit ? Number.parseInt(rawLimit, 10) : undefined;
       const routeId = requestUrl.searchParams.get("routeId")?.trim() || null;
       const driverUid = requestUrl.searchParams.get("driverUid")?.trim() || null;
-      const rtdb = isPostgresConfigured() ? null : getOptionalFirebaseAdminRtdb();
+      const rtdb = null;
       const activeTrips = await listActiveTripsByCompany(db, rtdb, {
         companyId: companyActiveTripsParams.companyId,
         routeId,
