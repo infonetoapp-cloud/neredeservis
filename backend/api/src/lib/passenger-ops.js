@@ -172,7 +172,11 @@ async function readUserRoleRecord(db, uid) {
   const authProfile = await readUserProfileByUid(db, uid).catch(() => null);
   let firestoreProfile = null;
 
-  if ((!authProfile || !pickString(authProfile, "role")) && db?.collection) {
+  if (
+    !shouldUsePostgresPassengerStore() &&
+    (!authProfile || !pickString(authProfile, "role")) &&
+    db?.collection
+  ) {
     const snapshot = await db.collection("users").doc(uid).get().catch(() => null);
     if (snapshot?.exists) {
       firestoreProfile = asRecord(snapshot.data()) ?? {};
@@ -200,14 +204,15 @@ async function requirePassengerRole(db, uid) {
 async function findRouteBySrvCode(db, srvCode) {
   if (shouldUsePostgresPassengerStore()) {
     const postgresRoute = await readRouteBySrvCodeFromPostgres(srvCode).catch(() => null);
-    if (postgresRoute && postgresRoute.isArchived !== true) {
-      const routeRef = hasFirestoreDb(db) ? db.collection("routes").doc(postgresRoute.routeId) : null;
-      return {
-        routeId: postgresRoute.routeId,
-        routeRef,
-        routeData: postgresRoute,
-      };
+    if (!postgresRoute || postgresRoute.isArchived === true) {
+      throw new HttpError(404, "not-found", "SRV kodu ile route bulunamadi.");
     }
+
+    return {
+      routeId: postgresRoute.routeId,
+      routeRef: null,
+      routeData: postgresRoute,
+    };
   }
 
   const firestoreDb = requireFirestoreDb(db);
@@ -238,13 +243,15 @@ async function readRouteById(db, routeId) {
   const normalizedRouteId = normalizeRequiredString(routeId, "routeId");
   if (shouldUsePostgresPassengerStore()) {
     const postgresRoute = await readRouteFromPostgres(normalizedRouteId).catch(() => null);
-    if (postgresRoute) {
-      return {
-        routeId: normalizedRouteId,
-        routeRef: hasFirestoreDb(db) ? db.collection("routes").doc(normalizedRouteId) : null,
-        routeData: postgresRoute,
-      };
+    if (!postgresRoute) {
+      throw new HttpError(404, "not-found", "Route bulunamadi.");
     }
+
+    return {
+      routeId: normalizedRouteId,
+      routeRef: null,
+      routeData: postgresRoute,
+    };
   }
 
   const firestoreDb = requireFirestoreDb(db);
@@ -680,11 +687,15 @@ export async function createGuestSession({
   const expiresAtIso = new Date(expiresAtMs).toISOString();
   const routeName = pickString(routeData, "name") ?? "Misafir Takip";
   const sessionId =
-    hasFirestoreDb(storageDb) && storageDb.collection("guest_sessions")?.doc
+    !shouldUsePostgresPassengerStore() &&
+    hasFirestoreDb(storageDb) &&
+    storageDb.collection("guest_sessions")?.doc
       ? storageDb.collection("guest_sessions").doc().id
       : randomUUID();
   const sessionRef =
-    hasFirestoreDb(storageDb) && storageDb.collection("guest_sessions")?.doc
+    !shouldUsePostgresPassengerStore() &&
+    hasFirestoreDb(storageDb) &&
+    storageDb.collection("guest_sessions")?.doc
       ? storageDb.collection("guest_sessions").doc(sessionId)
       : null;
 

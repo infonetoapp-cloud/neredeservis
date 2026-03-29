@@ -29,7 +29,10 @@ function hasFirestoreDb(db) {
 }
 
 function requireTripChatStorage(db) {
-  if (shouldUsePostgresTripChatStore() || hasFirestoreDb(db)) {
+  if (shouldUsePostgresTripChatStore()) {
+    return db ?? null;
+  }
+  if (hasFirestoreDb(db)) {
     return db;
   }
 
@@ -150,16 +153,17 @@ async function findActiveGuestSession(db, routeId, guestUid) {
 async function readRouteData(db, routeId) {
   if (shouldUsePostgresPassengerStore()) {
     const postgresRoute = await readRouteFromPostgres(routeId).catch(() => null);
-    if (postgresRoute) {
-      if (postgresRoute.isArchived === true) {
-        throw new HttpError(412, "failed-precondition", "Arsivlenmis route icin sohbet acilamaz.");
-      }
-
-      return {
-        routeRef: hasFirestoreDb(db) ? db.collection("routes").doc(routeId) : null,
-        routeData: postgresRoute,
-      };
+    if (!postgresRoute) {
+      throw new HttpError(404, "not-found", "Route bulunamadi.");
     }
+    if (postgresRoute.isArchived === true) {
+      throw new HttpError(412, "failed-precondition", "Arsivlenmis route icin sohbet acilamaz.");
+    }
+
+    return {
+      routeRef: null,
+      routeData: postgresRoute,
+    };
   }
 
   const routeSnapshot = await db.collection("routes").doc(routeId).get();
@@ -210,6 +214,9 @@ async function requireConversationParticipant(db, uid, input) {
   const postgresConversation = shouldUsePostgresTripChatStore()
     ? await readTripConversationFromPostgres(conversationId).catch(() => null)
     : null;
+  if (shouldUsePostgresTripChatStore() && postgresConversation == null) {
+    throw new HttpError(404, "not-found", "Sohbet bulunamadi.");
+  }
   const conversationRef =
     postgresConversation == null && hasFirestoreDb(db)
       ? db.collection("trip_conversations").doc(conversationId)
@@ -252,6 +259,21 @@ async function readDriverDisplayContext(db, driverUid, companyId) {
   const postgresDriver = normalizedCompanyId
     ? await readCompanyDriverFromPostgres(normalizedCompanyId, driverUid).catch(() => null)
     : null;
+  if (shouldUsePostgresPassengerStore()) {
+    const driverUser = await readUserProfileByUid(db, driverUid).catch(() => null);
+    if (!postgresDriver && !driverUser) {
+      throw new HttpError(412, "failed-precondition", "Sofor profili bulunamadi.");
+    }
+
+    return {
+      driverName:
+        pickString(postgresDriver, "name") ??
+        pickString(driverUser, "displayName") ??
+        "Sofor",
+      driverPlate: pickString(postgresDriver, "plateMasked"),
+    };
+  }
+
   const [driverSnapshot, driverUser] = await Promise.all([
     postgresDriver || !hasFirestoreDb(db)
       ? Promise.resolve(null)
@@ -278,6 +300,21 @@ async function readPassengerDisplayContext(db, routeRef, routeId, passengerUid, 
   const postgresPassenger = shouldUsePostgresPassengerStore()
     ? await readRoutePassengerFromPostgres(routeId, passengerUid).catch(() => null)
     : null;
+  if (shouldUsePostgresPassengerStore()) {
+    const passengerUser = await readUserProfileByUid(db, passengerUid).catch(() => null);
+    if (!postgresPassenger && guestSession == null) {
+      throw new HttpError(403, "permission-denied", "Route passenger/misafir kaydi bulunamadi.");
+    }
+
+    return {
+      passengerName:
+        pickString(postgresPassenger, "name") ??
+        guestSession?.guestDisplayName ??
+        pickString(passengerUser, "displayName") ??
+        (postgresPassenger ? "Yolcu" : "Misafir"),
+    };
+  }
+
   const [passengerSnapshot, passengerUser] = await Promise.all([
     postgresPassenger || !routeRef?.collection
       ? Promise.resolve(null)

@@ -1,12 +1,10 @@
-import { syncCompanyDriverDocumentsFromFirestore } from "./company-driver-document-postgres-sync.js";
 import {
   deleteCompanyDriverDocumentFromPostgres,
-  isCompanyDriverDocumentsSyncedInPostgres,
   listCompanyDriverDocumentsFromPostgres,
   shouldUsePostgresCompanyDriverDocumentStore,
   syncCompanyDriverDocumentToPostgres,
 } from "./company-driver-document-store.js";
-import { isCompanyDriversSyncedInPostgres } from "./company-fleet-store.js";
+import { readCompanyDriverFromPostgres } from "./company-fleet-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
 
@@ -139,6 +137,14 @@ function docId(driverId, docType) {
 }
 
 async function requireDriverBelongsToCompany(db, companyId, driverId) {
+  if (shouldUsePostgresCompanyDriverDocumentStore()) {
+    const driverData = await readCompanyDriverFromPostgres(companyId, driverId).catch(() => null);
+    if (!driverData) {
+      throw new HttpError(404, "not-found", "Sofor bulunamadi.");
+    }
+    return driverData;
+  }
+
   const driverSnapshot = await db.collection("drivers").doc(driverId).get();
   if (!driverSnapshot.exists) {
     throw new HttpError(404, "not-found", "Sofor bulunamadi.");
@@ -157,22 +163,16 @@ export async function listDriverDocuments(db, input) {
   const filterDriverId = normalizeDriverId(input?.driverId, { optional: true });
 
   if (shouldUsePostgresCompanyDriverDocumentStore()) {
-    const [documentsSynced, driversSynced] = await Promise.all([
-      isCompanyDriverDocumentsSyncedInPostgres(companyId).catch(() => false),
-      isCompanyDriversSyncedInPostgres(companyId).catch(() => false),
-    ]);
-
-    if (documentsSynced && driversSynced) {
-      const result = await listCompanyDriverDocumentsFromPostgres(companyId, {
-        driverId: filterDriverId,
-      }).catch(() => null);
-      if (result) {
-        if (filterDriverId && result.driverExists === false) {
-          throw new HttpError(404, "not-found", "Sofor bulunamadi.");
-        }
-        return { items: result.items };
-      }
+    const result = await listCompanyDriverDocumentsFromPostgres(companyId, {
+      driverId: filterDriverId,
+    }).catch(() => null);
+    if (!result) {
+      throw new HttpError(412, "failed-precondition", "Sofor belge depolamasi hazir degil.");
     }
+    if (filterDriverId && result.driverExists === false) {
+      throw new HttpError(404, "not-found", "Sofor bulunamadi.");
+    }
+    return { items: result.items };
   }
 
   const driverNames = new Map();
@@ -256,12 +256,6 @@ export async function listDriverDocuments(db, input) {
     (left, right) => (statusOrder[left.overallStatus] ?? 9) - (statusOrder[right.overallStatus] ?? 9),
   );
 
-  if (shouldUsePostgresCompanyDriverDocumentStore()) {
-    await syncCompanyDriverDocumentsFromFirestore(db, companyId, new Date().toISOString()).catch(
-      () => false,
-    );
-  }
-
   return { items };
 }
 
@@ -277,10 +271,40 @@ export async function upsertDriverDocument(db, actorUid, input) {
   await requireDriverBelongsToCompany(db, companyId, driverId);
 
   const nowIso = new Date().toISOString();
-  const documentRef = db.collection(docCollectionPath(companyId)).doc(docId(driverId, docType));
-  const existingSnapshot = await documentRef.get();
   const { status, daysRemaining } = computeDocStatus(expiryDate ?? null);
 
+  if (shouldUsePostgresCompanyDriverDocumentStore()) {
+    const existingDriverDocuments = await listCompanyDriverDocumentsFromPostgres(companyId, {
+      driverId,
+    }).catch(() => null);
+    const existingDocument =
+      existingDriverDocuments?.items?.[0]?.documents?.find((documentItem) => documentItem.docType === docType) ??
+      null;
+
+    await syncCompanyDriverDocumentToPostgres({
+      companyId,
+      driverId,
+      docType,
+      issueDate: issueDate !== undefined ? issueDate : existingDocument?.issueDate ?? null,
+      expiryDate: expiryDate !== undefined ? expiryDate : existingDocument?.expiryDate ?? null,
+      licenseClass:
+        licenseClass !== undefined ? licenseClass : existingDocument?.licenseClass ?? null,
+      note: note !== undefined ? note : existingDocument?.note ?? null,
+      uploadedAt: existingDocument?.uploadedAt ?? nowIso,
+      uploadedBy: actorUid,
+      updatedAt: nowIso,
+    }).catch(() => false);
+
+    return {
+      driverId,
+      docType,
+      status,
+      updatedAt: nowIso,
+    };
+  }
+
+  const documentRef = db.collection(docCollectionPath(companyId)).doc(docId(driverId, docType));
+  const existingSnapshot = await documentRef.get();
   const documentPatch = {
     driverId,
     docType,
@@ -297,31 +321,6 @@ export async function upsertDriverDocument(db, actorUid, input) {
 
   await documentRef.set(documentPatch, { merge: true });
 
-  if (shouldUsePostgresCompanyDriverDocumentStore()) {
-    await syncCompanyDriverDocumentToPostgres({
-      companyId,
-      driverId,
-      docType,
-      issueDate: Object.prototype.hasOwnProperty.call(documentPatch, "issueDate")
-        ? documentPatch.issueDate
-        : pickString(asRecord(existingSnapshot.data()), "issueDate"),
-      expiryDate: Object.prototype.hasOwnProperty.call(documentPatch, "expiryDate")
-        ? documentPatch.expiryDate
-        : pickString(asRecord(existingSnapshot.data()), "expiryDate"),
-      licenseClass: Object.prototype.hasOwnProperty.call(documentPatch, "licenseClass")
-        ? documentPatch.licenseClass
-        : pickString(asRecord(existingSnapshot.data()), "licenseClass"),
-      note: Object.prototype.hasOwnProperty.call(documentPatch, "note")
-        ? documentPatch.note
-        : pickString(asRecord(existingSnapshot.data()), "note"),
-      uploadedAt: existingSnapshot.exists
-        ? pickString(asRecord(existingSnapshot.data()), "uploadedAt")
-        : nowIso,
-      uploadedBy: actorUid,
-      updatedAt: nowIso,
-    }).catch(() => false);
-  }
-
   return {
     driverId,
     docType,
@@ -336,6 +335,25 @@ export async function deleteDriverDocument(db, input) {
   const docType = normalizeDocType(input?.docType);
 
   await requireDriverBelongsToCompany(db, companyId, driverId);
+
+  if (shouldUsePostgresCompanyDriverDocumentStore()) {
+    const existingDriverDocuments = await listCompanyDriverDocumentsFromPostgres(companyId, {
+      driverId,
+    }).catch(() => null);
+    const existingDocument =
+      existingDriverDocuments?.items?.[0]?.documents?.find((documentItem) => documentItem.docType === docType) ??
+      null;
+    if (!existingDocument || existingDocument.status === "not_uploaded") {
+      throw new HttpError(404, "not-found", "Belge kaydi bulunamadi.");
+    }
+
+    await deleteCompanyDriverDocumentFromPostgres(companyId, driverId, docType).catch(() => false);
+    return {
+      driverId,
+      docType,
+      deletedAt: new Date().toISOString(),
+    };
+  }
 
   const documentRef = db.collection(docCollectionPath(companyId)).doc(docId(driverId, docType));
   const existingSnapshot = await documentRef.get();
