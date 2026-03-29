@@ -1,9 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { syncCompanyAuditLogsFromFirestore } from "./company-audit-postgres-sync.js";
 import {
   flushStagedCompanyAuditLog,
-  isCompanyAuditFreshInPostgres,
   listCompanyAuditLogsFromPostgres,
   stageCompanyAuditLogWrite,
   shouldUsePostgresCompanyAuditStore,
@@ -15,17 +13,6 @@ import {
 } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
-
-const COMPANY_AUDIT_CACHE_MAX_AGE_MS = 60_000;
-
-function parseIsoToMs(value) {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return null;
-  }
-
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : null;
-}
 
 function readCompanyStatus(value) {
   if (value === "active" || value === "suspended" || value === "archived") {
@@ -39,100 +26,6 @@ function readBillingStatus(value) {
     return value;
   }
   return "unknown";
-}
-
-async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
-  if (shouldUsePostgresCompanyStore() || !db?.collection) {
-    return false;
-  }
-  try {
-    await db.collection("companies").doc(companyId).set(updates, { merge: true });
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "firestore_company_tenant_state_mirror_failed",
-        companyId,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
-}
-
-export async function listCompanyAuditLogs(db, input) {
-  const auditLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 60;
-  if (shouldUsePostgresCompanyAuditStore()) {
-    const postgresItems = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(
-      () => [],
-    );
-    return { items: Array.isArray(postgresItems) ? postgresItems : [] };
-  }
-
-  const auditSnapshot = await db
-    .collection("audit_logs")
-    .where("companyId", "==", input.companyId)
-    .limit(Math.min(auditLimit * 3, 200))
-    .get();
-
-  const items = auditSnapshot.docs
-    .map((documentSnapshot) => {
-      const auditData = asRecord(documentSnapshot.data()) ?? {};
-      const eventType = pickString(auditData, "eventType");
-      if (!eventType) {
-        return null;
-      }
-
-      return {
-        auditId: documentSnapshot.id,
-        companyId: input.companyId,
-        eventType,
-        targetType: pickString(auditData, "targetType"),
-        targetId: pickString(auditData, "targetId"),
-        actorUid: pickString(auditData, "actorUid"),
-        status: pickString(auditData, "status") ?? "unknown",
-        reason: pickString(auditData, "reason"),
-        createdAt: pickString(auditData, "createdAt"),
-      };
-    })
-    .filter((item) => item !== null)
-    .sort((left, right) => (parseIsoToMs(right.createdAt) ?? 0) - (parseIsoToMs(left.createdAt) ?? 0))
-    .slice(0, auditLimit);
-  return { items };
-}
-
-export async function getCompanyAdminTenantState(db, companyId) {
-  if (shouldUsePostgresCompanyStore()) {
-    const company = await readCompanyFromPostgres(companyId).catch(() => null);
-    if (!company) {
-      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-    }
-
-    return {
-      companyId,
-      companyStatus: readCompanyStatus(company.status),
-      billingStatus: readBillingStatus(company.billingStatus),
-      billingValidUntil: company.billingValidUntil ?? null,
-      updatedAt: company.updatedAt,
-      createdAt: company.createdAt,
-    };
-  }
-
-  const companySnapshot = await db.collection("companies").doc(companyId).get();
-  if (!companySnapshot.exists) {
-    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-  }
-
-  const companyData = asRecord(companySnapshot.data()) ?? {};
-  return {
-    companyId,
-    companyStatus: readCompanyStatus(pickString(companyData, "status")),
-    billingStatus: readBillingStatus(pickString(companyData, "billingStatus")),
-    billingValidUntil: pickString(companyData, "billingValidUntil"),
-    updatedAt: pickString(companyData, "updatedAt"),
-    createdAt: pickString(companyData, "createdAt"),
-  };
 }
 
 function normalizeCompanyStatus(value) {
@@ -168,13 +61,48 @@ function normalizeBillingValidUntil(value) {
   throw new HttpError(400, "invalid-argument", "billingValidUntil gecersiz.");
 }
 
-export async function updateCompanyAdminTenantState(db, actorUid, actorRole, input) {
+export async function listCompanyAuditLogs(_db, input) {
+  if (!shouldUsePostgresCompanyAuditStore()) {
+    return { items: [] };
+  }
+
+  const auditLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 60;
+  const postgresItems = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(
+    () => [],
+  );
+  return { items: Array.isArray(postgresItems) ? postgresItems : [] };
+}
+
+export async function getCompanyAdminTenantState(_db, companyId) {
+  if (!shouldUsePostgresCompanyStore()) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
+  }
+
+  const company = await readCompanyFromPostgres(companyId).catch(() => null);
+  if (!company) {
+    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
+  }
+
+  return {
+    companyId,
+    companyStatus: readCompanyStatus(company.status),
+    billingStatus: readBillingStatus(company.billingStatus),
+    billingValidUntil: company.billingValidUntil ?? null,
+    updatedAt: company.updatedAt,
+    createdAt: company.createdAt,
+  };
+}
+
+export async function updateCompanyAdminTenantState(_db, actorUid, actorRole, input) {
   if (actorRole !== "owner" && actorRole !== "admin") {
     throw new HttpError(
       403,
       "permission-denied",
       "Bu islem icin owner veya admin rolu gereklidir.",
     );
+  }
+  if (!shouldUsePostgresCompanyStore()) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
   }
 
   const rawPatch = asRecord(input?.patch);
@@ -191,242 +119,109 @@ export async function updateCompanyAdminTenantState(db, actorUid, actorRole, inp
     throw new HttpError(400, "invalid-argument", "companyId gecersiz.");
   }
 
-  const nowIso = new Date().toISOString();
-  const companyRef = db.collection("companies").doc(companyId);
-
-  if (shouldUsePostgresCompanyStore()) {
-    const company = await readCompanyFromPostgres(companyId).catch(() => null);
-    if (company) {
-      const currentCompanyStatus = readCompanyStatus(company.status);
-      const currentBillingStatus = readBillingStatus(company.billingStatus);
-      const currentBillingValidUntil = company.billingValidUntil ?? null;
-
-      const updatePatch = {
-        updatedAt: nowIso,
-        updatedBy: actorUid,
-      };
-      const changedFields = [];
-
-      if (nextCompanyStatus !== undefined && currentCompanyStatus !== nextCompanyStatus) {
-        updatePatch.status = nextCompanyStatus;
-        changedFields.push("companyStatus");
-      }
-      if (nextBillingStatus !== undefined && currentBillingStatus !== nextBillingStatus) {
-        updatePatch.billingStatus = nextBillingStatus;
-        changedFields.push("billingStatus");
-      }
-      if (
-        nextBillingValidUntil !== undefined &&
-        (currentBillingValidUntil ?? null) !== nextBillingValidUntil
-      ) {
-        updatePatch.billingValidUntil = nextBillingValidUntil;
-        changedFields.push("billingValidUntil");
-      }
-
-      if (changedFields.length === 0) {
-        throw new HttpError(400, "invalid-argument", "TENANT_STATE_NO_CHANGES");
-      }
-
-      const companySync = {
-        companyId,
-        name: company.name,
-        legalName: company.legalName,
-        status:
-          typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
-        billingStatus:
-          typeof updatePatch.billingStatus === "string"
-            ? updatePatch.billingStatus
-            : currentBillingStatus,
-        billingValidUntil:
-          updatePatch.billingValidUntil === undefined
-            ? currentBillingValidUntil
-            : updatePatch.billingValidUntil,
-        timezone: company.timezone,
-        countryCode: company.countryCode,
-        contactPhone: company.contactPhone,
-        contactEmail: company.contactEmail,
-        logoUrl: company.logoUrl,
-        address: company.address,
-        vehicleLimit: company.vehicleLimit,
-        createdBy: company.createdBy,
-        createdAt: company.createdAt,
-        updatedAt: nowIso,
-      };
-
-      const auditLog = stageCompanyAuditLogWrite(db, null, {
-        companyId,
-        actorUid,
-        actorType: "company_member",
-        eventType: "company_tenant_state_updated",
-        targetType: "company",
-        targetId: companyId,
-        status: "success",
-        reason: null,
-        metadata: {
-          actorRole,
-          changedFields,
-          patchReason: patchReason ?? null,
-          previous: {
-            companyStatus: currentCompanyStatus,
-            billingStatus: currentBillingStatus,
-            billingValidUntil: currentBillingValidUntil ?? null,
-          },
-          next: {
-            companyStatus: companySync.status,
-            billingStatus: companySync.billingStatus,
-            billingValidUntil: companySync.billingValidUntil ?? null,
-          },
-        },
-        requestId: createHash("sha256")
-          .update(`updateCompanyAdminTenantState:${actorUid}:${companyId}:${nowIso}`)
-          .digest("hex")
-          .slice(0, 24),
-        createdAt: nowIso,
-      });
-
-      await backfillCompanyFromFirestoreRecord(companySync).catch(() => false);
-      await mirrorCompanyPatchToFirestore(db, companyId, updatePatch);
-      await flushStagedCompanyAuditLog(auditLog).catch(() => false);
-
-      return {
-        companyId,
-        companyStatus: readCompanyStatus(companySync.status),
-        billingStatus: readBillingStatus(companySync.billingStatus),
-        billingValidUntil: companySync.billingValidUntil ?? null,
-        updatedAt: nowIso,
-        changedFields,
-        companySync,
-        auditLog,
-      };
-    }
+  const company = await readCompanyFromPostgres(companyId).catch(() => null);
+  if (!company) {
+    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  return db.runTransaction(async (transaction) => {
-    const companySnapshot = await transaction.get(companyRef);
-    if (!companySnapshot.exists) {
-      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-    }
+  const nowIso = new Date().toISOString();
+  const currentCompanyStatus = readCompanyStatus(company.status);
+  const currentBillingStatus = readBillingStatus(company.billingStatus);
+  const currentBillingValidUntil = company.billingValidUntil ?? null;
 
-    const companyData = asRecord(companySnapshot.data()) ?? {};
-    const currentCompanyStatus = readCompanyStatus(pickString(companyData, "status"));
-    const currentBillingStatus = readBillingStatus(pickString(companyData, "billingStatus"));
-    const currentBillingValidUntil = pickString(companyData, "billingValidUntil");
+  const updatePatch = {
+    updatedAt: nowIso,
+    updatedBy: actorUid,
+  };
+  const changedFields = [];
 
-    const updatePatch = {
-      updatedAt: nowIso,
-      updatedBy: actorUid,
-    };
-    const changedFields = [];
+  if (nextCompanyStatus !== undefined && currentCompanyStatus !== nextCompanyStatus) {
+    updatePatch.status = nextCompanyStatus;
+    changedFields.push("companyStatus");
+  }
+  if (nextBillingStatus !== undefined && currentBillingStatus !== nextBillingStatus) {
+    updatePatch.billingStatus = nextBillingStatus;
+    changedFields.push("billingStatus");
+  }
+  if (
+    nextBillingValidUntil !== undefined &&
+    (currentBillingValidUntil ?? null) !== nextBillingValidUntil
+  ) {
+    updatePatch.billingValidUntil = nextBillingValidUntil;
+    changedFields.push("billingValidUntil");
+  }
 
-    if (nextCompanyStatus !== undefined && currentCompanyStatus !== nextCompanyStatus) {
-      updatePatch.status = nextCompanyStatus;
-      changedFields.push("companyStatus");
-    }
-    if (nextBillingStatus !== undefined && currentBillingStatus !== nextBillingStatus) {
-      updatePatch.billingStatus = nextBillingStatus;
-      changedFields.push("billingStatus");
-    }
-    if (
-      nextBillingValidUntil !== undefined &&
-      (currentBillingValidUntil ?? null) !== nextBillingValidUntil
-    ) {
-      updatePatch.billingValidUntil = nextBillingValidUntil;
-      changedFields.push("billingValidUntil");
-    }
+  if (changedFields.length === 0) {
+    throw new HttpError(400, "invalid-argument", "TENANT_STATE_NO_CHANGES");
+  }
 
-    if (changedFields.length === 0) {
-      throw new HttpError(400, "invalid-argument", "TENANT_STATE_NO_CHANGES");
-    }
+  const companySync = {
+    companyId,
+    name: company.name,
+    legalName: company.legalName,
+    status: typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
+    billingStatus:
+      typeof updatePatch.billingStatus === "string"
+        ? updatePatch.billingStatus
+        : currentBillingStatus,
+    billingValidUntil:
+      updatePatch.billingValidUntil === undefined
+        ? currentBillingValidUntil
+        : updatePatch.billingValidUntil,
+    timezone: company.timezone,
+    countryCode: company.countryCode,
+    contactPhone: company.contactPhone,
+    contactEmail: company.contactEmail,
+    logoUrl: company.logoUrl,
+    address: company.address,
+    vehicleLimit: company.vehicleLimit,
+    createdBy: company.createdBy,
+    createdAt: company.createdAt,
+    updatedAt: nowIso,
+  };
 
-    transaction.update(companyRef, updatePatch);
-
-    const auditLog = {
-      companyId,
-      actorUid,
-      actorType: "company_member",
-      eventType: "company_tenant_state_updated",
-      targetType: "company",
-      targetId: companyId,
-      status: "success",
-      reason: null,
-      metadata: {
-        actorRole,
-        changedFields,
-        patchReason: patchReason ?? null,
-        previous: {
-          companyStatus: currentCompanyStatus,
-          billingStatus: currentBillingStatus,
-          billingValidUntil: currentBillingValidUntil ?? null,
-        },
-        next: {
-          companyStatus: updatePatch.status ?? currentCompanyStatus,
-          billingStatus: updatePatch.billingStatus ?? currentBillingStatus,
-          billingValidUntil:
-            updatePatch.billingValidUntil === undefined
-              ? currentBillingValidUntil ?? null
-              : updatePatch.billingValidUntil,
-        },
-      },
-      requestId: createHash("sha256")
-        .update(`updateCompanyAdminTenantState:${actorUid}:${companyId}:${nowIso}`)
-        .digest("hex")
-        .slice(0, 24),
-      createdAt: nowIso,
-    };
-    const stagedAuditLog = stageCompanyAuditLogWrite(db, transaction, auditLog);
-
-    return {
-      companyId,
-      companyStatus: readCompanyStatus(
-        typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
-      ),
-      billingStatus: readBillingStatus(
-        typeof updatePatch.billingStatus === "string"
-          ? updatePatch.billingStatus
-          : currentBillingStatus,
-      ),
-      billingValidUntil:
-        updatePatch.billingValidUntil === undefined
-          ? currentBillingValidUntil ?? null
-          : updatePatch.billingValidUntil,
-      updatedAt: nowIso,
+  const auditLog = stageCompanyAuditLogWrite(null, null, {
+    companyId,
+    actorUid,
+    actorType: "company_member",
+    eventType: "company_tenant_state_updated",
+    targetType: "company",
+    targetId: companyId,
+    status: "success",
+    reason: null,
+    metadata: {
+      actorRole,
       changedFields,
-      companySync: {
-        companyId,
-        name: pickString(companyData, "name"),
-        legalName: pickString(companyData, "legalName"),
-        status:
-          typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
-        billingStatus:
-          typeof updatePatch.billingStatus === "string"
-            ? updatePatch.billingStatus
-            : currentBillingStatus,
-        billingValidUntil:
-          updatePatch.billingValidUntil === undefined
-            ? currentBillingValidUntil ?? null
-            : updatePatch.billingValidUntil,
-        timezone: pickString(companyData, "timezone"),
-        countryCode: pickString(companyData, "countryCode"),
-        contactPhone: pickString(companyData, "contactPhone"),
-        contactEmail: pickString(companyData, "contactEmail"),
-        logoUrl: pickString(companyData, "logoUrl"),
-        address: pickString(companyData, "address"),
-        vehicleLimit: companyData?.vehicleLimit,
-        createdBy: pickString(companyData, "createdBy"),
-        createdAt: pickString(companyData, "createdAt"),
-        updatedAt: nowIso,
+      patchReason: patchReason ?? null,
+      previous: {
+        companyStatus: currentCompanyStatus,
+        billingStatus: currentBillingStatus,
+        billingValidUntil: currentBillingValidUntil ?? null,
       },
-      auditLog: {
-        ...stagedAuditLog,
+      next: {
+        companyStatus: companySync.status,
+        billingStatus: companySync.billingStatus,
+        billingValidUntil: companySync.billingValidUntil ?? null,
       },
-    };
-  }).then(async (result) => {
-    if (shouldUsePostgresCompanyStore()) {
-      await backfillCompanyFromFirestoreRecord(result.companySync).catch(() => false);
-    }
-    if (shouldUsePostgresCompanyAuditStore()) {
-      await flushStagedCompanyAuditLog(result.auditLog).catch(() => false);
-    }
-    return result;
+    },
+    requestId: createHash("sha256")
+      .update(`updateCompanyAdminTenantState:${actorUid}:${companyId}:${nowIso}`)
+      .digest("hex")
+      .slice(0, 24),
+    createdAt: nowIso,
   });
+
+  await backfillCompanyFromFirestoreRecord(companySync).catch(() => false);
+  await flushStagedCompanyAuditLog(auditLog).catch(() => false);
+
+  return {
+    companyId,
+    companyStatus: readCompanyStatus(companySync.status),
+    billingStatus: readBillingStatus(companySync.billingStatus),
+    billingValidUntil: companySync.billingValidUntil ?? null,
+    updatedAt: nowIso,
+    changedFields,
+    companySync,
+    auditLog,
+  };
 }

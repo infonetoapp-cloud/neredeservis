@@ -4,108 +4,45 @@ import {
   shouldUsePostgresCompanyStore,
 } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
-import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
-async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
-  if (shouldUsePostgresCompanyStore() || !db?.collection) {
-    return false;
+export async function getCompanyProfile(_db, companyId) {
+  if (!shouldUsePostgresCompanyStore()) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
   }
 
-  try {
-    await db.collection("companies").doc(companyId).set(updates, { merge: true });
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "firestore_company_profile_mirror_failed",
-        companyId,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
-}
-
-export async function getCompanyProfile(db, companyId) {
-  if (shouldUsePostgresCompanyStore()) {
-    const company = await readCompanyFromPostgres(companyId);
-    if (!company) {
-      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-    }
-
-    return {
-      companyId,
-      name: company.name,
-      logoUrl: company.logoUrl ?? null,
-      contactEmail: company.contactEmail ?? null,
-      contactPhone: company.contactPhone ?? null,
-      address: company.address ?? null,
-      timezone: company.timezone ?? "Europe/Istanbul",
-      countryCode: company.countryCode ?? "TR",
-      status: company.status ?? "active",
-      vehicleLimit: company.vehicleLimit ?? 10,
-      createdAt: company.createdAt ?? null,
-    };
-  }
-
-  const companySnapshot = await db.collection("companies").doc(companyId).get();
-  if (!companySnapshot.exists) {
+  const company = await readCompanyFromPostgres(companyId).catch(() => null);
+  if (!company) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const data = asRecord(companySnapshot.data()) ?? {};
-  const profile = {
+  return {
     companyId,
-    name: pickString(data, "name") ?? "",
-    logoUrl: pickString(data, "logoUrl") ?? null,
-    contactEmail: pickString(data, "contactEmail") ?? null,
-    contactPhone: pickString(data, "contactPhone") ?? null,
-    address: pickString(data, "address") ?? null,
-    timezone: pickString(data, "timezone") ?? "Europe/Istanbul",
-    countryCode: pickString(data, "countryCode") ?? "TR",
-    status: pickString(data, "status") ?? "active",
-    vehicleLimit: pickFiniteNumber(data, "vehicleLimit") ?? 10,
-    createdAt: pickString(data, "createdAt") ?? null,
+    name: company.name,
+    logoUrl: company.logoUrl ?? null,
+    contactEmail: company.contactEmail ?? null,
+    contactPhone: company.contactPhone ?? null,
+    address: company.address ?? null,
+    timezone: company.timezone ?? "Europe/Istanbul",
+    countryCode: company.countryCode ?? "TR",
+    status: company.status ?? "active",
+    vehicleLimit: company.vehicleLimit ?? 10,
+    createdAt: company.createdAt ?? null,
   };
-  return profile;
 }
 
-export async function updateCompanyProfile(db, input) {
-  const usePostgresCompanyStore = shouldUsePostgresCompanyStore();
-  const postgresCompany = usePostgresCompanyStore
-    ? await readCompanyFromPostgres(input.companyId).catch(() => null)
-    : null;
-  if (usePostgresCompanyStore && !postgresCompany) {
-    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
+export async function updateCompanyProfile(_db, input) {
+  if (!shouldUsePostgresCompanyStore()) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
   }
-  const companySnapshot =
-    usePostgresCompanyStore || postgresCompany
-      ? null
-      : await db.collection("companies").doc(input.companyId).get();
-  if (!usePostgresCompanyStore && !companySnapshot?.exists) {
+
+  const company = await readCompanyFromPostgres(input.companyId).catch(() => null);
+  if (!company) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const data = postgresCompany
-    ? {
-        name: postgresCompany.name,
-        logoUrl: postgresCompany.logoUrl,
-        contactEmail: postgresCompany.contactEmail,
-        contactPhone: postgresCompany.contactPhone,
-        address: postgresCompany.address,
-        timezone: postgresCompany.timezone,
-        countryCode: postgresCompany.countryCode,
-        status: postgresCompany.status,
-        vehicleLimit: postgresCompany.vehicleLimit,
-        legalName: postgresCompany.legalName,
-        billingStatus: postgresCompany.billingStatus,
-        createdBy: postgresCompany.createdBy,
-        createdAt: postgresCompany.createdAt,
-        updatedAt: postgresCompany.updatedAt,
-      }
-    : asRecord(companySnapshot.data()) ?? {};
-  const updates = {};
+  const nextData = {
+    ...company,
+  };
   const changedFields = [];
 
   if (Object.prototype.hasOwnProperty.call(input, "name")) {
@@ -118,7 +55,7 @@ export async function updateCompanyProfile(db, input) {
       throw new HttpError(400, "invalid-argument", "Sirket adi 2 ile 120 karakter arasinda olmalidir.");
     }
 
-    updates.name = name;
+    nextData.name = name;
     changedFields.push("name");
   }
 
@@ -132,7 +69,7 @@ export async function updateCompanyProfile(db, input) {
       throw new HttpError(400, "invalid-argument", "Logo URL en fazla 1024 karakter olabilir.");
     }
 
-    updates.logoUrl = logoUrl.length > 0 ? logoUrl : null;
+    nextData.logoUrl = logoUrl.length > 0 ? logoUrl : null;
     changedFields.push("logoUrl");
   }
 
@@ -141,34 +78,25 @@ export async function updateCompanyProfile(db, input) {
   }
 
   const updatedAt = new Date().toISOString();
-  updates.updatedAt = updatedAt;
-
-  if (usePostgresCompanyStore) {
-    const nextData = {
-      ...data,
-      ...updates,
-    };
-    await backfillCompanyFromFirestoreRecord({
-      companyId: input.companyId,
-      name: pickString(nextData, "name"),
-      logoUrl: pickString(nextData, "logoUrl"),
-      contactEmail: pickString(nextData, "contactEmail"),
-      contactPhone: pickString(nextData, "contactPhone"),
-      address: pickString(nextData, "address"),
-      timezone: pickString(nextData, "timezone"),
-      countryCode: pickString(nextData, "countryCode"),
-      status: pickString(nextData, "status"),
-      vehicleLimit: pickFiniteNumber(nextData, "vehicleLimit"),
-      legalName: pickString(nextData, "legalName"),
-      billingStatus: pickString(nextData, "billingStatus"),
-      createdBy: pickString(nextData, "createdBy"),
-      createdAt: pickString(nextData, "createdAt"),
-      updatedAt,
-    }).catch(() => false);
-
-  } else {
-    await db.collection("companies").doc(input.companyId).update(updates);
-  }
+  nextData.updatedAt = updatedAt;
+  await backfillCompanyFromFirestoreRecord({
+    companyId: input.companyId,
+    name: nextData.name,
+    legalName: nextData.legalName,
+    status: nextData.status,
+    billingStatus: nextData.billingStatus,
+    billingValidUntil: nextData.billingValidUntil ?? null,
+    timezone: nextData.timezone,
+    countryCode: nextData.countryCode,
+    contactPhone: nextData.contactPhone,
+    contactEmail: nextData.contactEmail,
+    logoUrl: nextData.logoUrl,
+    address: nextData.address,
+    vehicleLimit: nextData.vehicleLimit,
+    createdBy: nextData.createdBy,
+    createdAt: nextData.createdAt,
+    updatedAt,
+  }).catch(() => false);
 
   return {
     companyId: input.companyId,
