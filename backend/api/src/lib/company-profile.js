@@ -1,14 +1,15 @@
-import {
-  backfillCompanyFromFirestoreRecord,
-  readCompanyFromPostgres,
-  shouldUsePostgresCompanyStore,
-} from "./company-membership-store.js";
+import { readCompanyFromPostgres, shouldUsePostgresCompanyStore } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
+import { getPostgresPool } from "./postgres.js";
 
-export async function getCompanyProfile(_db, companyId) {
+function requireCompanyStore() {
   if (!shouldUsePostgresCompanyStore()) {
     throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
   }
+}
+
+export async function getCompanyProfile(_db, companyId) {
+  requireCompanyStore();
 
   const company = await readCompanyFromPostgres(companyId).catch(() => null);
   if (!company) {
@@ -31,9 +32,7 @@ export async function getCompanyProfile(_db, companyId) {
 }
 
 export async function updateCompanyProfile(_db, input) {
-  if (!shouldUsePostgresCompanyStore()) {
-    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
-  }
+  requireCompanyStore();
 
   const company = await readCompanyFromPostgres(input.companyId).catch(() => null);
   if (!company) {
@@ -78,25 +77,22 @@ export async function updateCompanyProfile(_db, input) {
   }
 
   const updatedAt = new Date().toISOString();
-  nextData.updatedAt = updatedAt;
-  await backfillCompanyFromFirestoreRecord({
-    companyId: input.companyId,
-    name: nextData.name,
-    legalName: nextData.legalName,
-    status: nextData.status,
-    billingStatus: nextData.billingStatus,
-    billingValidUntil: nextData.billingValidUntil ?? null,
-    timezone: nextData.timezone,
-    countryCode: nextData.countryCode,
-    contactPhone: nextData.contactPhone,
-    contactEmail: nextData.contactEmail,
-    logoUrl: nextData.logoUrl,
-    address: nextData.address,
-    vehicleLimit: nextData.vehicleLimit,
-    createdBy: nextData.createdBy,
-    createdAt: nextData.createdAt,
-    updatedAt,
-  }).catch(() => false);
+  const pool = getPostgresPool();
+  if (!pool) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
+  }
+
+  await pool.query(
+    `
+      UPDATE companies
+      SET
+        name = $2,
+        logo_url = $3,
+        updated_at = $4::timestamptz
+      WHERE company_id = $1
+    `,
+    [input.companyId, nextData.name, nextData.logoUrl, updatedAt],
+  );
 
   return {
     companyId: input.companyId,

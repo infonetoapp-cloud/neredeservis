@@ -3,7 +3,7 @@ import {
   shouldUsePostgresCompanyActiveTripStore,
 } from "./company-active-trip-store.js";
 
-export async function listActiveTripsByCompany(_db, _rtdb, input) {
+export async function listActiveTripsByCompany(_db, _unusedRealtimeStore, input) {
   const limit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 50;
   const routeFilterId = typeof input.routeId === "string" && input.routeId.trim() ? input.routeId.trim() : null;
   const driverFilterUid =

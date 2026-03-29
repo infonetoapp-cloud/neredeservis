@@ -50,14 +50,6 @@ export function readWebSessionSecret() {
     return explicitSecret;
   }
 
-  const legacyFallbackSeed =
-    process.env.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64?.trim() ||
-    process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
-    "";
-  if (legacyFallbackSeed) {
-    return createHash("sha256").update(legacyFallbackSeed).digest("hex");
-  }
-
   throw new HttpError(500, "internal", "WEB_SESSION_SECRET sunucu degiskeni tanimlanmamis.");
 }
 

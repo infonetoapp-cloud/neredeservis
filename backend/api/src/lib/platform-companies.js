@@ -2,22 +2,55 @@ import { createHash, randomUUID } from "node:crypto";
 
 import {
   findUserProfileByEmail,
-  readUserProfileByUid,
   upsertAuthUserProfile,
 } from "./auth-user-store.js";
 import {
   createManagedUserLocally,
   issuePasswordResetTokenLocally,
 } from "./auth-local.js";
-import {
-  backfillCompanyFromFirestoreRecord,
-  readCompanyFromPostgres,
-  syncCompanyWithOwnerMembershipToPostgres,
-} from "./company-membership-store.js";
+import { readCompanyFromPostgres, syncCompanyWithOwnerMembershipToPostgres } from "./company-membership-store.js";
 import { flushStagedCompanyAuditLog, stageCompanyAuditLogWrite } from "./company-audit-store.js";
 import { HttpError } from "./http.js";
 import { getPostgresPool, isPostgresConfigured } from "./postgres.js";
-import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
+
+function requirePlatformStore() {
+  if (!isPostgresConfigured()) {
+    throw new HttpError(412, "failed-precondition", "Platform company store hazir degil.");
+  }
+
+  const pool = getPostgresPool();
+  if (!pool) {
+    throw new HttpError(412, "failed-precondition", "Platform company store hazir degil.");
+  }
+  return pool;
+}
+
+function normalizeNullableText(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeIsoString(value) {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return value.toISOString();
+  }
+  return null;
+}
+
+function normalizeFiniteNumber(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
 function assertCompanyStatus(value) {
   return value === "suspended" ? "suspended" : "active";
@@ -75,10 +108,6 @@ function generateBootstrapPassword() {
   return `Ns!${Math.floor(100000 + Math.random() * 900000)}`;
 }
 
-function buildOwnerLoginUrl() {
-  return `${readAppBaseUrl()}/giris`;
-}
-
 function buildOwnerPasswordSetupUrl(oobCode, email) {
   const setupUrl = new URL(`${readAppBaseUrl()}/sifre-belirle`);
   setupUrl.searchParams.set("oobCode", oobCode);
@@ -89,10 +118,6 @@ function buildOwnerPasswordSetupUrl(oobCode, email) {
 }
 
 async function issueOwnerPasswordSetupLink(db, uid, email, createdBy) {
-  if (!isPostgresConfigured()) {
-    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
-  }
-
   const resetToken = await issuePasswordResetTokenLocally(db, {
     uid,
     email,
@@ -101,245 +126,39 @@ async function issueOwnerPasswordSetupLink(db, uid, email, createdBy) {
   return buildOwnerPasswordSetupUrl(resetToken.token, email);
 }
 
-async function resolveCompanyOwnerIdentity(companyRef, companyData) {
-  if (isPostgresConfigured()) {
-    const pool = getPostgresPool();
-    if (pool) {
-      const result = await pool.query(
-        `
-          SELECT
-            cm.uid,
-            COALESCE(au.email, $2) AS owner_email
-          FROM company_members cm
-          LEFT JOIN auth_users au ON au.uid = cm.uid
-          WHERE cm.company_id = $1
-            AND cm.role = 'owner'
-            AND cm.status = 'active'
-          ORDER BY cm.accepted_at ASC NULLS LAST, cm.created_at ASC NULLS LAST, cm.uid ASC
-          LIMIT 1
-        `,
-        [companyRef.id, pickString(companyData, "contactEmail")],
-      );
-      const row = result.rows[0] ?? null;
-      if (row) {
-        return {
-          ownerUid: normalizeNullableText(row.uid),
-          ownerEmail: normalizeNullableText(row.owner_email),
-        };
-      }
-    }
-  }
-
-  if (!companyRef?.collection) {
+async function resolveCompanyOwnerIdentity(companyId, fallbackEmail = null) {
+  const pool = requirePlatformStore();
+  const result = await pool.query(
+    `
+      SELECT
+        cm.uid,
+        COALESCE(au.email, $2) AS owner_email
+      FROM company_members cm
+      LEFT JOIN auth_users au ON au.uid = cm.uid
+      WHERE cm.company_id = $1
+        AND cm.role = 'owner'
+        AND cm.status = 'active'
+      ORDER BY cm.accepted_at ASC NULLS LAST, cm.created_at ASC NULLS LAST, cm.uid ASC
+      LIMIT 1
+    `,
+    [companyId, fallbackEmail],
+  );
+  const row = result.rows[0] ?? null;
+  if (!row) {
     return {
       ownerUid: null,
-      ownerEmail: pickString(companyData, "contactEmail"),
+      ownerEmail: normalizeNullableText(fallbackEmail),
     };
   }
 
-  const ownerQuerySnapshot = await companyRef.collection("members").where("role", "==", "owner").limit(1).get();
-  const ownerMemberSnapshot = ownerQuerySnapshot.docs[0] ?? null;
-  if (!ownerMemberSnapshot) {
-    return {
-      ownerUid: null,
-      ownerEmail: pickString(companyData, "contactEmail"),
-    };
-  }
-
-  const ownerMemberData = asRecord(ownerMemberSnapshot.data()) ?? {};
-  const ownerUid = ownerMemberSnapshot.id;
-  const ownerAuthUser = await readUserProfileByUid(null, ownerUid);
   return {
-    ownerUid,
-    ownerEmail:
-      pickString(ownerMemberData, "email") ??
-      ownerAuthUser?.email ??
-      pickString(companyData, "contactEmail"),
+    ownerUid: normalizeNullableText(row.uid),
+    ownerEmail: normalizeNullableText(row.owner_email) ?? normalizeNullableText(fallbackEmail),
   };
-}
-
-async function readPlatformCompanyDeleteStateFromPostgres(companyId) {
-  const pool = getPostgresPool();
-  if (!pool) {
-    return null;
-  }
-
-  const [companyResult, membersResult, routesResult] = await Promise.all([
-    pool.query(
-      `
-        SELECT company_id
-        FROM companies
-        WHERE company_id = $1
-        LIMIT 1
-      `,
-      [companyId],
-    ),
-    pool.query(
-      `
-        SELECT uid
-        FROM company_members
-        WHERE company_id = $1
-      `,
-      [companyId],
-    ),
-    pool.query(
-      `
-        SELECT route_id
-        FROM company_routes
-        WHERE company_id = $1
-      `,
-      [companyId],
-    ),
-  ]);
-
-  if (companyResult.rowCount === 0) {
-    return null;
-  }
-
-  return {
-    memberUids: membersResult.rows
-      .map((row) => normalizeNullableText(row.uid))
-      .filter((item) => item !== null),
-    routeIds: routesResult.rows
-      .map((row) => normalizeNullableText(row.route_id))
-      .filter((item) => item !== null),
-  };
-}
-
-async function countQuery(query) {
-  const snapshot = await query.count().get();
-  return snapshot.data().count;
-}
-
-function toCreatedAtIso(record) {
-  return pickString(record, "createdAt") ?? new Date().toISOString();
-}
-
-function normalizeNullableText(value) {
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
-}
-
-function normalizeIsoString(value) {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value;
-  }
-  if (value instanceof Date && Number.isFinite(value.getTime())) {
-    return value.toISOString();
-  }
-  return null;
-}
-
-async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) {
-  if (isPostgresConfigured() || !db?.collection) {
-    return false;
-  }
-
-  try {
-    await db.collection("companies").doc(companyId).set(updates, { merge: true });
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: eventName,
-        companyId,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
-}
-
-async function mirrorCreatedPlatformCompanyToFirestore(db, input) {
-  if (isPostgresConfigured() || !db?.collection) {
-    return false;
-  }
-
-  try {
-    const batch = db.batch();
-    const companyRef = db.collection("companies").doc(input.companyId);
-    const memberRef = companyRef.collection("members").doc(input.ownerUid);
-    const userMembershipRef = db
-      .collection("users")
-      .doc(input.ownerUid)
-      .collection("company_memberships")
-      .doc(input.companyId);
-
-    batch.set(
-      companyRef,
-      {
-        name: input.companyName,
-        legalName: null,
-        status: "active",
-        timezone: "Europe/Istanbul",
-        countryCode: "TR",
-        contactEmail: input.ownerEmail,
-        contactPhone: null,
-        vehicleLimit: input.vehicleLimit,
-        createdAt: input.nowIso,
-        updatedAt: input.nowIso,
-        createdByPlatform: input.actorUid,
-      },
-      { merge: true },
-    );
-
-    batch.set(
-      memberRef,
-      {
-        companyId: input.companyId,
-        uid: input.ownerUid,
-        role: "owner",
-        status: "active",
-        email: input.ownerEmail,
-        permissions: null,
-        invitedBy: null,
-        invitedAt: null,
-        acceptedAt: input.nowIso,
-        createdAt: input.nowIso,
-        updatedAt: input.nowIso,
-      },
-      { merge: true },
-    );
-
-    batch.set(
-      userMembershipRef,
-      {
-        companyId: input.companyId,
-        uid: input.ownerUid,
-        role: "owner",
-        status: "active",
-        companyName: input.companyName,
-        companyStatus: "active",
-        joinedAt: input.nowIso,
-        acceptedAt: input.nowIso,
-        createdAt: input.nowIso,
-        updatedAt: input.nowIso,
-      },
-      { merge: true },
-    );
-
-    await batch.commit();
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "firestore_platform_company_create_mirror_failed",
-        companyId: input.companyId,
-        ownerUid: input.ownerUid,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
 }
 
 async function listPlatformCompaniesFromPostgres() {
-  const pool = getPostgresPool();
-  if (!pool) {
-    return null;
-  }
-
+  const pool = requirePlatformStore();
   const result = await pool.query(
     `
       SELECT
@@ -373,20 +192,16 @@ async function listPlatformCompaniesFromPostgres() {
     status: assertCompanyStatus(normalizeNullableText(row.status)),
     ownerEmail: normalizeNullableText(row.owner_email),
     ownerUid: normalizeNullableText(row.owner_uid),
-    vehicleLimit: pickFiniteNumber(row, "vehicle_limit") ?? 0,
-    vehicleCount: pickFiniteNumber(row, "vehicle_count") ?? 0,
-    memberCount: pickFiniteNumber(row, "member_count") ?? 0,
-    routeCount: pickFiniteNumber(row, "route_count") ?? 0,
+    vehicleLimit: normalizeFiniteNumber(row.vehicle_limit) ?? 0,
+    vehicleCount: normalizeFiniteNumber(row.vehicle_count) ?? 0,
+    memberCount: normalizeFiniteNumber(row.member_count) ?? 0,
+    routeCount: normalizeFiniteNumber(row.route_count) ?? 0,
     createdAt: normalizeIsoString(row.created_at) ?? new Date().toISOString(),
   }));
 }
 
 async function getPlatformCompanyDetailFromPostgres(companyId) {
-  const pool = getPostgresPool();
-  if (!pool) {
-    return null;
-  }
-
+  const pool = requirePlatformStore();
   const company = await readCompanyFromPostgres(companyId);
   if (!company) {
     return null;
@@ -456,15 +271,15 @@ async function getPlatformCompanyDetailFromPostgres(companyId) {
     plate: normalizeNullableText(row.plate),
     brand: normalizeNullableText(row.brand),
     model: normalizeNullableText(row.model),
-    capacity: pickFiniteNumber(row, "capacity"),
+    capacity: normalizeFiniteNumber(row.capacity),
     status: normalizeNullableText(row.status) ?? "active",
   }));
 
   const routes = routesResult.rows.map((row) => ({
     routeId: row.route_id,
     name: normalizeNullableText(row.name) ?? "(isimsiz rota)",
-    stopCount: pickFiniteNumber(row, "stop_count") ?? 0,
-    passengerCount: pickFiniteNumber(row, "passenger_count") ?? 0,
+    stopCount: normalizeFiniteNumber(row.stop_count) ?? 0,
+    passengerCount: normalizeFiniteNumber(row.passenger_count) ?? 0,
     isArchived: row.is_archived === true,
   }));
 
@@ -484,11 +299,7 @@ async function getPlatformCompanyDetailFromPostgres(companyId) {
 }
 
 async function deletePlatformCompanyFromPostgres(companyId) {
-  const pool = getPostgresPool();
-  if (!pool) {
-    return false;
-  }
-
+  const pool = requirePlatformStore();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -505,11 +316,15 @@ async function deletePlatformCompanyFromPostgres(companyId) {
     );
     await client.query(`DELETE FROM company_active_trips WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM driver_location_history WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM company_trip_history WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_audit_logs WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_invites WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_driver_documents WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_route_driver_permissions WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM route_share_audit_events WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM route_announcements WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM trip_chat_messages WHERE company_id = $1`, [companyId]);
+    await client.query(`DELETE FROM trip_chats WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_drivers WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_vehicles WHERE company_id = $1`, [companyId]);
     await client.query(`DELETE FROM company_members WHERE company_id = $1`, [companyId]);
@@ -525,172 +340,55 @@ async function deletePlatformCompanyFromPostgres(companyId) {
   }
 }
 
-async function deleteDocumentRefs(db, documentRefs) {
-  if (!db?.batch) {
-    return;
-  }
-
-  const batchSize = 400;
-  for (let index = 0; index < documentRefs.length; index += batchSize) {
-    const slice = documentRefs.slice(index, index + batchSize);
-    const batch = db.batch();
-    for (const ref of slice) {
-      batch.delete(ref);
-    }
-    await batch.commit();
-  }
-}
-
-async function deleteQueryByField(db, collectionName, fieldName, values) {
-  if (!db?.collection) {
-    return;
-  }
-
-  const refs = [];
-  for (const value of values) {
-    const snapshot = await db.collection(collectionName).where(fieldName, "==", value).get();
-    for (const documentSnapshot of snapshot.docs) {
-      refs.push(documentSnapshot.ref);
-    }
-  }
-  if (refs.length > 0) {
-    await deleteDocumentRefs(db, refs);
-  }
-}
-
-export async function listPlatformCompanies(db) {
-  if (isPostgresConfigured()) {
-    const items = await listPlatformCompaniesFromPostgres().catch(() => []);
-    return { items: Array.isArray(items) ? items : [] };
-  }
-
-  const companiesSnapshot = await db.collection("companies").orderBy("createdAt", "desc").get();
-
-  const items = await Promise.all(
-    companiesSnapshot.docs.map(async (companySnapshot) => {
-      const companyId = companySnapshot.id;
-      const companyRef = db.collection("companies").doc(companyId);
-      const companyData = asRecord(companySnapshot.data()) ?? {};
-      const [memberCount, vehicleCount, routeCount, ownerIdentity] = await Promise.all([
-        countQuery(companyRef.collection("members")),
-        countQuery(companyRef.collection("vehicles")),
-        countQuery(db.collection("routes").where("companyId", "==", companyId)),
-        resolveCompanyOwnerIdentity(companyRef, companyData),
-      ]);
-
-      return {
-        companyId,
-        name: pickString(companyData, "name") ?? "(isimsiz)",
-        status: assertCompanyStatus(pickString(companyData, "status")),
-        ownerEmail: ownerIdentity.ownerEmail,
-        ownerUid: ownerIdentity.ownerUid,
-        vehicleLimit: pickFiniteNumber(companyData, "vehicleLimit") ?? 0,
-        vehicleCount,
-        memberCount,
-        routeCount,
-        createdAt: toCreatedAtIso(companyData),
-      };
-    }),
-  );
-
-  return { items };
-}
-
-export async function getPlatformCompanyDetail(db, input) {
-  const companyId = normalizeCompanyId(input?.companyId);
-  if (isPostgresConfigured()) {
-    const detail = await getPlatformCompanyDetailFromPostgres(companyId).catch(() => null);
-    if (!detail) {
-      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-    }
-    return detail;
-  }
-
-  const companyRef = db.collection("companies").doc(companyId);
-  const [companySnapshot, membersSnapshot, vehiclesSnapshot, routesSnapshot] = await Promise.all([
-    companyRef.get(),
-    companyRef.collection("members").get(),
-    companyRef.collection("vehicles").get(),
-    db.collection("routes").where("companyId", "==", companyId).limit(100).get(),
-  ]);
-
-  if (!companySnapshot.exists) {
+async function updatePlatformCompanyFields(companyId, patch) {
+  const pool = requirePlatformStore();
+  const existing = await readCompanyFromPostgres(companyId);
+  if (!existing) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const companyData = asRecord(companySnapshot.data()) ?? {};
-  const members = await Promise.all(
-    membersSnapshot.docs.map(async (memberSnapshot) => {
-      const memberData = asRecord(memberSnapshot.data()) ?? {};
-      const authUser = await readUserProfileByUid(db, memberSnapshot.id);
-      return {
-        uid: memberSnapshot.id,
-        email: pickString(memberData, "email") ?? authUser?.email ?? null,
-        displayName: pickString(memberData, "displayName") ?? authUser?.displayName ?? null,
-        role: pickString(memberData, "role") ?? "member",
-        status: pickString(memberData, "status") ?? "active",
-        joinedAt:
-          pickString(memberData, "acceptedAt") ??
-          pickString(memberData, "createdAt") ??
-          new Date().toISOString(),
-      };
-    }),
+  const nextVehicleLimit =
+    Object.prototype.hasOwnProperty.call(patch, "vehicleLimit") ? patch.vehicleLimit : existing.vehicleLimit;
+  const nextStatus =
+    Object.prototype.hasOwnProperty.call(patch, "status") ? patch.status : existing.status;
+  const nowIso = new Date().toISOString();
+
+  await pool.query(
+    `
+      UPDATE companies
+      SET
+        vehicle_limit = $2,
+        status = $3,
+        updated_at = $4::timestamptz
+      WHERE company_id = $1
+    `,
+    [companyId, nextVehicleLimit, nextStatus, nowIso],
   );
 
-  const vehicles = vehiclesSnapshot.docs
-    .map((vehicleSnapshot) => {
-      const vehicleData = asRecord(vehicleSnapshot.data()) ?? {};
-      const plate = pickString(vehicleData, "plate");
-      if (!plate) {
-        return null;
-      }
-      return {
-        vehicleId: vehicleSnapshot.id,
-        plate,
-        brand: pickString(vehicleData, "brand"),
-        model: pickString(vehicleData, "model"),
-        capacity: pickFiniteNumber(vehicleData, "capacity"),
-        status: pickString(vehicleData, "status") ?? "active",
-      };
-    })
-    .filter((item) => item !== null);
-
-  const routes = await Promise.all(
-    routesSnapshot.docs.map(async (routeSnapshot) => {
-      const routeData = asRecord(routeSnapshot.data()) ?? {};
-      let stopCount = pickFiniteNumber(routeData, "stopCount");
-      if (stopCount == null) {
-        stopCount = await countQuery(routeSnapshot.ref.collection("stops"));
-      }
-      return {
-        routeId: routeSnapshot.id,
-        name: pickString(routeData, "name") ?? "(isimsiz rota)",
-        stopCount: stopCount ?? 0,
-        passengerCount: pickFiniteNumber(routeData, "passengerCount") ?? 0,
-        isArchived: routeData.isArchived === true,
-      };
-    }),
-  );
-
-  const ownerMember = members.find((member) => member.role === "owner") ?? null;
   return {
     companyId,
-    name: pickString(companyData, "name") ?? "(isimsiz)",
-    status: assertCompanyStatus(pickString(companyData, "status")),
-    ownerEmail: ownerMember?.email ?? pickString(companyData, "contactEmail"),
-    ownerUid: ownerMember?.uid ?? null,
-    vehicleLimit: pickFiniteNumber(companyData, "vehicleLimit") ?? 0,
-    createdAt: toCreatedAtIso(companyData),
-    members,
-    vehicles,
-    routes,
+    vehicleLimit: nextVehicleLimit,
+    status: nextStatus,
+    updatedAt: nowIso,
   };
 }
 
-export async function createPlatformCompany(db, actorUid, input) {
-  if (!isPostgresConfigured()) {
-    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
+export async function listPlatformCompanies(_db) {
+  const items = await listPlatformCompaniesFromPostgres().catch(() => []);
+  return { items: Array.isArray(items) ? items : [] };
+}
+
+export async function getPlatformCompanyDetail(_db, input) {
+  const companyId = normalizeCompanyId(input?.companyId);
+  const detail = await getPlatformCompanyDetailFromPostgres(companyId).catch(() => null);
+  if (!detail) {
+    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
+  return detail;
+}
+
+export async function createPlatformCompany(db, actorUid, input) {
+  requirePlatformStore();
 
   const companyName = normalizeCompanyName(input?.companyName);
   const ownerEmail = normalizeOwnerEmail(input?.ownerEmail);
@@ -718,13 +416,7 @@ export async function createPlatformCompany(db, actorUid, input) {
     });
   }
 
-  let companyId = "";
-  const auditRequestId = createHash("sha256")
-    .update(`createPlatformCompany:${actorUid}:${ownerUid}:${companyName}:${nowIso}`)
-    .digest("hex")
-    .slice(0, 24);
-
-  companyId = db?.collection?.("companies")?.doc?.().id ?? randomUUID();
+  const companyId = randomUUID();
   const auditLog = stageCompanyAuditLogWrite(db, null, {
     companyId,
     actorUid,
@@ -739,7 +431,10 @@ export async function createPlatformCompany(db, actorUid, input) {
       ownerEmail,
       vehicleLimit,
     },
-    requestId: auditRequestId,
+    requestId: createHash("sha256")
+      .update(`createPlatformCompany:${actorUid}:${ownerUid}:${companyName}:${nowIso}`)
+      .digest("hex")
+      .slice(0, 24),
     createdAt: nowIso,
   });
 
@@ -761,7 +456,6 @@ export async function createPlatformCompany(db, actorUid, input) {
   await flushStagedCompanyAuditLog(auditLog).catch(() => false);
 
   const loginUrl = await issueOwnerPasswordSetupLink(db, ownerUid, ownerEmail, actorUid);
-
   return {
     companyId,
     ownerUid,
@@ -772,168 +466,51 @@ export async function createPlatformCompany(db, actorUid, input) {
   };
 }
 
-export async function setPlatformCompanyVehicleLimit(db, input) {
+export async function setPlatformCompanyVehicleLimit(_db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   const vehicleLimit = normalizeVehicleLimit(input?.vehicleLimit);
-  const nowIso = new Date().toISOString();
-  const postgresCompany = isPostgresConfigured()
-    ? await readCompanyFromPostgres(companyId).catch(() => null)
-    : null;
-
-  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
-  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
-  if (!postgresCompany && !companySnapshot?.exists) {
-    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-  }
-
-  if (isPostgresConfigured()) {
-    const companyData = postgresCompany
-      ? {
-          name: postgresCompany.name,
-          legalName: postgresCompany.legalName,
-          status: postgresCompany.status,
-          billingStatus: postgresCompany.billingStatus,
-          billingValidUntil: postgresCompany.billingValidUntil,
-          timezone: postgresCompany.timezone,
-          countryCode: postgresCompany.countryCode,
-          contactPhone: postgresCompany.contactPhone,
-          contactEmail: postgresCompany.contactEmail,
-          logoUrl: postgresCompany.logoUrl,
-          address: postgresCompany.address,
-          createdBy: postgresCompany.createdBy,
-          createdAt: postgresCompany.createdAt,
-        }
-      : asRecord(companySnapshot.data()) ?? {};
-    await backfillCompanyFromFirestoreRecord({
-      companyId,
-      name: pickString(companyData, "name"),
-      legalName: pickString(companyData, "legalName"),
-      status: pickString(companyData, "status"),
-      billingStatus: pickString(companyData, "billingStatus"),
-      billingValidUntil: pickString(companyData, "billingValidUntil"),
-      timezone: pickString(companyData, "timezone"),
-      countryCode: pickString(companyData, "countryCode"),
-      contactPhone: pickString(companyData, "contactPhone"),
-      contactEmail: pickString(companyData, "contactEmail"),
-      logoUrl: pickString(companyData, "logoUrl"),
-      address: pickString(companyData, "address"),
-      vehicleLimit,
-      createdBy: pickString(companyData, "createdBy"),
-      createdAt: pickString(companyData, "createdAt"),
-      updatedAt: nowIso,
-    }).catch(() => false);
-
-  } else {
-    await companyRef.update({
-      vehicleLimit,
-      updatedAt: nowIso,
-    });
-  }
-
+  const updated = await updatePlatformCompanyFields(companyId, { vehicleLimit });
   return {
-    companyId,
-    vehicleLimit,
-    updatedAt: nowIso,
+    companyId: updated.companyId,
+    vehicleLimit: updated.vehicleLimit,
+    updatedAt: updated.updatedAt,
   };
 }
 
-export async function setPlatformCompanyStatus(db, input) {
+export async function setPlatformCompanyStatus(_db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  const rawStatus = pickString(asRecord(input) ?? {}, "status");
-  if (rawStatus !== "active" && rawStatus !== "suspended") {
+  const status = normalizeNullableText(input?.status);
+  if (status !== "active" && status !== "suspended") {
     throw new HttpError(400, "invalid-argument", "status active veya suspended olmalidir.");
   }
 
-  const nowIso = new Date().toISOString();
-  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
-  const postgresCompany = isPostgresConfigured()
-    ? await readCompanyFromPostgres(companyId).catch(() => null)
-    : null;
-  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
-  if (!postgresCompany && !companySnapshot?.exists) {
-    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
-  }
-
-  if (isPostgresConfigured()) {
-    const companyData = postgresCompany
-      ? {
-          name: postgresCompany.name,
-          legalName: postgresCompany.legalName,
-          billingStatus: postgresCompany.billingStatus,
-          billingValidUntil: postgresCompany.billingValidUntil,
-          timezone: postgresCompany.timezone,
-          countryCode: postgresCompany.countryCode,
-          contactPhone: postgresCompany.contactPhone,
-          contactEmail: postgresCompany.contactEmail,
-          logoUrl: postgresCompany.logoUrl,
-          address: postgresCompany.address,
-          vehicleLimit: postgresCompany.vehicleLimit,
-          createdBy: postgresCompany.createdBy,
-          createdAt: postgresCompany.createdAt,
-        }
-      : asRecord(companySnapshot.data()) ?? {};
-    await backfillCompanyFromFirestoreRecord({
-      companyId,
-      name: pickString(companyData, "name"),
-      legalName: pickString(companyData, "legalName"),
-      status: rawStatus,
-      billingStatus: pickString(companyData, "billingStatus"),
-      billingValidUntil: pickString(companyData, "billingValidUntil"),
-      timezone: pickString(companyData, "timezone"),
-      countryCode: pickString(companyData, "countryCode"),
-      contactPhone: pickString(companyData, "contactPhone"),
-      contactEmail: pickString(companyData, "contactEmail"),
-      logoUrl: pickString(companyData, "logoUrl"),
-      address: pickString(companyData, "address"),
-      vehicleLimit: pickFiniteNumber(companyData, "vehicleLimit"),
-      createdBy: pickString(companyData, "createdBy"),
-      createdAt: pickString(companyData, "createdAt"),
-      updatedAt: nowIso,
-    }).catch(() => false);
-
-  } else {
-    await companyRef.update({
-      status: rawStatus,
-      updatedAt: nowIso,
-    });
-  }
-
+  const updated = await updatePlatformCompanyFields(companyId, { status });
   return {
-    companyId,
-    status: rawStatus,
-    updatedAt: nowIso,
+    companyId: updated.companyId,
+    status: updated.status,
+    updatedAt: updated.updatedAt,
   };
 }
 
 export async function resetPlatformCompanyOwnerPassword(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  const companyRef = db?.collection?.("companies")?.doc?.(companyId) ?? null;
-  const postgresCompany = isPostgresConfigured()
-    ? await readCompanyFromPostgres(companyId).catch(() => null)
-    : null;
-  const companySnapshot = postgresCompany || !companyRef ? null : await companyRef.get();
-  if (!postgresCompany && !companySnapshot?.exists) {
+  const company = await readCompanyFromPostgres(companyId);
+  if (!company) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
-  const companyData = postgresCompany
-    ? {
-        contactEmail: postgresCompany.contactEmail,
-      }
-    : asRecord(companySnapshot.data()) ?? {};
-  const ownerIdentity = await resolveCompanyOwnerIdentity(companyRef, companyData);
-  const ownerEmail = ownerIdentity.ownerEmail;
-  if (!ownerEmail) {
+  const ownerIdentity = await resolveCompanyOwnerIdentity(companyId, company.contactEmail);
+  if (!ownerIdentity.ownerEmail) {
     throw new HttpError(404, "not-found", "Sirket sahibinin e-postasi bulunamadi.");
   }
-  if (isPostgresConfigured() && !ownerIdentity.ownerUid) {
+  if (!ownerIdentity.ownerUid) {
     throw new HttpError(404, "not-found", "Sirket sahibi kullanici kimligi bulunamadi.");
   }
 
   const loginUrl = await issueOwnerPasswordSetupLink(
     db,
     ownerIdentity.ownerUid,
-    ownerEmail,
+    ownerIdentity.ownerEmail,
     "platform_admin",
   );
   return {
@@ -942,19 +519,14 @@ export async function resetPlatformCompanyOwnerPassword(db, input) {
   };
 }
 
-export async function deletePlatformCompany(_db, _rtdb, input) {
+export async function deletePlatformCompany(_db, _unusedRealtimeStore, input) {
   const companyId = normalizeCompanyId(input?.companyId);
-  if (!isPostgresConfigured()) {
-    throw new HttpError(412, "failed-precondition", "Platform company store hazir degil.");
-  }
-
-  const postgresState = await readPlatformCompanyDeleteStateFromPostgres(companyId).catch(() => null);
-  if (!postgresState) {
+  const company = await readCompanyFromPostgres(companyId);
+  if (!company) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
   await deletePlatformCompanyFromPostgres(companyId).catch(() => false);
-
   return {
     companyId,
     deletedAt: new Date().toISOString(),

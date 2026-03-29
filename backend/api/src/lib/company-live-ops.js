@@ -43,7 +43,7 @@ function toStatusWeight(status) {
   return 3;
 }
 
-export async function listCompanyLiveOpsSnapshot(_db, _rtdb, input) {
+export async function listCompanyLiveOpsSnapshot(_db, _unusedRealtimeStore, input) {
   const limit = toQueryLimit(input.limit);
   const liveOpsOnlineThresholdMs = Number.isFinite(input.liveOpsOnlineThresholdMs)
     ? Math.max(1_000, Math.trunc(input.liveOpsOnlineThresholdMs))

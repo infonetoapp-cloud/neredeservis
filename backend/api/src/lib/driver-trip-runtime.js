@@ -905,7 +905,7 @@ export async function upsertDriverLiveLocation(input, options = {}) {
         speed,
         heading,
         accuracy,
-        source: "rtdb",
+        source: "live_store",
         stale,
       },
       locationTimestampMs: timestampMs,

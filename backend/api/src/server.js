@@ -2597,7 +2597,7 @@ const server = createServer(async (request, response) => {
     sendJson(response, 200, {
       ok: true,
       message: "Self-hosted backend bootstrap is running.",
-      nextStep: "Add HTTP endpoints here before replacing Firebase callables.",
+      nextStep: "Add HTTP endpoints here before replacing legacy callable clients.",
       ...buildMeta(),
     });
   } catch (error) {

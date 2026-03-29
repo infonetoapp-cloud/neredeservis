@@ -517,6 +517,6 @@ export async function createGuestSession({
     guestDisplayName,
     expiresAt: expiresAtIso,
     trackingPath: `/api/guest-sessions/${sessionId}/tracking`,
-    rtdbReadPath: null,
+    liveReadPath: null,
   };
 }

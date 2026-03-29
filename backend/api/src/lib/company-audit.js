@@ -6,13 +6,10 @@ import {
   stageCompanyAuditLogWrite,
   shouldUsePostgresCompanyAuditStore,
 } from "./company-audit-store.js";
-import {
-  backfillCompanyFromFirestoreRecord,
-  readCompanyFromPostgres,
-  shouldUsePostgresCompanyStore,
-} from "./company-membership-store.js";
+import { readCompanyFromPostgres, shouldUsePostgresCompanyStore } from "./company-membership-store.js";
 import { HttpError } from "./http.js";
 import { asRecord, pickString } from "./runtime-value.js";
+import { getPostgresPool } from "./postgres.js";
 
 function readCompanyStatus(value) {
   if (value === "active" || value === "suspended" || value === "archived") {
@@ -129,25 +126,19 @@ export async function updateCompanyAdminTenantState(_db, actorUid, actorRole, in
   const currentBillingStatus = readBillingStatus(company.billingStatus);
   const currentBillingValidUntil = company.billingValidUntil ?? null;
 
-  const updatePatch = {
-    updatedAt: nowIso,
-    updatedBy: actorUid,
-  };
-  const changedFields = [];
+  const nextStatus = nextCompanyStatus ?? currentCompanyStatus;
+  const nextBilling = nextBillingStatus ?? currentBillingStatus;
+  const nextValidUntil =
+    nextBillingValidUntil === undefined ? currentBillingValidUntil : nextBillingValidUntil;
 
+  const changedFields = [];
   if (nextCompanyStatus !== undefined && currentCompanyStatus !== nextCompanyStatus) {
-    updatePatch.status = nextCompanyStatus;
     changedFields.push("companyStatus");
   }
   if (nextBillingStatus !== undefined && currentBillingStatus !== nextBillingStatus) {
-    updatePatch.billingStatus = nextBillingStatus;
     changedFields.push("billingStatus");
   }
-  if (
-    nextBillingValidUntil !== undefined &&
-    (currentBillingValidUntil ?? null) !== nextBillingValidUntil
-  ) {
-    updatePatch.billingValidUntil = nextBillingValidUntil;
+  if (nextBillingValidUntil !== undefined && currentBillingValidUntil !== nextBillingValidUntil) {
     changedFields.push("billingValidUntil");
   }
 
@@ -155,30 +146,23 @@ export async function updateCompanyAdminTenantState(_db, actorUid, actorRole, in
     throw new HttpError(400, "invalid-argument", "TENANT_STATE_NO_CHANGES");
   }
 
-  const companySync = {
-    companyId,
-    name: company.name,
-    legalName: company.legalName,
-    status: typeof updatePatch.status === "string" ? updatePatch.status : currentCompanyStatus,
-    billingStatus:
-      typeof updatePatch.billingStatus === "string"
-        ? updatePatch.billingStatus
-        : currentBillingStatus,
-    billingValidUntil:
-      updatePatch.billingValidUntil === undefined
-        ? currentBillingValidUntil
-        : updatePatch.billingValidUntil,
-    timezone: company.timezone,
-    countryCode: company.countryCode,
-    contactPhone: company.contactPhone,
-    contactEmail: company.contactEmail,
-    logoUrl: company.logoUrl,
-    address: company.address,
-    vehicleLimit: company.vehicleLimit,
-    createdBy: company.createdBy,
-    createdAt: company.createdAt,
-    updatedAt: nowIso,
-  };
+  const pool = getPostgresPool();
+  if (!pool) {
+    throw new HttpError(412, "failed-precondition", "Sirket depolamasi hazir degil.");
+  }
+
+  await pool.query(
+    `
+      UPDATE companies
+      SET
+        status = $2,
+        billing_status = $3,
+        billing_valid_until = $4::timestamptz,
+        updated_at = $5::timestamptz
+      WHERE company_id = $1
+    `,
+    [companyId, nextStatus, nextBilling, nextValidUntil, nowIso],
+  );
 
   const auditLog = stageCompanyAuditLogWrite(null, null, {
     companyId,
@@ -199,9 +183,9 @@ export async function updateCompanyAdminTenantState(_db, actorUid, actorRole, in
         billingValidUntil: currentBillingValidUntil ?? null,
       },
       next: {
-        companyStatus: companySync.status,
-        billingStatus: companySync.billingStatus,
-        billingValidUntil: companySync.billingValidUntil ?? null,
+        companyStatus: nextStatus,
+        billingStatus: nextBilling,
+        billingValidUntil: nextValidUntil ?? null,
       },
     },
     requestId: createHash("sha256")
@@ -211,17 +195,15 @@ export async function updateCompanyAdminTenantState(_db, actorUid, actorRole, in
     createdAt: nowIso,
   });
 
-  await backfillCompanyFromFirestoreRecord(companySync).catch(() => false);
   await flushStagedCompanyAuditLog(auditLog).catch(() => false);
 
   return {
     companyId,
-    companyStatus: readCompanyStatus(companySync.status),
-    billingStatus: readBillingStatus(companySync.billingStatus),
-    billingValidUntil: companySync.billingValidUntil ?? null,
+    companyStatus: readCompanyStatus(nextStatus),
+    billingStatus: readBillingStatus(nextBilling),
+    billingValidUntil: nextValidUntil ?? null,
     updatedAt: nowIso,
     changedFields,
-    companySync,
     auditLog,
   };
 }

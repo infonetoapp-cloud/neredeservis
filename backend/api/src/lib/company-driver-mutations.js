@@ -1,26 +1,23 @@
 import { upsertAuthUserProfile } from "./auth-user-store.js";
 import {
-  syncCompanyRouteFromFirestore,
-} from "./company-route-postgres-sync.js";
-import {
   readCompanyDriverFromPostgres,
   shouldUsePostgresCompanyFleetStore,
   syncCompanyDriverToPostgres,
 } from "./company-fleet-store.js";
-import {
-  backfillCompanyFromFirestoreRecord,
-  readCompanyFromPostgres,
-} from "./company-membership-store.js";
+import { readCompanyFromPostgres } from "./company-membership-store.js";
 import { createManagedUserLocally } from "./auth-local.js";
 import { HttpError } from "./http.js";
 import { isPostgresConfigured } from "./postgres.js";
-import { asRecord, pickString } from "./runtime-value.js";
-import {
-  readCompanyRouteFromPostgres,
-  syncCompanyRouteToPostgres,
-} from "./company-route-store.js";
+import { pickString } from "./runtime-value.js";
+import { readCompanyRouteFromPostgres, syncCompanyRouteToPostgres } from "./company-route-store.js";
 
 const VALID_DRIVER_STATUSES = new Set(["active", "passive"]);
+
+function requireDriverStore() {
+  if (!isPostgresConfigured() || !shouldUsePostgresCompanyFleetStore()) {
+    throw new HttpError(412, "failed-precondition", "Sofor depolamasi hazir degil.");
+  }
+}
 
 function normalizeCompanyId(rawValue) {
   if (typeof rawValue !== "string") {
@@ -160,76 +157,17 @@ function removeString(items, value) {
   return (Array.isArray(items) ? items : []).filter((item) => item !== value);
 }
 
-async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
-  if (!companySnapshot?.exists) {
-    return false;
+function pickStringArray(record, key) {
+  const value = record?.[key];
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  const companyData = asRecord(companySnapshot.data()) ?? {};
-  return backfillCompanyFromFirestoreRecord({
-    companyId,
-    name: pickString(companyData, "name"),
-    legalName: pickString(companyData, "legalName"),
-    status: pickString(companyData, "status"),
-    billingStatus: pickString(companyData, "billingStatus"),
-    timezone: pickString(companyData, "timezone"),
-    countryCode: pickString(companyData, "countryCode"),
-    contactPhone: pickString(companyData, "contactPhone"),
-    contactEmail: pickString(companyData, "contactEmail"),
-    logoUrl: pickString(companyData, "logoUrl"),
-    address: pickString(companyData, "address"),
-    createdBy: pickString(companyData, "createdBy"),
-    createdAt: pickString(companyData, "createdAt"),
-    updatedAt: pickString(companyData, "updatedAt"),
-  });
-}
-
-async function mirrorDriverToFirestore(db, driverId, driverData) {
-  if (shouldUsePostgresCompanyFleetStore() || !db?.collection) {
-    return false;
-  }
-
-  try {
-    await db.collection("drivers").doc(driverId).set(driverData, { merge: true });
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "firestore_driver_mirror_failed",
-        driverId,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
-}
-
-async function mirrorRoutePatchToFirestore(db, routeId, patch) {
-  if (shouldUsePostgresCompanyFleetStore() || !db?.collection) {
-    return false;
-  }
-
-  try {
-    await db.collection("routes").doc(routeId).set(patch, { merge: true });
-    return true;
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        event: "firestore_route_driver_patch_mirror_failed",
-        routeId,
-        message: error instanceof Error ? error.message : "unknown_error",
-      }),
-    );
-    return false;
-  }
+  return value.filter((item) => typeof item === "string" && item.trim().length > 0);
 }
 
 export async function createCompanyDriverAccount(db, actorUid, input) {
-  if (!isPostgresConfigured()) {
-    throw new HttpError(412, "failed-precondition", "Yerel auth depolamasi hazir degil.");
-  }
+  requireDriverStore();
 
   const companyId = normalizeCompanyId(input?.companyId);
   const name = normalizeName(input?.name);
@@ -238,11 +176,8 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
   const loginEmail = generateLoginEmail(name);
   const temporaryPassword = generateSimplePassword(name);
 
-  const postgresCompany = shouldUsePostgresCompanyFleetStore()
-    ? await readCompanyFromPostgres(companyId).catch(() => null)
-    : null;
-  const companySnapshot = postgresCompany ? null : await db.collection("companies").doc(companyId).get();
-  if (!postgresCompany && !companySnapshot?.exists) {
+  const company = await readCompanyFromPostgres(companyId).catch(() => null);
+  if (!company) {
     throw new HttpError(404, "not-found", "Firma bulunamadi.");
   }
 
@@ -260,111 +195,45 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
   }
 
   const nowIso = new Date().toISOString();
-  const driverData = {
-    name,
-    companyId,
-    status: "active",
-    loginEmail,
-    temporaryPassword,
-    mobileOnly: true,
-    createdAt: nowIso,
-    updatedAt: nowIso,
-    createdBy: actorUid,
-    ...(phone ? { phone } : {}),
-    ...(plate ? { plate } : {}),
-  };
-
-  if (shouldUsePostgresCompanyFleetStore()) {
-    if (companySnapshot?.exists) {
-      await backfillCompanyRecordFromSnapshot(companyId, companySnapshot).catch(() => false);
-    } else if (postgresCompany) {
-      await backfillCompanyFromFirestoreRecord({
-        companyId,
-        name: postgresCompany.name,
-        legalName: postgresCompany.legalName,
-        status: postgresCompany.status,
-        billingStatus: postgresCompany.billingStatus,
-        billingValidUntil: postgresCompany.billingValidUntil,
-        timezone: postgresCompany.timezone,
-        countryCode: postgresCompany.countryCode,
-        contactPhone: postgresCompany.contactPhone,
-        contactEmail: postgresCompany.contactEmail,
-        logoUrl: postgresCompany.logoUrl,
-        address: postgresCompany.address,
-        vehicleLimit: postgresCompany.vehicleLimit,
-        createdBy: postgresCompany.createdBy,
-        createdAt: postgresCompany.createdAt,
-        updatedAt: postgresCompany.updatedAt ?? nowIso,
-      }).catch(() => false);
-    }
-
-    await Promise.all([
-      syncCompanyDriverToPostgres({
-        driverId: uid,
-        companyId,
-        name,
-        status: "active",
+  await Promise.all([
+    syncCompanyDriverToPostgres({
+      driverId: uid,
+      companyId,
+      name,
+      status: "active",
+      phone,
+      plate,
+      loginEmail,
+      temporaryPassword,
+      mobileOnly: true,
+      createdBy: actorUid,
+      updatedBy: actorUid,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    }),
+    upsertAuthUserProfile(
+      db,
+      {
+        uid,
+        email: loginEmail,
+        displayName: name,
+        emailVerified: false,
+        providerData: [{ providerId: "password" }],
+        signInProvider: "password",
+      },
+      {
+        role: "driver",
+        preferredRole: "driver",
         phone,
-        plate,
-        loginEmail,
-        temporaryPassword,
-        mobileOnly: true,
-        createdBy: actorUid,
-        updatedBy: actorUid,
+        companyId,
+        mobileOnlyAuth: true,
+        webPanelAccess: false,
         createdAt: nowIso,
         updatedAt: nowIso,
-      }),
-      mirrorDriverToFirestore(db, uid, driverData),
-      upsertAuthUserProfile(
-        db,
-        {
-          uid,
-          email: loginEmail,
-          displayName: name,
-          emailVerified: false,
-          providerData: [{ providerId: "password" }],
-          signInProvider: "password",
-        },
-        {
-          role: "driver",
-          preferredRole: "driver",
-          phone,
-          companyId,
-          mobileOnlyAuth: true,
-          webPanelAccess: false,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-          deletedAt: null,
-        },
-      ),
-    ]);
-  } else {
-    await Promise.all([
-      db.collection("drivers").doc(uid).set(driverData),
-      upsertAuthUserProfile(
-        db,
-        {
-          uid,
-          email: loginEmail,
-          displayName: name,
-          emailVerified: false,
-          providerData: [{ providerId: "password" }],
-          signInProvider: "password",
-        },
-        {
-          role: "driver",
-          preferredRole: "driver",
-          phone,
-          companyId,
-          mobileOnlyAuth: true,
-          webPanelAccess: false,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-          deletedAt: null,
-        },
-      ),
-    ]);
-  }
+        deletedAt: null,
+      },
+    ),
+  ]);
 
   return {
     credentials: {
@@ -378,203 +247,111 @@ export async function createCompanyDriverAccount(db, actorUid, input) {
   };
 }
 
-export async function assignCompanyDriverToRoute(db, actorUid, input) {
+export async function assignCompanyDriverToRoute(_db, actorUid, input) {
+  requireDriverStore();
+
   const companyId = normalizeCompanyId(input?.companyId);
   const driverId = normalizeDriverId(input?.driverId);
   const routeId = normalizeRouteId(input?.routeId);
 
-  if (shouldUsePostgresCompanyFleetStore()) {
-    const [driver, route] = await Promise.all([
-      readCompanyDriverFromPostgres(companyId, driverId).catch(() => null),
-      readCompanyRouteFromPostgres(companyId, routeId).catch(() => null),
-    ]);
-
-    if (driver && route) {
-      if (route.isArchived === true) {
-        throw new HttpError(412, "failed-precondition", "Arsivlenmis rotaya sofor atanamaz.");
-      }
-
-      const nextAuthorizedDriverIds = Array.from(
-        new Set([...(Array.isArray(route.authorizedDriverIds) ? route.authorizedDriverIds : []), driverId]),
-      );
-      const updatePatch = {
-        authorizedDriverIds: nextAuthorizedDriverIds,
-        updatedAt: new Date().toISOString(),
-        updatedBy: actorUid,
-        driverId: route.driverId ?? driverId,
-      };
-
-      await syncCompanyRouteToPostgres({
-        ...route,
-        ...updatePatch,
-        routeId,
-        companyId,
-        createdAt: route.createdAt ?? updatePatch.updatedAt,
-        updatedAt: updatePatch.updatedAt,
-      });
-      await mirrorRoutePatchToFirestore(db, routeId, updatePatch);
-      return { route: { routeId } };
-    }
-  }
-
-  const [driverSnapshot, routeSnapshot] = await Promise.all([
-    db.collection("drivers").doc(driverId).get(),
-    db.collection("routes").doc(routeId).get(),
+  const [driver, route] = await Promise.all([
+    readCompanyDriverFromPostgres(companyId, driverId).catch(() => null),
+    readCompanyRouteFromPostgres(companyId, routeId).catch(() => null),
   ]);
 
-  if (!driverSnapshot.exists) {
+  if (!driver) {
     throw new HttpError(404, "not-found", "Sofor bulunamadi.");
   }
-  if (!routeSnapshot.exists) {
+  if (!route) {
     throw new HttpError(404, "not-found", "Rota bulunamadi.");
   }
-
-  const driverData = asRecord(driverSnapshot.data()) ?? {};
-  if (pickString(driverData, "companyId") !== companyId) {
-    throw new HttpError(403, "permission-denied", "Sofor bu sirkete ait degil.");
-  }
-
-  const routeData = asRecord(routeSnapshot.data()) ?? {};
-  if (pickString(routeData, "companyId") !== companyId) {
-    throw new HttpError(403, "permission-denied", "Rota bu sirkete ait degil.");
-  }
-  if (routeData.isArchived === true) {
+  if (route.isArchived === true) {
     throw new HttpError(412, "failed-precondition", "Arsivlenmis rotaya sofor atanamaz.");
   }
 
+  const nextAuthorizedDriverIds = Array.from(
+    new Set([...(Array.isArray(route.authorizedDriverIds) ? route.authorizedDriverIds : []), driverId]),
+  );
   const updatePatch = {
-    authorizedDriverIds: appendUniqueString(pickStringArray(routeData, "authorizedDriverIds"), driverId),
+    authorizedDriverIds: nextAuthorizedDriverIds,
     updatedAt: new Date().toISOString(),
     updatedBy: actorUid,
-    ...(pickString(routeData, "driverId") ? {} : { driverId }),
+    driverId: route.driverId ?? driverId,
   };
 
-  await db.collection("routes").doc(routeId).update(updatePatch);
-  await syncCompanyRouteFromFirestore(db, companyId, routeId, updatePatch.updatedAt).catch(() => false);
+  await syncCompanyRouteToPostgres({
+    ...route,
+    ...updatePatch,
+    routeId,
+    companyId,
+    createdAt: route.createdAt ?? updatePatch.updatedAt,
+    updatedAt: updatePatch.updatedAt,
+  });
+
   return { route: { routeId } };
 }
 
-export async function unassignCompanyDriverFromRoute(db, actorUid, input) {
+export async function unassignCompanyDriverFromRoute(_db, actorUid, input) {
+  requireDriverStore();
+
   const companyId = normalizeCompanyId(input?.companyId);
   const driverId = normalizeDriverId(input?.driverId);
   const routeId = normalizeRouteId(input?.routeId);
 
-  if (shouldUsePostgresCompanyFleetStore()) {
-    const route = await readCompanyRouteFromPostgres(companyId, routeId).catch(() => null);
-    if (route) {
-      const currentPrimaryDriverId = pickString(route, "driverId");
-      const existingAuthorized = Array.isArray(route.authorizedDriverIds) ? route.authorizedDriverIds : [];
-      const updatePatch = {
-        authorizedDriverIds: existingAuthorized.filter((uid) => uid !== driverId),
-        updatedAt: new Date().toISOString(),
-        updatedBy: actorUid,
-        ...(currentPrimaryDriverId === driverId ? { driverId: null } : {}),
-      };
-
-      await syncCompanyRouteToPostgres({
-        ...route,
-        ...updatePatch,
-        routeId,
-        companyId,
-        createdAt: route.createdAt ?? updatePatch.updatedAt,
-        updatedAt: updatePatch.updatedAt,
-      });
-      await mirrorRoutePatchToFirestore(db, routeId, updatePatch);
-      return { route: { routeId } };
-    }
-  }
-
-  const routeSnapshot = await db.collection("routes").doc(routeId).get();
-  if (!routeSnapshot.exists) {
+  const route = await readCompanyRouteFromPostgres(companyId, routeId).catch(() => null);
+  if (!route) {
     throw new HttpError(404, "not-found", "Rota bulunamadi.");
   }
 
-  const routeData = asRecord(routeSnapshot.data()) ?? {};
-  if (pickString(routeData, "companyId") !== companyId) {
-    throw new HttpError(403, "permission-denied", "Rota bu sirkete ait degil.");
-  }
-
-  const currentPrimaryDriverId = pickString(routeData, "driverId");
+  const currentPrimaryDriverId = pickString(route, "driverId");
+  const existingAuthorized = Array.isArray(route.authorizedDriverIds) ? route.authorizedDriverIds : [];
   const updatePatch = {
-    authorizedDriverIds: removeString(pickStringArray(routeData, "authorizedDriverIds"), driverId),
+    authorizedDriverIds: removeString(existingAuthorized, driverId),
     updatedAt: new Date().toISOString(),
     updatedBy: actorUid,
     ...(currentPrimaryDriverId === driverId ? { driverId: null } : {}),
   };
 
-  await db.collection("routes").doc(routeId).update(updatePatch);
-  await syncCompanyRouteFromFirestore(db, companyId, routeId, updatePatch.updatedAt).catch(() => false);
+  await syncCompanyRouteToPostgres({
+    ...route,
+    ...updatePatch,
+    routeId,
+    companyId,
+    createdAt: route.createdAt ?? updatePatch.updatedAt,
+    updatedAt: updatePatch.updatedAt,
+  });
+
   return { route: { routeId } };
 }
 
-export async function updateCompanyDriverStatus(db, actorUid, input) {
+export async function updateCompanyDriverStatus(_db, actorUid, input) {
+  requireDriverStore();
+
   const companyId = normalizeCompanyId(input?.companyId);
   const driverId = normalizeDriverId(input?.driverId);
   const status = normalizeStatus(input?.status);
 
-  if (shouldUsePostgresCompanyFleetStore()) {
-    const postgresDriver = await readCompanyDriverFromPostgres(companyId, driverId).catch(() => null);
-    if (postgresDriver) {
-      const updatedAt = new Date().toISOString();
-      await syncCompanyDriverToPostgres({
-        driverId,
-        companyId,
-        name: pickString(postgresDriver, "name"),
-        status,
-        phone: pickString(postgresDriver, "phoneMasked"),
-        plate: pickString(postgresDriver, "plateMasked"),
-        loginEmail: pickString(postgresDriver, "loginEmail"),
-        temporaryPassword: pickString(postgresDriver, "temporaryPassword"),
-        mobileOnly: true,
-        createdBy: pickString(postgresDriver, "createdBy"),
-        updatedBy: actorUid,
-        createdAt: pickString(postgresDriver, "createdAt"),
-        updatedAt,
-      });
-      await mirrorDriverToFirestore(db, driverId, {
-        status,
-        updatedAt,
-        updatedBy: actorUid,
-      });
-      return { driverId, status };
-    }
-  }
-
-  const driverRef = db.collection("drivers").doc(driverId);
-  const driverSnapshot = await driverRef.get();
-  if (!driverSnapshot.exists) {
+  const driver = await readCompanyDriverFromPostgres(companyId, driverId).catch(() => null);
+  if (!driver) {
     throw new HttpError(404, "not-found", "Sofor bulunamadi.");
   }
 
-  const driverData = asRecord(driverSnapshot.data()) ?? {};
-  if (pickString(driverData, "companyId") !== companyId) {
-    throw new HttpError(403, "permission-denied", "Sofor bu sirkete ait degil.");
-  }
-
   const updatedAt = new Date().toISOString();
-  await driverRef.update({
+  await syncCompanyDriverToPostgres({
+    driverId,
+    companyId,
+    name: pickString(driver, "name"),
     status,
-    updatedAt,
+    phone: pickString(driver, "phoneMasked"),
+    plate: pickString(driver, "plateMasked"),
+    loginEmail: pickString(driver, "loginEmail"),
+    temporaryPassword: pickString(driver, "temporaryPassword"),
+    mobileOnly: true,
+    createdBy: pickString(driver, "createdBy"),
     updatedBy: actorUid,
+    createdAt: pickString(driver, "createdAt"),
+    updatedAt,
   });
-
-  if (shouldUsePostgresCompanyFleetStore()) {
-    await syncCompanyDriverToPostgres({
-      driverId,
-      companyId,
-      name: pickString(driverData, "name"),
-      status,
-      phone: pickString(driverData, "phone"),
-      plate: pickString(driverData, "plate"),
-      loginEmail: pickString(driverData, "loginEmail"),
-      temporaryPassword: pickString(driverData, "temporaryPassword"),
-      mobileOnly: driverData.mobileOnly === true,
-      createdBy: pickString(driverData, "createdBy"),
-      updatedBy: actorUid,
-      createdAt: pickString(driverData, "createdAt"),
-      updatedAt,
-    }).catch(() => false);
-  }
 
   return { driverId, status };
 }

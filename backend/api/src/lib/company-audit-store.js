@@ -20,17 +20,14 @@ function normalizeStatus(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : "unknown";
 }
 
-function buildCompanyAuditLogRecord(db, input) {
+function buildCompanyAuditLogRecord(input) {
   const companyId = normalizeNullableText(input?.companyId);
   const eventType = normalizeNullableText(input?.eventType);
   if (!companyId || !eventType) {
     return null;
   }
 
-  const auditId =
-    normalizeNullableText(input?.auditId) ??
-    db?.collection?.("audit_logs")?.doc?.().id ??
-    randomUUID();
+  const auditId = normalizeNullableText(input?.auditId) ?? randomUUID();
 
   return {
     auditId,
@@ -43,22 +40,6 @@ function buildCompanyAuditLogRecord(db, input) {
     reason: normalizeNullableText(input?.reason),
     metadata: input?.metadata ?? null,
     createdAt: normalizeIsoString(input?.createdAt) ?? new Date().toISOString(),
-  };
-}
-
-function toFirestoreAuditLogData(auditLog) {
-  return {
-    companyId: auditLog.companyId,
-    actorUid: auditLog.actorUid,
-    actorType: normalizeNullableText(auditLog.actorType) ?? null,
-    eventType: auditLog.eventType,
-    targetType: auditLog.targetType,
-    targetId: auditLog.targetId,
-    status: auditLog.status,
-    reason: auditLog.reason,
-    metadata: auditLog.metadata ?? null,
-    requestId: normalizeNullableText(auditLog.requestId) ?? null,
-    createdAt: auditLog.createdAt,
   };
 }
 
@@ -185,21 +166,10 @@ export function shouldUsePostgresCompanyAuditStore() {
   return isPostgresConfigured();
 }
 
-export function stageCompanyAuditLogWrite(db, transaction, input) {
-  const auditLog = buildCompanyAuditLogRecord(db, input);
+export function stageCompanyAuditLogWrite(_db, _transaction, input) {
+  const auditLog = buildCompanyAuditLogRecord(input);
   if (!auditLog) {
     return null;
-  }
-
-  if (!shouldUsePostgresCompanyAuditStore()) {
-    transaction.set(
-      db.collection("audit_logs").doc(auditLog.auditId),
-      toFirestoreAuditLogData({
-        ...auditLog,
-        actorType: input?.actorType,
-        requestId: input?.requestId,
-      }),
-    );
   }
 
   return auditLog;

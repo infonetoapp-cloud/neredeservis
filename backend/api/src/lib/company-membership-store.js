@@ -116,7 +116,7 @@ export async function readCompanyFromPostgres(companyId) {
   };
 }
 
-export async function backfillCompanyFromFirestoreRecord(input) {
+async function upsertCompanyRecordToPostgres(input) {
   const pool = getPostgresPool();
   if (!pool) {
     return false;
@@ -530,7 +530,7 @@ export async function syncCompanyWithOwnerMembershipToPostgres(input) {
   }
 }
 
-export async function backfillCompanyMembershipFromFirestoreRecord(input) {
+async function upsertCompanyMembershipRecordToPostgres(input) {
   const pool = getPostgresPool();
   if (!pool) {
     return false;
@@ -592,8 +592,8 @@ export async function backfillCompanyMembershipFromFirestoreRecord(input) {
 }
 
 export async function syncCompanyMemberToPostgres(input) {
-  const companyBackfilled = await backfillCompanyFromFirestoreRecord(input);
-  const membershipBackfilled = await backfillCompanyMembershipFromFirestoreRecord(input);
+  const companyBackfilled = await upsertCompanyRecordToPostgres(input);
+  const membershipBackfilled = await upsertCompanyMembershipRecordToPostgres(input);
   return companyBackfilled || membershipBackfilled;
 }
 
