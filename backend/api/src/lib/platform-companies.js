@@ -230,7 +230,7 @@ function normalizeIsoString(value) {
 }
 
 async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) {
-  if (!db?.collection) {
+  if (isPostgresConfigured() || !db?.collection) {
     return false;
   }
 
@@ -251,7 +251,7 @@ async function mirrorCompanyPatchToFirestore(db, companyId, updates, eventName) 
 }
 
 async function mirrorCreatedPlatformCompanyToFirestore(db, input) {
-  if (!db?.collection) {
+  if (isPostgresConfigured() || !db?.collection) {
     return false;
   }
 
@@ -560,10 +560,8 @@ async function deleteQueryByField(db, collectionName, fieldName, values) {
 
 export async function listPlatformCompanies(db) {
   if (isPostgresConfigured()) {
-    const items = await listPlatformCompaniesFromPostgres().catch(() => null);
-    if (items) {
-      return { items };
-    }
+    const items = await listPlatformCompaniesFromPostgres().catch(() => []);
+    return { items: Array.isArray(items) ? items : [] };
   }
 
   const companiesSnapshot = await db.collection("companies").orderBy("createdAt", "desc").get();
@@ -602,9 +600,10 @@ export async function getPlatformCompanyDetail(db, input) {
   const companyId = normalizeCompanyId(input?.companyId);
   if (isPostgresConfigured()) {
     const detail = await getPlatformCompanyDetailFromPostgres(companyId).catch(() => null);
-    if (detail) {
-      return detail;
+    if (!detail) {
+      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
     }
+    return detail;
   }
 
   const companyRef = db.collection("companies").doc(companyId);

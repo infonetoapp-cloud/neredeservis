@@ -87,7 +87,7 @@ async function upsertDeleteRequest(record) {
 }
 
 async function bestEffortMirrorDeleteState(db, record) {
-  if (!db || typeof db.collection !== "function") {
+  if (isPostgresConfigured() || !db || typeof db.collection !== "function") {
     return;
   }
 

@@ -42,6 +42,9 @@ function readBillingStatus(value) {
 }
 
 async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
+  if (shouldUsePostgresCompanyStore() || !db?.collection) {
+    return false;
+  }
   try {
     await db.collection("companies").doc(companyId).set(updates, { merge: true });
     return true;
@@ -62,15 +65,9 @@ export async function listCompanyAuditLogs(db, input) {
   const auditLimit = Number.isFinite(input.limit) ? Math.max(1, Math.trunc(input.limit)) : 60;
   if (shouldUsePostgresCompanyAuditStore()) {
     const postgresItems = await listCompanyAuditLogsFromPostgres(input.companyId, auditLimit).catch(
-      () => null,
+      () => [],
     );
-    const auditFresh = await isCompanyAuditFreshInPostgres(
-      input.companyId,
-      COMPANY_AUDIT_CACHE_MAX_AGE_MS,
-    ).catch(() => false);
-    if (postgresItems && (auditFresh || postgresItems.length > 0)) {
-      return { items: postgresItems };
-    }
+    return { items: Array.isArray(postgresItems) ? postgresItems : [] };
   }
 
   const auditSnapshot = await db
@@ -102,27 +99,24 @@ export async function listCompanyAuditLogs(db, input) {
     .filter((item) => item !== null)
     .sort((left, right) => (parseIsoToMs(right.createdAt) ?? 0) - (parseIsoToMs(left.createdAt) ?? 0))
     .slice(0, auditLimit);
-
-  if (shouldUsePostgresCompanyAuditStore()) {
-    await syncCompanyAuditLogsFromFirestore(db, input.companyId, new Date().toISOString()).catch(() => false);
-  }
-
   return { items };
 }
 
 export async function getCompanyAdminTenantState(db, companyId) {
   if (shouldUsePostgresCompanyStore()) {
     const company = await readCompanyFromPostgres(companyId).catch(() => null);
-    if (company) {
-      return {
-        companyId,
-        companyStatus: readCompanyStatus(company.status),
-        billingStatus: readBillingStatus(company.billingStatus),
-        billingValidUntil: company.billingValidUntil ?? null,
-        updatedAt: company.updatedAt,
-        createdAt: company.createdAt,
-      };
+    if (!company) {
+      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
     }
+
+    return {
+      companyId,
+      companyStatus: readCompanyStatus(company.status),
+      billingStatus: readBillingStatus(company.billingStatus),
+      billingValidUntil: company.billingValidUntil ?? null,
+      updatedAt: company.updatedAt,
+      createdAt: company.createdAt,
+    };
   }
 
   const companySnapshot = await db.collection("companies").doc(companyId).get();

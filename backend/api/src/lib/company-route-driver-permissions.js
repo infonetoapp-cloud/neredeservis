@@ -124,7 +124,7 @@ function normalizePermissionKeys(rawValue) {
 }
 
 async function mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
-  if (!db?.batch) {
+  if (shouldUsePostgresRouteDriverPermissionStore() || !db?.batch) {
     return false;
   }
 
@@ -153,7 +153,7 @@ async function mirrorRoutePermissionGrantToFirestore(db, routeId, driverUid, rou
 }
 
 async function mirrorRoutePermissionRevokeToFirestore(db, routeId, driverUid, routePatch, permissionDoc) {
-  if (!db?.batch) {
+  if (shouldUsePostgresRouteDriverPermissionStore() || !db?.batch) {
     return false;
   }
 

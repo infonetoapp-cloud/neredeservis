@@ -7,7 +7,7 @@ import { HttpError } from "./http.js";
 import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 
 async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
-  if (!db?.collection) {
+  if (shouldUsePostgresCompanyStore() || !db?.collection) {
     return false;
   }
 
@@ -30,21 +30,23 @@ async function mirrorCompanyPatchToFirestore(db, companyId, updates) {
 export async function getCompanyProfile(db, companyId) {
   if (shouldUsePostgresCompanyStore()) {
     const company = await readCompanyFromPostgres(companyId);
-    if (company) {
-      return {
-        companyId,
-        name: company.name,
-        logoUrl: company.logoUrl ?? null,
-        contactEmail: company.contactEmail ?? null,
-        contactPhone: company.contactPhone ?? null,
-        address: company.address ?? null,
-        timezone: company.timezone ?? "Europe/Istanbul",
-        countryCode: company.countryCode ?? "TR",
-        status: company.status ?? "active",
-        vehicleLimit: company.vehicleLimit ?? 10,
-        createdAt: company.createdAt ?? null,
-      };
+    if (!company) {
+      throw new HttpError(404, "not-found", "Sirket bulunamadi.");
     }
+
+    return {
+      companyId,
+      name: company.name,
+      logoUrl: company.logoUrl ?? null,
+      contactEmail: company.contactEmail ?? null,
+      contactPhone: company.contactPhone ?? null,
+      address: company.address ?? null,
+      timezone: company.timezone ?? "Europe/Istanbul",
+      countryCode: company.countryCode ?? "TR",
+      status: company.status ?? "active",
+      vehicleLimit: company.vehicleLimit ?? 10,
+      createdAt: company.createdAt ?? null,
+    };
   }
 
   const companySnapshot = await db.collection("companies").doc(companyId).get();
@@ -66,29 +68,22 @@ export async function getCompanyProfile(db, companyId) {
     vehicleLimit: pickFiniteNumber(data, "vehicleLimit") ?? 10,
     createdAt: pickString(data, "createdAt") ?? null,
   };
-
-  if (shouldUsePostgresCompanyStore()) {
-    await backfillCompanyFromFirestoreRecord({
-      companyId,
-      ...profile,
-      legalName: pickString(data, "legalName"),
-      billingStatus: pickString(data, "billingStatus"),
-      createdBy: pickString(data, "createdBy"),
-      updatedAt: pickString(data, "updatedAt"),
-    }).catch(() => false);
-  }
-
   return profile;
 }
 
 export async function updateCompanyProfile(db, input) {
-  const postgresCompany = shouldUsePostgresCompanyStore()
+  const usePostgresCompanyStore = shouldUsePostgresCompanyStore();
+  const postgresCompany = usePostgresCompanyStore
     ? await readCompanyFromPostgres(input.companyId).catch(() => null)
     : null;
-  const companySnapshot = postgresCompany
-    ? null
-    : await db.collection("companies").doc(input.companyId).get();
-  if (!postgresCompany && !companySnapshot?.exists) {
+  if (usePostgresCompanyStore && !postgresCompany) {
+    throw new HttpError(404, "not-found", "Sirket bulunamadi.");
+  }
+  const companySnapshot =
+    usePostgresCompanyStore || postgresCompany
+      ? null
+      : await db.collection("companies").doc(input.companyId).get();
+  if (!usePostgresCompanyStore && !companySnapshot?.exists) {
     throw new HttpError(404, "not-found", "Sirket bulunamadi.");
   }
 
@@ -148,7 +143,7 @@ export async function updateCompanyProfile(db, input) {
   const updatedAt = new Date().toISOString();
   updates.updatedAt = updatedAt;
 
-  if (shouldUsePostgresCompanyStore()) {
+  if (usePostgresCompanyStore) {
     const nextData = {
       ...data,
       ...updates,
@@ -171,7 +166,6 @@ export async function updateCompanyProfile(db, input) {
       updatedAt,
     }).catch(() => false);
 
-    await mirrorCompanyPatchToFirestore(db, input.companyId, updates);
   } else {
     await db.collection("companies").doc(input.companyId).update(updates);
   }

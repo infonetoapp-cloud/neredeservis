@@ -140,7 +140,7 @@ async function writeSupportReport(record) {
 }
 
 async function bestEffortMirrorSupportReport(db, record) {
-  if (!db || typeof db.collection !== "function") {
+  if (isPostgresConfigured() || !db || typeof db.collection !== "function") {
     return;
   }
 

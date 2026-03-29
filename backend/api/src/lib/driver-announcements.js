@@ -76,9 +76,10 @@ function buildAnnouncementId(routeId, uid, idempotencyKey) {
 async function readRouteAccessContext(db, routeId) {
   if (shouldUsePostgresRouteShareStore()) {
     const postgresRoute = await readRouteShareContextFromPostgresByRouteId(routeId).catch(() => null);
-    if (postgresRoute) {
-      return postgresRoute;
+    if (!postgresRoute) {
+      throw new HttpError(404, "not-found", "Route bulunamadi.");
     }
+    return postgresRoute;
   }
 
   if (!db || typeof db.collection !== "function") {
@@ -125,7 +126,7 @@ function assertPremiumDriverProfile(profile) {
 }
 
 async function bestEffortMirrorAnnouncement(db, input) {
-  if (!db || typeof db.collection !== "function") {
+  if (shouldUsePostgresRouteAnnouncementStore() || !db || typeof db.collection !== "function") {
     return false;
   }
 

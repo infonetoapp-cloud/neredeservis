@@ -185,7 +185,7 @@ async function backfillCompanyRecordFromSnapshot(companyId, companySnapshot) {
 }
 
 async function mirrorDriverToFirestore(db, driverId, driverData) {
-  if (!db?.collection) {
+  if (shouldUsePostgresCompanyFleetStore() || !db?.collection) {
     return false;
   }
 
@@ -206,7 +206,7 @@ async function mirrorDriverToFirestore(db, driverId, driverData) {
 }
 
 async function mirrorRoutePatchToFirestore(db, routeId, patch) {
-  if (!db?.collection) {
+  if (shouldUsePostgresCompanyFleetStore() || !db?.collection) {
     return false;
   }
 

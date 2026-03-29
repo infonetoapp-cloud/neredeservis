@@ -101,7 +101,7 @@ function hasFirestoreDb(db) {
 }
 
 async function mirrorInviteMembershipStateToFirestore(db, input) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || shouldUsePostgresCompanyInviteStore() || !hasFirestoreDb(db)) {
     return false;
   }
 
@@ -159,7 +159,7 @@ async function mirrorInviteMembershipStateToFirestore(db, input) {
 }
 
 async function mirrorInviteStatusToFirestore(db, input) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || shouldUsePostgresCompanyInviteStore() || !hasFirestoreDb(db)) {
     return false;
   }
 

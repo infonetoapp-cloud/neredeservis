@@ -251,7 +251,9 @@ function generateSrvCodeCandidate() {
 async function createRouteWithSrvCode(db, actorUid, nowIso, routeData) {
   for (let attempt = 1; attempt <= SRV_CODE_COLLISION_MAX_RETRY; attempt += 1) {
     const srvCode = generateSrvCodeCandidate();
-    const routeId = db.collection("routes").doc().id;
+    const routeId = shouldUsePostgresCompanyRouteStore()
+      ? randomBytes(16).toString("hex")
+      : db.collection("routes").doc().id;
 
     if (shouldUsePostgresCompanyRouteStore()) {
       const reserved = await tryReserveCompanyRouteSrvCode(srvCode, routeId, actorUid).catch(
@@ -365,7 +367,7 @@ function assertCompanyRoute(routeData, companyId) {
 }
 
 async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, nowIso, routeData) {
-  if (!db?.batch) {
+  if (shouldUsePostgresCompanyRouteStore() || !db?.batch) {
     return false;
   }
 
@@ -405,7 +407,7 @@ async function mirrorCreatedRouteToFirestore(db, routeId, srvCode, actorUid, now
 }
 
 async function mirrorRoutePatchToFirestore(db, routeId, patchPayload) {
-  if (!db?.collection) {
+  if (shouldUsePostgresCompanyRouteStore() || !db?.collection) {
     return false;
   }
 
@@ -426,7 +428,7 @@ async function mirrorRoutePatchToFirestore(db, routeId, patchPayload) {
 }
 
 async function mirrorRouteStopUpsertToFirestore(db, routeId, stopId, stopData, routePatch) {
-  if (!db?.batch) {
+  if (shouldUsePostgresCompanyRouteStore() || !db?.batch) {
     return false;
   }
 
@@ -453,7 +455,7 @@ async function mirrorRouteStopUpsertToFirestore(db, routeId, stopId, stopData, r
 }
 
 async function mirrorRouteStopDeleteToFirestore(db, routeId, stopId, routePatch) {
-  if (!db?.batch) {
+  if (shouldUsePostgresCompanyRouteStore() || !db?.batch) {
     return false;
   }
 
@@ -478,7 +480,7 @@ async function mirrorRouteStopDeleteToFirestore(db, routeId, stopId, routePatch)
 }
 
 async function mirrorRouteStopReorderToFirestore(db, routeId, stopUpdates, routePatch) {
-  if (!db?.batch) {
+  if (shouldUsePostgresCompanyRouteStore() || !db?.batch) {
     return false;
   }
 

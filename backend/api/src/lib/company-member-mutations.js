@@ -159,7 +159,7 @@ function hasFirestoreDb(db) {
 }
 
 async function mirrorCompanyMemberStateToFirestore(db, input) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || !hasFirestoreDb(db)) {
     return false;
   }
 
@@ -223,7 +223,7 @@ async function mirrorCompanyMemberStateToFirestore(db, input) {
 }
 
 async function mirrorCompanyInviteToFirestore(db, input) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || !hasFirestoreDb(db)) {
     return false;
   }
 
@@ -268,7 +268,7 @@ async function mirrorCompanyInviteToFirestore(db, input) {
 }
 
 async function mirrorCompanyMemberDeletionToFirestore(db, companyId, uid) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || !hasFirestoreDb(db)) {
     return false;
   }
 
@@ -299,7 +299,7 @@ async function mirrorCompanyMemberDeletionToFirestore(db, companyId, uid) {
 }
 
 async function mirrorPendingInvitesForMemberRevokedToFirestore(db, companyId, memberUid, actorUid, nowIso) {
-  if (!hasFirestoreDb(db)) {
+  if (shouldUsePostgresCompanyStore() || !hasFirestoreDb(db)) {
     return false;
   }
 

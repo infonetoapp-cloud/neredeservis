@@ -191,7 +191,7 @@ function appendIfDefined(target, key, value) {
 }
 
 async function bestEffortMirrorUserDoc(db, uid, rawPayload) {
-  if (!hasFirestoreDb(db)) {
+  if (isPostgresConfigured() || !hasFirestoreDb(db)) {
     return;
   }
 
@@ -208,7 +208,7 @@ async function bestEffortMirrorUserDoc(db, uid, rawPayload) {
 }
 
 async function bestEffortMirrorDriverDoc(db, uid, rawDriverProfile, fallbackDisplayName) {
-  if (!hasFirestoreDb(db)) {
+  if (isPostgresConfigured() || !hasFirestoreDb(db)) {
     return;
   }
 
@@ -245,7 +245,7 @@ async function bestEffortMirrorDriverDoc(db, uid, rawDriverProfile, fallbackDisp
 }
 
 async function bestEffortMirrorConsentDoc(db, uid, rawConsent) {
-  if (!hasFirestoreDb(db)) {
+  if (isPostgresConfigured() || !hasFirestoreDb(db)) {
     return;
   }
 
