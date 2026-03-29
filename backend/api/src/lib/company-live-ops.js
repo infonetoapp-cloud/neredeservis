@@ -43,7 +43,7 @@ function toStatusWeight(status) {
   return 3;
 }
 
-export async function listCompanyLiveOpsSnapshot(db, rtdb, input) {
+export async function listCompanyLiveOpsSnapshot(_db, _rtdb, input) {
   const limit = toQueryLimit(input.limit);
   const liveOpsOnlineThresholdMs = Number.isFinite(input.liveOpsOnlineThresholdMs)
     ? Math.max(1_000, Math.trunc(input.liveOpsOnlineThresholdMs))
@@ -66,7 +66,7 @@ export async function listCompanyLiveOpsSnapshot(db, rtdb, input) {
   }
 
   const activeTripLimit = Math.min(500, Math.max(routes.length * 2, limit, 50));
-  const activeTripsResult = await listActiveTripsByCompany(db, rtdb, {
+  const activeTripsResult = await listActiveTripsByCompany(null, null, {
     companyId: input.companyId,
     limit: activeTripLimit,
     liveOpsOnlineThresholdMs,

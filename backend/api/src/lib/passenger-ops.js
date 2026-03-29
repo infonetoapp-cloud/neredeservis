@@ -18,22 +18,10 @@ import { asRecord, pickFiniteNumber, pickString } from "./runtime-value.js";
 const GUEST_SESSION_TTL_MINUTES_MIN = 5;
 const GUEST_SESSION_TTL_MINUTES_MAX = 24 * 60;
 
-function hasFirestoreDb(db) {
-  return Boolean(db && typeof db.collection === "function");
-}
-
-function requireFirestoreDb(db) {
-  if (!hasFirestoreDb(db) || typeof db.runTransaction !== "function") {
+function ensurePassengerStorageReady() {
+  if (!shouldUsePostgresPassengerStore()) {
     throw new HttpError(412, "failed-precondition", "Passenger depolamasi hazir degil.");
   }
-  return db;
-}
-
-function ensurePassengerStorageReady(db) {
-  if (shouldUsePostgresPassengerStore()) {
-    return db ?? null;
-  }
-  return requireFirestoreDb(db);
 }
 
 function normalizeRequiredString(rawValue, fieldLabel, maxLength = 128) {
@@ -129,21 +117,6 @@ function buildIstanbulDateKey(when = new Date()) {
   }).format(when);
 }
 
-function pickGeoPoint(record, key) {
-  const value = asRecord(record?.[key]);
-  if (!value) {
-    return null;
-  }
-
-  const lat = pickFiniteNumber(value, "lat");
-  const lng = pickFiniteNumber(value, "lng");
-  if (lat == null || lng == null) {
-    return null;
-  }
-
-  return { lat, lng };
-}
-
 function pickStringArray(record, key) {
   const value = record?.[key];
   if (!Array.isArray(value)) {
@@ -170,26 +143,12 @@ function normalizeRole(rawRole) {
 
 async function readUserRoleRecord(db, uid) {
   const authProfile = await readUserProfileByUid(db, uid).catch(() => null);
-  let firestoreProfile = null;
-
-  if (
-    !shouldUsePostgresPassengerStore() &&
-    (!authProfile || !pickString(authProfile, "role")) &&
-    db?.collection
-  ) {
-    const snapshot = await db.collection("users").doc(uid).get().catch(() => null);
-    if (snapshot?.exists) {
-      firestoreProfile = asRecord(snapshot.data()) ?? {};
-    }
-  }
-
   return {
-    role: normalizeRole(pickString(authProfile, "role") ?? pickString(firestoreProfile, "role")),
-    displayName:
-      pickString(authProfile, "displayName") ?? pickString(firestoreProfile, "displayName"),
-    phone: pickString(authProfile, "phone") ?? pickString(firestoreProfile, "phone"),
-    email: pickString(authProfile, "email") ?? pickString(firestoreProfile, "email"),
-    createdAt: pickString(authProfile, "createdAt") ?? pickString(firestoreProfile, "createdAt"),
+    role: normalizeRole(pickString(authProfile, "role")),
+    displayName: pickString(authProfile, "displayName"),
+    phone: pickString(authProfile, "phone"),
+    email: pickString(authProfile, "email"),
+    createdAt: pickString(authProfile, "createdAt"),
   };
 }
 
@@ -201,70 +160,28 @@ async function requirePassengerRole(db, uid) {
   return userRecord;
 }
 
-async function findRouteBySrvCode(db, srvCode) {
-  if (shouldUsePostgresPassengerStore()) {
-    const postgresRoute = await readRouteBySrvCodeFromPostgres(srvCode).catch(() => null);
-    if (!postgresRoute || postgresRoute.isArchived === true) {
-      throw new HttpError(404, "not-found", "SRV kodu ile route bulunamadi.");
-    }
-
-    return {
-      routeId: postgresRoute.routeId,
-      routeRef: null,
-      routeData: postgresRoute,
-    };
-  }
-
-  const firestoreDb = requireFirestoreDb(db);
-  const snapshot = await firestoreDb
-    .collection("routes")
-    .where("srvCode", "==", srvCode)
-    .where("isArchived", "==", false)
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
+async function findRouteBySrvCode(_db, srvCode) {
+  const postgresRoute = await readRouteBySrvCodeFromPostgres(srvCode).catch(() => null);
+  if (!postgresRoute || postgresRoute.isArchived === true) {
     throw new HttpError(404, "not-found", "SRV kodu ile route bulunamadi.");
   }
 
-  const documentSnapshot = snapshot.docs[0];
-  if (!documentSnapshot) {
-    throw new HttpError(404, "not-found", "Route bulunamadi.");
-  }
-
   return {
-    routeId: documentSnapshot.id,
-    routeRef: documentSnapshot.ref,
-    routeData: asRecord(documentSnapshot.data()) ?? {},
+    routeId: postgresRoute.routeId,
+    routeData: postgresRoute,
   };
 }
 
-async function readRouteById(db, routeId) {
+async function readRouteById(_db, routeId) {
   const normalizedRouteId = normalizeRequiredString(routeId, "routeId");
-  if (shouldUsePostgresPassengerStore()) {
-    const postgresRoute = await readRouteFromPostgres(normalizedRouteId).catch(() => null);
-    if (!postgresRoute) {
-      throw new HttpError(404, "not-found", "Route bulunamadi.");
-    }
-
-    return {
-      routeId: normalizedRouteId,
-      routeRef: null,
-      routeData: postgresRoute,
-    };
-  }
-
-  const firestoreDb = requireFirestoreDb(db);
-  const routeRef = firestoreDb.collection("routes").doc(normalizedRouteId);
-  const routeSnapshot = await routeRef.get();
-  if (!routeSnapshot.exists) {
+  const postgresRoute = await readRouteFromPostgres(normalizedRouteId).catch(() => null);
+  if (!postgresRoute) {
     throw new HttpError(404, "not-found", "Route bulunamadi.");
   }
 
   return {
     routeId: normalizedRouteId,
-    routeRef,
-    routeData: asRecord(routeSnapshot.data()) ?? {},
+    routeData: postgresRoute,
   };
 }
 
@@ -282,25 +199,11 @@ async function revokeGuestSession(sessionContext, nowIso, reason) {
       updatedAt: nowIso,
     }).catch(() => undefined);
   }
-
-  if (sessionContext?.sessionRef?.set) {
-    await sessionContext.sessionRef
-      .set(
-        {
-          status: "revoked",
-          revokedAt: nowIso,
-          revokeReason: reason,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      )
-      .catch(() => undefined);
-  }
 }
 
 export async function joinPassengerRouteBySrvCode(db, uid, input) {
-  const storageDb = ensurePassengerStorageReady(db);
-  await requirePassengerRole(storageDb, uid);
+  ensurePassengerStorageReady();
+  await requirePassengerRole(db, uid);
 
   const normalizedInput = {
     srvCode: normalizeRequiredString(input?.srvCode, "srvCode", 40),
@@ -314,7 +217,7 @@ export async function joinPassengerRouteBySrvCode(db, uid, input) {
     notificationTime: normalizeText(input?.notificationTime ?? "", "Bildirim saati", 32),
   };
 
-    const { routeId, routeRef, routeData } = await findRouteBySrvCode(storageDb, normalizedInput.srvCode);
+  const { routeId, routeData } = await findRouteBySrvCode(db, normalizedInput.srvCode);
   assertPassengerRouteAccess(routeData, uid, "Route sahibi kendi route'una katilamaz.");
   if (routeData.isArchived === true) {
     throw new HttpError(412, "failed-precondition", "Arsivlenmis route'a katilim kapali.");
@@ -322,62 +225,24 @@ export async function joinPassengerRouteBySrvCode(db, uid, input) {
 
   const routeName = pickString(routeData, "name") ?? "";
   const nowIso = new Date().toISOString();
-
-  if (shouldUsePostgresPassengerStore()) {
-    const existingPassenger = await readRoutePassengerFromPostgres(routeId, uid).catch(() => null);
-    await upsertRoutePassengerToPostgres({
-      routeId,
-      companyId: pickString(routeData, "companyId"),
-      passengerUid: uid,
-      name: normalizedInput.name,
-      phone: normalizedInput.phone,
-      showPhoneToDriver: normalizedInput.showPhoneToDriver,
-      boardingArea: normalizedInput.boardingArea,
-      virtualStop: existingPassenger?.virtualStop ?? null,
-      virtualStopLabel: existingPassenger?.virtualStopLabel ?? null,
-      notificationTime: normalizedInput.notificationTime,
-      joinedAt: existingPassenger?.joinedAt ?? nowIso,
-      updatedAt: nowIso,
-    });
-
-  } else {
-    const firestoreDb = requireFirestoreDb(storageDb);
-    await firestoreDb.runTransaction(async (transaction) => {
-      const routeSnapshot = await transaction.get(routeRef);
-      if (!routeSnapshot.exists) {
-        throw new HttpError(404, "not-found", "Route bulunamadi.");
-      }
-
-      const currentRoute = asRecord(routeSnapshot.data()) ?? {};
-      assertPassengerRouteAccess(currentRoute, uid, "Route sahibi kendi route'una katilamaz.");
-      if (currentRoute.isArchived === true) {
-        throw new HttpError(412, "failed-precondition", "Arsivlenmis route'a katilim kapali.");
-      }
-
-      const passengerRef = routeRef.collection("passengers").doc(uid);
-      const passengerSnapshot = await transaction.get(passengerRef);
-      const existingPassenger = asRecord(passengerSnapshot.data()) ?? {};
-
-      transaction.set(
-        passengerRef,
-        {
-          name: normalizedInput.name,
-          phone: normalizedInput.phone,
-          showPhoneToDriver: normalizedInput.showPhoneToDriver,
-          boardingArea: normalizedInput.boardingArea,
-          virtualStop: null,
-          virtualStopLabel: null,
-          notificationTime: normalizedInput.notificationTime,
-          joinedAt: pickString(existingPassenger, "joinedAt") ?? nowIso,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      );
-    });
-  }
+  const existingPassenger = await readRoutePassengerFromPostgres(routeId, uid).catch(() => null);
+  await upsertRoutePassengerToPostgres({
+    routeId,
+    companyId: pickString(routeData, "companyId"),
+    passengerUid: uid,
+    name: normalizedInput.name,
+    phone: normalizedInput.phone,
+    showPhoneToDriver: normalizedInput.showPhoneToDriver,
+    boardingArea: normalizedInput.boardingArea,
+    virtualStop: existingPassenger?.virtualStop ?? null,
+    virtualStopLabel: existingPassenger?.virtualStopLabel ?? null,
+    notificationTime: normalizedInput.notificationTime,
+    joinedAt: existingPassenger?.joinedAt ?? nowIso,
+    updatedAt: nowIso,
+  });
 
   await upsertAuthUserProfile(
-    storageDb,
+    db,
     {
       uid,
       displayName: normalizedInput.name,
@@ -398,11 +263,11 @@ export async function joinPassengerRouteBySrvCode(db, uid, input) {
 }
 
 export async function leavePassengerRoute(db, uid, input) {
-  const storageDb = ensurePassengerStorageReady(db);
-  await requirePassengerRole(storageDb, uid);
+  ensurePassengerStorageReady();
+  await requirePassengerRole(db, uid);
 
   const routeId = normalizeRequiredString(input?.routeId, "routeId");
-  const { routeRef, routeData } = await readRouteById(storageDb, routeId);
+  const { routeData } = await readRouteById(db, routeId);
   assertPassengerRouteAccess(routeData, uid, "Route sahibi leaveRoute kullanamaz.");
   const authorizedDriverIds = pickStringArray(routeData, "authorizedDriverIds");
   if (authorizedDriverIds.includes(uid)) {
@@ -413,19 +278,7 @@ export async function leavePassengerRoute(db, uid, input) {
     );
   }
 
-  let left = false;
-  if (shouldUsePostgresPassengerStore()) {
-    left = await deleteRoutePassengerFromPostgres(routeId, uid).catch(() => false);
-  } else {
-    const firestoreDb = requireFirestoreDb(storageDb);
-    const passengerRef = routeRef.collection("passengers").doc(uid);
-    await firestoreDb.runTransaction(async (transaction) => {
-      const passengerSnapshot = await transaction.get(passengerRef);
-      left = passengerSnapshot.exists;
-      transaction.delete(passengerRef);
-    });
-  }
-
+  const left = await deleteRoutePassengerFromPostgres(routeId, uid).catch(() => false);
   return {
     routeId,
     left,
@@ -433,8 +286,8 @@ export async function leavePassengerRoute(db, uid, input) {
 }
 
 export async function updatePassengerSettings(db, uid, input) {
-  const storageDb = ensurePassengerStorageReady(db);
-  await requirePassengerRole(storageDb, uid);
+  ensurePassengerStorageReady();
+  await requirePassengerRole(db, uid);
 
   const normalizedInput = {
     routeId: normalizeRequiredString(input?.routeId, "routeId"),
@@ -449,7 +302,7 @@ export async function updatePassengerSettings(db, uid, input) {
     virtualStopLabel: normalizeOptionalString(input?.virtualStopLabel, "virtualStopLabel", 160),
   };
 
-  const { routeRef, routeData } = await readRouteById(storageDb, normalizedInput.routeId);
+  const { routeData } = await readRouteById(db, normalizedInput.routeId);
   const nowIso = new Date().toISOString();
   if (pickString(routeData, "driverId") === uid) {
     throw new HttpError(
@@ -466,69 +319,41 @@ export async function updatePassengerSettings(db, uid, input) {
     );
   }
 
-  if (shouldUsePostgresPassengerStore()) {
-    const passengerData = await readRoutePassengerFromPostgres(normalizedInput.routeId, uid).catch(
-      () => null,
-    );
-    if (!passengerData) {
-      throw new HttpError(404, "not-found", "Passenger kaydi bulunamadi.");
-    }
-
-    const nextPassenger = {
-      ...passengerData,
-      phone: normalizedInput.phone ?? passengerData.phone ?? null,
-      showPhoneToDriver: normalizedInput.showPhoneToDriver,
-      boardingArea: normalizedInput.boardingArea,
-      virtualStop: normalizedInput.virtualStop ?? passengerData.virtualStop ?? null,
-      virtualStopLabel: normalizedInput.virtualStopLabel ?? passengerData.virtualStopLabel ?? null,
-      notificationTime: normalizedInput.notificationTime,
-      updatedAt: nowIso,
-    };
-
-    await upsertRoutePassengerToPostgres({
-      routeId: normalizedInput.routeId,
-      companyId: pickString(routeData, "companyId"),
-      passengerUid: uid,
-      name: passengerData.name,
-      phone: nextPassenger.phone,
-      showPhoneToDriver: nextPassenger.showPhoneToDriver,
-      boardingArea: nextPassenger.boardingArea,
-      virtualStop: nextPassenger.virtualStop,
-      virtualStopLabel: nextPassenger.virtualStopLabel,
-      notificationTime: nextPassenger.notificationTime,
-      joinedAt: passengerData.joinedAt ?? nowIso,
-      updatedAt: nowIso,
-    });
-
-  } else {
-    const firestoreDb = requireFirestoreDb(storageDb);
-    const passengerRef = routeRef.collection("passengers").doc(uid);
-    await firestoreDb.runTransaction(async (transaction) => {
-      const passengerSnapshot = await transaction.get(passengerRef);
-      if (!passengerSnapshot.exists) {
-        throw new HttpError(404, "not-found", "Passenger kaydi bulunamadi.");
-      }
-
-      const passengerData = asRecord(passengerSnapshot.data()) ?? {};
-      transaction.set(
-        passengerRef,
-        {
-          showPhoneToDriver: normalizedInput.showPhoneToDriver,
-          phone: normalizedInput.phone ?? pickString(passengerData, "phone") ?? null,
-          boardingArea: normalizedInput.boardingArea,
-          virtualStop: normalizedInput.virtualStop ?? pickGeoPoint(passengerData, "virtualStop"),
-          virtualStopLabel:
-            normalizedInput.virtualStopLabel ?? pickString(passengerData, "virtualStopLabel"),
-          notificationTime: normalizedInput.notificationTime,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      );
-    });
+  const passengerData = await readRoutePassengerFromPostgres(normalizedInput.routeId, uid).catch(
+    () => null,
+  );
+  if (!passengerData) {
+    throw new HttpError(404, "not-found", "Passenger kaydi bulunamadi.");
   }
 
+  const nextPassenger = {
+    ...passengerData,
+    phone: normalizedInput.phone ?? passengerData.phone ?? null,
+    showPhoneToDriver: normalizedInput.showPhoneToDriver,
+    boardingArea: normalizedInput.boardingArea,
+    virtualStop: normalizedInput.virtualStop ?? passengerData.virtualStop ?? null,
+    virtualStopLabel: normalizedInput.virtualStopLabel ?? passengerData.virtualStopLabel ?? null,
+    notificationTime: normalizedInput.notificationTime,
+    updatedAt: nowIso,
+  };
+
+  await upsertRoutePassengerToPostgres({
+    routeId: normalizedInput.routeId,
+    companyId: pickString(routeData, "companyId"),
+    passengerUid: uid,
+    name: passengerData.name,
+    phone: nextPassenger.phone,
+    showPhoneToDriver: nextPassenger.showPhoneToDriver,
+    boardingArea: nextPassenger.boardingArea,
+    virtualStop: nextPassenger.virtualStop,
+    virtualStopLabel: nextPassenger.virtualStopLabel,
+    notificationTime: nextPassenger.notificationTime,
+    joinedAt: passengerData.joinedAt ?? nowIso,
+    updatedAt: nowIso,
+  });
+
   await upsertAuthUserProfile(
-    storageDb,
+    db,
     { uid },
     {
       role: "passenger",
@@ -545,8 +370,8 @@ export async function updatePassengerSettings(db, uid, input) {
 }
 
 export async function submitPassengerSkipToday(db, uid, input) {
-  const storageDb = ensurePassengerStorageReady(db);
-  await requirePassengerRole(storageDb, uid);
+  ensurePassengerStorageReady();
+  await requirePassengerRole(db, uid);
 
   const normalizedInput = {
     routeId: normalizeRequiredString(input?.routeId, "routeId"),
@@ -565,7 +390,7 @@ export async function submitPassengerSkipToday(db, uid, input) {
     );
   }
 
-  const { routeRef, routeData } = await readRouteById(storageDb, normalizedInput.routeId);
+  const { routeData } = await readRouteById(db, normalizedInput.routeId);
   if (routeData.isArchived === true) {
     throw new HttpError(
       412,
@@ -574,82 +399,33 @@ export async function submitPassengerSkipToday(db, uid, input) {
     );
   }
 
-  if (shouldUsePostgresPassengerStore()) {
-    const passengerData = await readRoutePassengerFromPostgres(normalizedInput.routeId, uid).catch(
-      () => null,
+  const passengerData = await readRoutePassengerFromPostgres(normalizedInput.routeId, uid).catch(
+    () => null,
+  );
+  if (!passengerData) {
+    throw new HttpError(
+      403,
+      "permission-denied",
+      "Bu route icin passenger kaydin bulunmuyor.",
     );
-    if (!passengerData) {
-      throw new HttpError(
-        403,
-        "permission-denied",
-        "Bu route icin passenger kaydin bulunmuyor.",
-      );
-    }
-
-    const existingSkipRequest = await readRouteSkipRequestFromPostgres(
-      normalizedInput.routeId,
-      uid,
-      normalizedInput.dateKey,
-    ).catch(() => null);
-    const idempotencyKey = existingSkipRequest?.idempotencyKey ?? normalizedInput.idempotencyKey;
-    await upsertRouteSkipRequestToPostgres({
-      routeId: normalizedInput.routeId,
-      companyId: pickString(routeData, "companyId"),
-      passengerUid: uid,
-      dateKey: normalizedInput.dateKey,
-      status: "skip_today",
-      idempotencyKey,
-      createdAt: existingSkipRequest?.createdAt ?? nowIso,
-      updatedAt: nowIso,
-    });
-
-  } else {
-    const firestoreDb = requireFirestoreDb(storageDb);
-    const passengerRef = routeRef.collection("passengers").doc(uid);
-    const skipRequestRef = routeRef
-      .collection("skip_requests")
-      .doc(`${uid}_${normalizedInput.dateKey}`);
-
-    await firestoreDb.runTransaction(async (transaction) => {
-      const passengerSnapshot = await transaction.get(passengerRef);
-      if (!passengerSnapshot.exists) {
-        throw new HttpError(
-          403,
-          "permission-denied",
-          "Bu route icin passenger kaydin bulunmuyor.",
-        );
-      }
-
-      const skipRequestSnapshot = await transaction.get(skipRequestRef);
-      const existingSkipRequest = asRecord(skipRequestSnapshot.data()) ?? {};
-      const existingPassengerId = pickString(existingSkipRequest, "passengerId");
-      const existingDateKey = pickString(existingSkipRequest, "dateKey");
-      if (
-        skipRequestSnapshot.exists &&
-        (existingPassengerId !== uid || existingDateKey !== normalizedInput.dateKey)
-      ) {
-        throw new HttpError(
-          412,
-          "failed-precondition",
-          "skip_requests kaydi beklenmeyen kimlik iceriyor.",
-        );
-      }
-
-      transaction.set(
-        skipRequestRef,
-        {
-          passengerId: uid,
-          dateKey: normalizedInput.dateKey,
-          status: "skip_today",
-          idempotencyKey:
-            pickString(existingSkipRequest, "idempotencyKey") ?? normalizedInput.idempotencyKey,
-          createdAt: pickString(existingSkipRequest, "createdAt") ?? nowIso,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      );
-    });
   }
+
+  const existingSkipRequest = await readRouteSkipRequestFromPostgres(
+    normalizedInput.routeId,
+    uid,
+    normalizedInput.dateKey,
+  ).catch(() => null);
+  const idempotencyKey = existingSkipRequest?.idempotencyKey ?? normalizedInput.idempotencyKey;
+  await upsertRouteSkipRequestToPostgres({
+    routeId: normalizedInput.routeId,
+    companyId: pickString(routeData, "companyId"),
+    passengerUid: uid,
+    dateKey: normalizedInput.dateKey,
+    status: "skip_today",
+    idempotencyKey,
+    createdAt: existingSkipRequest?.createdAt ?? nowIso,
+    updatedAt: nowIso,
+  });
 
   return {
     routeId: normalizedInput.routeId,
@@ -665,19 +441,19 @@ export async function createGuestSession({
   input,
   guestSessionTtlMinutesDefault,
 }) {
-  const storageDb = ensurePassengerStorageReady(db);
+  ensurePassengerStorageReady();
   const normalizedInput = {
     srvCode: normalizeRequiredString(input?.srvCode, "srvCode", 40),
     name: normalizeOptionalString(input?.name, "Ad", 120),
     ttlMinutes: normalizeOptionalPositiveInteger(input?.ttlMinutes, "ttlMinutes"),
   };
 
-  const { routeId, routeData } = await findRouteBySrvCode(storageDb, normalizedInput.srvCode);
+  const { routeId, routeData } = await findRouteBySrvCode(db, normalizedInput.srvCode);
   if (routeData.allowGuestTracking !== true) {
     throw new HttpError(403, "permission-denied", "Bu route icin misafir takip kapali.");
   }
 
-  const existingUserRecord = await readUserRoleRecord(storageDb, uid);
+  const existingUserRecord = await readUserRoleRecord(db, uid);
   const nowMs = Date.now();
   const ttlMinutes = clampGuestSessionTtlMinutes(
     normalizedInput.ttlMinutes ?? guestSessionTtlMinutesDefault,
@@ -686,19 +462,7 @@ export async function createGuestSession({
   const nowIso = new Date(nowMs).toISOString();
   const expiresAtIso = new Date(expiresAtMs).toISOString();
   const routeName = pickString(routeData, "name") ?? "Misafir Takip";
-  const sessionId =
-    !shouldUsePostgresPassengerStore() &&
-    hasFirestoreDb(storageDb) &&
-    storageDb.collection("guest_sessions")?.doc
-      ? storageDb.collection("guest_sessions").doc().id
-      : randomUUID();
-  const sessionRef =
-    !shouldUsePostgresPassengerStore() &&
-    hasFirestoreDb(storageDb) &&
-    storageDb.collection("guest_sessions")?.doc
-      ? storageDb.collection("guest_sessions").doc(sessionId)
-      : null;
-
+  const sessionId = randomUUID();
   const guestDisplayName = normalizedInput.name ?? existingUserRecord.displayName ?? "Misafir";
   const effectiveRole =
     existingUserRecord.role == null || existingUserRecord.role === "guest"
@@ -709,69 +473,24 @@ export async function createGuestSession({
   const userCreatedAt = existingUserRecord.createdAt ?? nowIso;
   const sessionContext = {
     sessionId,
-    sessionRef,
   };
 
-  if (shouldUsePostgresPassengerStore()) {
-    await upsertGuestTrackingSessionToPostgres({
-      sessionId,
-      routeId,
-      companyId: pickString(routeData, "companyId"),
-      routeName,
-      guestUid: uid,
-      guestDisplayName,
-      expiresAt: expiresAtIso,
-      status: "active",
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
-
-  } else {
-    const firestoreDb = requireFirestoreDb(storageDb);
-    const userRef = firestoreDb.collection("users").doc(uid);
-
-    await firestoreDb.runTransaction(async (transaction) => {
-      const userSnapshot = await transaction.get(userRef);
-      const existingUser = asRecord(userSnapshot.data()) ?? {};
-      const existingRole =
-        normalizeRole(pickString(existingUser, "role")) ?? existingUserRecord.role;
-
-      if (!userSnapshot.exists || existingRole == null || existingRole === "guest") {
-        transaction.set(
-          userRef,
-          {
-            role: "guest",
-            displayName: guestDisplayName,
-            phone: pickString(existingUser, "phone") ?? userPhone,
-            email: pickString(existingUser, "email") ?? userEmail,
-            createdAt: pickString(existingUser, "createdAt") ?? userCreatedAt,
-            updatedAt: nowIso,
-            deletedAt: null,
-          },
-          { merge: true },
-        );
-      }
-
-      transaction.set(
-        sessionRef,
-        {
-          routeId,
-          routeName,
-          guestUid: uid,
-          guestDisplayName,
-          expiresAt: expiresAtIso,
-          status: "active",
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        },
-        { merge: true },
-      );
-    });
-  }
+  await upsertGuestTrackingSessionToPostgres({
+    sessionId,
+    routeId,
+    companyId: pickString(routeData, "companyId"),
+    routeName,
+    guestUid: uid,
+    guestDisplayName,
+    expiresAt: expiresAtIso,
+    status: "active",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  });
 
   try {
     await upsertAuthUserProfile(
-      storageDb,
+      db,
       {
         ...(asRecord(authUser) ?? {}),
         uid,
