@@ -1,0 +1,2 @@
+C:/Users/sinan/Desktop/nerede servis/android/app/.cxx/Debug/2s61614a/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/sinan/Desktop/nerede servis/android/app/.cxx/Debug/2s61614a/armeabi-v7a/CMakeFiles/rebuild_cache.dir

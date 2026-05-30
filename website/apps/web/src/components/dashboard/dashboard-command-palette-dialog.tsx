@@ -78,7 +78,7 @@ export function DashboardCommandPaletteDialog({
               onClose();
             }
           }}
-          placeholder="Arac, ekran veya aksiyon ara..."
+          placeholder="Ekran, araç veya işlem ara..."
           className="mb-2 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
         />
 
@@ -126,7 +126,7 @@ export function DashboardCommandPaletteDialog({
             })
           ) : (
             <div className="rounded-xl border border-dashed border-line px-3 py-4 text-sm text-muted">
-              Sonuc bulunamadi.
+              Sonuç bulunamadı.
             </div>
           )}
         </div>
@@ -134,7 +134,7 @@ export function DashboardCommandPaletteDialog({
         {summaryText ? <div className="mt-2 px-1 text-xs text-muted">{summaryText}</div> : null}
 
         <div className="mt-2 flex items-center justify-between px-1 text-xs text-muted">
-          <span>Komut paleti: hizli ekran gecisi</span>
+          <span>Komut paleti: hızlı ekran geçişi</span>
           <div className="inline-flex items-center gap-2">
             {hasRecentActions ? (
               <button
@@ -142,7 +142,7 @@ export function DashboardCommandPaletteDialog({
                 onClick={onClearRecents}
                 className="rounded-lg border border-line bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >
-                Gecmisi Temizle
+                Geçmişi Temizle
               </button>
             ) : null}
             <button
@@ -158,3 +158,4 @@ export function DashboardCommandPaletteDialog({
     </div>
   );
 }
+

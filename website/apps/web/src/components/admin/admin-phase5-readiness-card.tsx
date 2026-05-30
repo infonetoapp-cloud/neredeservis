@@ -120,7 +120,7 @@ export function AdminPhase5ReadinessCard({
       </div>
       {readiness.isReady ? (
         <p className="mt-2 text-xs text-emerald-700">
-          Tum Faz 5 quality gate adimlari tamamlandi.
+          Tüm Faz 5 quality gate adimlari tamamlandi.
         </p>
       ) : (
         <div className="mt-2 space-y-2">
@@ -155,3 +155,4 @@ export function AdminPhase5ReadinessCard({
     </section>
   );
 }
+

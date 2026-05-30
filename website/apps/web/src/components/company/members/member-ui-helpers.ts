@@ -7,7 +7,7 @@ export const ROLE_OPTIONS: CompanyMemberRole[] = ["owner", "admin", "dispatcher"
 
 export const ROLE_LABELS: Record<CompanyMemberRole, string> = {
   owner: "Sahip",
-  admin: "Yonetici",
+  admin: "Yönetici",
   dispatcher: "Operasyon",
   viewer: "Goruntuleyici",
 };
@@ -77,13 +77,14 @@ export function getRoleLockReason(
   allowedRoleOptions: CompanyMemberRole[],
 ): string {
   if (allowedRoleOptions.length === 0) {
-    return "Bu uye rolunu guncellemek icin sahip veya yonetici yetkisi gerekir.";
+    return "Bu uye rolunu guncellemek için sahip veya yönetici yetkisi gerekir.";
   }
   if (allowedRoleOptions.length === 1 && allowedRoleOptions[0] === targetRole) {
     if (actorRole === "admin" && targetRole === "owner") {
-      return "Yonetici rolu, sahip kullanicilarin rolunu degistiremez.";
+      return "Yönetici rolu, sahip kullanicilarin rolunu degistiremez.";
     }
-    return "Bu uye icin degisebilecek tek rol mevcut rol.";
+    return "Bu uye için degisebilecek tek rol mevcut rol.";
   }
-  return "Rol guncelleme bu uye icin acik.";
+  return "Rol guncelleme bu uye için acik.";
 }
+

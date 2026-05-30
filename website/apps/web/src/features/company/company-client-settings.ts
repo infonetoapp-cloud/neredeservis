@@ -1,25 +1,14 @@
 "use client";
 
-import { httpsCallable } from "firebase/functions";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 import {
-  getFirebaseClientFunctions,
-  getFirebaseClientStorage,
-} from "@/lib/firebase/client";
-
-import {
-  type ApiOk,
   asRecord,
   readString,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
-
-/* ─── Types ─── */
 
 export type CompanyProfile = {
   companyId: string;
@@ -29,8 +18,6 @@ export type CompanyProfile = {
   vehicleLimit: number;
   createdAt: string | null;
 };
-
-/* ─── Parsers ─── */
 
 function parseCompanyProfile(value: unknown): CompanyProfile {
   const raw = asRecord(value);
@@ -44,6 +31,7 @@ function parseCompanyProfile(value: unknown): CompanyProfile {
       createdAt: null,
     };
   }
+
   return {
     companyId: readString(raw.companyId) ?? "",
     name: readString(raw.name) ?? "",
@@ -57,19 +45,62 @@ function parseCompanyProfile(value: unknown): CompanyProfile {
   };
 }
 
-/* ─── API ─── */
+type BackendUploadEnvelope<T> = {
+  data?: T;
+  error?: {
+    message?: string;
+  };
+};
+
+export type CompanyLogoUploadResult = {
+  logoUrl: string;
+  profileUpdated: boolean;
+  updatedAt: string | null;
+};
+
+async function callBackendUploadApi<T>(input: {
+  path: string;
+  method: "PUT" | "DELETE";
+  body?: BodyInit;
+  contentType?: string;
+}): Promise<T> {
+  const currentUser = getFirebaseClientAuth()?.currentUser;
+  if (!currentUser) {
+    throw new Error("Oturum bulunamadi. Tekrar giris yap.");
+  }
+
+  const idToken = await currentUser.getIdToken();
+  const requestUrl = new URL(
+    input.path,
+    requireBackendApiBaseUrl().endsWith("/") ? requireBackendApiBaseUrl() : `${requireBackendApiBaseUrl()}/`,
+  );
+  const response = await fetch(requestUrl.toString(), {
+    method: input.method,
+    headers: {
+      authorization: `Bearer ${idToken}`,
+      ...(input.contentType ? { "content-type": input.contentType } : {}),
+    },
+    ...(input.body !== undefined ? { body: input.body } : {}),
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as BackendUploadEnvelope<T> | null;
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "Beklenmeyen bir API hatasi olustu.");
+  }
+
+  return (payload?.data as T | undefined) as T;
+}
 
 export async function getCompanyProfileForCompany(input: {
   companyId: string;
 }): Promise<CompanyProfile> {
   try {
-    const functions = getFirebaseClientFunctions();
-    if (!functions) throw new Error("Firebase başlatılamadı.");
-    const fn = httpsCallable(functions, "getCompanyProfile");
-    const response = await fn({ companyId: input.companyId });
-    const payload = asRecord(response.data);
-    const data = asRecord(payload?.data);
-    return parseCompanyProfile(data);
+    const response = await callBackendApi<CompanyProfile>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+    });
+    return parseCompanyProfile(response.data);
   } catch (error: unknown) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -81,39 +112,63 @@ export async function updateCompanyProfileForCompany(input: {
   logoUrl?: string;
 }): Promise<{ changedFields: string[]; updatedAt: string }> {
   try {
-    const functions = getFirebaseClientFunctions();
-    if (!functions) throw new Error("Firebase başlatılamadı.");
-    const fn = httpsCallable(functions, "updateCompanyProfile");
-    const response = await fn(input);
-    const payload = asRecord(response.data);
-    const data = asRecord(payload?.data);
+    const response = await callBackendApi<{
+      changedFields?: string[];
+      updatedAt?: string;
+    }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `api/companies/${encodeURIComponent(input.companyId)}/profile`,
+      method: "PATCH",
+      body: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+      },
+    });
+
     return {
-      changedFields: Array.isArray(data?.changedFields)
-        ? (data.changedFields as string[])
+      changedFields: Array.isArray(response.data?.changedFields)
+        ? response.data.changedFields
         : [],
-      updatedAt: readString(data?.updatedAt) ?? new Date().toISOString(),
+      updatedAt: readString(asRecord(response.data)?.updatedAt) ?? new Date().toISOString(),
     };
   } catch (error: unknown) {
     throw new Error(toFriendlyErrorMessage(error));
   }
 }
 
-/* ─── Logo Upload ─── */
-
 export async function uploadCompanyLogo(
   companyId: string,
   file: File,
-): Promise<string> {
-  const storage = getFirebaseClientStorage();
-  if (!storage) throw new Error("Firebase Storage başlatılamadı.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-  const storagePath = `company_logos/${companyId}/logo.${ext}`;
-  const storageRef = ref(storage, storagePath);
-
-  await uploadBytes(storageRef, file, {
+): Promise<CompanyLogoUploadResult> {
+  const data = await callBackendUploadApi<{
+    logoUrl?: string;
+    updatedAt?: string;
+  }>({
+    path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+    method: "PUT",
+    body: file,
     contentType: file.type,
   });
+  const logoUrl = readString(asRecord(data)?.logoUrl);
+  if (!logoUrl) {
+    throw new Error("COMPANY_LOGO_UPLOAD_RESPONSE_INVALID");
+  }
+  return {
+    logoUrl,
+    profileUpdated: true,
+    updatedAt: readString(asRecord(data)?.updatedAt),
+  };
+}
 
-  return getDownloadURL(storageRef);
+export async function removeCompanyLogo(companyId: string): Promise<{ profileUpdated: boolean; updatedAt: string | null }> {
+  const data = await callBackendUploadApi<{
+    updatedAt?: string;
+  }>({
+    path: `api/companies/${encodeURIComponent(companyId)}/logo`,
+    method: "DELETE",
+  });
+  return {
+    profileUpdated: true,
+    updatedAt: readString(asRecord(data)?.updatedAt),
+  };
 }

@@ -8,6 +8,7 @@ import 'package:neredeservis/features/auth/data/update_user_profile_client.dart'
 import 'package:neredeservis/features/auth/data/user_role_repository.dart';
 import 'package:neredeservis/features/auth/domain/auth_session.dart';
 import 'package:neredeservis/features/auth/domain/user_role.dart';
+import 'package:neredeservis/features/backend/data/mobile_backend_api_client.dart';
 
 void main() {
   group('AuthRoleBootstrapService integration', () {
@@ -25,17 +26,23 @@ void main() {
       final service = AuthRoleBootstrapService(
         authGateway: authGateway,
         bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'existing-user',
-            'role': 'passenger',
-            'createdOrUpdated': true,
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{
+                'uid': 'existing-user',
+                'role': 'passenger',
+              },
+              'createdOrUpdated': true,
+            },
+          ),
         ),
         updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'existing-user',
-            'updatedAt': '2026-02-17T14:00:00Z',
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{'uid': 'existing-user'},
+              'updatedAt': '2026-02-17T14:00:00Z',
+            },
+          ),
         ),
         userRoleRepository: roleRepository,
       );
@@ -53,17 +60,23 @@ void main() {
       final service = AuthRoleBootstrapService(
         authGateway: authGateway,
         bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'anon-user',
-            'role': 'guest',
-            'createdOrUpdated': true,
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{
+                'uid': 'anon-user',
+                'role': 'guest',
+              },
+              'createdOrUpdated': true,
+            },
+          ),
         ),
         updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'anon-user',
-            'updatedAt': '2026-02-17T14:00:00Z',
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{'uid': 'anon-user'},
+              'updatedAt': '2026-02-17T14:00:00Z',
+            },
+          ),
         ),
         userRoleRepository: FakeUserRoleRepository(),
       );
@@ -81,17 +94,23 @@ void main() {
       final service = AuthRoleBootstrapService(
         authGateway: authGateway,
         bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'u-1',
-            'role': 'driver',
-            'createdOrUpdated': true,
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{
+                'uid': 'u-1',
+                'role': 'driver',
+              },
+              'createdOrUpdated': true,
+            },
+          ),
         ),
         updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => {
-            'uid': 'u-1',
-            'updatedAt': '2026-02-17T14:00:00Z',
-          },
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{'uid': 'u-1'},
+              'updatedAt': '2026-02-17T14:00:00Z',
+            },
+          ),
         ),
         userRoleRepository: roleRepository,
       );
@@ -203,5 +222,22 @@ class FakeUserRoleRepository implements UserRoleRepository {
         },
       ),
     );
+  }
+}
+
+class _FakeMobileBackendApiClient extends MobileBackendApiClient {
+  _FakeMobileBackendApiClient({
+    this.response = const <String, dynamic>{},
+  });
+
+  final Map<String, dynamic> response;
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    return response;
   }
 }

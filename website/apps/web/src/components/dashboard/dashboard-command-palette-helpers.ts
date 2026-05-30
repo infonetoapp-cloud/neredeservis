@@ -21,50 +21,43 @@ export const COMMAND_RECENTS_LIMIT = 6;
 export const QUICK_ACTIONS: readonly CommandAction[] = [
   {
     id: "dashboard",
-    title: "Dashboard",
-    hint: "Ana panel shell",
+    title: "Genel Bakış",
+    hint: "Ana panel ekranı",
     path: "/dashboard",
     group: "navigation",
   },
   {
-    id: "mode-select",
-    title: "Firma Sec",
-    hint: "Firma secim ekrani",
-    path: "/select-company",
-    group: "navigation",
-  },
-  {
     id: "drivers",
-    title: "Drivers",
-    hint: "Company uye/sofor listesi",
+    title: "Şoförler",
+    hint: "Şoför ve üye listesi",
     path: "/drivers",
     group: "navigation",
   },
   {
     id: "vehicles",
-    title: "Vehicles",
-    hint: "Company arac listesi",
+    title: "Araçlar",
+    hint: "Araç listesi ve filo yönetimi",
     path: "/vehicles",
     group: "navigation",
   },
   {
     id: "routes",
-    title: "Routes",
-    hint: "Company rota listesi + durak editoru",
+    title: "Rotalar",
+    hint: "Rota listesi ve durak düzenleme",
     path: "/routes",
     group: "navigation",
   },
   {
     id: "live-ops",
-    title: "Live Ops",
-    hint: "Aktif seferler + canli konum overlay",
+    title: "Canlı Operasyon",
+    hint: "Aktif seferler ve canlı konum",
     path: "/live-ops",
     group: "navigation",
   },
   {
     id: "admin",
-    title: "Admin",
-    hint: "Owner/admin operasyon denetim paneli",
+    title: "Yönetim",
+    hint: "Yönetici denetim paneli",
     path: "/admin",
     group: "navigation",
   },
@@ -72,7 +65,7 @@ export const QUICK_ACTIONS: readonly CommandAction[] = [
 ];
 
 export function liveStateLabel(value: "online" | "stale") {
-  return value === "online" ? "Canli" : "Stale";
+  return value === "online" ? "Canlı" : "Gecikmeli";
 }
 
 export function commandGroupBadge(group: CommandAction["group"]) {
@@ -80,13 +73,13 @@ export function commandGroupBadge(group: CommandAction["group"]) {
     return { label: "Sefer", className: "border-blue-200 bg-blue-50 text-blue-700" };
   }
   if (group === "member") {
-    return { label: "Uye", className: "border-violet-200 bg-violet-50 text-violet-700" };
+    return { label: "Üye", className: "border-violet-200 bg-violet-50 text-violet-700" };
   }
   if (group === "route") {
     return { label: "Rota", className: "border-cyan-200 bg-cyan-50 text-cyan-700" };
   }
   if (group === "vehicle") {
-    return { label: "Arac", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+    return { label: "Araç", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
   }
   if (group === "search") {
     return { label: "Ara", className: "border-amber-200 bg-amber-50 text-amber-700" };
@@ -118,7 +111,7 @@ export function readRecentActions(): CommandAction[] {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((item) => typeof item?.id === "string" && typeof item?.path === "string")
+      .filter((item) => typeof item?.id === "string" && typeof item?.path === "string" && item.id !== "mode-select" && item.path !== "/select-company")
       .map((item) => ({
         id: item.id as string,
         title: typeof item.title === "string" ? item.title : "Komut",
@@ -175,7 +168,7 @@ export function buildTripActions(items: CompanyActiveTripSummary[]): CommandActi
 export function buildMemberActions(items: CompanyMemberSummary[]): CommandAction[] {
   return items.slice(0, 8).map((member) => ({
     id: `member-${member.uid}`,
-    title: `Uye: ${member.displayName}`,
+    title: `Üye: ${member.displayName}`,
     hint: `${member.role} - ${member.memberStatus}`,
     path: `/drivers?memberUid=${encodeURIComponent(member.uid)}&sort=name_asc`,
     group: "member",
@@ -195,8 +188,8 @@ export function buildRouteActions(items: CompanyRouteSummary[]): CommandAction[]
 export function buildVehicleActions(items: CompanyVehicleSummary[]): CommandAction[] {
   return items.slice(0, 8).map((vehicle) => ({
     id: `vehicle-${vehicle.vehicleId}`,
-    title: `Arac: ${vehicle.plate}`,
-    hint: `${vehicle.brand ?? "-"} ${vehicle.model ?? ""}`.trim() || "Arac detayi",
+    title: `Araç: ${vehicle.plate}`,
+    hint: `${vehicle.brand ?? "-"} ${vehicle.model ?? ""}`.trim() || "Araç detayı",
     path: `/vehicles?vehicleId=${encodeURIComponent(vehicle.vehicleId)}&sort=plate_asc`,
     group: "vehicle",
   }));
@@ -225,29 +218,29 @@ export function buildQuerySearchActions(query: string): CommandAction[] {
   return [
     {
       id: `search-live-ops-${normalized}`,
-      title: `Canli Operasyonda Ara: ${normalized}`,
-      hint: "live-ops q + signal_desc",
+      title: `Canlı Operasyonda Ara: ${normalized}`,
+      hint: "Canlı operasyon içinde ara",
       path: `/live-ops?q=${encoded}&sort=signal_desc`,
       group: "search",
     },
     {
       id: `search-drivers-${normalized}`,
-      title: `Drivers'da Ara: ${normalized}`,
-      hint: "drivers q + name_asc",
+      title: `Şoförlerde ara: ${normalized}`,
+      hint: "Şoför listesinde ara",
       path: `/drivers?q=${encoded}&sort=name_asc`,
       group: "search",
     },
     {
       id: `search-routes-${normalized}`,
-      title: `Routes'ta Ara: ${normalized}`,
-      hint: "routes q + updated_desc",
+      title: `Rotalarda ara: ${normalized}`,
+      hint: "Rota listesinde ara",
       path: `/routes?q=${encoded}&sort=updated_desc`,
       group: "search",
     },
     {
       id: `search-vehicles-${normalized}`,
-      title: `Vehicles'ta Ara: ${normalized}`,
-      hint: "vehicles q + plate_asc",
+      title: `Araçlarda ara: ${normalized}`,
+      hint: "Araç listesinde ara",
       path: `/vehicles?q=${encoded}&sort=plate_asc`,
       group: "search",
     },
@@ -290,11 +283,12 @@ type SummaryArgs = {
 
 export function buildCommandPaletteSummaryText(args: SummaryArgs): string | null {
   if (!args.queryEnabled) return null;
-  return `Sefer: ${statusCounter(args.tripStatus, args.tripCount)} | Uye: ${statusCounter(
+  return `Sefer: ${statusCounter(args.tripStatus, args.tripCount)} | Üye: ${statusCounter(
     args.memberStatus,
     args.memberCount,
-  )} | Rota: ${statusCounter(args.routeStatus, args.routeCount)} | Arac: ${statusCounter(
+  )} | Rota: ${statusCounter(args.routeStatus, args.routeCount)} | Araç: ${statusCounter(
     args.vehicleStatus,
     args.vehicleCount,
   )}`;
 }
+

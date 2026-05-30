@@ -9,7 +9,7 @@ allprojects {
     }
 }
 
-rootProject.buildDir = "../build"
+rootProject.buildDir = "../.codex_build/android"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }

@@ -7,13 +7,9 @@ class AppEnvironment {
     required this.sentryDsn,
     this.analyticsCollectionEnabled = false,
     required this.appCheckDebugProviderEnabled,
-    required this.googleSignInServerClientId,
+    required this.firebaseWebApiKey,
     required this.adaptyEnabled,
     required this.adaptyApiKey,
-    this.googleMapsApiKey,
-    required this.mapboxPublicToken,
-    required this.mapboxTileCacheMb,
-    required this.mapboxStylePreloadEnabled,
     this.externalBillingExceptionEnabled = false,
     this.externalBillingLegalApproved = false,
     this.externalBillingManageUrl,
@@ -24,13 +20,9 @@ class AppEnvironment {
   final String? sentryDsn;
   final bool analyticsCollectionEnabled;
   final bool appCheckDebugProviderEnabled;
-  final String? googleSignInServerClientId;
+  final String firebaseWebApiKey;
   final bool adaptyEnabled;
   final String? adaptyApiKey;
-  final String? googleMapsApiKey;
-  final String? mapboxPublicToken;
-  final int mapboxTileCacheMb;
-  final bool mapboxStylePreloadEnabled;
   final bool externalBillingExceptionEnabled;
   final bool externalBillingLegalApproved;
   final String? externalBillingManageUrl;
@@ -61,20 +53,8 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
       String.fromEnvironment('ADAPTY_API_KEY', defaultValue: '');
   const adaptyEnabledRaw =
       String.fromEnvironment('ADAPTY_ENABLED', defaultValue: '');
-  const googleSignInServerClientIdRaw = String.fromEnvironment(
-    'GOOGLE_SIGNIN_SERVER_CLIENT_ID',
-    defaultValue: '',
-  );
-  const googleMapsApiKeyRaw =
-      String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
-  const mapboxPublicTokenRaw =
-      String.fromEnvironment('MAPBOX_PUBLIC_TOKEN', defaultValue: '');
-  const mapboxTileCacheMbRaw =
-      String.fromEnvironment('MAPBOX_TILE_CACHE_MB', defaultValue: '256');
-  const mapboxStylePreloadEnabledRaw = String.fromEnvironment(
-    'MAPBOX_STYLE_PRELOAD_ENABLED',
-    defaultValue: 'true',
-  );
+  const firebaseWebApiKeyRaw =
+      String.fromEnvironment('FIREBASE_WEB_API_KEY', defaultValue: '');
   const externalBillingExceptionEnabledRaw = String.fromEnvironment(
     'EXTERNAL_BILLING_EXCEPTION_ENABLED',
     defaultValue: '',
@@ -103,20 +83,9 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
       adaptyApiKeyRaw.trim().isEmpty ? null : adaptyApiKeyRaw.trim();
   final adaptyEnabledOverride = _parseBoolOrNull(adaptyEnabledRaw);
   final adaptyEnabled = (adaptyEnabledOverride ?? true) && adaptyApiKey != null;
-  final googleSignInServerClientId =
-      googleSignInServerClientIdRaw.trim().isEmpty
-          ? _defaultGoogleSignInServerClientIdForFlavor(resolvedFlavor)
-          : googleSignInServerClientIdRaw.trim();
-  final googleMapsApiKey =
-      googleMapsApiKeyRaw.trim().isEmpty ? null : googleMapsApiKeyRaw.trim();
-  final mapboxPublicToken =
-      mapboxPublicTokenRaw.trim().isEmpty ? null : mapboxPublicTokenRaw.trim();
-  final mapboxTileCacheMb = _parsePositiveIntOrFallback(
-    mapboxTileCacheMbRaw,
-    fallback: 256,
-  );
-  final mapboxStylePreloadEnabled =
-      _parseBoolOrNull(mapboxStylePreloadEnabledRaw) ?? true;
+  final firebaseWebApiKey = firebaseWebApiKeyRaw.trim().isEmpty
+      ? _defaultFirebaseWebApiKeyForFlavor(resolvedFlavor)
+      : firebaseWebApiKeyRaw.trim();
   final externalBillingExceptionEnabled =
       _parseBoolOrNull(externalBillingExceptionEnabledRaw) ?? false;
   final externalBillingLegalApproved =
@@ -133,13 +102,9 @@ AppEnvironment loadEnvironment({required AppFlavor entrypointFlavor}) {
     sentryDsn: sentryDsn,
     analyticsCollectionEnabled: analyticsCollectionEnabled,
     appCheckDebugProviderEnabled: appCheckDebugProviderEnabled,
-    googleSignInServerClientId: googleSignInServerClientId,
+    firebaseWebApiKey: firebaseWebApiKey,
     adaptyEnabled: adaptyEnabled,
     adaptyApiKey: adaptyApiKey,
-    googleMapsApiKey: googleMapsApiKey,
-    mapboxPublicToken: mapboxPublicToken,
-    mapboxTileCacheMb: mapboxTileCacheMb,
-    mapboxStylePreloadEnabled: mapboxStylePreloadEnabled,
     externalBillingExceptionEnabled: externalBillingExceptionEnabled,
     externalBillingLegalApproved: externalBillingLegalApproved,
     externalBillingManageUrl: externalBillingManageUrl,
@@ -175,24 +140,10 @@ bool? _parseBoolOrNull(String raw) {
   return null;
 }
 
-int _parsePositiveIntOrFallback(
-  String raw, {
-  required int fallback,
-}) {
-  final parsed = int.tryParse(raw.trim());
-  if (parsed == null || parsed <= 0) {
-    return fallback;
-  }
-  return parsed;
-}
-
-String? _defaultGoogleSignInServerClientIdForFlavor(AppFlavor flavor) {
+String _defaultFirebaseWebApiKeyForFlavor(AppFlavor flavor) {
   return switch (flavor) {
-    AppFlavor.dev =>
-      '882097896542-cvj97ajpvcddbof0feimf0r714a4jtcf.apps.googleusercontent.com',
-    AppFlavor.stg =>
-      '691483247415-ov8t420c8g8fim8dh3gioj04sc3119i3.apps.googleusercontent.com',
-    AppFlavor.prod =>
-      '705689926965-pr210q59r54v07ucd1sf08sr6ame8tch.apps.googleusercontent.com',
+    AppFlavor.dev => 'AIzaSyDX4wqXAL1-LP0gtYJ_u7YfMyGwdH98nlw', //gitleaks:allow
+    AppFlavor.stg => 'AIzaSyDGX_QJV5dCQVII6k13A3FZ-gUb8GkDTX4', //gitleaks:allow
+    AppFlavor.prod => 'AIzaSyCzjmPyvmT8ZFv05mlzT_M1-kntXu8nskQ', //gitleaks:allow
   };
 }

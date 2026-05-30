@@ -1,7 +1,7 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/exceptions/app_exception.dart';
 import '../../features/driver/application/plan_create_driver_route_failure_handling_use_case.dart';
 import '../../features/driver/application/plan_driver_route_mutation_readiness_ui_outcome_use_case.dart';
 import '../../features/driver/application/plan_route_mutation_write_failure_handling_use_case.dart';
@@ -12,6 +12,18 @@ typedef RouterShowInfoFeedback = void Function(
   BuildContext context,
   String message,
 );
+
+class _RouterMutationFailureError {
+  const _RouterMutationFailureError({
+    required this.code,
+    this.message,
+    this.details,
+  });
+
+  final String code;
+  final String? message;
+  final Object? details;
+}
 
 Future<bool> ensureRouterRouteMutationHandlerCanProceed(
   BuildContext context, {
@@ -41,15 +53,16 @@ Future<void> executeRouterRouteMutationWriteAction(
       command: successCommand,
       showInfo: showInfo,
     );
-  } on FirebaseFunctionsException catch (error) {
-    if (context.mounted && _shouldRedirectToForceUpdate(error)) {
+  } catch (error) {
+    final resolvedError = _resolveRouterMutationFailureError(error);
+    if (context.mounted && _shouldRedirectToForceUpdate(resolvedError)) {
       context.go(AppRoutePath.forceUpdate);
       return;
     }
     final failureCommandWithError = failureCommand.withError(
-      errorCode: error.code,
-      errorMessage: error.message,
-      errorDetails: error.details,
+      errorCode: resolvedError.code,
+      errorMessage: resolvedError.message,
+      errorDetails: resolvedError.details,
     );
     if (!context.mounted) {
       return;
@@ -92,18 +105,19 @@ void applyRouterDriverRouteMutationReadinessUiOutcome(
 
 void executeRouterCreateDriverRouteFailureOutcome(
   BuildContext context, {
-  required FirebaseFunctionsException error,
+  required Object error,
   required PlanCreateDriverRouteFailureHandlingUseCase planner,
   required RouterShowInfoFeedback showInfo,
 }) {
-  if (_shouldRedirectToForceUpdate(error)) {
+  final resolvedError = _resolveRouterMutationFailureError(error);
+  if (_shouldRedirectToForceUpdate(resolvedError)) {
     context.go(AppRoutePath.forceUpdate);
     return;
   }
   final failurePlan = planner.execute(
     PlanCreateDriverRouteFailureHandlingCommand(
-      code: error.code,
-      message: error.message,
+      code: resolvedError.code,
+      message: resolvedError.message,
     ),
   );
   showInfo(context, failurePlan.feedbackMessage);
@@ -134,7 +148,21 @@ void showRouterRouteMutationWriteFailureOutcome(
   showInfo(context, failurePlan.feedbackMessage);
 }
 
-bool _shouldRedirectToForceUpdate(FirebaseFunctionsException error) {
+_RouterMutationFailureError _resolveRouterMutationFailureError(Object error) {
+  if (error is AppException) {
+    return _RouterMutationFailureError(
+      code: error.code,
+      message: error.message,
+      details: error.cause,
+    );
+  }
+  return _RouterMutationFailureError(
+    code: 'UNKNOWN',
+    message: error.toString(),
+  );
+}
+
+bool _shouldRedirectToForceUpdate(_RouterMutationFailureError error) {
   final normalizedCode = error.code.trim().toUpperCase();
   if (normalizedCode == 'UPGRADE_REQUIRED' ||
       normalizedCode == 'FORCE_UPDATE_REQUIRED') {

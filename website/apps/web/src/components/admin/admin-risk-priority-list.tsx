@@ -39,7 +39,7 @@ export function AdminRiskPriorityList({
         <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
           {totalItems === 0
             ? "Simdilik kritik risk gorunmuyor."
-            : "Secili severity filtresi icin risk kaydi bulunmuyor."}
+            : "Secili severity filtresi için risk kaydi bulunmuyor."}
         </div>
       ) : (
         <div className="mt-3 space-y-2">
@@ -76,3 +76,4 @@ export function AdminRiskPriorityList({
     </>
   );
 }
+

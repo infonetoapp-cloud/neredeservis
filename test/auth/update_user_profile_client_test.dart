@@ -1,16 +1,19 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:neredeservis/core/exceptions/app_exception.dart';
 import 'package:neredeservis/features/auth/data/profile_callable_exception.dart';
 import 'package:neredeservis/features/auth/data/update_user_profile_client.dart';
+import 'package:neredeservis/features/backend/data/mobile_backend_api_client.dart';
 
 void main() {
   group('UpdateUserProfileClient', () {
     test('parses update result payload', () async {
       final client = UpdateUserProfileClient(
-        invoker: (_, __) async => {
-          'uid': 'u-1',
-          'updatedAt': '2026-02-17T14:00:00Z',
-        },
+        apiClient: _FakeMobileBackendApiClient(
+          response: <String, dynamic>{
+            'user': <String, dynamic>{'uid': 'u-1'},
+            'updatedAt': '2026-02-17T14:00:00Z',
+          },
+        ),
       );
 
       final result = await client.update(
@@ -21,12 +24,13 @@ void main() {
       expect(result.updatedAt, '2026-02-17T14:00:00Z');
     });
 
-    test('maps callable errors to ProfileCallableException', () async {
+    test('maps backend errors to ProfileCallableException', () async {
       final client = UpdateUserProfileClient(
-        invoker: (_, __) async => throw FirebaseException(
-          plugin: 'firebase_functions',
-          code: 'permission-denied',
-          message: 'not owner',
+        apiClient: _FakeMobileBackendApiClient(
+          error: const AppException(
+            code: 'permission-denied',
+            message: 'not owner',
+          ),
         ),
       );
 
@@ -45,15 +49,13 @@ void main() {
     });
 
     test('forwards optional photo fields when present', () async {
-      String? callableName;
-      Map<String, dynamic>? payload;
-      final client = UpdateUserProfileClient(
-        invoker: (name, input) async {
-          callableName = name;
-          payload = Map<String, dynamic>.from(input);
-          return <String, dynamic>{'uid': 'u-1', 'updatedAt': 'ts'};
+      final apiClient = _FakeMobileBackendApiClient(
+        response: <String, dynamic>{
+          'user': <String, dynamic>{'uid': 'u-1'},
+          'updatedAt': 'ts',
         },
       );
+      final client = UpdateUserProfileClient(apiClient: apiClient);
 
       await client.update(
         const UpdateUserProfileInput(
@@ -64,8 +66,8 @@ void main() {
         ),
       );
 
-      expect(callableName, 'updateUserProfile');
-      expect(payload, <String, dynamic>{
+      expect(apiClient.lastPath, '/api/auth/profile');
+      expect(apiClient.lastBody, <String, dynamic>{
         'displayName': 'Name',
         'phone': '555',
         'photoUrl': 'https://example.com/p.jpg',
@@ -73,4 +75,30 @@ void main() {
       });
     });
   });
+}
+
+class _FakeMobileBackendApiClient extends MobileBackendApiClient {
+  _FakeMobileBackendApiClient({
+    this.response = const <String, dynamic>{},
+    this.error,
+  });
+
+  final Map<String, dynamic> response;
+  final Object? error;
+  String? lastPath;
+  Map<String, dynamic>? lastBody;
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    lastPath = path;
+    lastBody = body == null ? null : Map<String, dynamic>.from(body);
+    if (error != null) {
+      throw error!;
+    }
+    return response;
+  }
 }

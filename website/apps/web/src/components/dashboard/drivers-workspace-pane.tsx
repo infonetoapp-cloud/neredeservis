@@ -32,7 +32,7 @@ export function DriversWorkspacePane({
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Uye listesini goruntulemek icin giris yapin."
+        description="Uye listesini goruntulemek için giriş yapin."
       />
     );
   }
@@ -42,7 +42,7 @@ export function DriversWorkspacePane({
       <DashboardStatePlaceholder
         tone="empty"
         title="Firma secilmedi"
-        description="Uye listesini goruntulemek icin once bir firma secin."
+        description="Uye listesini goruntulemek için once bir firma secin."
       />
     );
   }
@@ -88,3 +88,4 @@ export function DriversWorkspacePane({
 
   return <DriversListSection {...driversListProps} />;
 }
+

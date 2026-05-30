@@ -2,11 +2,9 @@ import { z } from 'zod';
 
 export function createInputSchemas({
   driverSearchMaxLimit,
-  mapboxDirectionsDefaultMaxWaypoints,
   supportReportMaxNoteLength,
 }: {
   driverSearchMaxLimit: number;
-  mapboxDirectionsDefaultMaxWaypoints: number;
   supportReportMaxNoteLength: number;
 }) {
   const profileInputSchema = z.object({
@@ -137,10 +135,10 @@ export function createInputSchemas({
   const createCompanyDriverAccountInputSchema = z.object({
     companyId: z.string().trim().min(1).max(128),
     name: z.string().trim().min(2).max(80),
-    phone: z.string().trim().min(7).max(24).optional(),
-    plate: z.string().trim().min(2).max(20).optional(),
-    loginEmail: z.string().trim().email().max(254).optional(),
-    temporaryPassword: z.string().trim().min(8).max(64).optional(),
+    phone: z.string().trim().min(7).max(24).optional().nullable(),
+    plate: z.string().trim().min(2).max(20).optional().nullable(),
+    loginEmail: z.string().trim().email().max(254).optional().nullable(),
+    temporaryPassword: z.string().trim().min(8).max(64).optional().nullable(),
   });
 
   const assignCompanyDriverToRouteInputSchema = z.object({
@@ -188,6 +186,7 @@ export function createInputSchemas({
   const createCompanyRouteInputSchema = z.object({
     companyId: z.string().trim().min(1).max(128),
     name: z.string().trim().min(2).max(80),
+    driverId: z.string().trim().min(1).max(128).nullable().optional(),
     startPoint: z.object({
       lat: z.number().min(-90).max(90),
       lng: z.number().min(-180).max(180),
@@ -219,11 +218,17 @@ export function createInputSchemas({
         timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']).optional(),
         allowGuestTracking: z.boolean().optional(),
         isArchived: z.boolean().optional(),
+        vehicleId: z.string().trim().min(1).max(128).nullable().optional(),
         authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional(),
       })
       .refine((patch) => Object.keys(patch).length > 0, {
         message: 'En az bir patch alani gonderilmelidir.',
       }),
+  });
+
+  const deleteCompanyRouteInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    routeId: z.string().trim().min(1).max(128),
   });
 
   const upsertCompanyRouteStopInputSchema = z.object({
@@ -299,16 +304,71 @@ export function createInputSchemas({
   });
 
   const vehicleStatusSchema = z.enum(['active', 'maintenance', 'inactive']);
+  const createVehicleStatusFieldSchema = z.preprocess(
+    (value) => (value === null ? undefined : value),
+    vehicleStatusSchema.optional().default('active'),
+  );
+  const updateVehicleStatusFieldSchema = z.preprocess(
+    (value) => (value === null ? undefined : value),
+    vehicleStatusSchema.optional(),
+  );
+  const vehicleTextFieldSchema = z.preprocess((value) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }, z.string().trim().min(1).max(80).nullable().optional());
+  const vehicleYearFieldSchema = z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return null;
+      }
+      const parsed = Number.parseInt(trimmed, 10);
+      return Number.isFinite(parsed) ? parsed : Number.NaN;
+    }
+    return value;
+  }, z
+    .number()
+    .int()
+    .min(1900, 'year 1900-2100 araliginda olmalidir.')
+    .max(2100, 'year 1900-2100 araliginda olmalidir.')
+    .nullable()
+    .optional());
+  const vehicleCapacityFieldSchema = z.preprocess((value) => {
+    if (value === undefined || value === null) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return null;
+      }
+      const parsed = Number.parseInt(trimmed, 10);
+      return Number.isFinite(parsed) ? parsed : Number.NaN;
+    }
+    return value;
+  }, z
+    .number()
+    .int()
+    .min(1, 'capacity 1-200 araliginda olmalidir.')
+    .max(200, 'capacity 1-200 araliginda olmalidir.')
+    .nullable()
+    .optional());
 
   const createVehicleInputSchema = z.object({
     ownerType: z.enum(['company', 'individual_driver']).optional().default('company'),
     companyId: z.string().trim().min(1).max(128),
-    plate: z.string().trim().min(2).max(20),
-    brand: z.string().trim().min(1).max(80).nullable().optional(),
-    model: z.string().trim().min(1).max(80).nullable().optional(),
-    year: z.number().int().min(1900).max(2100).nullable().optional(),
-    capacity: z.number().int().min(1).max(200).nullable().optional(),
-    status: vehicleStatusSchema.optional().default('active'),
+    plate: z.string().trim().min(4, 'plate minimum 4 karakter olmalidir.').max(20),
+    brand: vehicleTextFieldSchema,
+    model: vehicleTextFieldSchema,
+    year: vehicleYearFieldSchema,
+    capacity: vehicleCapacityFieldSchema,
+    status: createVehicleStatusFieldSchema,
   });
 
   const updateVehicleInputSchema = z.object({
@@ -316,16 +376,21 @@ export function createInputSchemas({
     vehicleId: z.string().trim().min(1).max(128),
     patch: z
       .object({
-        plate: z.string().trim().min(2).max(20).optional(),
-        brand: z.string().trim().min(1).max(80).nullable().optional(),
-        model: z.string().trim().min(1).max(80).nullable().optional(),
-        year: z.number().int().min(1900).max(2100).nullable().optional(),
-        capacity: z.number().int().min(1).max(200).nullable().optional(),
-        status: vehicleStatusSchema.optional(),
+        plate: z.string().trim().min(4, 'plate minimum 4 karakter olmalidir.').max(20).optional(),
+        brand: vehicleTextFieldSchema,
+        model: vehicleTextFieldSchema,
+        year: vehicleYearFieldSchema,
+        capacity: vehicleCapacityFieldSchema,
+        status: updateVehicleStatusFieldSchema,
       })
       .refine((patch) => Object.keys(patch).length > 0, {
         message: 'En az bir patch alani gonderilmelidir.',
       }),
+  });
+
+  const deleteVehicleInputSchema = z.object({
+    companyId: z.string().trim().min(1).max(128),
+    vehicleId: z.string().trim().min(1).max(128),
   });
 
   const createRouteInputSchema = z.object({
@@ -390,42 +455,6 @@ export function createInputSchemas({
     timeSlot: z.enum(['morning', 'evening', 'midday', 'custom']),
     allowGuestTracking: z.boolean(),
     authorizedDriverIds: z.array(z.string().trim().min(1).max(128)).optional().default([]),
-  });
-
-  const mapboxDirectionsProxyInputSchema = z.object({
-    routeId: z.string().trim().min(1).max(128),
-    origin: z.object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-    }),
-    destination: z.object({
-      lat: z.number().min(-90).max(90),
-      lng: z.number().min(-180).max(180),
-    }),
-    waypoints: z
-      .array(
-        z.object({
-          lat: z.number().min(-90).max(90),
-          lng: z.number().min(-180).max(180),
-        }),
-      )
-      .max(mapboxDirectionsDefaultMaxWaypoints)
-      .optional()
-      .default([]),
-    profile: z.enum(['driving', 'driving-traffic']).optional().default('driving'),
-  });
-
-  const mapboxMapMatchingProxyInputSchema = z.object({
-    tracePoints: z
-      .array(
-        z.object({
-          lat: z.number().min(-90).max(90),
-          lng: z.number().min(-180).max(180),
-          accuracy: z.number().min(0).max(500),
-          sampledAtMs: z.number().int().min(0),
-        }),
-      )
-      .min(2),
   });
 
   const generateRouteShareLinkInputSchema = z.object({
@@ -612,6 +641,7 @@ export function createInputSchemas({
     deleteDriverDocumentInputSchema,
     createCompanyRouteInputSchema,
     updateCompanyRouteInputSchema,
+    deleteCompanyRouteInputSchema,
     upsertCompanyRouteStopInputSchema,
     deleteCompanyRouteStopInputSchema,
     reorderCompanyRouteStopsInputSchema,
@@ -621,11 +651,10 @@ export function createInputSchemas({
     vehicleStatusSchema,
     createVehicleInputSchema,
     updateVehicleInputSchema,
+    deleteVehicleInputSchema,
     createRouteInputSchema,
     updateRouteInputSchema,
     createRouteFromGhostDriveInputSchema,
-    mapboxDirectionsProxyInputSchema,
-    mapboxMapMatchingProxyInputSchema,
     generateRouteShareLinkInputSchema,
     deleteUserDataInputSchema,
     dynamicRoutePreviewInputSchema,

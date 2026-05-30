@@ -14,10 +14,6 @@ const SEGMENT_META: Record<string, { title: string; subtitle: string }> = {
     title: "Genel Bakış",
     subtitle: "Özet istatistikler ve hızlı erişim",
   },
-  "select-company": {
-    title: "Şirket Seç",
-    subtitle: "Üye olduğunuz şirketler arasında geçiş yapın",
-  },
   drivers: {
     title: "Şoförler",
     subtitle: "Şoför ekle, davet et ve üyelikleri yönet",

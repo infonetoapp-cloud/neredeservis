@@ -61,7 +61,7 @@ Future<void> _handleCreateRoute(
       showSrvCodeDialog: _showSrvCodeDialog,
       buildDriverHomeRoute: _buildDriverHomeRoute,
     );
-  } on FirebaseFunctionsException catch (error) {
+  } catch (error) {
     if (!context.mounted) {
       return;
     }

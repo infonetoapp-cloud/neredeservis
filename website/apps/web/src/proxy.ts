@@ -7,7 +7,6 @@ const APP_HOST = "app.neredeservis.app";
 const PANEL_PATH_PREFIXES = [
   "/giris",
   "/login",
-  "/select-company",
   "/dashboard",
   "/drivers",
   "/vehicles",
@@ -31,6 +30,7 @@ function isPanelPath(pathname: string): boolean {
 function redirectToHost(request: NextRequest, hostname: string): NextResponse {
   const url = request.nextUrl.clone();
   url.hostname = hostname;
+  url.port = "";
   url.protocol = "https:";
   return NextResponse.redirect(url, 308);
 }
@@ -49,10 +49,12 @@ export function proxy(request: NextRequest): NextResponse {
     return redirectToHost(request, APP_HOST);
   }
 
-  if (host === APP_HOST && (pathname === "/" || pathname === "/giris")) {
-    // Panel root should land on auth entry (auth gate will route onward).
+  if (host === APP_HOST && (pathname === "/" || pathname === "/login")) {
+    // Panel root and legacy login route should land on canonical auth entry.
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.hostname = APP_HOST;
+    url.pathname = "/giris";
+    url.port = "";
     url.protocol = "https:";
     return NextResponse.redirect(url, 308);
   }

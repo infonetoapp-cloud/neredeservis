@@ -54,20 +54,20 @@ function resolvePlaybookCopy(mode: PlaybookMode): PlaybookCopy {
     case "stream_issue":
       return {
         title: "Operasyon Playbook",
-        description: "Canli stream sorunu var. Once destek kaydini hazirlayip ekip icinde paylas.",
+        description: "Canlı stream sorunu var. Once destek kaydini hazirlayip ekip icinde paylas.",
         modeLabel: "Stream Sorunu",
       };
     case "critical":
       return {
         title: "Operasyon Playbook",
-        description: "Kritik risk gorunuyor. Yolcu beklentisini hizli yonet ve destek paketini hazir tut.",
+        description: "Kritik risk gorunuyor. Yolcu beklentisini hizli yönet ve destek paketini hazir tut.",
         modeLabel: "Kritik",
       };
     case "warning":
       return {
         title: "Operasyon Playbook",
-        description: "Uyari seviyesinde gecikme/fallback var. Proaktif dispatch mesaji onerilir.",
-        modeLabel: "Uyari",
+        description: "Uyarı seviyesinde gecikme/fallback var. Proaktif dispatch mesaji onerilir.",
+        modeLabel: "Uyarı",
       };
     default:
       return {
@@ -250,3 +250,4 @@ export function LiveOpsOperatorPlaybookCard({
     </div>
   );
 }
+

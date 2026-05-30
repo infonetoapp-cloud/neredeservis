@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../../location/application/location_publish_service.dart';
+import '../../location/data/backend_location_history_writer.dart';
+import '../data/backend_live_location_repository.dart';
 import '../data/local_drift_database.dart';
 import '../data/local_queue_repository.dart';
-import '../data/rtdb_domain_repositories.dart';
 import 'queue_flush_orchestrator.dart';
 import 'trip_action_sync_service.dart';
 
@@ -213,7 +213,6 @@ void backgroundQueueFlushCallbackDispatcher() {
     }
 
     try {
-      await _ensureFirebaseInitializedForBackgroundRun();
       await _flushQueueInBackground(ownerUid: ownerUid);
       return true;
     } catch (error, stackTrace) {
@@ -240,13 +239,6 @@ Future<String?> _resolveOwnerUidForBackgroundRun(
   );
 }
 
-Future<void> _ensureFirebaseInitializedForBackgroundRun() async {
-  if (Firebase.apps.isNotEmpty) {
-    return;
-  }
-  await Firebase.initializeApp();
-}
-
 Future<void> _flushQueueInBackground({
   required String ownerUid,
 }) async {
@@ -254,8 +246,9 @@ Future<void> _flushQueueInBackground({
   try {
     final localQueueRepository = LocalQueueRepository(database: database);
     final locationPublishService = LocationPublishService(
-      liveLocationRepository: RtdbLiveLocationRepository(),
+      liveLocationRepository: BackendLiveLocationRepository(),
       localQueueRepository: localQueueRepository,
+      historyWriter: buildBackendLocationHistoryWriter(),
     );
     final tripActionSyncService = TripActionSyncService(
       localQueueRepository: localQueueRepository,

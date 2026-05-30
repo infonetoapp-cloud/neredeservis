@@ -66,4 +66,4 @@ jobs:
 
       - name: Rules tests (with emulators)
         if: github.event_name == 'workflow_dispatch' || steps.filter.outputs.functions_scope == 'true'
-        run: npx firebase emulators:exec --only firestore,database "npm run test:rules:unit"
+        run: npx firebase emulators:exec --project demo-neredeservis-functions-it --only firestore,database "npm run test:rules:unit"

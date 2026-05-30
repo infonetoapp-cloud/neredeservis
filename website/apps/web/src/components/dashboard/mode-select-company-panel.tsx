@@ -60,7 +60,7 @@ export function ModeSelectCompanyPanel({
         <div className="text-sm font-semibold text-slate-900">Firma Modu</div>
       </div>
       <p className="mb-4 text-sm text-muted">
-        Mevcut firma uyeliklerinizden birini sec veya yeni firma olustur. Davet bekleyen uyelikleri de buradan kabul edebilirsin.
+        Mevcut firma üyeliklerinizden birini seç veya yeni firma oluştur. Davet bekleyen üyelikleri de buradan kabul edebilirsin.
       </p>
 
       {authStatus !== "signed_in" ? (
@@ -172,7 +172,7 @@ export function ModeSelectCompanyPanel({
           </InlineNotice>
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-600">
-              Sirket Adi
+              Şirket Adı
             </span>
             <input
               value={newCompanyName}
@@ -191,7 +191,7 @@ export function ModeSelectCompanyPanel({
             disabled={pendingAction !== null}
             className="inline-flex w-full items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {pendingAction?.startsWith("create:") ? "Olusturuluyor..." : "Sirket Olustur ve Devam Et"}
+            {pendingAction?.startsWith("create:") ? "Olusturuluyor..." : "Şirket Oluştur ve Devam Et"}
           </button>
         </div>
       )}
@@ -215,3 +215,4 @@ function InlineNotice({
 
   return <div className={`rounded-xl border px-3 py-2 text-sm ${className}`}>{children}</div>;
 }
+

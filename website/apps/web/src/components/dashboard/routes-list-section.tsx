@@ -124,7 +124,7 @@ export function RoutesListSection({
                 aria-pressed={false}
                 className="rounded-full border border-line bg-white px-2 py-0.5 font-semibold text-slate-700 hover:bg-slate-50"
               >
-                Tum Durumlar
+                Tüm Durumlar
               </button>
             ) : null}
           </div>
@@ -140,7 +140,7 @@ export function RoutesListSection({
           value={searchText}
           onChange={(event) => onSearchTextChange(event.target.value)}
           aria-label="Rota arama"
-          placeholder="Rota, SRV, sofor ara..."
+          placeholder="Rota, SRV, şoför ara..."
           className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
         />
         <select
@@ -149,7 +149,7 @@ export function RoutesListSection({
           aria-label="Durum filtresi"
           className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
         >
-          <option value="all">Tum durumlar</option>
+          <option value="all">Tüm durumlar</option>
           <option value="active">Aktif</option>
           <option value="archived">Arsiv</option>
         </select>
@@ -161,7 +161,7 @@ export function RoutesListSection({
           aria-label="Zaman dilimi filtresi"
           className="rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
         >
-          <option value="all">Tum slotlar</option>
+          <option value="all">Tüm slotlar</option>
           <option value="morning">Sabah</option>
           <option value="midday">Ogle</option>
           <option value="evening">Aksam</option>
@@ -287,3 +287,4 @@ export function RoutesListSection({
     </section>
   );
 }
+

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../features/location/infrastructure/backend_maps_address_service.dart';
 import '../../features/location/infrastructure/google_places_address_service.dart';
 import '../components/buttons/core_buttons.dart';
 import '../components/layout/core_screen_scaffold.dart';
@@ -13,12 +14,10 @@ class RouteCreateScreen extends StatefulWidget {
   const RouteCreateScreen({
     super.key,
     this.onCreate,
-    this.googleMapsApiKey,
     this.addressAutocompleteGateway,
   });
 
   final Future<void> Function(RouteCreateFormInput input)? onCreate;
-  final String? googleMapsApiKey;
   final AddressAutocompleteGateway? addressAutocompleteGateway;
 
   @override
@@ -113,16 +112,12 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
     super.initState();
     _placesSessionToken = _newPlacesSessionToken();
     final providedGateway = widget.addressAutocompleteGateway;
-    final apiKey = (widget.googleMapsApiKey ?? '').trim();
     if (providedGateway != null) {
       _addressAutocompleteGateway = providedGateway;
       _ownsAddressAutocompleteGateway = false;
-    } else if (apiKey.isNotEmpty) {
-      _addressAutocompleteGateway = GooglePlacesAddressService(apiKey: apiKey);
-      _ownsAddressAutocompleteGateway = true;
     } else {
-      _addressAutocompleteGateway = null;
-      _ownsAddressAutocompleteGateway = false;
+      _addressAutocompleteGateway = BackendMapsAddressService();
+      _ownsAddressAutocompleteGateway = true;
     }
     _startAddressController.addListener(_handleStartQueryChanged);
     _endAddressController.addListener(_handleEndQueryChanged);
@@ -292,12 +287,16 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
           suggestion.address,
           isStart: isStart,
         );
+        final hasPreciseLocation = suggestion.hasPreciseLocation &&
+            suggestion.lat != null &&
+            suggestion.lng != null;
         return _NamedMapPoint(
           title: suggestion.title,
           address: suggestion.address,
           placeId: suggestion.placeId,
-          lat: fallbackPoint.lat,
-          lng: fallbackPoint.lng,
+          lat: hasPreciseLocation ? suggestion.lat! : fallbackPoint.lat,
+          lng: hasPreciseLocation ? suggestion.lng! : fallbackPoint.lng,
+          hasPreciseLocation: hasPreciseLocation,
         );
       }).toList(growable: false);
     } catch (_) {
@@ -496,7 +495,10 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       _NamedMapPoint suggestion) async {
     final placeId = suggestion.placeId?.trim();
     final gateway = _addressAutocompleteGateway;
-    if (gateway == null || placeId == null || placeId.isEmpty) {
+    if (suggestion.hasPreciseLocation ||
+        gateway == null ||
+        placeId == null ||
+        placeId.isEmpty) {
       return suggestion;
     }
     try {
@@ -513,6 +515,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
         lat: details.lat,
         lng: details.lng,
         placeId: details.placeId,
+        hasPreciseLocation: true,
       );
     } catch (_) {
       // Keep the fallback point so the driver can continue even if Places fails.
@@ -522,6 +525,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
         lat: suggestion.lat,
         lng: suggestion.lng,
         placeId: suggestion.placeId,
+        hasPreciseLocation: suggestion.hasPreciseLocation,
       );
     } finally {
       // Rotate the session after a successful selection attempt to keep sessions short.
@@ -636,6 +640,7 @@ class _RouteCreateScreenState extends State<RouteCreateScreen> {
       address: address,
       lat: lat,
       lng: lng,
+      hasPreciseLocation: false,
     );
   }
 
@@ -1051,6 +1056,7 @@ class _NamedMapPoint {
     required this.lat,
     required this.lng,
     this.placeId,
+    this.hasPreciseLocation = true,
   });
 
   final String title;
@@ -1058,6 +1064,7 @@ class _NamedMapPoint {
   final double lat;
   final double lng;
   final String? placeId;
+  final bool hasPreciseLocation;
 }
 
 class RouteCreateFormInput {

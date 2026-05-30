@@ -20,7 +20,7 @@ function getCopy(reason: AppLockReason): LockCopy {
     return {
       title: "Guncelleme gerekli",
       body:
-        "Bu panel surumu artik desteklenmiyor. Devam etmek icin guncel surume gecip tekrar giris yap.",
+        "Bu panel surumu artik desteklenmiyor. Devam etmek için güncel surume gecip tekrar giriş yap.",
       toneClassName: "border-amber-200 bg-amber-50 text-amber-900",
     };
   }
@@ -28,27 +28,27 @@ function getCopy(reason: AppLockReason): LockCopy {
     return {
       title: "Erisim fatura kilidinde",
       body:
-        "Sirket hesabi odeme veya policy nedeni ile kilitli oldugu icin bu operasyon ekranlari acik degil.",
+        "Şirket hesabi odeme veya policy nedeni ile kilitli oldugu için bu operasyon ekranlari acik degil.",
       toneClassName: "border-rose-200 bg-rose-50 text-rose-900",
     };
   }
   if (reason === "company_suspended") {
     return {
-      title: "Sirket hesabi askiya alinmis",
-      body: "Bu sirket baglaminda panel erisimi gecici olarak durdurulmus.",
+      title: "Şirket hesabi askiya alinmis",
+      body: "Bu şirket baglaminda panel erisimi gecici olarak durdurulmus.",
       toneClassName: "border-rose-200 bg-rose-50 text-rose-900",
     };
   }
   if (reason === "company_archived") {
     return {
-      title: "Sirket arsivlenmis",
-      body: "Bu sirket paneli arsivde oldugu icin aktif operasyon icin kullanilamiyor.",
+      title: "Şirket arsivlenmis",
+      body: "Bu şirket paneli arsivde oldugu için aktif operasyon için kullanilamiyor.",
       toneClassName: "border-slate-300 bg-slate-100 text-slate-800",
     };
   }
   return {
     title: "Uyelik gecici olarak askida",
-    body: "Bu sirketteki uyeligin askida oldugu icin panel erisimi su an kapali.",
+    body: "Bu sirketteki uyeligin askida oldugu için panel erisimi su an kapali.",
     toneClassName: "border-amber-200 bg-amber-50 text-amber-900",
   };
 }
@@ -62,7 +62,7 @@ export function AppLockPanel({ reason, companyId }: Props) {
   const copy = getCopy(reason);
   const dashboardHref = companyId
     ? `/c/${encodeURIComponent(companyId)}/dashboard`
-    : "/select-company";
+    : "/dashboard";
 
   return (
     <section className={`rounded-2xl border p-5 text-sm shadow-sm ${copy.toneClassName}`}>
@@ -71,10 +71,10 @@ export function AppLockPanel({ reason, companyId }: Props) {
       <p className="mt-2 leading-6">{copy.body}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
-          href="/select-company"
+          href="/dashboard"
           className="inline-flex items-center rounded-xl border border-current/30 bg-white px-3 py-2 text-xs font-semibold hover:bg-white/80"
         >
-          Sirket secimine don
+          Genel bakışa dön
         </Link>
         <Link
           href={dashboardHref}
@@ -86,3 +86,4 @@ export function AppLockPanel({ reason, companyId }: Props) {
     </section>
   );
 }
+

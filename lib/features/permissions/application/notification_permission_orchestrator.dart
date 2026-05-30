@@ -1,5 +1,5 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 enum NotificationPermissionTrigger {
   passengerJoin,
@@ -13,9 +13,9 @@ enum NotificationPermissionOutcome {
   denied,
 }
 
-typedef NotificationAuthorizationStatusReader = Future<AuthorizationStatus>
+typedef NotificationAuthorizationStatusReader = Future<PermissionStatus>
     Function();
-typedef NotificationAuthorizationStatusRequester = Future<AuthorizationStatus>
+typedef NotificationAuthorizationStatusRequester = Future<PermissionStatus>
     Function();
 
 class NotificationPermissionOrchestrator {
@@ -50,9 +50,8 @@ class NotificationPermissionOrchestrator {
     return NotificationPermissionOutcome.denied;
   }
 
-  static bool _isGranted(AuthorizationStatus status) {
-    return status == AuthorizationStatus.authorized ||
-        status == AuthorizationStatus.provisional;
+  static bool _isGranted(PermissionStatus status) {
+    return status.isGranted || status.isLimited || status.isProvisional;
   }
 
   static bool _defaultIsPromptSupported() {
@@ -63,21 +62,11 @@ class NotificationPermissionOrchestrator {
         defaultTargetPlatform == TargetPlatform.iOS;
   }
 
-  static Future<AuthorizationStatus> _defaultReadStatus() async {
-    final settings = await FirebaseMessaging.instance.getNotificationSettings();
-    return settings.authorizationStatus;
+  static Future<PermissionStatus> _defaultReadStatus() {
+    return Permission.notification.status;
   }
 
-  static Future<AuthorizationStatus> _defaultRequestStatus() async {
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-      announcement: false,
-      carPlay: false,
-      criticalAlert: false,
-    );
-    return settings.authorizationStatus;
+  static Future<PermissionStatus> _defaultRequestStatus() {
+    return Permission.notification.request();
   }
 }

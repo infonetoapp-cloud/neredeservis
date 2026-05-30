@@ -26,7 +26,7 @@ export function ProfileOnboardingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status, user } = useAuthSession();
-  const nextPath = searchParams.get("next") || "/select-company";
+  const nextPath = searchParams.get("next") || "/dashboard";
   const [displayName, setDisplayName] = useState<string>(user?.displayName ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<boolean>(false);
@@ -36,7 +36,7 @@ export function ProfileOnboardingForm() {
   useEffect(() => {
     if (status === "signed_out") {
       const next = `/onboarding/profile?next=${encodeURIComponent(nextPath)}`;
-      router.replace(`/login?next=${encodeURIComponent(next)}`);
+      router.replace(`/giris?next=${encodeURIComponent(next)}`);
       return;
     }
     if (status === "signed_in" && !needsOnboarding) {
@@ -58,7 +58,7 @@ export function ProfileOnboardingForm() {
   }
 
   if (status !== "signed_in") {
-    return <div className="text-sm text-[#71695f]">Giris sayfasina yonlendiriliyor...</div>;
+    return <div className="text-sm text-[#71695f]">Giriş sayfasina yonlendiriliyor...</div>;
   }
 
   const submitProfile = async () => {
@@ -128,3 +128,4 @@ export function ProfileOnboardingForm() {
     </div>
   );
 }
+

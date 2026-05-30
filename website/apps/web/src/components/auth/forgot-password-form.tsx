@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { sendPasswordResetEmailForAddress } from "@/features/auth/auth-client";
 import { RefreshIcon } from "@/components/shared/app-icons";
+import { sendPasswordResetEmailForAddress } from "@/features/auth/auth-client";
 
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -13,7 +13,7 @@ function toFriendlyErrorMessage(error: unknown): string {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
       return "Firebase public config eksik. Sifre sifirlama tetiklenemiyor.";
     }
-    if (code === "auth/missing-email") {
+    if (code === "auth/missing-email" || code === "invalid-argument") {
       return "Lutfen e-posta alanini doldur.";
     }
     if (code === "auth/invalid-email") {
@@ -66,14 +66,14 @@ export function ForgotPasswordForm() {
       ) : null}
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-[#2f3237]">Email</label>
+        <label className="mb-2 block text-sm font-semibold text-slate-800">E-posta</label>
         <input
           type="email"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="ornek@firma.com"
-          className="glass-input w-full rounded-xl px-4 py-3 text-sm"
+          className="w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-brand/40 focus:ring-2 focus:ring-brand/15"
         />
       </div>
 
@@ -81,7 +81,7 @@ export function ForgotPasswordForm() {
         type="button"
         disabled={busy}
         onClick={submitReset}
-        className="glass-button-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
           <>
@@ -93,9 +93,9 @@ export function ForgotPasswordForm() {
         )}
       </button>
 
-      <div className="pt-1 text-center text-sm text-[#66736c]">
+      <div className="pt-1 text-center text-sm text-muted">
         Sifreyi hatirladin mi?{" "}
-        <Link href="/login" className="font-semibold text-[#173f37] hover:opacity-70">
+        <Link href="/giris" className="font-semibold text-brand hover:text-brand-strong">
           Giris Yap
         </Link>
       </div>

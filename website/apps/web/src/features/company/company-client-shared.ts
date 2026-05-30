@@ -34,6 +34,8 @@ export type CompanyDriverItem = {
   assignmentStatus: "assigned" | "unassigned";
   lastSeenAt: string | null;
   phoneMasked: string | null;
+  loginEmail: string | null;
+  temporaryPassword: string | null;
   assignedRoutes: Array<{
     routeId: string;
     routeName: string;
@@ -206,31 +208,34 @@ export function toFriendlyErrorMessage(error: unknown): string {
     (asRecord(error)?.code as string | undefined) ??
     (asRecord(asRecord(error)?.customData)?.code as string | undefined);
   const reasonMap: Array<{ reason: string; message: string }> = [
-    { reason: "COMPANY_SUSPENDED", message: "Sirket hesabi askiya alinmis. Destek ile iletisime gec." },
-    { reason: "COMPANY_BILLING_LOCKED", message: "Sirket fatura kilidi nedeniyle isleme kapali." },
-    { reason: "COMPANY_ARCHIVED", message: "Sirket arsivlendiginden bu islem acik degil." },
-    { reason: "ROLE_NOT_ALLOWED", message: "Bu islem icin rol yetkin yok." },
+    { reason: "COMPANY_SUSPENDED", message: "Şirket hesabi askiya alinmis. Destek ile iletisime gec." },
+    { reason: "COMPANY_BILLING_LOCKED", message: "Şirket fatura kilidi nedeniyle isleme kapali." },
+    { reason: "COMPANY_ARCHIVED", message: "Şirket arsivlendiginden bu islem acik degil." },
+    { reason: "ROLE_NOT_ALLOWED", message: "Bu islem için rol yetkin yok." },
     { reason: "LAST_OWNER_PROTECTION", message: "Sirkette en az bir owner kalmali." },
     { reason: "COMPANY_MEMBER_NOT_FOUND", message: "Uye kaydi bulunamadi." },
-    { reason: "COMPANY_MEMBER_NOT_ACTIVE", message: "Uye aktif olmadigi icin islem yapilamiyor." },
+    { reason: "COMPANY_MEMBER_NOT_ACTIVE", message: "Uye aktif olmadigi için islem yapilamiyor." },
     { reason: "COMPANY_INVITE_NOT_FOUND", message: "Davet kaydi bulunamadi." },
     { reason: "COMPANY_INVITE_REVOKED", message: "Davet daha once iptal edilmis." },
-    { reason: "COMPANY_INVITE_NOT_TARGETED", message: "Bu davet bu hesap icin degil." },
-    { reason: "COMPANY_INVITE_INVALID_STATE", message: "Davet durumu bu islem icin uygun degil." },
+    { reason: "COMPANY_INVITE_NOT_TARGETED", message: "Bu davet bu hesap için degil." },
+    { reason: "COMPANY_INVITE_INVALID_STATE", message: "Davet durumu bu islem için uygun degil." },
     { reason: "SELF_INVITE_NOT_ALLOWED", message: "Kendine davet gonderemezsin." },
-    { reason: "TENANT_MISMATCH", message: "Bu kayit aktif sirket baglamina ait degil." },
+    { reason: "TENANT_MISMATCH", message: "Bu kayıt aktif şirket baglamina ait degil." },
     { reason: "COMPANY_DRIVER_TENANT_MISMATCH", message: "Secilen soforlerin tamami bu sirkete ait olmali." },
     { reason: "COMPANY_ROUTE_NOT_FOUND", message: "Rota bulunamadi." },
     { reason: "COMPANY_ROUTE_OWNER_UNASSIGN_FORBIDDEN", message: "Rota sahibi bu listeden cikarilamaz." },
-    { reason: "DRIVER_LOGIN_EMAIL_IN_USE", message: "Bu giris e-postasi zaten baska bir hesapta kullaniliyor." },
-    { reason: "COMPANY_DRIVER_ALREADY_EXISTS", message: "Bu sofor hesabi zaten olusturulmus." },
-    { reason: "COMPANY_VEHICLE_NOT_FOUND", message: "Arac bulunamadi." },
-    { reason: "COMPANY_VEHICLE_INVALID_STATE", message: "Arac kaydi gecerli durumda degil." },
+    { reason: "DRIVER_LOGIN_EMAIL_IN_USE", message: "Bu giriş e-postasi zaten baska bir hesapta kullaniliyor." },
+    { reason: "COMPANY_DRIVER_ALREADY_EXISTS", message: "Bu şoför hesabi zaten olusturulmus." },
+    { reason: "COMPANY_VEHICLE_NOT_FOUND", message: "Araç bulunamadi." },
+    { reason: "COMPANY_VEHICLE_INVALID_STATE", message: "Araç kaydi gecerli durumda degil." },
+    { reason: "COMPANY_VEHICLE_ROUTE_LINKED_DELETE_FORBIDDEN", message: "Arac rotalara bagliyken silinemez. Once rota baglantilarini kaldir." },
     { reason: "ACTIVE_TRIP_STOP_MUTATION_LOCK", message: "Aktif sefer varken durak sirasi/silme degisikligi kilitli." },
+    { reason: "ROUTE_HAS_TRIP_HISTORY_DELETE_FORBIDDEN", message: "Bu rota daha once kullanildigi icin kalici silinemez. Arsive tasiyin." },
+    { reason: "ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED", message: "Aktif sefer varken rota silinemez veya yapisi degistirilemez." },
     { reason: "INDIVIDUAL_MODE_DISABLED_FOR_COMPANY_MEMBERS", message: "Company kullanicilarinda bireysel mod kapali." },
   ];
   if (maybeCode === "functions/unauthenticated") {
-    return "Oturum bulunamadi. Tekrar giris yap.";
+    return "Oturum bulunamadi. Tekrar giriş yap.";
   }
   for (const item of reasonMap) {
     if (rawMessage.includes(item.reason)) {
@@ -238,11 +243,32 @@ export function toFriendlyErrorMessage(error: unknown): string {
     }
   }
   if (maybeCode === "functions/permission-denied") {
-    return "Bu islem icin yetkin yok.";
+    return "Bu islem için yetkin yok.";
   }
   if (maybeCode === "functions/invalid-argument") {
     if (rawMessage.includes("authorizedDriverIds")) {
-      return "Secilen sofor listesi gecerli degil. Sofor atamasini sofor ekranindan yapabilirsin.";
+      return "Secilen şoför listesi gecerli degil. Şoför atamasini şoför ekranindan yapabilirsin.";
+    }
+    if (rawMessage.includes("plate:")) {
+      return "Plaka en az 4 karakter olmali.";
+    }
+    if (rawMessage.includes("plate minimum 4 karakter")) {
+      return "Plaka en az 4 karakter olmali.";
+    }
+    if (rawMessage.includes("year:")) {
+      return "Yil 1900-2100 araliginda olmali.";
+    }
+    if (rawMessage.includes("capacity:")) {
+      return "Kapasite 1-200 araliginda olmali.";
+    }
+    if (rawMessage.includes("brand:")) {
+      return "Marka bilgisi gecerli degil.";
+    }
+    if (rawMessage.includes("model:")) {
+      return "Model bilgisi gecerli degil.";
+    }
+    if (rawMessage.includes("status:")) {
+      return "Arac durumu gecerli degil. Varsayilan aktif durumuyla tekrar dene.";
     }
     if (rawMessage.includes("scheduledTime")) {
       return "Saat bilgisi gecerli formatta degil. Lutfen HH:mm formatinda gir.";
@@ -256,10 +282,10 @@ export function toFriendlyErrorMessage(error: unknown): string {
     return "Gonderilen veri formati gecersiz.";
   }
   if (maybeCode === "functions/not-found") {
-    return "Kayit bulunamadi.";
+    return "Kayıt bulunamadi.";
   }
   if (maybeCode === "functions/failed-precondition") {
-    return "Islem kosullari saglanmadigi icin tamamlanamadi.";
+    return "Islem kosullari saglanmadigi için tamamlanamadi.";
   }
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
@@ -347,7 +373,7 @@ export function parseCompanyDriverItems(value: unknown): CompanyDriverItem[] {
     }
     const driverId = readString(record.driverId);
     const name = readString(record.name);
-    const plateMasked = readString(record.plateMasked);
+    const plateMasked = typeof record.plateMasked === "string" ? record.plateMasked.trim() : "";
     const status = record.status === "active" || record.status === "passive" ? record.status : "passive";
     const assignmentStatus =
       record.assignmentStatus === "assigned" || record.assignmentStatus === "unassigned"
@@ -371,7 +397,7 @@ export function parseCompanyDriverItems(value: unknown): CompanyDriverItem[] {
         scheduledTime: readString(routeRecord.scheduledTime),
       });
     }
-    if (!driverId || !name || !plateMasked) {
+    if (!driverId || !name) {
       continue;
     }
     items.push({
@@ -382,6 +408,8 @@ export function parseCompanyDriverItems(value: unknown): CompanyDriverItem[] {
       assignmentStatus,
       lastSeenAt: readString(record.lastSeenAt),
       phoneMasked: readString(record.phoneMasked),
+      loginEmail: readString(record.loginEmail),
+      temporaryPassword: readString(record.temporaryPassword),
       assignedRoutes,
     });
   }
@@ -659,3 +687,4 @@ export function parseCompanyLiveOpsItems(value: unknown): CompanyLiveOpsItem[] {
 
   return items;
 }
+

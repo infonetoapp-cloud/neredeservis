@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../ui/screens/active_trip_screen.dart';
 import 'router_value_parsing_helpers.dart';
 
@@ -20,14 +18,18 @@ class RouterDriverStopSnapshot {
 }
 
 List<RouterDriverStopSnapshot> parseDriverFinishTripStops(
-  QuerySnapshot<Map<String, dynamic>>? snapshot,
+  List<Map<String, dynamic>> stopRows,
 ) {
-  if (snapshot == null || snapshot.docs.isEmpty) {
+  if (stopRows.isEmpty) {
     return const <RouterDriverStopSnapshot>[];
   }
   final stops = <RouterDriverStopSnapshot>[];
-  for (final doc in snapshot.docs) {
-    final data = doc.data();
+  for (final row in stopRows) {
+    final stopId = (row['stopId'] as String?)?.trim();
+    final data = mapFromRouterDynamicValue(row['stopData']);
+    if (data == null) {
+      continue;
+    }
     final location = _parseMapPointFromRaw(data['location']);
     if (location == null) {
       continue;
@@ -38,7 +40,7 @@ List<RouterDriverStopSnapshot> parseDriverFinishTripStops(
     final order = orderRaw is num ? orderRaw.toInt() : 9999;
     stops.add(
       RouterDriverStopSnapshot(
-        stopId: doc.id,
+        stopId: (stopId == null || stopId.isEmpty) ? 'stop' : stopId,
         name: name,
         order: order,
         point: location,

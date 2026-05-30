@@ -1,0 +1,32 @@
+services:
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    restart: unless-stopped
+    command:
+      - "--public_url"
+      - "${TILE_PUBLIC_URL}"
+      - "--file"
+      - "/data/${TILESET_FILE}"
+    environment:
+      TILESERVER_GL_ALLOWED_HOSTS: "${TILESERVER_ALLOWED_HOSTS}"
+    volumes:
+      - ./data:/data
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    depends_on:
+      - tileserver
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

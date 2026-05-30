@@ -1,23 +1,18 @@
 import 'dart:async';
 
-import 'package:firebase_database/firebase_database.dart';
-
-import 'router_firebase_runtime_gateway.dart';
+import 'router_runtime_gateway.dart';
 
 typedef RouterRealtimeConnectionChanged = void Function(bool connected);
 
-StreamSubscription<DatabaseEvent> startRouterRealtimeConnectionListener({
+StreamSubscription<bool> startRouterRealtimeConnectionListener({
   required RouterRealtimeConnectionChanged onConnectionChanged,
   void Function(Object error)? onError,
-  FirebaseDatabase? database,
-  RouterFirebaseRuntimeGateway? runtimeGateway,
+  RouterRuntimeGateway? runtimeGateway,
 }) {
-  final targetDatabase = database ??
-      (runtimeGateway ?? routerFirebaseRuntimeGateway).realtimeDatabase;
-  return targetDatabase.ref('.info/connected').onValue.listen(
-    (event) {
-      onConnectionChanged(event.snapshot.value == true);
-    },
+  final targetStream = (runtimeGateway ?? routerRuntimeGateway)
+      .watchRuntimeConnectionStatus();
+  return targetStream.listen(
+    onConnectionChanged,
     onError: onError,
   );
 }

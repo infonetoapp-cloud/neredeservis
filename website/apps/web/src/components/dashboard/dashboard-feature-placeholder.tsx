@@ -24,7 +24,7 @@ export function DashboardFeaturePlaceholder({
 }: DashboardFeaturePlaceholderProps) {
   const defaultWorkspace = (
     <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-      <div className="mb-3 text-sm font-semibold text-slate-900">Calisma Alani</div>
+      <div className="mb-3 text-sm font-semibold text-slate-900">Çalışma Alani</div>
       <div className="h-72 rounded-xl border border-dashed border-line bg-gradient-to-br from-white to-slate-50" />
       <div className="mt-3 text-xs leading-5 text-muted">
         Bu bolum operasyon listeleri, harita ve formlari barindirir.
@@ -62,7 +62,7 @@ export function DashboardFeaturePlaceholder({
             Dashboard
           </Link>
           <Link
-            href="/select-company"
+            href="/dashboard"
             className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
             Firma Sec
@@ -71,7 +71,7 @@ export function DashboardFeaturePlaceholder({
             href="/live-ops"
             className="inline-flex items-center rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-slate-900 hover:bg-slate-50"
           >
-            Canli Ops
+            Canlı Ops
           </Link>
         </div>
       </div>
@@ -101,3 +101,4 @@ export function DashboardFeaturePlaceholder({
     </section>
   );
 }
+

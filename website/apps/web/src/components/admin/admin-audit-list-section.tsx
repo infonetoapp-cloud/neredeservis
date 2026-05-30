@@ -35,10 +35,10 @@ export function AdminAuditListSection({
         {status === "loading"
           ? "Audit kayitlari yukleniyor..."
           : status === "error"
-          ? "Audit servisine erisilemedigi icin kayit listelenemiyor."
+          ? "Audit servisine erisilemedigi için kayıt listelenemiyor."
           : auditActionableOnly
           ? "Secili filtrede aksiyona donusebilir audit kaydi bulunmuyor."
-          : "Secili filtre icin audit kaydi bulunmuyor."}
+          : "Secili filtre için audit kaydi bulunmuyor."}
       </div>
     );
   }
@@ -73,9 +73,10 @@ export function AdminAuditListSection({
           onClick={onLoadMore}
           className="w-full rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
         >
-          Daha Fazla Kayit Yukle
+          Daha Fazla Kayıt Yükle
         </button>
       ) : null}
     </div>
   );
 }
+

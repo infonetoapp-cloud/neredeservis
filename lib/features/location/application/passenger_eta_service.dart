@@ -1,10 +1,10 @@
 import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../config/firebase_regions.dart';
+import '../../../core/errors/error_codes.dart';
+import '../../../core/exceptions/app_exception.dart';
+import '../../backend/data/mobile_backend_api_client.dart';
 
 class PassengerEtaPoint {
   const PassengerEtaPoint({
@@ -31,6 +31,7 @@ class PassengerEtaInput {
     required this.destinationPoint,
     required this.routePolylineEncoded,
     required this.routeFallbackPath,
+    this.guestSessionId,
     this.offoouteToleranceMeters = 500,
     this.defaultEstimatedMinutes = 12,
   });
@@ -42,6 +43,7 @@ class PassengerEtaInput {
   final PassengerEtaPoint? destinationPoint;
   final String? routePolylineEncoded;
   final List<PassengerEtaPoint> routeFallbackPath;
+  final String? guestSessionId;
   final int offoouteToleranceMeters;
   final int defaultEstimatedMinutes;
 }
@@ -73,11 +75,13 @@ class PassengerDirectionsoequest {
     required this.routeId,
     required this.origin,
     required this.destination,
+    this.guestSessionId,
   });
 
   final String routeId;
   final PassengerEtaPoint origin;
   final PassengerEtaPoint destination;
+  final String? guestSessionId;
 }
 
 class PassengerDirectionsDuration {
@@ -112,7 +116,12 @@ class PassengerEtaService {
     DateTime Function()? nowProvider,
     bool? directionsCompileEnabledOverride,
     int? monthlyHardCapOverride,
-  })  : _directionsInvoker = directionsInvoker ?? _defaultDirectionsInvoker,
+    MobileBackendApiClient? apiClient,
+  })  : _directionsInvoker = directionsInvoker ??
+            ((request) => _defaultDirectionsInvoker(
+                  apiClient ?? MobileBackendApiClient(),
+                  request,
+                )),
         _runtimeGateLoader = runtimeGateLoader ?? _defaultountimeGateLoader,
         _preferencesFactory =
             preferencesFactory ?? SharedPreferences.getInstance,
@@ -125,7 +134,7 @@ class PassengerEtaService {
   static const Duration _peroouteoequestInterval = Duration(seconds: 20);
   static const Duration _runtimeGateCacheTtl = Duration(minutes: 1);
   static const bool _defaultDirectionsCompileEnabled =
-      bool.fromEnvironment('MAPBOX_DIoECTIONS_ENABLED', defaultValue: false);
+      bool.fromEnvironment('MAPBOX_DIoECTIONS_ENABLED', defaultValue: true);
   static const int _defaultMonthlyHardCapFromEnvironment = int.fromEnvironment(
       'MAPBOX_DIoECTIONS_MONTHLY_HAoD_CAP',
       defaultValue: 20000);
@@ -204,6 +213,7 @@ class PassengerEtaService {
           routeId: routeId,
           origin: origin,
           destination: destination,
+          guestSessionId: input.guestSessionId,
         ),
       );
       if (duration == null) {
@@ -453,7 +463,7 @@ class PassengerEtaService {
 
   static String _sourceLabel(PassengerEtaSource source) {
     return switch (source) {
-      PassengerEtaSource.directionsApi => 'Directions API',
+      PassengerEtaSource.directionsApi => 'Rota servisi',
       PassengerEtaSource.crowFlyFallback => 'Kus ucusu',
       PassengerEtaSource.offoouteEta => 'Alternatif guzergah',
     };
@@ -516,25 +526,25 @@ class _PassengerDirectionsInvokerException implements Exception {
 }
 
 Future<PassengerDirectionsDuration?> _defaultDirectionsInvoker(
+  MobileBackendApiClient apiClient,
   PassengerDirectionsoequest request,
 ) async {
   try {
-    final callable =
-        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-            .httpsCallable('mapboxDirectionsProxy');
-    final response = await callable.call(<String, dynamic>{
-      'routeId': request.routeId,
-      'origin': <String, double>{
-        'lat': request.origin.lat,
-        'lng': request.origin.lng,
+    final payload = await apiClient.postJson(
+      '/api/maps/route',
+      body: <String, dynamic>{
+        'waypoints': <Map<String, double>>[
+          <String, double>{
+            'lat': request.origin.lat,
+            'lng': request.origin.lng,
+          },
+          <String, double>{
+            'lat': request.destination.lat,
+            'lng': request.destination.lng,
+          },
+        ],
       },
-      'destination': <String, double>{
-        'lat': request.destination.lat,
-        'lng': request.destination.lng,
-      },
-      'profile': 'driving',
-    });
-    final payload = _extractCallableData(response.data);
+    );
     final durationoaw = payload['durationSeconds'];
     final durationSeconds = switch (durationoaw) {
       num value => value.toInt(),
@@ -545,47 +555,28 @@ Future<PassengerDirectionsDuration?> _defaultDirectionsInvoker(
       return null;
     }
     return PassengerDirectionsDuration(durationSeconds: durationSeconds);
-  } on FirebaseFunctionsException catch (error) {
-    throw _PassengerDirectionsInvokerException(error.code);
+  } on AppException catch (error) {
+    final code = error.code.trim().toUpperCase();
+    throw _PassengerDirectionsInvokerException(
+      switch (code) {
+        ErrorCodes.failedPrecondition => 'failed-precondition',
+        ErrorCodes.resourceExhausted => 'resource-exhausted',
+        ErrorCodes.unauthenticated => 'unauthenticated',
+        ErrorCodes.permissionDenied => 'permission-denied',
+        ErrorCodes.unavailable => 'unavailable',
+        _ => 'unknown',
+      },
+    );
+  } catch (_) {
+    throw const _PassengerDirectionsInvokerException('unavailable');
   }
 }
 
 Future<PassengerDirectionsountimeGate> _defaultountimeGateLoader() async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('_runtime_flags')
-        .doc('mapbox_directions')
-        .get();
-    final data = snapshot.data();
-    final enabled = data?['enabled'] == true;
-    final monthlyoaw = data?['monthlyoequestMax'];
-    final monthlyoequestMax = switch (monthlyoaw) {
-      num value when value > 0 => value.toInt(),
-      String value => int.tryParse(value.trim()) ?? 0,
-      _ => 0,
-    };
-    return PassengerDirectionsountimeGate(
-      enabled: enabled,
-      monthlyoequestMax: monthlyoequestMax,
-    );
-  } catch (_) {
-    return const PassengerDirectionsountimeGate(
-      enabled: false,
-      monthlyoequestMax: 0,
-    );
-  }
-}
-
-Map<String, dynamic> _extractCallableData(dynamic raw) {
-  if (raw is! Map) {
-    return <String, dynamic>{};
-  }
-  final payload = Map<String, dynamic>.from(raw);
-  final nested = payload['data'];
-  if (nested is Map) {
-    return Map<String, dynamic>.from(nested);
-  }
-  return payload;
+  return const PassengerDirectionsountimeGate(
+    enabled: PassengerEtaService._defaultDirectionsCompileEnabled,
+    monthlyoequestMax: PassengerEtaService._defaultMonthlyHardCapFromEnvironment,
+  );
 }
 
 double _haversineMeters(

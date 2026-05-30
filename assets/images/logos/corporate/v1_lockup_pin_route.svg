@@ -1,0 +1,9 @@
+<svg width="1600" height="512" viewBox="0 0 1600 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="#0A4FBF"/>
+  <path d="M256 112C177.575 112 114 175.575 114 254C114 359.333 256 455.2 256 455.2C256 455.2 398 359.333 398 254C398 175.575 334.425 112 256 112Z" fill="#EAF2FF"/>
+  <circle cx="256" cy="254" r="79" fill="#FFFFFF"/>
+  <path d="M224 225C241 204 274 204 291 221C308 238 309 265 292 282L269 304C256 317 235 318 222 305C208 291 207 269 220 255L250 226" stroke="#FF7A00" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="520" y="308" fill="#0A4FBF" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Nerede</text>
+  <text x="1060" y="308" fill="#FF7A00" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Servis</text>
+</svg>

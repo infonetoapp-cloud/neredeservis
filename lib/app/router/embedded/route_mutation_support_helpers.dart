@@ -43,13 +43,21 @@ Future<String?> _resolveRouteLastKnownUpdateToken(String routeId) async {
     return null;
   }
   try {
-    final snapshot =
-        await _firestore.collection('routes').doc(normalizedRouteId).get();
-    final data = snapshot.data();
-    if (data == null) {
+    final companyId = await _resolveDriverCompanyIdForRouteMutation();
+    if (companyId == null) {
       return null;
     }
-    final rawToken = data['updatedAt'];
+
+    final routes = await BackendCompanyContractClient().listCompanyRoutes(
+      companyId: companyId,
+      includeArchived: true,
+      limit: 200,
+    );
+    final route = routes.cast<dynamic>().firstWhere(
+          (item) => item?.routeId == normalizedRouteId,
+          orElse: () => null,
+        );
+    final rawToken = route?.updatedAt;
     if (rawToken is! String) {
       return null;
     }

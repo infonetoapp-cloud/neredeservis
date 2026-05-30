@@ -75,8 +75,8 @@ export function VehiclesSidePanel({
   return (
     <div className="space-y-4">
       <DashboardDetailDrawerPlaceholder
-        title="Secili Arac Detayi"
-        subtitle={selectedVehicle ? vehicleStatusLabel(selectedVehicle.status) : "Secili arac yok"}
+        title="Secili Araç Detayi"
+        subtitle={selectedVehicle ? vehicleStatusLabel(selectedVehicle.status) : "Secili araç yok"}
         statusLabel={selectedVehicle ? vehicleStatusLabel(selectedVehicle.status) : "Secim Yok"}
         statusTone={selectedVehicle?.status === "maintenance" ? "warning" : "success"}
         fields={
@@ -97,18 +97,18 @@ export function VehiclesSidePanel({
                 {
                   label: "Aktif Atama",
                   value: assignmentSummary.activeDriverCount
-                    ? `${assignmentSummary.activeDriverCount} sofor`
+                    ? `${assignmentSummary.activeDriverCount} şoför`
                     : "Yok",
                 },
               ]
             : [
-                { label: "Durum", value: "Secili arac yok" },
+                { label: "Durum", value: "Secili araç yok" },
               ]
         }
         actions={["Detay", "Update", "Atama Gecmisi"]}
       />
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <div className="mb-2 text-sm font-semibold text-slate-900">Canli Operasyon Gecisi</div>
+        <div className="mb-2 text-sm font-semibold text-slate-900">Canlı Operasyon Gecisi</div>
         <button
           type="button"
           onClick={() => {
@@ -118,7 +118,7 @@ export function VehiclesSidePanel({
           disabled={!selectedVehicle}
           className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
         >
-          Bu Plakayi Canli Operasyonda Ara
+          Bu Plakayi Canlı Operasyonda Ara
         </button>
       </div>
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
@@ -131,7 +131,7 @@ export function VehiclesSidePanel({
         {activeTripsLoadStatus === "loading" ? (
           <p className="text-xs text-slate-500">Aktif seferler yukleniyor...</p>
         ) : !selectedVehicle ? (
-          <p className="text-xs text-slate-500">Aktif sefer listesi icin arac sec.</p>
+          <p className="text-xs text-slate-500">Aktif sefer listesi için araç sec.</p>
         ) : activeTrips.length === 0 ? (
           <p className="text-xs text-slate-500">Bu plakaya bagli aktif sefer bulunamadi.</p>
         ) : (
@@ -154,7 +154,7 @@ export function VehiclesSidePanel({
                     {trip.routeName}
                   </span>
                   <span className="block truncate text-xs text-muted">
-                    {trip.driverName} - {trip.liveState === "online" ? "Canli" : "Stale"}
+                    {trip.driverName} - {trip.liveState === "online" ? "Canlı" : "Stale"}
                   </span>
                 </span>
                 <span className="text-xs font-semibold text-slate-500">Ac</span>
@@ -193,17 +193,17 @@ export function VehiclesSidePanel({
         </div>
       </div>
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <div className="mb-2 text-sm font-semibold text-slate-900">Atama Ozeti (Canli)</div>
+        <div className="mb-2 text-sm font-semibold text-slate-900">Atama Ozeti (Canlı)</div>
         {!selectedVehicle ? (
-          <p className="text-xs text-slate-500">Atama ozeti icin arac sec.</p>
+          <p className="text-xs text-slate-500">Atama ozeti için araç sec.</p>
         ) : assignmentSummary.activeDriverCount === 0 ? (
           <p className="text-xs text-slate-500">
-            Bu plakaya bagli aktif sefer yok. Atama ozeti sefer baslayinca gorunur.
+            Bu plakaya bagli aktif sefer yok. Atama ozeti sefer baslayinca görünür.
           </p>
         ) : (
           <div className="space-y-2">
             <div className="text-xs text-slate-600">
-              Aktif sofor sayisi: {assignmentSummary.activeDriverCount}
+              Aktif şoför sayisi: {assignmentSummary.activeDriverCount}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {assignmentSummary.activeDriverNames.slice(0, 6).map((name) => (
@@ -236,15 +236,15 @@ export function VehiclesSidePanel({
         ) : (
           <DashboardStatePlaceholder
             tone="info"
-            title="Arac guncelleme kapali"
-            description="Arac mutasyonlari icin aktif owner/admin/dispatcher uyeligi gerekir."
+            title="Araç guncelleme kapali"
+            description="Araç mutasyonlari için aktif owner/admin/dispatcher uyeligi gerekir."
           />
         )
       ) : null}
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <div className="mb-2 text-sm font-semibold text-slate-900">Vehicle Ops Snapshot</div>
         {!selectedVehicle ? (
-          <p className="text-xs text-slate-500">Snapshot icin bir arac sec.</p>
+          <p className="text-xs text-slate-500">Snapshot için bir araç sec.</p>
         ) : (
           <dl className="space-y-1 text-xs text-slate-700">
             <div className="flex items-center justify-between gap-2">
@@ -260,7 +260,7 @@ export function VehiclesSidePanel({
               <dd className="font-semibold text-slate-900">{activeTrips.length}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-slate-500">Aktif Sofor</dt>
+              <dt className="text-slate-500">Aktif Şoför</dt>
               <dd className="font-semibold text-slate-900">{assignmentSummary.activeDriverCount}</dd>
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -273,3 +273,4 @@ export function VehiclesSidePanel({
     </div>
   );
 }
+

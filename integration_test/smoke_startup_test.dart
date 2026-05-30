@@ -22,12 +22,9 @@ void main() {
             sentryEnabled: false,
             sentryDsn: null,
             appCheckDebugProviderEnabled: true,
-            googleSignInServerClientId: null,
+            firebaseWebApiKey: 'AIzaSyDX4wqXAL1-LP0gtYJ_u7YfMyGwdH98nlw', //gitleaks:allow
             adaptyEnabled: false,
             adaptyApiKey: null,
-            mapboxPublicToken: null,
-            mapboxTileCacheMb: 256,
-            mapboxStylePreloadEnabled: true,
           ),
         ),
       ),

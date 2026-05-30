@@ -18,7 +18,7 @@
     "lint:fix": "eslint --fix \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md,yml,yaml}\"",
-    "test:rules:unit": "npm run build && node --test rules-tests/*.test.mjs",
+    "test:rules:unit": "npm run build && node --test --test-concurrency=1 rules-tests/*.test.mjs",
     "test:phase6:acceptance": "npm run build && firebase emulators:exec --only firestore,database \"node --test rules-tests/phase6_acceptance.test.mjs\""
   },
   "dependencies": {

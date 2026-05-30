@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 pluginManagement {
     def flutterSdkPath = {
         def fvmSdk = file("../.fvm/flutter_sdk")
@@ -22,10 +24,45 @@ pluginManagement {
 }
 
 plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
     id "com.android.application" version "8.3.2" apply false
     id "org.jetbrains.kotlin.android" version "2.1.0" apply false
     id "com.google.gms.google-services" version "4.4.2" apply false
 }
 
 include ":app"
+
+def flutterProjectRoot = settingsDir.parentFile
+def flutterPluginsFile = new File(flutterProjectRoot, ".flutter-plugins-dependencies")
+
+if (flutterPluginsFile.exists()) {
+    def parsed = new JsonSlurper().parseText(flutterPluginsFile.getText("UTF-8"))
+    def plugins = parsed instanceof Map ? parsed.plugins : null
+    def androidPlugins = plugins instanceof Map ? plugins.android : null
+
+    if (androidPlugins instanceof List) {
+        androidPlugins.each { plugin ->
+            if (!(plugin instanceof Map)) {
+                return
+            }
+
+            def needsNativeBuild = plugin.native_build
+            if (needsNativeBuild instanceof Boolean && !needsNativeBuild) {
+                return
+            }
+
+            def pluginName = plugin.name
+            def pluginPath = plugin.path
+            if (!(pluginName instanceof String) || !(pluginPath instanceof String)) {
+                return
+            }
+
+            def pluginDirectory = new File(pluginPath, "android")
+            if (!pluginDirectory.exists()) {
+                return
+            }
+
+            include ":${pluginName}"
+            project(":${pluginName}").projectDir = pluginDirectory
+        }
+    }
+}

@@ -1,11 +1,12 @@
 import '../domain/company_contract_models.dart';
-import 'firebase_company_contract_client.dart';
+import 'backend_company_contract_client.dart';
 
 class CompanyActiveContextResolver {
   CompanyActiveContextResolver({
-    FirebaseCompanyContractClient? client,
+    BackendCompanyContractClient? client,
     Future<List<CompanyMembershipSummary>> Function()? listMyCompanies,
-  }) : _listMyCompanies = listMyCompanies ?? client!.listMyCompanies;
+  }) : _listMyCompanies =
+           listMyCompanies ?? (client ?? BackendCompanyContractClient()).listMyCompanies;
 
   final Future<List<CompanyMembershipSummary>> Function() _listMyCompanies;
   static String? _cachedCompanyId;

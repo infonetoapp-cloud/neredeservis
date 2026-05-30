@@ -50,9 +50,30 @@ export function LiveOpsSummaryCards() {
   const summary = useMemo(() => toSummary(items), [items]);
   const safeSummary = status === "error" ? EMPTY_SUMMARY : summary;
   const loading = status === "loading";
+  const hasAnyOperation =
+    safeSummary.routesTracked > 0 ||
+    safeSummary.activeTrips > 0 ||
+    safeSummary.liveRoutes > 0 ||
+    safeSummary.attentionRoutes > 0;
+
+  if (!loading && !hasAnyOperation) {
+    return (
+      <section className="rounded-2xl border border-line bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7d8693]">Canlı Özet</p>
+            <h3 className="mt-1 text-base font-semibold text-slate-900">Şu anda aktif canlı operasyon yok</h3>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+            Durum: Beklemede
+          </span>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       <KpiCard
         label="Takipteki Hat"
         value={safeSummary.routesTracked}

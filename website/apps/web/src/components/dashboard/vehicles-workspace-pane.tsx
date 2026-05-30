@@ -37,7 +37,7 @@ export function VehiclesWorkspacePane({
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Arac listesini goruntulemek icin giris yapin."
+        description="Araç listesini goruntulemek için giriş yapin."
       />
     );
   }
@@ -47,7 +47,7 @@ export function VehiclesWorkspacePane({
       <DashboardStatePlaceholder
         tone="empty"
         title="Firma secilmedi"
-        description="Arac listesini goruntulemek icin once bir firma secin."
+        description="Araç listesini goruntulemek için once bir firma secin."
       />
     );
   }
@@ -57,7 +57,7 @@ export function VehiclesWorkspacePane({
       <DashboardStatePlaceholder
         tone="loading"
         title="Araclar yukleniyor"
-        description="Arac listesi yukleniyor, lutfen bekleyin."
+        description="Araç listesi yukleniyor, lutfen bekleyin."
       />
     );
   }
@@ -86,16 +86,16 @@ export function VehiclesWorkspacePane({
       <div className="space-y-4">
         <DashboardStatePlaceholder
           tone="empty"
-          title="Bu firma icin arac bulunamadi"
-          description="Henuz kayitli arac yok. Asagidan ilk aracinizi ekleyin."
+          title="Bu firma için araç bulunamadi"
+          description="Henuz kayitli araç yok. Asagidan ilk aracinizi ekleyin."
         />
         {canMutateVehicles ? (
           <VehicleCreateInlineForm companyId={companyId} onCreated={onVehicleCreated} />
         ) : (
           <DashboardStatePlaceholder
             tone="info"
-            title="Arac olusturma yetkisi yok"
-            description="Arac eklemek icin yonetici veya koordinator yetkisi gerekir."
+            title="Araç olusturma yetkisi yok"
+            description="Araç eklemek için yönetici veya koordinator yetkisi gerekir."
           />
         )}
       </div>
@@ -110,10 +110,11 @@ export function VehiclesWorkspacePane({
         <DashboardStatePlaceholder
           tone="info"
             title="Salt okuma modunda"
-            description="Arac duzenlemek icin yonetici veya koordinator yetkisi gerekir."
+            description="Araç duzenlemek için yönetici veya koordinator yetkisi gerekir."
         />
       )}
       <VehiclesListSection {...vehiclesListProps} />
     </div>
   );
 }
+

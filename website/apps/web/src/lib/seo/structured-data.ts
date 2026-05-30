@@ -34,8 +34,8 @@ export function buildMarketingWebSiteStructuredData() {
     inLanguage: "tr-TR",
     potentialAction: {
       "@type": "LoginAction",
-      target: toAbsoluteUrl(panelBaseUrl, "/login"),
-      name: "Web panele giris",
+      target: toAbsoluteUrl(panelBaseUrl, "/giris"),
+      name: "Web panele giriş",
     },
   };
 }

@@ -7,11 +7,17 @@ class AddressAutocompleteSuggestion {
     required this.placeId,
     required this.title,
     required this.address,
+    this.lat,
+    this.lng,
+    this.hasPreciseLocation = false,
   });
 
   final String placeId;
   final String title;
   final String address;
+  final double? lat;
+  final double? lng;
+  final bool hasPreciseLocation;
 }
 
 class AddressPlaceDetails {

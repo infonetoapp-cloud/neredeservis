@@ -15,9 +15,9 @@ type AdminRiskFilterMetaProps = {
 };
 
 function toRiskSeverityLabel(selected: RiskSeverityFilter): string {
-  if (selected === "all") return "Tum seviyeler";
+  if (selected === "all") return "Tüm seviyeler";
   if (selected === "warning") return "Kritik";
-  if (selected === "attention") return "Uyari";
+  if (selected === "attention") return "Uyarı";
   return "Bilgi";
 }
 
@@ -125,3 +125,4 @@ export function AdminRiskFilterMeta({
     </div>
   );
 }
+

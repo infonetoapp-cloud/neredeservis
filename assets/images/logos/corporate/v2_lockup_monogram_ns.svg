@@ -1,0 +1,8 @@
+<svg width="1600" height="512" viewBox="0 0 1600 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="#0F1E35"/>
+  <path d="M150 374V138H205L304 279V138H364V374H309L210 233V374H150Z" fill="#F3F7FF"/>
+  <path d="M342 160C323 139 297 128 266 128C217 128 182 157 182 200C182 239 213 262 259 275L280 281C299 286 308 294 308 306C308 322 292 332 268 332C242 332 219 321 202 300L166 338C192 368 227 383 270 383C327 383 371 352 371 304C371 262 342 238 290 224L268 217C245 211 233 203 233 190C233 175 247 165 269 165C290 165 309 173 324 188L342 160Z" fill="#FF7A00"/>
+
+  <text x="520" y="308" fill="#0F1E35" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Nerede</text>
+  <text x="1060" y="308" fill="#FF7A00" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Servis</text>
+</svg>

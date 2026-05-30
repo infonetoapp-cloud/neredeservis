@@ -4,20 +4,21 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   OAuthProvider,
-  reload,
-  sendEmailVerification,
-  type User,
   onAuthStateChanged,
+  reload,
   sendPasswordResetEmail,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  type User,
   updateProfile,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 
+import { callBackendApi } from "@/lib/backend-api/client";
 import { setClientSessionCookie } from "@/lib/auth/session-cookie-client";
-import { getFirebaseClientAuth, getFirebaseClientFirestore } from "@/lib/firebase/client";
+import { getBackendApiBaseUrl } from "@/lib/env/public-env";
+import { getFirebaseClientAuth } from "@/lib/firebase/client";
 
 export type AuthStateListener = (user: User | null) => void;
 export type WebAccessBlockReason = "DRIVER_MOBILE_ONLY_WEB_BLOCK";
@@ -146,11 +147,6 @@ export async function updateCurrentUserProfile(input: {
 }
 
 export async function sendPasswordResetEmailForAddress(email: string): Promise<void> {
-  const auth = getFirebaseClientAuth();
-  if (!auth) {
-    throw new Error("FIREBASE_CONFIG_MISSING");
-  }
-
   const normalized = email.trim();
   if (!normalized) {
     const error = new Error("EMAIL_REQUIRED");
@@ -158,14 +154,31 @@ export async function sendPasswordResetEmailForAddress(email: string): Promise<v
     throw error;
   }
 
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (backendApiBaseUrl) {
+    await callBackendApi<{ success: boolean }>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/password-reset",
+      method: "POST",
+      auth: false,
+      body: { email: normalized },
+    });
+    return;
+  }
+
+  const auth = getFirebaseClientAuth();
+  if (!auth) {
+    throw new Error("FIREBASE_CONFIG_MISSING");
+  }
+
   await sendPasswordResetEmail(auth, normalized);
 }
 
 export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAccessPolicy> {
   const auth = getFirebaseClientAuth();
-  const firestore = getFirebaseClientFirestore();
   const currentUser = auth?.currentUser;
-  if (!auth || !firestore || !currentUser) {
+  const backendApiBaseUrl = getBackendApiBaseUrl();
+  if (!auth || !currentUser || !backendApiBaseUrl) {
     return {
       role: null,
       allowWebPanel: true,
@@ -174,27 +187,12 @@ export async function readCurrentUserWebAccessPolicy(): Promise<CurrentUserWebAc
   }
 
   try {
-    const userSnap = await getDoc(doc(firestore, "users", currentUser.uid));
-    const userData = userSnap.data();
-    const rawRole = typeof userData?.role === "string" ? userData.role.trim().toLowerCase() : null;
-    const forceMobileOnly = userData?.mobileOnlyAuth === true || userData?.webPanelAccess === false;
-    if (rawRole === "driver" && forceMobileOnly) {
-      return {
-        role: rawRole,
-        allowWebPanel: false,
-        reason: "DRIVER_MOBILE_ONLY_WEB_BLOCK",
-      };
-    }
-    if (rawRole === "driver") {
-      return {
-        role: rawRole,
-        allowWebPanel: false,
-        reason: "DRIVER_MOBILE_ONLY_WEB_BLOCK",
-      };
-    }
-
-    return {
-      role: rawRole,
+    const response = await callBackendApi<CurrentUserWebAccessPolicy>({
+      baseUrl: backendApiBaseUrl,
+      path: "api/auth/web-access-policy",
+    });
+    return response.data ?? {
+      role: null,
       allowWebPanel: true,
       reason: null,
     };

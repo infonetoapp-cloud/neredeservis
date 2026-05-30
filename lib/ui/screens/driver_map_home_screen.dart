@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 
+import '../components/maps/service_map_view.dart';
 import '../tokens/core_colors.dart';
 import '../tokens/core_elevations.dart';
 import '../tokens/core_spacing.dart';
@@ -38,7 +38,6 @@ class DriverMapHomeScreen extends StatefulWidget {
     required this.routeName,
     this.driverDisplayName,
     this.driverPhotoUrl,
-    this.mapboxPublicToken,
     this.stops = const <DriverMapStopInfo>[],
     this.myTrips = const <DriverTripListItem>[],
     this.loadMyTrips,
@@ -61,7 +60,6 @@ class DriverMapHomeScreen extends StatefulWidget {
   final String routeName;
   final String? driverDisplayName;
   final String? driverPhotoUrl;
-  final String? mapboxPublicToken;
   final List<DriverMapStopInfo> stops;
   final List<DriverTripListItem> myTrips;
   final Future<List<DriverTripListItem>> Function()? loadMyTrips;
@@ -84,8 +82,8 @@ class DriverMapHomeScreen extends StatefulWidget {
 }
 
 class _DriverMapHomeScreenState extends State<DriverMapHomeScreen> {
-  final GlobalKey<_DriverMapShellState> _mapShellKey =
-      GlobalKey<_DriverMapShellState>();
+  final GlobalKey<_ServiceDriverMapShellState> _mapShellKey =
+      GlobalKey<_ServiceDriverMapShellState>();
   final GlobalKey _bottomSheetKey = GlobalKey();
   _DriverHomeBottomTab _activeBottomTab = _DriverHomeBottomTab.stops;
   DriverTripListItem? _selectedTripPreview;
@@ -183,9 +181,8 @@ class _DriverMapHomeScreenState extends State<DriverMapHomeScreen> {
           return Stack(
             children: <Widget>[
               Positioned.fill(
-                child: _DriverMapShell(
+                child: _ServiceDriverMapShell(
                   key: _mapShellKey,
-                  mapboxPublicToken: widget.mapboxPublicToken,
                   selectedTripPreview: _selectedTripPreview,
                 ),
               ),
@@ -503,35 +500,25 @@ class _DriverMapHomeScreenState extends State<DriverMapHomeScreen> {
   }
 }
 
-class _DriverMapShell extends StatefulWidget {
-  const _DriverMapShell({
+class _ServiceDriverMapShell extends StatefulWidget {
+  const _ServiceDriverMapShell({
     super.key,
-    required this.mapboxPublicToken,
     this.selectedTripPreview,
   });
 
-  final String? mapboxPublicToken;
   final DriverTripListItem? selectedTripPreview;
 
   @override
-  State<_DriverMapShell> createState() => _DriverMapShellState();
+  State<_ServiceDriverMapShell> createState() => _ServiceDriverMapShellState();
 }
 
-class _DriverMapShellState extends State<_DriverMapShell> {
-  gmaps.GoogleMapController? _mapController;
+class _ServiceDriverMapShellState extends State<_ServiceDriverMapShell> {
+  final ServiceMapController _mapController = ServiceMapController();
   Position? _resolvedUserPosition;
   bool _permissionPromptAttempted = false;
   bool _locationPermissionGranted = false;
   bool _initialCameraCenteredOnUser = false;
   bool _locationResolveInFlight = false;
-
-  bool get _hasApiKeyHint =>
-      widget.mapboxPublicToken?.trim().isNotEmpty == true;
-
-  bool get _isMobile =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
   void initState() {
@@ -540,7 +527,7 @@ class _DriverMapShellState extends State<_DriverMapShell> {
   }
 
   @override
-  void didUpdateWidget(covariant _DriverMapShell oldWidget) {
+  void didUpdateWidget(covariant _ServiceDriverMapShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     final previous = oldWidget.selectedTripPreview;
     final next = widget.selectedTripPreview;
@@ -548,56 +535,54 @@ class _DriverMapShellState extends State<_DriverMapShell> {
         previous?.tripId != next?.tripId ||
         previous?.routePolylineEncoded != next?.routePolylineEncoded;
     if (changed && next != null) {
-      unawaited(focusTripPreview());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        unawaited(focusTripPreview());
+      });
     }
   }
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isMobile || !_hasApiKeyHint) {
-      return Container(color: const Color(0xFFE0E9EE));
-    }
-    return gmaps.GoogleMap(
-      initialCameraPosition: _initialCameraPosition(),
-      zoomControlsEnabled: false,
-      myLocationButtonEnabled: false,
-      myLocationEnabled: _locationPermissionGranted,
-      mapToolbarEnabled: false,
-      compassEnabled: false,
-      markers: _buildPreviewMarkers(),
-      polylines: _buildPreviewPolylines(),
-      onMapCreated: _onMapCreated,
-    );
-  }
+    final markers = _buildPreviewMarkers();
+    final polylines = _buildPreviewPolylines();
+    final fallbackCenter = _resolvedUserPosition != null
+        ? ServiceMapPoint(
+            lat: _resolvedUserPosition!.latitude,
+            lng: _resolvedUserPosition!.longitude,
+          )
+        : const ServiceMapPoint(lat: 41.0082, lng: 28.9784);
 
-  gmaps.CameraPosition _initialCameraPosition() {
-    final userPosition = _resolvedUserPosition;
-    if (userPosition != null) {
-      return gmaps.CameraPosition(
-        target: gmaps.LatLng(userPosition.latitude, userPosition.longitude),
-        zoom: 15.2,
-        bearing: 0,
-        tilt: 18,
-      );
-    }
-    return const gmaps.CameraPosition(
-      target: gmaps.LatLng(41.0082, 28.9784),
-      zoom: 11.6,
-      bearing: 0,
-      tilt: 24,
+    return ServiceMapView(
+      controller: _mapController,
+      markers: markers,
+      polylines: polylines,
+      fitPoints: polylines.isNotEmpty
+          ? polylines.first.points
+          : <ServiceMapPoint>[
+              if (_resolvedUserPosition != null)
+                ServiceMapPoint(
+                  lat: _resolvedUserPosition!.latitude,
+                  lng: _resolvedUserPosition!.longitude,
+                ),
+            ],
+      fallbackCenter: fallbackCenter,
+      initialZoom: 11.6,
+      onMapReady: () {
+        unawaited(_centerOnUserIfReady());
+        if (widget.selectedTripPreview != null) {
+          unawaited(focusTripPreview());
+        }
+      },
     );
-  }
-
-  void _onMapCreated(gmaps.GoogleMapController controller) {
-    _mapController = controller;
-    unawaited(_centerOnUserIfReady());
-    unawaited(_resolveUserLocationAndCenterIfPossible());
   }
 
   Future<void> recenterOnUserLocation() async {
@@ -608,35 +593,28 @@ class _DriverMapShellState extends State<_DriverMapShell> {
   }
 
   Future<void> focusTripPreview() async {
-    final controller = _mapController;
     final preview = widget.selectedTripPreview;
-    if (controller == null || preview == null) {
+    if (preview == null) {
       return;
     }
     final boundsPoints = _previewPolylinePoints(preview);
     if (boundsPoints.isEmpty) {
       return;
     }
-    try {
-      if (boundsPoints.length == 1) {
-        await controller.animateCamera(
-          gmaps.CameraUpdate.newLatLngZoom(boundsPoints.first, 13.8),
-        );
-        return;
-      }
-      await controller.animateCamera(
-        gmaps.CameraUpdate.newLatLngBounds(_buildBounds(boundsPoints), 64),
-      );
-    } catch (_) {
-      // Map channel can be unavailable in tests.
-    }
+    _mapController.fitPoints(
+      boundsPoints,
+      padding: const EdgeInsets.all(64),
+      maxZoom: 16,
+      minZoom: 6,
+      singlePointZoom: 13.8,
+    );
   }
 
   Future<void> _resolveUserLocationAndCenterIfPossible({
     bool forceRefreshPosition = false,
     bool forceCenter = false,
   }) async {
-    if (!_isMobile || !_hasApiKeyHint || _locationResolveInFlight) {
+    if (_locationResolveInFlight) {
       return;
     }
     if (!forceRefreshPosition &&
@@ -689,9 +667,6 @@ class _DriverMapShellState extends State<_DriverMapShell> {
   }
 
   Future<bool> _ensureLocationPermission() async {
-    if (!_isMobile) {
-      return false;
-    }
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -722,29 +697,21 @@ class _DriverMapShellState extends State<_DriverMapShell> {
     if (_initialCameraCenteredOnUser && !force) {
       return;
     }
-    final controller = _mapController;
     final userPosition = _resolvedUserPosition;
-    if (controller == null || userPosition == null) {
+    if (userPosition == null) {
       return;
     }
-    try {
-      await controller.animateCamera(
-        gmaps.CameraUpdate.newCameraPosition(
-          gmaps.CameraPosition(
-            target: gmaps.LatLng(userPosition.latitude, userPosition.longitude),
-            zoom: 15.2,
-            bearing: 0,
-            tilt: 18,
-          ),
-        ),
-      );
-      _initialCameraCenteredOnUser = true;
-    } catch (_) {
-      // Plugin channels can be unavailable in widget tests.
-    }
+    _mapController.moveTo(
+      ServiceMapPoint(
+        lat: userPosition.latitude,
+        lng: userPosition.longitude,
+      ),
+      zoom: 15.2,
+    );
+    _initialCameraCenteredOnUser = true;
   }
 
-  Set<gmaps.Marker> _buildPreviewMarkers() {
+  List<ServiceMapMarkerData> _buildPreviewMarkers() {
     final preview = widget.selectedTripPreview;
     final start = preview?.startPoint;
     final end = preview?.endPoint;
@@ -753,53 +720,61 @@ class _DriverMapShellState extends State<_DriverMapShell> {
         end == null ||
         !_isValidMapCoordinate(start.lat, start.lng) ||
         !_isValidMapCoordinate(end.lat, end.lng)) {
-      return const <gmaps.Marker>{};
+      return const <ServiceMapMarkerData>[];
     }
-    return <gmaps.Marker>{
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('home_preview_start'),
-        position: gmaps.LatLng(start.lat, start.lng),
-        infoWindow: const gmaps.InfoWindow(title: 'Başlangıç'),
-        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-          gmaps.BitmapDescriptor.hueGreen,
-        ),
+    return <ServiceMapMarkerData>[
+      ServiceMapMarkerData(
+        id: 'home_preview_start',
+        point: ServiceMapPoint(lat: start.lat, lng: start.lng),
+        label: 'Baslangic',
+        icon: Icons.play_arrow_rounded,
+        tone: ServiceMapMarkerTone.start,
       ),
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('home_preview_end'),
-        position: gmaps.LatLng(end.lat, end.lng),
-        infoWindow: const gmaps.InfoWindow(title: 'Bitiş'),
-        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-          gmaps.BitmapDescriptor.hueRed,
-        ),
+      ServiceMapMarkerData(
+        id: 'home_preview_end',
+        point: ServiceMapPoint(lat: end.lat, lng: end.lng),
+        label: 'Bitis',
+        icon: Icons.flag_rounded,
+        tone: ServiceMapMarkerTone.end,
       ),
-    };
+      if (_resolvedUserPosition != null)
+        ServiceMapMarkerData(
+          id: 'driver_user',
+          point: ServiceMapPoint(
+            lat: _resolvedUserPosition!.latitude,
+            lng: _resolvedUserPosition!.longitude,
+          ),
+          label: 'Konumum',
+          icon: Icons.my_location_rounded,
+          tone: ServiceMapMarkerTone.user,
+          size: 26,
+        ),
+    ];
   }
 
-  Set<gmaps.Polyline> _buildPreviewPolylines() {
+  List<ServiceMapPolylineData> _buildPreviewPolylines() {
     final preview = widget.selectedTripPreview;
     if (preview == null) {
-      return const <gmaps.Polyline>{};
+      return const <ServiceMapPolylineData>[];
     }
     final points = _previewPolylinePoints(preview);
     if (points.length < 2) {
-      return const <gmaps.Polyline>{};
+      return const <ServiceMapPolylineData>[];
     }
-    return <gmaps.Polyline>{
-      gmaps.Polyline(
-        polylineId: const gmaps.PolylineId('home_preview_route'),
+    return <ServiceMapPolylineData>[
+      ServiceMapPolylineData(
+        id: 'home_preview_route',
         points: points,
-        width: 5,
-        color: const Color(0xFFF5A000),
       ),
-    };
+    ];
   }
 
-  List<gmaps.LatLng> _previewPolylinePoints(DriverTripListItem preview) {
+  List<ServiceMapPoint> _previewPolylinePoints(DriverTripListItem preview) {
     final decoded = _decodePolylineOrNull(preview.routePolylineEncoded);
     if (decoded != null && decoded.length >= 2) {
       return decoded
           .where((point) => _isValidMapCoordinate(point.lat, point.lng))
-          .map((point) => gmaps.LatLng(point.lat, point.lng))
+          .map((point) => ServiceMapPoint(lat: point.lat, lng: point.lng))
           .toList(growable: false);
     }
     final start = preview.startPoint;
@@ -808,45 +783,12 @@ class _DriverMapShellState extends State<_DriverMapShell> {
         end == null ||
         !_isValidMapCoordinate(start.lat, start.lng) ||
         !_isValidMapCoordinate(end.lat, end.lng)) {
-      return const <gmaps.LatLng>[];
+      return const <ServiceMapPoint>[];
     }
-    return <gmaps.LatLng>[
-      gmaps.LatLng(start.lat, start.lng),
-      gmaps.LatLng(end.lat, end.lng),
+    return <ServiceMapPoint>[
+      ServiceMapPoint(lat: start.lat, lng: start.lng),
+      ServiceMapPoint(lat: end.lat, lng: end.lng),
     ];
-  }
-
-  gmaps.LatLngBounds _buildBounds(List<gmaps.LatLng> points) {
-    var minLat = points.first.latitude;
-    var maxLat = points.first.latitude;
-    var minLng = points.first.longitude;
-    var maxLng = points.first.longitude;
-    for (final point in points.skip(1)) {
-      if (point.latitude < minLat) {
-        minLat = point.latitude;
-      }
-      if (point.latitude > maxLat) {
-        maxLat = point.latitude;
-      }
-      if (point.longitude < minLng) {
-        minLng = point.longitude;
-      }
-      if (point.longitude > maxLng) {
-        maxLng = point.longitude;
-      }
-    }
-    if (minLat == maxLat) {
-      minLat -= 0.0025;
-      maxLat += 0.0025;
-    }
-    if (minLng == maxLng) {
-      minLng -= 0.0025;
-      maxLng += 0.0025;
-    }
-    return gmaps.LatLngBounds(
-      southwest: gmaps.LatLng(minLat, minLng),
-      northeast: gmaps.LatLng(maxLat, maxLng),
-    );
   }
 
   bool _isValidMapCoordinate(double lat, double lng) {
@@ -856,6 +798,7 @@ class _DriverMapShellState extends State<_DriverMapShell> {
     return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
   }
 }
+
 
 class _TopOverlay extends StatelessWidget {
   const _TopOverlay({

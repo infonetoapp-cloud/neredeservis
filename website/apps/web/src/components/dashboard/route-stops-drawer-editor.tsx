@@ -302,7 +302,7 @@ export function RouteStopsDrawerEditor({
 
       if (changedCount > 0) {
         setSuccessMessage(
-          steps > 1 ? `Durak ${changedCount} adim tasindi.` : "Durak sirasi guncellendi.",
+          steps > 1 ? `Durak ${changedCount} adım tasindi.` : "Durak sirasi guncellendi.",
         );
       } else {
         setSuccessMessage("Durak zaten sinirda.");
@@ -379,7 +379,7 @@ export function RouteStopsDrawerEditor({
       </div>
 
       {!selectedRoute ? (
-        <p className="text-xs text-slate-500">Durak editoru icin once bir rota sec.</p>
+        <p className="text-xs text-slate-500">Durak editoru için once bir rota sec.</p>
       ) : (
         <div className="space-y-4">
           {hasActiveTrips ? (
@@ -448,3 +448,4 @@ export function RouteStopsDrawerEditor({
     </section>
   );
 }
+

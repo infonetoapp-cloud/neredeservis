@@ -136,7 +136,7 @@ export function RouteUpdateDrawerForm({
     if (!selectedRoute || !form || !canSubmit) return;
 
     if (!hasChanges) {
-      setSuccessMessage("Degisiklik yok, kayit gonderilmedi.");
+      setSuccessMessage("Degisiklik yok, kayıt gonderilmedi.");
       setError(null);
       return;
     }
@@ -186,7 +186,7 @@ export function RouteUpdateDrawerForm({
       );
 
       if (Object.keys(patch).length === 0 && toGrantDriverUids.length === 0 && toRevokeDriverUids.length === 0) {
-        setSuccessMessage("Degisiklik yok, kayit gonderilmedi.");
+        setSuccessMessage("Degisiklik yok, kayıt gonderilmedi.");
         return;
       }
 
@@ -241,7 +241,7 @@ export function RouteUpdateDrawerForm({
   if (!selectedRoute || !form) {
     return (
       <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold text-slate-900">Rota Guncelle</div>
+        <div className="text-sm font-semibold text-slate-900">Rota Güncelle</div>
         <p className="mt-2 text-xs leading-5 text-slate-500">
           Liste bos oldugunda guncelleme formu devreye girmez.
         </p>
@@ -253,7 +253,7 @@ export function RouteUpdateDrawerForm({
     <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Rota Guncelle</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Rota Güncelle</h3>
           <p className="text-xs text-slate-500">
             `updateCompanyRoute` ile route ozet alanlari patch edilir.
           </p>
@@ -318,3 +318,4 @@ export function RouteUpdateDrawerForm({
     </section>
   );
 }
+

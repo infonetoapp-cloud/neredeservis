@@ -42,16 +42,16 @@ export function CompanyDashboardMiniMap({ companyId, items, totalVehicleCount }:
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Harita Ozeti</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">Sirket araclari konum gorunumu</h2>
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">Şirket araclari konum gorunumu</h2>
           <p className="mt-1 text-xs text-[#6f7783]">
-            {mappableItems.length}/{totalVehicleCount} kayitli arac canli konumda gorunuyor.
+            {mappableItems.length}/{totalVehicleCount} kayitli araç canlı konumda gorunuyor.
           </p>
         </div>
         <Link
           href={`/c/${encodeURIComponent(companyId)}/live-ops`}
           className="inline-flex items-center rounded-xl border border-line bg-[#f8fafc] px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white"
         >
-          Canli Operasyona git
+          Canlı Operasyona git
         </Link>
       </div>
 
@@ -68,10 +68,10 @@ export function CompanyDashboardMiniMap({ companyId, items, totalVehicleCount }:
           <div className="space-y-1 text-xs text-[#5f6874]">
             <div className="text-sm font-semibold text-slate-900">{selected.routeName}</div>
             <div>
-              arac: {selected.vehiclePlate}
+              araç: {selected.vehiclePlate}
               {selected.vehicleLabel ? ` (${selected.vehicleLabel})` : ""}
             </div>
-            <div>sofor: {selected.driverName}</div>
+            <div>şoför: {selected.driverName}</div>
             <div>son konum: harita uzerinde secili olarak gosteriliyor</div>
             <div>
               hiz: {selected.speed != null ? selected.speed.toFixed(1) : "-"} | yolcu: {selected.passengerCount}
@@ -79,10 +79,11 @@ export function CompanyDashboardMiniMap({ companyId, items, totalVehicleCount }:
           </div>
         ) : (
           <div className="text-xs text-[#6f7783]">
-            Sirkete kayitli araclar icin anlik konum bulunamadi.
+            Sirkete kayitli araclar için anlik konum bulunamadi.
           </div>
         )}
       </div>
     </section>
   );
 }
+

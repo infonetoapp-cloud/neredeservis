@@ -104,7 +104,7 @@ export function AdminCorsAllowlistCard() {
         {copyStatus}
       </div>
       <p className="text-xs text-muted">
-        Firebase callable ve panel domainleri icin allow-list dogrulama listesi. Isaretler lokal
+        Firebase callable ve panel domainleri için allow-list doğrulama listesi. Isaretler lokal
         saklanir.
       </p>
       <div className="mt-3 space-y-2">
@@ -133,3 +133,4 @@ export function AdminCorsAllowlistCard() {
     </section>
   );
 }
+

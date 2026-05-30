@@ -18,7 +18,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
   navbar: {
     logoUrl: "",
     ctaText: "Ücretsiz Başla",
-    ctaLink: "/login",
+    ctaLink: "/giris",
     links: [
       { label: "Özellikler", href: "#features" },
       { label: "Nasıl Çalışır", href: "#how-it-works" },
@@ -35,7 +35,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
     headlineLine2: "tek panelden yönetin.",
     subtitle:
       "Servis araçlarınızı canlı harita üzerinde takip edin, rotaları yönetin, şoförleri atayın. Personel, öğrenci, hasta — her sektörde çalışan kurumsal platform.",
-    primaryCta: { text: "Ücretsiz demo başlat", link: "/login" },
+    primaryCta: { text: "Ücretsiz demo başlat", link: "/giris" },
     secondaryCta: { text: "Bize ulaşın", link: "/iletisim" },
     heroImageUrl: "",
   },
@@ -145,7 +145,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
         features: ["5 araç", "2 rota", "Canlı takip", "CSV dışa aktarma"],
         highlighted: false,
         ctaText: "Ücretsiz Dene",
-        ctaLink: "/login",
+        ctaLink: "/giris",
       },
       {
         name: "Profesyonel",
@@ -161,7 +161,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
         ],
         highlighted: true,
         ctaText: "Hemen Başla",
-        ctaLink: "/login",
+        ctaLink: "/giris",
       },
       {
         name: "Kurumsal",
@@ -188,7 +188,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
     headlineLine2: "bugün başlayın.",
     subtitle:
       "Hesabınızı oluşturun, 5 dakikada ilk rotanızı ekleyin. İlk 14 gün tamamen ücretsiz.",
-    primaryCta: { text: "Ücretsiz hesap oluştur", link: "/login" },
+    primaryCta: { text: "Ücretsiz hesap oluştur", link: "/giris" },
     secondaryCta: { text: "Demo talep et", link: "/iletisim" },
   },
 
@@ -216,7 +216,7 @@ export const DEFAULT_LANDING_CONFIG: LandingPageConfig = {
       {
         title: "Hesap",
         links: [
-          { label: "Giriş Yap", href: "/login" },
+          { label: "Giriş Yap", href: "/giris" },
           { label: "Kayıt Ol", href: "/register" },
         ],
       },

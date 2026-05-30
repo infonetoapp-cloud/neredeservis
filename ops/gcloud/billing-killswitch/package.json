@@ -1,0 +1,13 @@
+{
+  "name": "billing-killswitch",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Disables project billing when the configured budget is exceeded.",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "dependencies": {
+    "@google-cloud/billing": "^5.0.0"
+  }
+}

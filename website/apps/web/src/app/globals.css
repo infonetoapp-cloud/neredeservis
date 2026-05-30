@@ -1,13 +1,29 @@
 @import "tailwindcss";
-@import "mapbox-gl/dist/mapbox-gl.css";
+@import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #f0f4f8;
+  --background: #f3f6fb;
   --foreground: #0f172a;
   --surface: #ffffff;
   --muted: #64748b;
   --line: #d8e0ed;
-  --brand: #2563eb;
+  --brand: #0a4fbf;
+  --brand-strong: #083a8f;
+  --accent: #ff7a00;
+  --accent-soft: #fff4e8;
+  --font-plus-jakarta:
+    "Aptos",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  --font-geist-mono:
+    "JetBrains Mono",
+    "Cascadia Code",
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    monospace;
 }
 
 @theme inline {
@@ -17,6 +33,9 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --font-sans: var(--font-plus-jakarta);
   --font-mono: var(--font-geist-mono);
   /* upgraded shadows for depth */
@@ -91,4 +110,16 @@ body {
 }
 .glass-button-primary:active {
   background: #1e40af;
+}
+
+@keyframes vehicleValidationCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

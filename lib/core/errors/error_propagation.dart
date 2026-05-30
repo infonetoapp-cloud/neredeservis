@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_core/firebase_core.dart';
-
 import '../exceptions/app_exception.dart';
 import 'error_codes.dart';
 
@@ -43,15 +41,6 @@ AppException propagateAppException({
 }) {
   if (error is AppException) {
     return error;
-  }
-
-  if (error is FirebaseException) {
-    final code = normalizeErrorCode(error.code);
-    return AppException(
-      code: code == ErrorCodes.unknown ? fallbackCode : code,
-      message: error.message ?? fallbackMessage,
-      cause: error,
-    );
   }
 
   if (error is TimeoutException || error is SocketException) {

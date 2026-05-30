@@ -2,9 +2,7 @@ part of '../app_router.dart';
 
 final CreateDriverRouteUseCase _createDriverRouteUseCase =
     CreateDriverRouteUseCase(
-  repository: FirebaseDriverRouteCreateRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverRouteCreateRepository(),
 );
 final CommitCreateDriverRouteUseCase _commitCreateDriverRouteUseCase =
     CommitCreateDriverRouteUseCase(
@@ -58,9 +56,7 @@ const PlanRouteMutationWriteSuccessHandlingUseCase
 );
 final UpdateDriverRouteUseCase _updateDriverRouteUseCase =
     UpdateDriverRouteUseCase(
-  repository: FirebaseDriverRouteUpdateRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverRouteUpdateRepository(),
 );
 final CommitUpdateDriverRouteUseCase _commitUpdateDriverRouteUseCase =
     CommitUpdateDriverRouteUseCase(
@@ -68,9 +64,7 @@ final CommitUpdateDriverRouteUseCase _commitUpdateDriverRouteUseCase =
 );
 final UpsertDriverStopUseCase _upsertDriverStopUseCase =
     UpsertDriverStopUseCase(
-  repository: FirebaseDriverStopMutationRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverStopMutationRepository(),
 );
 final CommitUpsertDriverStopUseCase _commitUpsertDriverStopUseCase =
     CommitUpsertDriverStopUseCase(
@@ -78,9 +72,7 @@ final CommitUpsertDriverStopUseCase _commitUpsertDriverStopUseCase =
 );
 final DeleteDriverStopUseCase _deleteDriverStopUseCase =
     DeleteDriverStopUseCase(
-  repository: FirebaseDriverStopMutationRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverStopMutationRepository(),
 );
 final CommitDeleteDriverStopUseCase _commitDeleteDriverStopUseCase =
     CommitDeleteDriverStopUseCase(
@@ -88,27 +80,19 @@ final CommitDeleteDriverStopUseCase _commitDeleteDriverStopUseCase =
 );
 final SubmitPassengerSkipTodayUseCase _submitPassengerSkipTodayUseCase =
     SubmitPassengerSkipTodayUseCase(
-  repository: FirebasePassengerSkipTodayRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendPassengerSkipTodayRepository(),
 );
 final UpdatePassengerSettingsUseCase _updatePassengerSettingsUseCase =
     UpdatePassengerSettingsUseCase(
-  repository: FirebasePassengerSettingsUpdateRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendPassengerSettingsUpdateRepository(),
 );
 final LeavePassengerRouteUseCase _leavePassengerRouteUseCase =
     LeavePassengerRouteUseCase(
-  repository: FirebasePassengerRouteLeaveRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendPassengerRouteLeaveRepository(),
 );
 final JoinPassengerRouteBySrvCodeUseCase _joinPassengerRouteBySrvCodeUseCase =
     JoinPassengerRouteBySrvCodeUseCase(
-  repository: FirebasePassengerRouteJoinRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendPassengerRouteJoinRepository(),
 );
 final CommitPassengerJoinBySrvCodeUseCase _commitPassengerJoinBySrvCodeUseCase =
     CommitPassengerJoinBySrvCodeUseCase(
@@ -116,9 +100,7 @@ final CommitPassengerJoinBySrvCodeUseCase _commitPassengerJoinBySrvCodeUseCase =
 );
 final CreateGuestSessionUseCase _createGuestSessionUseCase =
     CreateGuestSessionUseCase(
-  repository: FirebaseGuestSessionCreateRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendGuestSessionCreateRepository(),
 );
 final CommitCreateGuestSessionUseCase _commitCreateGuestSessionUseCase =
     CommitCreateGuestSessionUseCase(
@@ -164,28 +146,20 @@ const ResolvePassengerSkipTodayFailureFeedbackMessageUseCase
 final ReadPrimaryPassengerMembershipUseCase
     _readPrimaryPassengerMembershipUseCase =
     ReadPrimaryPassengerMembershipUseCase(
-  repository: FirebasePassengerPrimaryMembershipLookupRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendPassengerPrimaryMembershipLookupRepository(),
 );
-final ObservePassengerTrackingStreamsUseCase
-    _observePassengerTrackingStreamsUseCase =
-    ObservePassengerTrackingStreamsUseCase(
-  repository: FirebasePassengerTrackingStreamRepository(
-    firestore: _firestore,
-  ),
+final ObservePassengerTrackingSnapshotsUseCase
+    _observePassengerTrackingSnapshotsUseCase =
+    ObservePassengerTrackingSnapshotsUseCase(
+  repository: BackendPassengerTrackingSnapshotRepository(),
 );
 final UpsertDriverProfileUseCase _upsertDriverProfileUseCase =
     UpsertDriverProfileUseCase(
-  repository: FirebaseDriverProfileUpsertRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverProfileUpsertRepository(),
 );
 final ReadDriverProfileRecordUseCase _readDriverProfileRecordUseCase =
     ReadDriverProfileRecordUseCase(
-  repository: FirestoreDriverRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendCurrentDriverRepository(),
 );
 const PrepareDriverPhoneVisibilityToggleUpsertCommandUseCase
     _prepareDriverPhoneVisibilityToggleUpsertCommandUseCase =
@@ -196,9 +170,7 @@ final ResolveDriverEntryDestinationUseCase
   readDriverProfileRecordUseCase: _readDriverProfileRecordUseCase,
 );
 final DeleteUserDataUseCase _deleteUserDataUseCase = DeleteUserDataUseCase(
-  repository: FirebaseDeleteUserDataRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDeleteUserDataRepository(),
 );
 final UpsertConsentUseCase _upsertConsentUseCase = UpsertConsentUseCase(
   client: UpsertConsentClient(),
@@ -209,31 +181,23 @@ final UpdateUserProfileUseCase _updateUserProfileUseCase =
 );
 final OpenTripConversationUseCase _openTripConversationUseCase =
     OpenTripConversationUseCase(
-  repository: FirebaseTripConversationRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendTripConversationRepository(),
 );
 const ResolveTripChatOpenFailureFeedbackMessageUseCase
     _resolveTripChatOpenFailureFeedbackMessageUseCase =
     ResolveTripChatOpenFailureFeedbackMessageUseCase();
 final StartDriverTripUseCase _startDriverTripUseCase = StartDriverTripUseCase(
-  repository: FirebaseDriverTripStartRepository(
-    functions: _firebaseFunctions,
-  ),
+  repository: BackendDriverTripStartRepository(),
 );
 final ObserveDriverFinishTripStreamsUseCase
     _observeDriverFinishTripStreamsUseCase =
     ObserveDriverFinishTripStreamsUseCase(
-  repository: FirebaseDriverFinishTripStreamRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverFinishTripStreamRepository(),
 );
 final ResolveDriverActiveTripContextUseCase
     _resolveDriverActiveTripContextUseCase =
     ResolveDriverActiveTripContextUseCase(
-  repository: FirebaseDriverActiveTripContextLookupRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverActiveTripContextLookupRepository(),
 );
 const ResolveDriverFinishTripCommitFeedbackMessageUseCase
     _resolveDriverFinishTripCommitFeedbackMessageUseCase =
@@ -244,9 +208,7 @@ const ResolveDriverFinishTripMappedFailureFeedbackMessageUseCase
 final ReadDriverActiveTripTransitionVersionUseCase
     _readDriverActiveTripTransitionVersionUseCase =
     ReadDriverActiveTripTransitionVersionUseCase(
-  repository: FirebaseDriverActiveTripTransitionVersionRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverActiveTripTransitionVersionRepository(),
 );
 final CommitStartDriverTripUseCase _commitStartDriverTripUseCase =
     CommitStartDriverTripUseCase(
@@ -257,9 +219,7 @@ const ResolveStartDriverTripFailureFeedbackMessageUseCase
     _resolveStartDriverTripFailureFeedbackMessageUseCase =
     ResolveStartDriverTripFailureFeedbackMessageUseCase();
 final BootstrapUserProfileClient _bootstrapUserProfileClient =
-    BootstrapUserProfileClient(
-  functions: _firebaseFunctions,
-);
+    BootstrapUserProfileClient();
 final BootstrapCurrentAuthProfileSessionUseCase
     _bootstrapCurrentAuthProfileSessionUseCase =
     BootstrapCurrentAuthProfileSessionUseCase(
@@ -275,7 +235,7 @@ final PromoteCurrentAuthUserToDriverRoleWithRetryUseCase
       _bootstrapCurrentAuthProfileSessionUseCase,
 );
 final ReadUserRoleUseCase _readUserRoleUseCase = ReadUserRoleUseCase(
-  repository: FirestoreUserRoleRepository(),
+  repository: BackendUserRoleRepository(),
 );
 const PlanDeleteAccountResultHandlingUseCase
     _planDeleteAccountResultHandlingUseCase =
@@ -300,12 +260,6 @@ const ResolveEmailRegisterFailureFeedbackMessageUseCase
 const ResolveEmailSignInFailureFeedbackMessageUseCase
     _resolveEmailSignInFailureFeedbackMessageUseCase =
     ResolveEmailSignInFailureFeedbackMessageUseCase();
-const ResolveGoogleAuthExceptionFeedbackMessageUseCase
-    _resolveGoogleAuthExceptionFeedbackMessageUseCase =
-    ResolveGoogleAuthExceptionFeedbackMessageUseCase();
-const ResolveGoogleSignInPlatformFailureFeedbackMessageUseCase
-    _resolveGoogleSignInPlatformFailureFeedbackMessageUseCase =
-    ResolveGoogleSignInPlatformFailureFeedbackMessageUseCase();
 const ResolvePasswordResetEmailFailureFeedbackMessageUseCase
     _resolvePasswordResetEmailFailureFeedbackMessageUseCase =
     ResolvePasswordResetEmailFailureFeedbackMessageUseCase();
@@ -359,26 +313,26 @@ final ShouldPromptLocationPermissionForUserUseCase
 );
 final LoadAppSettingsBootstrapUseCase _loadAppSettingsBootstrapUseCase =
     LoadAppSettingsBootstrapUseCase(
-  repository: FirebaseAppSettingsBootstrapRepository(),
+  repository: BackendAppSettingsBootstrapRepository(),
 );
 final LoadDriverProfileSetupBootstrapUseCase
     _loadDriverProfileSetupBootstrapUseCase =
     LoadDriverProfileSetupBootstrapUseCase(
-  repository: FirebaseDriverProfileSetupBootstrapRepository(),
+  repository: BackendDriverProfileSetupBootstrapRepository(),
 );
 final LoadProfileEditBootstrapUseCase _loadProfileEditBootstrapUseCase =
     LoadProfileEditBootstrapUseCase(
-  repository: FirebaseProfileEditBootstrapRepository(),
+  repository: BackendProfileEditBootstrapRepository(),
 );
 final LoadDriverHomeHeaderBootstrapUseCase
     _loadDriverHomeHeaderBootstrapUseCase =
     LoadDriverHomeHeaderBootstrapUseCase(
-  repository: FirebaseDriverHomeHeaderBootstrapRepository(),
+  repository: BackendDriverHomeHeaderBootstrapRepository(),
 );
 final LoadDriverSubscriptionSnapshotUseCase
     _loadDriverSubscriptionSnapshotUseCase =
     LoadDriverSubscriptionSnapshotUseCase(
-  repository: FirebaseDriverSubscriptionSnapshotRepository(),
+  repository: BackendDriverSubscriptionSnapshotRepository(),
 );
 final LoadCurrentAuthDriverSubscriptionSnapshotUseCase
     _loadCurrentAuthDriverSubscriptionSnapshotUseCase =
@@ -389,46 +343,38 @@ final LoadCurrentAuthDriverSubscriptionSnapshotUseCase
 );
 final LoadDriverHomeRouteSectionUseCase _loadDriverHomeRouteSectionUseCase =
     LoadDriverHomeRouteSectionUseCase(
-  repository: FirebaseDriverHomeRouteSectionRepository(),
+  repository: BackendDriverHomeRouteSectionRepository(),
 );
 final LoadDriverTripCompletedBootstrapRawUseCase
     _loadDriverTripCompletedBootstrapRawUseCase =
     LoadDriverTripCompletedBootstrapRawUseCase(
-  repository: FirebaseDriverTripCompletedBootstrapRepository(),
+  repository: BackendDriverTripCompletedBootstrapRepository(),
 );
 final ComposeDriverTripCompletedBootstrapUseCase
     _composeDriverTripCompletedBootstrapUseCase =
     ComposeDriverTripCompletedBootstrapUseCase();
 final LoadDriverTripHistoryRawUseCase _loadDriverTripHistoryRawUseCase =
     LoadDriverTripHistoryRawUseCase(
-  repository: FirebaseDriverTripHistoryRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverTripHistoryRepository(),
 );
 final ComposeDriverTripHistoryItemSeedsUseCase
     _composeDriverTripHistoryItemSeedsUseCase =
     ComposeDriverTripHistoryItemSeedsUseCase();
 final LoadPassengerTripHistoryRawUseCase _loadPassengerTripHistoryRawUseCase =
     LoadPassengerTripHistoryRawUseCase(
-  repository: FirebasePassengerTripHistoryRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendPassengerTripHistoryRepository(),
 );
 final ComposePassengerTripHistoryItemSeedsUseCase
     _composePassengerTripHistoryItemSeedsUseCase =
     ComposePassengerTripHistoryItemSeedsUseCase();
 final LoadDriverMyTripsRawUseCase _loadDriverMyTripsRawUseCase =
     LoadDriverMyTripsRawUseCase(
-  repository: FirebaseDriverMyTripsRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverMyTripsRepository(),
 );
 final LoadDriverTripDetailBootstrapRawUseCase
     _loadDriverTripDetailBootstrapRawUseCase =
     LoadDriverTripDetailBootstrapRawUseCase(
-  repository: FirebaseDriverTripDetailBootstrapRepository(
-    firestore: _firestore,
-  ),
+  repository: BackendDriverTripDetailBootstrapRepository(),
 );
 final ClassifyDriverMyTripsRawUseCase _classifyDriverMyTripsRawUseCase =
     ClassifyDriverMyTripsRawUseCase(
@@ -440,7 +386,7 @@ final ComposeDriverMyTripsCardSeedsUseCase
 final SelectPrimaryDriverRouteCandidateUseCase
     _selectPrimaryDriverRouteCandidateUseCase =
     SelectPrimaryDriverRouteCandidateUseCase(
-  repository: FirebaseDriverHomeRouteSectionRepository(),
+  repository: BackendDriverHomeRouteSectionRepository(),
 );
 final ExecuteDriverFinishTripSyncUseCase _executeDriverFinishTripSyncUseCase =
     ExecuteDriverFinishTripSyncUseCase(

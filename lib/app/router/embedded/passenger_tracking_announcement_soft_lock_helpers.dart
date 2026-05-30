@@ -1,27 +1,5 @@
 part of '../app_router.dart';
 
-Map<String, dynamic>? _resolveLatestAnnouncementData(
-  QuerySnapshot<Map<String, dynamic>>? snapshot,
-) {
-  if (snapshot == null || snapshot.docs.isEmpty) {
-    return null;
-  }
-  QueryDocumentSnapshot<Map<String, dynamic>>? latestDoc;
-  String? latestCreatedAt;
-  for (final doc in snapshot.docs) {
-    final data = doc.data();
-    final createdAt = (data['createdAt'] as String?)?.trim();
-    if (createdAt == null || createdAt.isEmpty) {
-      continue;
-    }
-    if (latestCreatedAt == null || createdAt.compareTo(latestCreatedAt) > 0) {
-      latestDoc = doc;
-      latestCreatedAt = createdAt;
-    }
-  }
-  return latestDoc?.data();
-}
-
 bool _resolvePassengerSoftLockMode({
   required Map<String, dynamic>? routeData,
   required Map<String, dynamic>? driverData,

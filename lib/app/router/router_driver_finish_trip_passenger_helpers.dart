@@ -1,52 +1,43 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../ui/screens/active_trip_screen.dart';
 
 Set<String> resolveDriverFinishTripSkipTodayPassengerIds(
-  QuerySnapshot<Map<String, dynamic>>? snapshot,
+  List<String> passengerIds,
 ) {
-  if (snapshot == null || snapshot.docs.isEmpty) {
+  if (passengerIds.isEmpty) {
     return const <String>{};
   }
-  final ids = <String>{};
-  for (final doc in snapshot.docs) {
-    final data = doc.data();
-    final passengerId = (data['passengerId'] as String?)?.trim();
-    if (passengerId != null && passengerId.isNotEmpty) {
-      ids.add(passengerId);
-      continue;
-    }
-    final rawId = doc.id.trim();
-    final separatorIndex = rawId.indexOf('_');
-    if (separatorIndex > 0) {
-      ids.add(rawId.substring(0, separatorIndex));
-    }
-  }
-  return ids;
+  return passengerIds
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toSet();
 }
 
 List<ActiveTripPassengerEntry> resolveDriverFinishTripPassengerEntries({
-  required QuerySnapshot<Map<String, dynamic>>? passengersSnapshot,
+  required List<Map<String, dynamic>> passengerRows,
   required Set<String> skipTodayPassengerIds,
-  required QuerySnapshot<Map<String, dynamic>>? guestSessionsSnapshot,
+  required List<Map<String, dynamic>> guestSessions,
 }) {
   final entries = <ActiveTripPassengerEntry>[];
 
-  if (passengersSnapshot != null) {
-    for (final doc in passengersSnapshot.docs) {
-      final data = doc.data();
-      final rawName = (data['name'] as String?)?.trim();
-      final displayName =
-          (rawName == null || rawName.isEmpty) ? 'Yolcu' : rawName;
-      entries.add(
-        ActiveTripPassengerEntry(
-          passengerUid: doc.id,
-          name: displayName,
-          isSkipToday: skipTodayPassengerIds.contains(doc.id),
-          isGuest: false,
-        ),
-      );
-    }
+  for (final row in passengerRows) {
+    final passengerId = _nullableToken(row['passengerId'] as String?) ?? '';
+    final rawPassengerData = row['passengerData'];
+    final passengerData = rawPassengerData is Map<Object?, Object?>
+        ? Map<String, dynamic>.from(rawPassengerData)
+        : (rawPassengerData is Map<String, dynamic>
+            ? rawPassengerData
+            : const <String, dynamic>{});
+    final rawName = _nullableToken(passengerData['name'] as String?);
+    final displayName = rawName ?? 'Yolcu';
+    entries.add(
+      ActiveTripPassengerEntry(
+        passengerUid: passengerId,
+        name: displayName,
+        isSkipToday: passengerId.isNotEmpty &&
+            skipTodayPassengerIds.contains(passengerId),
+        isGuest: false,
+      ),
+    );
   }
 
   final existingUids = entries
@@ -54,36 +45,32 @@ List<ActiveTripPassengerEntry> resolveDriverFinishTripPassengerEntries({
       .where((uid) => uid.isNotEmpty)
       .toSet();
   final nowUtc = DateTime.now().toUtc();
-  if (guestSessionsSnapshot != null) {
-    for (final doc in guestSessionsSnapshot.docs) {
-      final data = doc.data();
-      final guestUid = _nullableToken(data['guestUid'] as String?);
-      if (guestUid == null || existingUids.contains(guestUid)) {
-        continue;
-      }
-
-      final expiresAtRaw = _nullableToken(data['expiresAt'] as String?);
-      final expiresAt = expiresAtRaw == null
-          ? null
-          : DateTime.tryParse(expiresAtRaw)?.toUtc();
-      if (expiresAt == null || !expiresAt.isAfter(nowUtc)) {
-        continue;
-      }
-
-      final rawName = _nullableToken(data['guestDisplayName'] as String?) ??
-          _nullableToken(data['name'] as String?);
-      final displayName =
-          (rawName == null || rawName.isEmpty) ? 'Misafir' : rawName;
-      entries.add(
-        ActiveTripPassengerEntry(
-          passengerUid: guestUid,
-          name: displayName,
-          isSkipToday: false,
-          isGuest: true,
-        ),
-      );
-      existingUids.add(guestUid);
+  for (final data in guestSessions) {
+    final guestUid = _nullableToken(data['guestUid'] as String?);
+    if (guestUid == null || existingUids.contains(guestUid)) {
+      continue;
     }
+
+    final expiresAtRaw = _nullableToken(data['expiresAt'] as String?);
+    final expiresAt =
+        expiresAtRaw == null ? null : DateTime.tryParse(expiresAtRaw)?.toUtc();
+    if (expiresAt == null || !expiresAt.isAfter(nowUtc)) {
+      continue;
+    }
+
+    final rawName = _nullableToken(data['guestDisplayName'] as String?) ??
+        _nullableToken(data['name'] as String?);
+    final displayName =
+        (rawName == null || rawName.isEmpty) ? 'Misafir' : rawName;
+    entries.add(
+      ActiveTripPassengerEntry(
+        passengerUid: guestUid,
+        name: displayName,
+        isSkipToday: false,
+        isGuest: true,
+      ),
+    );
+    existingUids.add(guestUid);
   }
 
   if (entries.isEmpty) {

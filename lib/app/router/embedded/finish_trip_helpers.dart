@@ -51,7 +51,7 @@ void _trackFinishTripCommitTelemetry({
 }
 
 Future<_DriverActiveTripContext?> _resolveActiveTripContextForFinish(
-  User user, {
+  AuthUser user, {
   required String? tripId,
   required String? routeId,
   required int? initialTransitionVersion,

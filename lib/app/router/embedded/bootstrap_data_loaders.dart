@@ -12,7 +12,7 @@ Future<_SettingsBootstrapData> _loadSettingsBootstrapData() async {
 }
 
 Future<_DriverProfileSetupBootstrapData> _loadDriverProfileSetupBootstrapData(
-  User? user,
+  AuthUser? user,
 ) async {
   final result = await _loadDriverProfileSetupBootstrapUseCase.execute(
     DriverProfileSetupBootstrapSeed(
@@ -34,7 +34,7 @@ Future<_DriverProfileSetupBootstrapData> _loadDriverProfileSetupBootstrapData(
 }
 
 Future<_ProfileEditBootstrapData> _loadProfileEditBootstrapData(
-  User? user,
+  AuthUser? user,
 ) async {
   final result = await _loadProfileEditBootstrapUseCase.execute(
     ProfileEditBootstrapSeed(

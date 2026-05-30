@@ -25,7 +25,7 @@ Uri _resolveDeleteInterceptorManageUri({
   return fallback;
 }
 
-Future<String> _resolveDriverEntryDestination(User user) async {
+Future<String> _resolveDriverEntryDestination(AuthUser user) async {
   final destination = await _resolveDriverEntryDestinationUseCase.execute(
     user.uid,
   );
@@ -35,7 +35,7 @@ Future<String> _resolveDriverEntryDestination(User user) async {
   };
 }
 
-Future<String> _resolvePassengerHomeDestination(User user) async {
+Future<String> _resolvePassengerHomeDestination(AuthUser user) async {
   final membership = await _resolvePrimaryPassengerMembership(user.uid);
   if (membership != null) {
     return _buildPassengerTrackingUri(

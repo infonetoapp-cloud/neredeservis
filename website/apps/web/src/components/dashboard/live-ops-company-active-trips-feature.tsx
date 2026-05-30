@@ -14,7 +14,7 @@ export function LiveOpsCompanyActiveTripsFeature() {
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Live Ops listesi icin aktif oturum gerekiyor."
+        description="Live Ops listesi için aktif oturum gerekiyor."
       />
     ) : !liveOps.companyId ? (
       <DashboardStatePlaceholder
@@ -148,3 +148,4 @@ export function LiveOpsCompanyActiveTripsFeature() {
 
   return <>{workspace}</>;
 }
+

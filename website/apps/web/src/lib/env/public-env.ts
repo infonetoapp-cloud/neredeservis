@@ -1,77 +1,83 @@
-const appEnv = (process.env.NEXT_PUBLIC_APP_ENV ?? "dev").trim().toLowerCase();
-const appName = (process.env.NEXT_PUBLIC_APP_NAME ?? "NeredeServis Web").trim();
-const googleLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN ?? "true")
-  .trim()
-  .toLowerCase();
-const microsoftLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN ?? "true")
-  .trim()
-  .toLowerCase();
-const emailLoginFlag = (process.env.NEXT_PUBLIC_ENABLE_EMAIL_LOGIN ?? "true")
-  .trim()
-  .toLowerCase();
-const requireEmailVerificationFlag = (
-  process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION ?? "true"
-)
-  .trim()
-  .toLowerCase();
-const requireProfileOnboardingFlag = (
-  process.env.NEXT_PUBLIC_REQUIRE_PROFILE_ONBOARDING ?? "true"
-)
-  .trim()
-  .toLowerCase();
-const devFastLoginEmail = (process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_EMAIL ?? "").trim();
-const devFastLoginPassword = (
-  process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_PASSWORD ?? ""
-).trim();
-const devCompanyIdsRaw = (process.env.NEXT_PUBLIC_DEV_COMPANY_IDS ?? "").trim();
-const defaultLiveRouteId = (process.env.NEXT_PUBLIC_DEFAULT_LIVE_ROUTE_ID ?? "").trim();
-const functionsRegion = (
-  process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION ?? "europe-west3"
-)
-  .trim()
-  .toLowerCase();
-const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
-const adminSurfaceFlag = (process.env.NEXT_PUBLIC_ENABLE_ADMIN_SURFACE ?? "false")
-  .trim()
-  .toLowerCase();
-const platformOwnerUid = (process.env.NEXT_PUBLIC_PLATFORM_OWNER_UID ?? "").trim();
-const forceUpdateLockFlag = (process.env.NEXT_PUBLIC_FORCE_UPDATE_LOCK ?? "false")
-  .trim()
-  .toLowerCase();
-
 export function getPublicAppEnv(): string {
-  return appEnv;
+  return (process.env.NEXT_PUBLIC_APP_ENV ?? "dev").trim().toLowerCase();
+}
+
+const PROD_BACKEND_API_FALLBACK = "https://api.neredeservis.app";
+
+export function getBackendApiBaseUrl(): string | null {
+  const value = (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "").trim();
+  if (value) {
+    return value;
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname.trim().toLowerCase();
+    if (
+      hostname === "app.neredeservis.app" ||
+      hostname === "neredeservis.app" ||
+      hostname.endsWith(".neredeservis.app")
+    ) {
+      return PROD_BACKEND_API_FALLBACK;
+    }
+  }
+
+  if (getPublicAppEnv() === "prod") {
+    return PROD_BACKEND_API_FALLBACK;
+  }
+
+  return null;
+}
+
+export function requireBackendApiBaseUrl(): string {
+  const value = getBackendApiBaseUrl();
+  if (!value) {
+    throw new Error("BACKEND_API_BASE_URL_MISSING");
+  }
+  return value;
 }
 
 export function isDevAppEnv(): boolean {
-  return appEnv === "dev";
+  return getPublicAppEnv() === "dev";
 }
 
 export function getPublicAppName(): string {
+  const appName = (process.env.NEXT_PUBLIC_APP_NAME ?? "NeredeServis Web").trim();
   return appName || "NeredeServis Web";
 }
 
 export function isGoogleLoginEnabled(): boolean {
-  return googleLoginFlag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN ?? "false").trim().toLowerCase();
+  return flag === "true";
 }
 
 export function isMicrosoftLoginEnabled(): boolean {
-  return microsoftLoginFlag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_MICROSOFT_LOGIN ?? "false")
+    .trim()
+    .toLowerCase();
+  return flag === "true";
 }
 
 export function isEmailLoginEnabled(): boolean {
-  return emailLoginFlag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_EMAIL_LOGIN ?? "true").trim().toLowerCase();
+  return flag !== "false";
 }
 
 export function isEmailVerificationRequired(): boolean {
-  return requireEmailVerificationFlag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_REQUIRE_EMAIL_VERIFICATION ?? "true")
+    .trim()
+    .toLowerCase();
+  return flag !== "false";
 }
 
 export function isProfileOnboardingRequired(): boolean {
-  return requireProfileOnboardingFlag !== "false";
+  const flag = (process.env.NEXT_PUBLIC_REQUIRE_PROFILE_ONBOARDING ?? "true")
+    .trim()
+    .toLowerCase();
+  return flag !== "false";
 }
 
 export function getDevCompanyIds(): string[] {
+  const devCompanyIdsRaw = (process.env.NEXT_PUBLIC_DEV_COMPANY_IDS ?? "").trim();
   if (!devCompanyIdsRaw) {
     return [];
   }
@@ -82,45 +88,73 @@ export function getDevCompanyIds(): string[] {
 }
 
 export function getDefaultLiveRouteId(): string | null {
+  const defaultLiveRouteId = (process.env.NEXT_PUBLIC_DEFAULT_LIVE_ROUTE_ID ?? "").trim();
   return defaultLiveRouteId || null;
 }
 
 export function getFirebaseFunctionsRegion(): string {
+  const functionsRegion = (
+    process.env.NEXT_PUBLIC_FIREBASE_FUNCTIONS_REGION ?? "europe-west3"
+  )
+    .trim()
+    .toLowerCase();
   return functionsRegion || "europe-west3";
 }
 
-export function getMapboxToken(): string | null {
-  return mapboxToken || null;
+export function getPublicMapTileUrl(): string {
+  const tileUrl = (process.env.NEXT_PUBLIC_MAP_TILE_URL ?? "").trim();
+  return tileUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 }
 
-// Backward-compatible alias used by legacy dashboard components.
-export function getPublicMapboxToken(): string | null {
-  return getMapboxToken();
+export function getPublicMapTileAttribution(): string {
+  const attribution = (process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION ?? "").trim();
+  return attribution || "&copy; OpenStreetMap contributors";
+}
+
+export function getPublicMapTileMaxZoom(): number {
+  const raw = Number.parseInt(String(process.env.NEXT_PUBLIC_MAP_TILE_MAX_ZOOM ?? ""), 10);
+  if (!Number.isFinite(raw)) {
+    return 19;
+  }
+  return Math.max(1, Math.min(raw, 22));
+}
+
+export function getTurnstileSiteKey(): string | null {
+  const siteKey = (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "").trim();
+  return siteKey || null;
 }
 
 export function isAdminSurfaceEnabled(): boolean {
-  return adminSurfaceFlag === "true";
+  const flag = (process.env.NEXT_PUBLIC_ENABLE_ADMIN_SURFACE ?? "false")
+    .trim()
+    .toLowerCase();
+  return flag === "true";
 }
 
 export function getPlatformOwnerUid(): string | null {
-  return platformOwnerUid.length > 0 ? platformOwnerUid : null;
+  return null;
 }
 
 export function isPlatformOwner(uid: string | null | undefined): boolean {
-  const ownerUid = getPlatformOwnerUid();
-  if (!ownerUid || !uid) {
-    return false;
-  }
-  return uid === ownerUid;
+  void uid;
+  return false;
 }
 
 export function isForceUpdateLockEnabled(): boolean {
-  return forceUpdateLockFlag === "true";
+  const flag = (process.env.NEXT_PUBLIC_FORCE_UPDATE_LOCK ?? "false")
+    .trim()
+    .toLowerCase();
+  return flag === "true";
 }
 
 export function getDevFastLoginCredentials():
   | { email: string; password: string }
   | null {
+  const devFastLoginEmail = (process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_EMAIL ?? "").trim();
+  const devFastLoginPassword = (
+    process.env.NEXT_PUBLIC_DEV_FAST_LOGIN_PASSWORD ?? ""
+  ).trim();
+
   if (!isDevAppEnv()) {
     return null;
   }

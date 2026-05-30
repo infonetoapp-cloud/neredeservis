@@ -4,17 +4,16 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/telemetry/mobile_event_names.dart';
 import '../../core/telemetry/mobile_telemetry.dart';
 import '../components/indicators/core_status_chip.dart';
+import '../components/maps/service_map_view.dart';
 import '../components/sheets/passenger_map_sheet.dart';
 import '../tokens/core_colors.dart';
 import '../tokens/core_spacing.dart';
 import '../tokens/core_typography.dart';
-import '../tokens/empty_state_tokens.dart';
 import '../tokens/icon_tokens.dart';
 
 /// Passenger tracking screen: full-screen map shell + draggable bottom sheet.
@@ -23,7 +22,7 @@ import '../tokens/icon_tokens.dart';
 /// Runbook 175: Passenger ekranda tek sheet kuralini sabitle.
 ///
 /// Architecture:
-/// - Layer 0: Mapbox (token/platform yoksa placeholder fallback)
+/// - Layer 0: ServiceMapView
 /// - Layer 1: Top route info bar (transparent overlay)
 /// - Layer 2: Fixed bottom sheet with PassengerMapSheet content
 class PassengerTrackingScreen extends StatelessWidget {
@@ -46,7 +45,6 @@ class PassengerTrackingScreen extends StatelessWidget {
     this.isSoftLockMode = false,
     this.offlineBannerLabel,
     this.latencyIndicatorLabel,
-    this.mapboxPublicToken,
     this.showUserLocation = true,
     this.vehicleLat,
     this.vehicleLng,
@@ -112,9 +110,6 @@ class PassengerTrackingScreen extends StatelessWidget {
   /// Optional latency indicator label shown near freshness chip.
   final String? latencyIndicatorLabel;
 
-  /// Public Mapbox token supplied via `--dart-define MAPBOX_PUBLIC_TOKEN=pk...`.
-  final String? mapboxPublicToken;
-
   /// Whether passenger's own map location should be displayed.
   final bool showUserLocation;
 
@@ -178,8 +173,7 @@ class PassengerTrackingScreen extends StatelessWidget {
             children: <Widget>[
               // Layer 0: Map shell
               Positioned.fill(
-                child: _PassengerMapShell(
-                  mapboxPublicToken: mapboxPublicToken,
+                child: _ServicePassengerMapShell(
                   showUserLocation: showUserLocation,
                   vehiclePoint: vehiclePoint,
                 ),
@@ -275,156 +269,150 @@ class PassengerVehicleMapPoint {
   int get hashCode => Object.hash(lat, lng);
 }
 
-/// Map background placeholder for the passenger view.
-/// Falls back to mock shell if token/platform is not ready.
-class _PassengerMapShell extends StatefulWidget {
-  const _PassengerMapShell({
-    required this.mapboxPublicToken,
+class _ServicePassengerMapShell extends StatefulWidget {
+  const _ServicePassengerMapShell({
     required this.showUserLocation,
     required this.vehiclePoint,
   });
 
-  final String? mapboxPublicToken;
   final bool showUserLocation;
   final PassengerVehicleMapPoint? vehiclePoint;
 
   @override
-  State<_PassengerMapShell> createState() => _PassengerMapShellState();
+  State<_ServicePassengerMapShell> createState() =>
+      _ServicePassengerMapShellState();
 }
 
-class _PassengerMapShellState extends State<_PassengerMapShell> {
-  gmaps.GoogleMapController? _googleMapController;
-  bool _vehicleSyncInProgress = false;
+class _ServicePassengerMapShellState extends State<_ServicePassengerMapShell> {
+  final ServiceMapController _mapController = ServiceMapController();
   Position? _lastKnownUserPosition;
-  bool _initialUserCameraApplied = false;
   bool _locationPermissionGranted = false;
   bool _permissionPromptAttempted = false;
-  bool _permissionDeniedaintShown = false;
-  bool _privacyaintShown = false;
-  bool _mapLoaded = false;
-  bool _mapLoadTimedOut = false;
-  Timer? _mapLoadWatchdog;
+  bool _permissionDeniedSnackShown = false;
+  bool _privacySnackShown = false;
   final Stopwatch _mapRenderStopwatch = Stopwatch()..start();
   bool _mapRenderMetricSent = false;
-
-  bool get _isMobilePlatform {
-    return !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
-  }
-
-  bool get _hasToken {
-    final token = widget.mapboxPublicToken?.trim();
-    return token != null && token.isNotEmpty;
-  }
 
   @override
   void initState() {
     super.initState();
-    _startMapLoadWatchdog();
     _requestLocationPermissionIfNeeded();
   }
 
   @override
-  void didUpdateWidget(covariant _PassengerMapShell oldWidget) {
+  void didUpdateWidget(covariant _ServicePassengerMapShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.mapboxPublicToken != widget.mapboxPublicToken) {
-      _mapLoaded = false;
-      _mapLoadTimedOut = false;
-      _startMapLoadWatchdog();
-    }
     if (oldWidget.showUserLocation != widget.showUserLocation) {
       _requestLocationPermissionIfNeeded();
-      unawaited(_syncVehicleMarkerAndCamera());
     }
-    if (oldWidget.vehiclePoint != widget.vehiclePoint) {
-      unawaited(_syncVehicleMarkerAndCamera());
+    if (oldWidget.vehiclePoint != widget.vehiclePoint ||
+        oldWidget.showUserLocation != widget.showUserLocation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _syncCameraToLatestState();
+      });
     }
   }
 
   @override
   void dispose() {
-    _mapLoadWatchdog?.cancel();
-    _googleMapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isMobilePlatform) {
-      _reportMapRenderMetric(mode: 'placeholder_unsupported_platform');
-      return const _PassengerMapPlaceholder(
-        infoLabel: CoreEmptyStateTokens.mapboxUnsupportedPlatform,
-      );
-    }
-    if (!_hasToken) {
-      _reportMapRenderMetric(mode: 'placeholder_missing_token');
-      return const _PassengerMapPlaceholder(
-        infoLabel: CoreEmptyStateTokens.mapboxTokenMissing,
-      );
-    }
+    final userMarker = _buildUserMarker();
+    final vehicleMarker = _buildVehicleMarker();
+    final markers = <ServiceMapMarkerData>[
+      if (userMarker != null) userMarker,
+      if (vehicleMarker != null) vehicleMarker,
+    ];
+    final fallbackCenter = _resolveFallbackCenter();
 
-    return Stack(
-      children: <Widget>[
-        _PassengerMapPlaceholder(
-          infoLabel: _mapLoadTimedOut
-              ? 'Harita bağlantısı gecikiyor. İnternet bağlantını kontrol et.'
-              : 'Harita yükleniyor...',
-        ),
-        AnimatedOpacity(
-          opacity: _mapLoaded ? 1 : 0,
-          duration: const Duration(milliseconds: 220),
-          child: gmaps.GoogleMap(
-            initialCameraPosition: _resolveInitialCameraPosition(),
-            markers: _buildMarkers(),
-            myLocationEnabled:
-                widget.showUserLocation && _locationPermissionGranted,
-            myLocationButtonEnabled: false,
-            mapToolbarEnabled: false,
-            compassEnabled: false,
-            zoomControlsEnabled: false,
-            rotateGesturesEnabled: false,
-            onMapCreated: _onMapCreated,
-          ),
-        ),
+    return ServiceMapView(
+      controller: _mapController,
+      markers: markers,
+      fitPoints: <ServiceMapPoint>[
+        if (userMarker != null) userMarker.point,
+        if (vehicleMarker != null) vehicleMarker.point,
       ],
+      fallbackCenter: fallbackCenter,
+      initialZoom: 13.2,
+      onMapReady: () {
+        _markMapReady();
+        _syncCameraToLatestState();
+      },
     );
   }
 
-  Set<gmaps.Marker> _buildMarkers() {
+  ServiceMapPoint _resolveFallbackCenter() {
     final vehiclePoint = widget.vehiclePoint;
-    if (vehiclePoint == null) {
-      return const <gmaps.Marker>{};
+    if (vehiclePoint != null) {
+      return ServiceMapPoint(lat: vehiclePoint.lat, lng: vehiclePoint.lng);
     }
-    return <gmaps.Marker>{
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('vehicle'),
-        position: gmaps.LatLng(vehiclePoint.lat, vehiclePoint.lng),
-      ),
-    };
+    final userPosition = _lastKnownUserPosition;
+    if (userPosition != null) {
+      return ServiceMapPoint(
+        lat: userPosition.latitude,
+        lng: userPosition.longitude,
+      );
+    }
+    return const ServiceMapPoint(lat: 40.7731, lng: 29.3739);
   }
 
-  Future<void> _onMapCreated(gmaps.GoogleMapController controller) async {
-    _googleMapController = controller;
-    await _resolveInitialUserLocation();
-    await _applyInitialUserCameraIfReady();
-    await _syncVehicleMarkerAndCamera();
-    _markMapReady();
+  ServiceMapMarkerData? _buildUserMarker() {
+    final userPosition = _lastKnownUserPosition;
+    if (!widget.showUserLocation ||
+        !_locationPermissionGranted ||
+        userPosition == null) {
+      return null;
+    }
+    return ServiceMapMarkerData(
+      id: 'user',
+      point: ServiceMapPoint(
+        lat: userPosition.latitude,
+        lng: userPosition.longitude,
+      ),
+      label: 'Konumum',
+      icon: Icons.my_location_rounded,
+      tone: ServiceMapMarkerTone.user,
+      size: 26,
+    );
+  }
+
+  ServiceMapMarkerData? _buildVehicleMarker() {
+    final vehiclePoint = widget.vehiclePoint;
+    if (vehiclePoint == null) {
+      return null;
+    }
+    return ServiceMapMarkerData(
+      id: 'vehicle',
+      point: ServiceMapPoint(lat: vehiclePoint.lat, lng: vehiclePoint.lng),
+      label: (widget.showUserLocation && _locationPermissionGranted)
+          ? 'Servis'
+          : 'Sofor',
+      icon: Icons.directions_bus_filled_rounded,
+      tone: ServiceMapMarkerTone.vehicle,
+    );
   }
 
   void _markMapReady() {
-    _mapLoadWatchdog?.cancel();
-    if (mounted) {
-      setState(() {
-        _mapLoaded = true;
-        _mapLoadTimedOut = false;
-      });
-    } else {
-      _mapLoaded = true;
-      _mapLoadTimedOut = false;
+    if (_mapRenderMetricSent) {
+      return;
     }
-    unawaited(_syncVehicleMarkerAndCamera());
-    _reportMapRenderMetric(mode: 'google_loaded');
+    _mapRenderMetricSent = true;
+    _mapRenderStopwatch.stop();
+    MobileTelemetry.instance.trackPerf(
+      eventName: MobileEventNames.mapRender,
+      durationMs: _mapRenderStopwatch.elapsedMilliseconds,
+      attributes: <String, Object?>{
+        'screen': 'passenger_tracking',
+        'mode': 'service_map_loaded',
+      },
+    );
   }
 
   Future<void> _requestLocationPermissionIfNeeded() async {
@@ -432,7 +420,7 @@ class _PassengerMapShellState extends State<_PassengerMapShell> {
       return;
     }
     _permissionPromptAttempted = true;
-    if (kIsWeb || !_isMobilePlatform) {
+    if (kIsWeb) {
       return;
     }
 
@@ -460,8 +448,8 @@ class _PassengerMapShellState extends State<_PassengerMapShell> {
       _locationPermissionGranted = granted;
     }
 
-    if (!granted && mounted && !_permissionDeniedaintShown) {
-      _permissionDeniedaintShown = true;
+    if (!granted && mounted && !_permissionDeniedSnackShown) {
+      _permissionDeniedSnackShown = true;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -470,88 +458,21 @@ class _PassengerMapShellState extends State<_PassengerMapShell> {
         ),
       );
     }
-    if (granted && mounted && !_privacyaintShown) {
-      _privacyaintShown = true;
+    if (granted && mounted && !_privacySnackShown) {
+      _privacySnackShown = true;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Konumun sadece bu cihazda gösterilir, şoförle paylaşılmaz.',
+            'Konumun sadece bu cihazda gosterilir, soforle paylasilmaz.',
           ),
         ),
       );
     }
     await _resolveInitialUserLocation();
-    await _applyInitialUserCameraIfReady();
-    await _syncVehicleMarkerAndCamera();
-  }
-
-  gmaps.CameraPosition _resolveInitialCameraPosition() {
-    final userPosition = _lastKnownUserPosition;
-    if (widget.showUserLocation &&
-        _locationPermissionGranted &&
-        userPosition != null) {
-      return gmaps.CameraPosition(
-        target: gmaps.LatLng(userPosition.latitude, userPosition.longitude),
-        zoom: 15.4,
-        bearing: 0,
-        tilt: 45,
-      );
+    if (mounted) {
+      setState(() {});
     }
-    if (widget.showUserLocation && _locationPermissionGranted) {
-      return const gmaps.CameraPosition(
-        target: gmaps.LatLng(41.0857, 29.0053),
-        zoom: 12.8,
-        bearing: 0,
-        tilt: 25,
-      );
-    }
-    final vehiclePoint = widget.vehiclePoint;
-    if (vehiclePoint != null) {
-      return gmaps.CameraPosition(
-        target: gmaps.LatLng(vehiclePoint.lat, vehiclePoint.lng),
-        zoom: 15.4,
-        bearing: 0,
-        tilt: 45,
-      );
-    }
-    return const gmaps.CameraPosition(
-      target: gmaps.LatLng(40.7731, 29.3739),
-      zoom: 12.0,
-      bearing: 0,
-      tilt: 25,
-    );
-  }
-
-  void _reportMapRenderMetric({required String mode}) {
-    if (_mapRenderMetricSent) {
-      return;
-    }
-    _mapRenderMetricSent = true;
-    _mapRenderStopwatch.stop();
-    MobileTelemetry.instance.trackPerf(
-      eventName: MobileEventNames.mapRender,
-      durationMs: _mapRenderStopwatch.elapsedMilliseconds,
-      attributes: <String, Object?>{
-        'screen': 'passenger_tracking',
-        'mode': mode,
-      },
-    );
-  }
-
-  void _startMapLoadWatchdog() {
-    _mapLoadWatchdog?.cancel();
-    if (!_isMobilePlatform || !_hasToken) {
-      return;
-    }
-    _mapLoadWatchdog = Timer(const Duration(seconds: 6), () {
-      if (!mounted || _mapLoaded) {
-        return;
-      }
-      setState(() {
-        _mapLoadTimedOut = true;
-      });
-      _reportMapRenderMetric(mode: 'placeholder_map_load_timeout');
-    });
+    _syncCameraToLatestState();
   }
 
   Future<void> _resolveInitialUserLocation() async {
@@ -572,260 +493,33 @@ class _PassengerMapShellState extends State<_PassengerMapShell> {
     } catch (_) {
       return;
     }
-    if (!mounted) {
-      _lastKnownUserPosition = position;
-      return;
-    }
-    setState(() {
-      _lastKnownUserPosition = position;
-    });
+    _lastKnownUserPosition = position;
   }
 
-  Future<void> _applyInitialUserCameraIfReady() async {
-    if (_initialUserCameraApplied) {
-      return;
-    }
-    if (!widget.showUserLocation || !_locationPermissionGranted) {
-      return;
-    }
-    final mapController = _googleMapController;
+  void _syncCameraToLatestState() {
     final userPosition = _lastKnownUserPosition;
-    if (mapController == null || userPosition == null) {
-      return;
-    }
-
-    try {
-      await mapController.animateCamera(
-        gmaps.CameraUpdate.newCameraPosition(
-          gmaps.CameraPosition(
-            target: gmaps.LatLng(userPosition.latitude, userPosition.longitude),
-            zoom: 15.4,
-            bearing: 0,
-            tilt: 45,
-          ),
+    if (widget.showUserLocation &&
+        _locationPermissionGranted &&
+        userPosition != null) {
+      _mapController.moveTo(
+        ServiceMapPoint(
+          lat: userPosition.latitude,
+          lng: userPosition.longitude,
         ),
+        zoom: 15.2,
       );
-      _initialUserCameraApplied = true;
-    } catch (_) {
-      debugPrint('Passenger initial user camera sync skipped.');
-    }
-  }
-
-  Future<void> _syncVehicleMarkerAndCamera() async {
-    if (_vehicleSyncInProgress) {
       return;
     }
-    final mapController = _googleMapController;
-    if (mapController == null) {
-      return;
-    }
-
-    _vehicleSyncInProgress = true;
-    try {
-      final vehiclePoint = widget.vehiclePoint;
-      final shouldPinToVehicle = vehiclePoint != null &&
-          (!widget.showUserLocation || !_locationPermissionGranted);
-      if (shouldPinToVehicle) {
-        await mapController.animateCamera(
-          gmaps.CameraUpdate.newCameraPosition(
-            gmaps.CameraPosition(
-              target: gmaps.LatLng(vehiclePoint.lat, vehiclePoint.lng),
-              zoom: 14.2,
-              bearing: 0,
-              tilt: 0,
-            ),
-          ),
-        );
-      }
-    } catch (_) {
-      debugPrint('Passenger vehicle marker sync skipped.');
-    } finally {
-      _vehicleSyncInProgress = false;
-    }
-  }
-}
-
-/// Mock map shell shown when Mapbox cannot be rendered.
-class _PassengerMapPlaceholder extends StatelessWidget {
-  const _PassengerMapPlaceholder({required this.infoLabel});
-
-  final String infoLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFFE8EDE4),
-            Color(0xFFF2F4EF),
-            Color(0xFFEAEFE6),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: <Widget>[
-          // Subtle grid lines (map simulation)
-          ..._buildGridLines(),
-
-          // Driver vehicle marker (center-ish)
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.3,
-            left: MediaQuery.of(context).size.width * 0.4,
-            child: _VehicleMarker(),
-          ),
-
-          // Route polyline hint (simple dashed line)
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.15,
-            left: MediaQuery.of(context).size.width * 0.25,
-            right: MediaQuery.of(context).size.width * 0.15,
-            bottom: MediaQuery.of(context).size.height * 0.55,
-            child: CustomPaint(
-              painter: _RouteaintPainter(),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 220,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: CoreColors.ink900.withAlpha(185),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                infoLabel,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: CoreTypography.bodyFamily,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: CoreColors.surface0,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildGridLines() {
-    return <Widget>[
-      for (int i = 1; i <= 6; i++)
-        Positioned(
-          top: 0,
-          bottom: 0,
-          left: i * 65.0,
-          child: Container(
-            width: 0.5,
-            color: const Color(0x14000000),
-          ),
-        ),
-      for (int i = 1; i <= 10; i++)
-        Positioned(
-          left: 0,
-          right: 0,
-          top: i * 75.0,
-          child: Container(
-            height: 0.5,
-            color: const Color(0x14000000),
-          ),
-        ),
-    ];
-  }
-}
-
-/// Vehicle marker on the placeholder map.
-class _VehicleMarker extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: CoreColors.amber500,
-            shape: BoxShape.circle,
-            border: Border.all(color: CoreColors.surface0, width: 3),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: Color(0x30000000),
-                blurRadius: 8,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: const Icon(
-            CoreIconTokens.bus,
-            color: CoreColors.surface0,
-            size: 22,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: CoreColors.ink900.withAlpha(200),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Text(
-            'Servis',
-            style: TextStyle(
-              fontFamily: CoreTypography.bodyFamily,
-              fontWeight: FontWeight.w600,
-              fontSize: 9,
-              color: CoreColors.surface0,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Subtle route hint painter (diagonal dash line from top-right to vehicle).
-class _RouteaintPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = CoreColors.amber500.withAlpha(80)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
-
-    final path = Path()
-      ..moveTo(size.width * 0.8, 0)
-      ..quadraticBezierTo(
-        size.width * 0.5,
-        size.height * 0.5,
-        size.width * 0.3,
-        size.height,
+    final vehiclePoint = widget.vehiclePoint;
+    if (vehiclePoint != null) {
+      _mapController.moveTo(
+        ServiceMapPoint(lat: vehiclePoint.lat, lng: vehiclePoint.lng),
+        zoom: 14.2,
       );
-
-    // Draw dashed
-    const dashLength = 8.0;
-    const gapLength = 6.0;
-    final metrics = path.computeMetrics();
-    for (final metric in metrics) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final end = (distance + dashLength).clamp(0.0, metric.length);
-        final extracted = metric.extractPath(distance, end);
-        canvas.drawPath(extracted, paint);
-        distance += dashLength + gapLength;
-      }
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
 
 class _PassengerActionDrawer extends StatelessWidget {
   const _PassengerActionDrawer({

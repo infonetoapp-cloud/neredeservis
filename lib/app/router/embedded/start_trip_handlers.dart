@@ -60,7 +60,7 @@ Future<void> _handleStartTripWithUndo(
 
 Future<void> _commitStartTrip(
   BuildContext context,
-  User user,
+  AuthUser user,
   _DriverRouteContext routeContext,
 ) async {
   final stopwatch = Stopwatch()..start();
@@ -134,14 +134,19 @@ Future<void> _commitStartTrip(
         forceRefresh: true,
       ),
     );
-  } on FirebaseFunctionsException catch (error) {
+  } catch (error) {
     if (!context.mounted) {
       return;
     }
+    final normalizedErrorCode = error is AppException
+        ? error.code.trim().toLowerCase().replaceAll('_', '-')
+        : 'unknown';
+    final errorMessage =
+        error is AppException ? error.message : error.toString();
     final message =
         _resolveStartDriverTripFailureFeedbackMessageUseCase.execute(
-      errorCode: error.code,
-      errorMessage: error.message,
+      errorCode: normalizedErrorCode,
+      errorMessage: errorMessage,
     );
     _mobileTelemetry.track(
       eventName: MobileEventNames.tripStart,
@@ -149,7 +154,7 @@ Future<void> _commitStartTrip(
       addBreadcrumb: true,
       attributes: <String, Object?>{
         'result': 'error',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     _mobileTelemetry.trackPerf(
@@ -157,7 +162,7 @@ Future<void> _commitStartTrip(
       durationMs: stopwatch.elapsedMilliseconds,
       attributes: <String, Object?>{
         'result': 'error',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     _showInfo(context, message);

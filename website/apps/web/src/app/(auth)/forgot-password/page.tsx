@@ -5,14 +5,14 @@ export default function ForgotPasswordPage() {
   return (
     <AuthPageShell
       scopeLabel="Forgot Password"
-      title="Reset your password"
-      description="E-posta adresine sifre sifirlama linki gonderelim"
-      topPrompt="Sifreni hatirladin mi?"
-      topLinkLabel="Giris Yap"
-      topLinkHref="/login"
+      title="Şifreni sıfırla"
+      description="E-posta adresine şifre sıfırlama linki gönderelim"
+      topPrompt="Şifreni hatırladın mı?"
+      topLinkLabel="Giriş Yap"
+      topLinkHref="/giris"
       sideImageSrc="/figma/sign-in-reference.png"
       sideImageAlt="Role based CRM reset password reference"
-      footerHint="Link geldikten sonra yeni sifreni guvenli belirle."
+      footerHint="Link geldikten sonra yeni şifreni güvenli şekilde belirle."
     >
       <ForgotPasswordForm />
     </AuthPageShell>

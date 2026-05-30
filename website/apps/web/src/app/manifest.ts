@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "NeredeServis Web",
     short_name: "NeredeServis",
     description:
-      "Firma operasyonu ve bireysel sofor akislarini yonetmek icin NeredeServis web paneli.",
-    start_url: `${panelBaseUrl}/login`,
+      "Firma operasyonu ve bireysel şoför akışlarını yönetmek için NeredeServis web paneli.",
+    start_url: `${panelBaseUrl}/giris`,
     scope: "/",
     display: "standalone",
     background_color: "#f8fafc",

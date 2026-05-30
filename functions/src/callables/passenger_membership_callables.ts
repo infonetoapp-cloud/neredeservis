@@ -4,7 +4,7 @@ import type { ZodType } from 'zod';
 
 import { apiOk } from '../common/api_response.js';
 import { isDevelopmentProject } from '../common/environment_flags.js';
-import { readJoinRouteRateMaxCalls, readJoinRouteRateWindowMs } from '../common/mapbox_route_preview_helpers.js';
+import { readJoinRouteRateMaxCalls, readJoinRouteRateWindowMs } from '../common/route_preview_helpers.js';
 import type { JoinRouteBySrvCodeOutput, LeaveRouteOutput } from '../common/output_contract_types.js';
 import { pickString, pickStringArray } from '../common/runtime_value_helpers.js';
 import type { WriteRouteAuditEventInput } from '../common/route_audit_helpers.js';

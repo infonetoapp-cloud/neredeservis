@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 
+import '../../features/location/infrastructure/backend_maps_address_service.dart';
 import '../../features/location/infrastructure/google_places_address_service.dart';
 import '../components/buttons/core_buttons.dart';
 import '../components/layout/core_screen_scaffold.dart';
+import '../components/maps/service_map_view.dart';
 import '../tokens/core_spacing.dart';
 import '../tokens/form_validation_tokens.dart';
 
@@ -15,16 +16,12 @@ class RouteUpdateScreen extends StatefulWidget {
     super.key,
     this.onSubmit,
     this.onManageStopsTap,
-    this.googleMapsApiKey,
-    this.googleMapsdpiKey,
     this.addressAutocompleteGateway,
     this.initialRouteId,
   });
 
   final Future<void> Function(RouteUpdateFormInput input)? onSubmit;
   final ValueChanged<String>? onManageStopsTap;
-  final String? googleMapsApiKey;
-  final String? googleMapsdpiKey;
   final AddressAutocompleteGateway? addressAutocompleteGateway;
   final String? initialRouteId;
 
@@ -114,16 +111,12 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
     super.initState();
     _placesSessionToken = _newPlacesSessionToken();
     final providedGateway = widget.addressAutocompleteGateway;
-    final apiKey = (widget.googleMapsApiKey ?? widget.googleMapsdpiKey ?? '').trim();
     if (providedGateway != null) {
       _addressAutocompleteGateway = providedGateway;
       _ownsAddressAutocompleteGateway = false;
-    } else if (apiKey.isNotEmpty) {
-      _addressAutocompleteGateway = GooglePlacesAddressService(apiKey: apiKey);
-      _ownsAddressAutocompleteGateway = true;
     } else {
-      _addressAutocompleteGateway = null;
-      _ownsAddressAutocompleteGateway = false;
+      _addressAutocompleteGateway = BackendMapsAddressService();
+      _ownsAddressAutocompleteGateway = true;
     }
     _startAddressController.addListener(_handleStartQueryChanged);
     _endAddressController.addListener(_handleEndQueryChanged);
@@ -403,12 +396,16 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
           suggestion.address,
           isStart: isStart,
         );
+        final hasPreciseLocation = suggestion.hasPreciseLocation &&
+            suggestion.lat != null &&
+            suggestion.lng != null;
         return _NamedMapPoint(
           title: suggestion.title,
           address: suggestion.address,
-          lat: fallbackPoint.lat,
-          lng: fallbackPoint.lng,
+          lat: hasPreciseLocation ? suggestion.lat! : fallbackPoint.lat,
+          lng: hasPreciseLocation ? suggestion.lng! : fallbackPoint.lng,
           placeId: suggestion.placeId,
+          hasPreciseLocation: hasPreciseLocation,
         );
       }).toList(growable: false);
     } catch (_) {
@@ -642,6 +639,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
       address: address,
       lat: _clamp(latBase + latOffset, -90, 90),
       lng: _clamp(lngBase + lngOffset, -180, 180),
+      hasPreciseLocation: false,
     );
   }
 
@@ -822,6 +820,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
         lat: preset.lat,
         lng: preset.lng,
         placeId: preset.placeId,
+        hasPreciseLocation: preset.hasPreciseLocation,
       );
     }
     final fallback = _derivePointFromAddress(address, isStart: false);
@@ -832,6 +831,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
       address: address,
       lat: fallback.lat,
       lng: fallback.lng,
+      hasPreciseLocation: false,
     );
   }
 
@@ -938,7 +938,10 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
       _NamedMapPoint suggestion) async {
     final placeId = suggestion.placeId?.trim();
     final gateway = _addressAutocompleteGateway;
-    if (gateway == null || placeId == null || placeId.isEmpty) {
+    if (suggestion.hasPreciseLocation ||
+        gateway == null ||
+        placeId == null ||
+        placeId.isEmpty) {
       return suggestion;
     }
     try {
@@ -955,6 +958,7 @@ class _RouteUpdateScreenState extends State<RouteUpdateScreen> {
         lat: details.lat,
         lng: details.lng,
         placeId: details.placeId,
+        hasPreciseLocation: true,
       );
     } catch (_) {
       return suggestion;
@@ -1446,6 +1450,7 @@ class _NamedMapPoint {
     required this.lat,
     required this.lng,
     this.placeId,
+    this.hasPreciseLocation = true,
   });
 
   final String title;
@@ -1453,6 +1458,7 @@ class _NamedMapPoint {
   final double lat;
   final double lng;
   final String? placeId;
+  final bool hasPreciseLocation;
 }
 
 class _PreviewStopPoint {
@@ -1695,7 +1701,7 @@ class _RouteUpdateMiniMapCard extends StatelessWidget {
             height: 220,
             child: IgnorePointer(
               ignoring: true,
-              child: _RouteMiniPreviewMap(
+              child: _ServiceRouteMiniPreviewMap(
                 startPoint: startPoint,
                 endPoint: endPoint,
                 stops: stops,
@@ -1713,6 +1719,80 @@ class _RouteUpdateMiniMapCard extends StatelessWidget {
   }
 }
 
+class _ServiceRouteMiniPreviewMap extends StatelessWidget {
+  const _ServiceRouteMiniPreviewMap({
+    required this.startPoint,
+    required this.endPoint,
+    required this.stops,
+  });
+
+  final _NamedMapPoint? startPoint;
+  final _NamedMapPoint? endPoint;
+  final List<_PreviewStopPoint> stops;
+
+  List<ServiceMapPoint> _allPoints() {
+    return <ServiceMapPoint>[
+      if (startPoint != null)
+        ServiceMapPoint(lat: startPoint!.lat, lng: startPoint!.lng),
+      ...stops
+          .map((stop) => ServiceMapPoint(lat: stop.point.lat, lng: stop.point.lng)),
+      if (endPoint != null) ServiceMapPoint(lat: endPoint!.lat, lng: endPoint!.lng),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final polylinePoints = _allPoints();
+    final markers = <ServiceMapMarkerData>[
+      if (startPoint != null)
+        ServiceMapMarkerData(
+          id: 'start',
+          point: ServiceMapPoint(lat: startPoint!.lat, lng: startPoint!.lng),
+          label: 'Baslangic',
+          subtitle: startPoint!.address,
+          icon: Icons.play_arrow_rounded,
+          tone: ServiceMapMarkerTone.start,
+        ),
+      if (endPoint != null)
+        ServiceMapMarkerData(
+          id: 'end',
+          point: ServiceMapPoint(lat: endPoint!.lat, lng: endPoint!.lng),
+          label: 'Bitis',
+          subtitle: endPoint!.address,
+          icon: Icons.flag_rounded,
+          tone: ServiceMapMarkerTone.end,
+        ),
+      ...stops.map(
+        (stop) => ServiceMapMarkerData(
+          id: 'stop_${stop.keyId}',
+          point: ServiceMapPoint(lat: stop.point.lat, lng: stop.point.lng),
+          label: '${stop.order + 1}. Durak',
+          subtitle: stop.point.address,
+          icon: Icons.radio_button_checked_rounded,
+          tone: ServiceMapMarkerTone.stop,
+        ),
+      ),
+    ];
+
+    return ServiceMapView(
+      markers: markers,
+      polylines: <ServiceMapPolylineData>[
+        if (polylinePoints.length >= 2)
+          ServiceMapPolylineData(
+            id: 'route_draft_preview',
+            points: polylinePoints,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+      ],
+      fitPoints: polylinePoints,
+      fitPadding: const EdgeInsets.all(44),
+      autoFitOnDataChange: true,
+      initialZoom: 11,
+    );
+  }
+}
+
+/*
 class _RouteMiniPreviewMap extends StatefulWidget {
   const _RouteMiniPreviewMap({
     required this.startPoint,
@@ -1882,6 +1962,7 @@ class _RouteMiniPreviewMapState extends State<_RouteMiniPreviewMap> {
     );
   }
 }
+*/
 
 class RouteUpdateFormInput {
   const RouteUpdateFormInput({

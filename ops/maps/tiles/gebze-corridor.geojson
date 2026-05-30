@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "gebze-corridor"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [28.9500, 40.7000],
+            [29.6800, 40.7000],
+            [29.6800, 41.1700],
+            [28.9500, 41.1700],
+            [28.9500, 40.7000]
+          ]
+        ]
+      }
+    }
+  ]
+}

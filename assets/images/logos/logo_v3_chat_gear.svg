@@ -1,0 +1,31 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="v3-bubble-gradient" x1="120" y1="200" x2="470" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14A38B"/>
+      <stop offset="1" stop-color="#0D6D8B"/>
+    </linearGradient>
+    <linearGradient id="v3-line-gradient" x1="474" y1="560" x2="910" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14A38B"/>
+      <stop offset="1" stop-color="#FF8C3A"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M132 220C132 176.922 166.922 142 210 142H378C421.078 142 456 176.922 456 220V430C456 473.078 421.078 508 378 508H274L174 620V508H210C166.922 508 132 473.078 132 430V220Z" fill="url(#v3-bubble-gradient)"/>
+
+  <g transform="translate(294 322)">
+    <circle cx="0" cy="0" r="56" fill="#E9F8FA"/>
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#0B4A61" stroke-width="16"/>
+    <rect x="-8" y="-92" width="16" height="22" rx="8" fill="#0B4A61"/>
+    <rect x="-8" y="70" width="16" height="22" rx="8" fill="#0B4A61"/>
+    <rect x="70" y="-8" width="22" height="16" rx="8" fill="#0B4A61"/>
+    <rect x="-92" y="-8" width="22" height="16" rx="8" fill="#0B4A61"/>
+    <rect x="52" y="52" width="20" height="14" rx="7" transform="rotate(45 52 52)" fill="#0B4A61"/>
+    <rect x="-72" y="52" width="20" height="14" rx="7" transform="rotate(-45 -72 52)" fill="#0B4A61"/>
+    <rect x="-72" y="-66" width="20" height="14" rx="7" transform="rotate(45 -72 -66)" fill="#0B4A61"/>
+    <rect x="52" y="-66" width="20" height="14" rx="7" transform="rotate(-45 52 -66)" fill="#0B4A61"/>
+  </g>
+
+  <text x="490" y="392" fill="#133148" font-family="'Space Grotesk', 'Manrope', sans-serif" font-size="124" font-weight="700" letter-spacing="2">NEREDE</text>
+  <text x="490" y="530" fill="#133148" font-family="'Space Grotesk', 'Manrope', sans-serif" font-size="124" font-weight="700" letter-spacing="2">SERVIS</text>
+  <rect x="490" y="560" width="380" height="16" rx="8" fill="url(#v3-line-gradient)"/>
+</svg>

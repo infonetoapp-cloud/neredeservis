@@ -5,7 +5,7 @@ import { BuildingIcon } from "@/components/shared/app-icons";
 
 export function CompanyActiveContextCard() {
   const { loading, companyName, errorMessage } = useCompanyMembership();
-  const displayName = companyName ?? (loading ? "Sirket bilgisi yukleniyor" : "Secili sirket");
+  const displayName = companyName ?? (loading ? "Şirket bilgisi yükleniyor" : "Seçili Şirket");
 
   return (
     <div className="mb-5 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
@@ -26,3 +26,4 @@ export function CompanyActiveContextCard() {
     </div>
   );
 }
+

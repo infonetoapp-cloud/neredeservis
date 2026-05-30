@@ -22,27 +22,27 @@ export function CompanyDashboardQuickActions({ companyId, memberRole }: Props) {
   const basePath = `/c/${encodeURIComponent(companyId)}`;
   const actions: ActionItem[] = [
     {
-      label: "Canli Operasyon",
+      label: "Canlı Operasyon",
       href: `${basePath}/live-ops`,
-      description: "Canli sefer, rota ve konum akisina gec.",
+      description: "Canlı sefer, rota ve konum akisina gec.",
       icon: PulseIcon,
     },
     {
       label: "Rotalar",
       href: `${basePath}/routes`,
-      description: "Rota planlarini yonet.",
+      description: "Rota planlarini yönet.",
       icon: RouteIcon,
     },
     {
       label: "Soforler",
       href: `${basePath}/drivers`,
-      description: "Sofor listesi ve rol atamalarini ac.",
+      description: "Şoför listesi ve rol atamalarini ac.",
       icon: UsersIcon,
     },
     {
       label: "Araclar",
       href: `${basePath}/vehicles`,
-      description: "Arac havuzunu ve durumlarini yonet.",
+      description: "Araç havuzunu ve durumlarini yönet.",
       icon: CarIcon,
     },
   ];
@@ -59,7 +59,7 @@ export function CompanyDashboardQuickActions({ companyId, memberRole }: Props) {
   actions.push({
     label: "Paneli Yenile",
     href: `${basePath}/dashboard`,
-    description: "Anlik durumu tekrar yukle.",
+    description: "Anlik durumu tekrar yükle.",
     icon: DashboardIcon,
   });
 
@@ -86,3 +86,4 @@ export function CompanyDashboardQuickActions({ companyId, memberRole }: Props) {
     </section>
   );
 }
+

@@ -19,7 +19,7 @@ const DEFAULT_ITEMS: HygieneItem[] = [
   { id: "no_env_commit", label: ".env dosyalari repoya commit edilmedi" },
   { id: "vercel_envs", label: "Vercel ortam degiskenleri (dev/stg/prod) dogru" },
   { id: "firebase_admin", label: "Firebase admin/service account provider tarafinda" },
-  { id: "mapbox_token", label: "Mapbox token sadece provider'da (repo icinde yok)" },
+  { id: "map_provider_tokens", label: "Harita provider tokenlari sadece provider tarafinda" },
   { id: "rules_deploy", label: "Firestore/RTDB rules son deploy tarihi dogrulandi" },
 ];
 

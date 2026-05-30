@@ -1,17 +1,13 @@
 "use client";
 
-import { httpsCallable } from "firebase/functions";
-
-import { getFirebaseClientFunctions } from "@/lib/firebase/client";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 import {
-  type ApiOk,
   asRecord,
   readString,
   toFriendlyErrorMessage,
 } from "./company-client-shared";
-
-/* ─── Types ─── */
 
 export type DriverDocType = "ehliyet" | "src" | "psikoteknik" | "saglik";
 export type DriverDocStatus = "valid" | "expiring_soon" | "expired" | "not_uploaded";
@@ -37,8 +33,6 @@ export type DriverDocumentSummary = {
   overallStatus: DriverDocOverallStatus;
   documents: DriverDocumentItem[];
 };
-
-/* ─── Parsers ─── */
 
 const DOC_TYPES: DriverDocType[] = ["ehliyet", "src", "psikoteknik", "saglik"];
 const DOC_STATUSES: DriverDocStatus[] = ["valid", "expiring_soon", "expired", "not_uploaded"];
@@ -112,21 +106,24 @@ export function parseDriverDocumentSummaries(value: unknown): DriverDocumentSumm
   return items;
 }
 
-/* ─── API functions ─── */
-
 export async function listDriverDocumentsForCompany(input: {
   companyId: string;
   driverId?: string;
 }): Promise<DriverDocumentSummary[]> {
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<
-    { companyId: string; driverId?: string },
-    ApiOk<{ items?: unknown[] }>
-  >(functions, "listDriverDocuments");
   try {
-    const response = await callable(input);
-    return parseDriverDocumentSummaries(response.data?.data?.items ?? []);
+    const companyId = input.companyId.trim();
+    const query = new URLSearchParams();
+    const driverId = input.driverId?.trim();
+    if (driverId) {
+      query.set("driverId", driverId);
+    }
+    const response = await callBackendApi<{ items?: unknown[] }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/driver-documents${
+        query.size > 0 ? `?${query.toString()}` : ""
+      }`,
+    });
+    return parseDriverDocumentSummaries(response.data?.items ?? []);
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }
@@ -141,17 +138,26 @@ export async function upsertDriverDocumentForCompany(input: {
   licenseClass?: string;
   note?: string;
 }): Promise<{ driverId: string; docType: DriverDocType; status: DriverDocStatus; updatedAt: string }> {
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<typeof input, ApiOk<{
-    driverId?: string;
-    docType?: string;
-    status?: string;
-    updatedAt?: string;
-  }>>(functions, "upsertDriverDocument");
   try {
-    const response = await callable(input);
-    const data = response.data?.data ?? {};
+    const companyId = input.companyId.trim();
+    const driverId = input.driverId.trim();
+    const response = await callBackendApi<{
+      driverId?: string;
+      docType?: string;
+      status?: string;
+      updatedAt?: string;
+    }>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
+      method: "PUT",
+      body: {
+        ...(input.issueDate !== undefined ? { issueDate: input.issueDate } : {}),
+        ...(input.expiryDate !== undefined ? { expiryDate: input.expiryDate } : {}),
+        ...(input.licenseClass !== undefined ? { licenseClass: input.licenseClass } : {}),
+        ...(input.note !== undefined ? { note: input.note } : {}),
+      },
+    });
+    const data = response.data ?? {};
     return {
       driverId: (data.driverId as string) ?? input.driverId,
       docType: (data.docType as DriverDocType) ?? input.docType,
@@ -168,11 +174,14 @@ export async function deleteDriverDocumentForCompany(input: {
   driverId: string;
   docType: DriverDocType;
 }): Promise<void> {
-  const functions = getFirebaseClientFunctions();
-  if (!functions) throw new Error("FIREBASE_CONFIG_MISSING");
-  const callable = httpsCallable<typeof input, ApiOk<unknown>>(functions, "deleteDriverDocument");
   try {
-    await callable(input);
+    const companyId = input.companyId.trim();
+    const driverId = input.driverId.trim();
+    await callBackendApi({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `/api/companies/${encodeURIComponent(companyId)}/drivers/${encodeURIComponent(driverId)}/documents/${encodeURIComponent(input.docType)}`,
+      method: "DELETE",
+    });
   } catch (error) {
     throw new Error(toFriendlyErrorMessage(error));
   }

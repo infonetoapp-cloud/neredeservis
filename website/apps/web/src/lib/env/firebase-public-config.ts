@@ -25,7 +25,6 @@ const NEXT_PUBLIC_FIREBASE_PROJECT_ID = (process.env.NEXT_PUBLIC_FIREBASE_PROJEC
 const NEXT_PUBLIC_FIREBASE_DATABASE_URL = (process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ?? "").trim();
 const NEXT_PUBLIC_FIREBASE_APP_ID = (process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "").trim();
 const NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "").trim();
-const NEXT_PUBLIC_MAPBOX_TOKEN = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
 const NEXT_PUBLIC_APP_NAME = (process.env.NEXT_PUBLIC_APP_NAME ?? "").trim();
 const NEXT_PUBLIC_APP_ENV = (process.env.NEXT_PUBLIC_APP_ENV ?? "").trim();
 
@@ -40,9 +39,6 @@ export function getPublicConfigValidation(): PublicConfigValidation {
   const missingFirebaseKeys = REQUIRED_FIREBASE_KEYS.filter((key) => !REQUIRED_VALUE_MAP[key]);
 
   const missingNonBlockingKeys: string[] = [];
-  if (!NEXT_PUBLIC_MAPBOX_TOKEN) {
-    missingNonBlockingKeys.push("NEXT_PUBLIC_MAPBOX_TOKEN");
-  }
   if (!NEXT_PUBLIC_APP_NAME) {
     missingNonBlockingKeys.push("NEXT_PUBLIC_APP_NAME");
   }

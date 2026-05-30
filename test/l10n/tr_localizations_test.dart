@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/l10n/tr_localization_keys.dart';
 import 'package:neredeservis/l10n/tr_localizations.dart';
 
@@ -11,11 +11,6 @@ void main() {
     expect(
       TrLocalizations.valuesByKey[TrLocalizationKeys.formSrvCodeRequired],
       equals(TrLocalizations.formSrvCodeRequired),
-    );
-    expect(
-      TrLocalizations
-          .valuesByKey[TrLocalizationKeys.emptyMapboxUnsupportedPlatform],
-      equals(TrLocalizations.emptyMapboxUnsupportedPlatform),
     );
   });
 

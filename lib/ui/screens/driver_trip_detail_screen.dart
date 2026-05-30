@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 
 import '../components/buttons/core_buttons.dart';
 import '../components/buttons/core_slide_to_finish.dart';
+import '../components/maps/service_map_view.dart';
 import '../tokens/core_colors.dart';
 import '../tokens/core_spacing.dart';
 import '../tokens/core_typography.dart';
@@ -17,7 +16,6 @@ class DriverTripDetailScreen extends StatefulWidget {
   const DriverTripDetailScreen({
     super.key,
     required this.loadData,
-    this.googleMapsApiKey,
     this.onSendAnnouncementTap,
     this.onEditTripTap,
     this.onStartTripTap,
@@ -25,7 +23,6 @@ class DriverTripDetailScreen extends StatefulWidget {
   });
 
   final Future<DriverTripDetailData?> Function() loadData;
-  final String? googleMapsApiKey;
   final ValueChanged<DriverTripDetailData>? onSendAnnouncementTap;
   final ValueChanged<DriverTripDetailData>? onEditTripTap;
   final ValueChanged<DriverTripDetailData>? onStartTripTap;
@@ -125,7 +122,6 @@ class _DriverTripDetailScreenState extends State<DriverTripDetailScreen> {
             else if (_data != null)
               _DriverTripDetailContent(
                 data: _data!,
-                googleMapsApiKey: widget.googleMapsApiKey,
                 onSendAnnouncementTap: widget.onSendAnnouncementTap,
                 onEditTripTap: widget.onEditTripTap,
                 onStartTripTap: widget.onStartTripTap,
@@ -141,7 +137,6 @@ class _DriverTripDetailScreenState extends State<DriverTripDetailScreen> {
 class _DriverTripDetailContent extends StatelessWidget {
   const _DriverTripDetailContent({
     required this.data,
-    this.googleMapsApiKey,
     this.onSendAnnouncementTap,
     this.onEditTripTap,
     this.onStartTripTap,
@@ -149,7 +144,6 @@ class _DriverTripDetailContent extends StatelessWidget {
   });
 
   final DriverTripDetailData data;
-  final String? googleMapsApiKey;
   final ValueChanged<DriverTripDetailData>? onSendAnnouncementTap;
   final ValueChanged<DriverTripDetailData>? onEditTripTap;
   final ValueChanged<DriverTripDetailData>? onStartTripTap;
@@ -189,7 +183,6 @@ class _DriverTripDetailContent extends StatelessWidget {
       children: <Widget>[
         _BirdsEyeMapCard(
           data: data,
-          googleMapsApiKey: googleMapsApiKey,
         ),
         const SizedBox(height: CoreSpacing.space12),
         Container(
@@ -286,18 +279,12 @@ class _DriverTripDetailContent extends StatelessWidget {
 class _BirdsEyeMapCard extends StatelessWidget {
   const _BirdsEyeMapCard({
     required this.data,
-    this.googleMapsApiKey,
   });
 
   final DriverTripDetailData data;
-  final String? googleMapsApiKey;
 
   @override
   Widget build(BuildContext context) {
-    final hasApiKey = googleMapsApiKey?.trim().isNotEmpty == true;
-    final isMobile = !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
     return Container(
       height: 220,
       decoration: BoxDecoration(
@@ -312,166 +299,68 @@ class _BirdsEyeMapCard extends StatelessWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: isMobile && hasApiKey
-          ? _TripPreviewGoogleMap(data: data)
-          : const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: <Color>[Color(0xFFE9EEF2), Color(0xFFD7E0E7)],
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  'Harita önizlemesi kullanilamiyor',
-                  style: TextStyle(
-                    fontFamily: CoreTypography.bodyFamily,
-                    fontWeight: FontWeight.w600,
-                    color: CoreColors.ink700,
-                  ),
-                ),
-              ),
-            ),
+      child: _TripPreviewMap(data: data),
     );
   }
 }
 
-class _TripPreviewGoogleMap extends StatefulWidget {
-  const _TripPreviewGoogleMap({required this.data});
+class _TripPreviewMap extends StatelessWidget {
+  const _TripPreviewMap({required this.data});
 
   final DriverTripDetailData data;
 
   @override
-  State<_TripPreviewGoogleMap> createState() => _TripPreviewGoogleMapState();
-}
-
-class _TripPreviewGoogleMapState extends State<_TripPreviewGoogleMap> {
-  gmaps.GoogleMapController? _controller;
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final data = widget.data;
-    final points = <gmaps.LatLng>[
-      gmaps.LatLng(data.startPoint.lat, data.startPoint.lng),
-      ...data.stops.map((stop) => gmaps.LatLng(stop.point.lat, stop.point.lng)),
-      gmaps.LatLng(data.endPoint.lat, data.endPoint.lng),
+    final points = <ServiceMapPoint>[
+      ServiceMapPoint(lat: data.startPoint.lat, lng: data.startPoint.lng),
+      ...data.stops
+          .map((stop) => ServiceMapPoint(lat: stop.point.lat, lng: stop.point.lng)),
+      ServiceMapPoint(lat: data.endPoint.lat, lng: data.endPoint.lng),
     ];
     final polylinePoints = _decodePolylineOrNull(data.routePolylineEncoded)
-            ?.map(_toGmapsLatLng)
+            ?.map(_toServiceMapPoint)
             .toList(growable: false) ??
         points;
 
-    final markers = <gmaps.Marker>{
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('start'),
-        position: points.first,
-        infoWindow: const gmaps.InfoWindow(title: 'Başlangıç'),
-        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-          gmaps.BitmapDescriptor.hueGreen,
-        ),
+    final markers = <ServiceMapMarkerData>[
+      ServiceMapMarkerData(
+        id: 'start',
+        point: points.first,
+        label: 'Baslangic',
+        icon: Icons.play_arrow_rounded,
+        tone: ServiceMapMarkerTone.start,
       ),
-      gmaps.Marker(
-        markerId: const gmaps.MarkerId('end'),
-        position: points.last,
-        infoWindow: const gmaps.InfoWindow(title: 'Bitiş'),
-        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-          gmaps.BitmapDescriptor.hueRed,
-        ),
+      ServiceMapMarkerData(
+        id: 'end',
+        point: points.last,
+        label: 'Bitis',
+        icon: Icons.flag_rounded,
+        tone: ServiceMapMarkerTone.end,
       ),
       ...data.stops.map(
-        (stop) => gmaps.Marker(
-          markerId: gmaps.MarkerId('stop_${stop.stopId}'),
-          position: gmaps.LatLng(stop.point.lat, stop.point.lng),
-          infoWindow: gmaps.InfoWindow(title: stop.name),
-          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-            gmaps.BitmapDescriptor.hueOrange,
-          ),
+        (stop) => ServiceMapMarkerData(
+          id: 'stop_${stop.stopId}',
+          point: ServiceMapPoint(lat: stop.point.lat, lng: stop.point.lng),
+          label: stop.name,
+          icon: Icons.radio_button_checked_rounded,
+          tone: ServiceMapMarkerTone.stop,
         ),
       ),
-    };
+    ];
 
-    return gmaps.GoogleMap(
-      initialCameraPosition:
-          gmaps.CameraPosition(target: points.first, zoom: 11),
+    return ServiceMapView(
       markers: markers,
-      polylines: <gmaps.Polyline>{
-        gmaps.Polyline(
-          polylineId: const gmaps.PolylineId('route_preview'),
-          points: polylinePoints,
-          width: 5,
-          color: const Color(0xFFF5A000),
-        ),
-      },
-      zoomControlsEnabled: false,
-      myLocationButtonEnabled: false,
-      myLocationEnabled: false,
-      mapToolbarEnabled: false,
-      compassEnabled: false,
-      onMapCreated: (controller) {
-        _controller = controller;
-        unawaited(_fitBounds(points));
-      },
-    );
-  }
-
-  Future<void> _fitBounds(List<gmaps.LatLng> points) async {
-    final controller = _controller;
-    if (controller == null || points.isEmpty) {
-      return;
-    }
-    try {
-      if (points.length == 1) {
-        await controller.animateCamera(
-          gmaps.CameraUpdate.newLatLngZoom(points.first, 13.5),
-        );
-        return;
-      }
-      final bounds = _buildBounds(points);
-      await controller.animateCamera(
-        gmaps.CameraUpdate.newLatLngBounds(bounds, 48),
-      );
-    } catch (_) {
-      // GoogleMap channels are unavailable in widget tests.
-    }
-  }
-
-  gmaps.LatLngBounds _buildBounds(List<gmaps.LatLng> points) {
-    var minLat = points.first.latitude;
-    var maxLat = points.first.latitude;
-    var minLng = points.first.longitude;
-    var maxLng = points.first.longitude;
-    for (final point in points.skip(1)) {
-      if (point.latitude < minLat) {
-        minLat = point.latitude;
-      }
-      if (point.latitude > maxLat) {
-        maxLat = point.latitude;
-      }
-      if (point.longitude < minLng) {
-        minLng = point.longitude;
-      }
-      if (point.longitude > maxLng) {
-        maxLng = point.longitude;
-      }
-    }
-    if (minLat == maxLat) {
-      minLat -= 0.0025;
-      maxLat += 0.0025;
-    }
-    if (minLng == maxLng) {
-      minLng -= 0.0025;
-      maxLng += 0.0025;
-    }
-    return gmaps.LatLngBounds(
-      southwest: gmaps.LatLng(minLat, minLng),
-      northeast: gmaps.LatLng(maxLat, maxLng),
+      polylines: <ServiceMapPolylineData>[
+        if (polylinePoints.length >= 2)
+          ServiceMapPolylineData(
+            id: 'route_preview',
+            points: polylinePoints,
+          ),
+      ],
+      fitPoints: points,
+      fitPadding: const EdgeInsets.all(40),
+      autoFitOnDataChange: true,
+      initialZoom: 11,
     );
   }
 }
@@ -603,8 +492,8 @@ List<_PolylinePoint>? _decodePolylineOrNull(String? encodedRaw) {
   }
 }
 
-gmaps.LatLng _toGmapsLatLng(_PolylinePoint point) =>
-    gmaps.LatLng(point.lat, point.lng);
+ServiceMapPoint _toServiceMapPoint(_PolylinePoint point) =>
+    ServiceMapPoint(lat: point.lat, lng: point.lng);
 
 class _PolylinePoint {
   const _PolylinePoint({

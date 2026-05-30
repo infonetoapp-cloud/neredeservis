@@ -39,13 +39,13 @@ function toStatusTone(status: CompanyLiveOpsStatus): string {
 
 function toStatusLabel(status: CompanyLiveOpsStatus): string {
   if (status === "no_signal") {
-    return "Baglanti yok";
+    return "Bağlantı yok";
   }
   if (status === "stale") {
     return "Konum gecikmeli";
   }
   if (status === "live") {
-    return "Canli";
+    return "Canlı";
   }
   return "Sefer bekliyor";
 }
@@ -67,8 +67,8 @@ export function CompanyDashboardFeed({ companyId, items, generatedAt }: Props) {
     <section className="rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Canli Durum</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-950">Canli operasyon akisi</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7d8693]">Canlı Durum</p>
+          <h2 className="mt-1 text-lg font-semibold text-slate-950">Canlı operasyon akışı</h2>
           <p className="mt-1 text-xs text-[#6f7783]">
             Son yenileme: {generatedAt ? new Date(generatedAt).toLocaleTimeString("tr-TR") : "-"}
           </p>
@@ -83,7 +83,21 @@ export function CompanyDashboardFeed({ companyId, items, generatedAt }: Props) {
 
       {visibleItems.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-line bg-[#fafbfd] p-4 text-sm text-[#6f7783]">
-          Henuz canli hareket yok. Ilk aktif sefer basladiginda burada gorunecek.
+          <p>Henüz canlı hareket yok. İlk aktif sefer başladığında burada görünecek.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Link
+              href="/routes"
+              className="inline-flex items-center rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Rotalara git
+            </Link>
+            <Link
+              href="/vehicles"
+              className="inline-flex items-center rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Araçları yönet
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
@@ -102,9 +116,7 @@ export function CompanyDashboardFeed({ companyId, items, generatedAt }: Props) {
                   <div className="mt-0.5 text-xs text-[#6f7783]">{tripStateLabel}</div>
                 </div>
                 <div className="text-xs text-[#6f7783]">Son sinyal: {lastSeen}</div>
-                <span
-                  className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${toStatusTone(item.status)}`}
-                >
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${toStatusTone(item.status)}`}>
                   {toStatusLabel(item.status)}
                 </span>
               </article>

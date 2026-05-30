@@ -20,14 +20,14 @@ export function CompanyContextGuard({ companyId, children }: Props) {
 
   useEffect(() => {
     if (!loading && !errorMessage && !hasActiveMembership && !lockReason) {
-      router.replace("/select-company");
+      router.replace("/dashboard");
     }
   }, [errorMessage, hasActiveMembership, loading, lockReason, router]);
 
   if (loading) {
     return (
       <div className="glass-panel rounded-2xl p-5 text-sm text-muted">
-        Sirket baglami dogrulaniyor...
+        Erişim doğrulanıyor...
       </div>
     );
   }
@@ -35,14 +35,14 @@ export function CompanyContextGuard({ companyId, children }: Props) {
   if (errorMessage) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-sm">
-        <div className="font-semibold">Sirket baglami dogrulanamadi</div>
-        <div className="mt-1">{errorMessage ?? "Bilinmeyen dogrulama hatasi."}</div>
+        <div className="font-semibold">Erişim doğrulanamadı</div>
+        <div className="mt-1">{errorMessage ?? "Bilinmeyen doğrulama hatasi."}</div>
         <div className="mt-3">
           <Link
-            href="/select-company"
+            href="/dashboard"
             className="inline-flex items-center rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
           >
-            Sirket secimine don
+            Genel bakışa dön
           </Link>
         </div>
       </div>
@@ -66,16 +66,16 @@ export function CompanyContextGuard({ companyId, children }: Props) {
   if (!hasActiveMembership) {
     return (
       <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900 shadow-sm">
-        <div className="font-semibold">Bu sirket baglamina erisim yok</div>
+        <div className="font-semibold">Bu panele erişim yok</div>
         <div className="mt-1">
-          companyId={normalizedCompanyId} icin aktif uyelik bulunamadi. Sirket secim ekranina don.
+          companyId={normalizedCompanyId} için aktif uyelik bulunamadi. Genel bakış ekranına dön.
         </div>
         <div className="mt-3">
           <Link
-            href="/select-company"
+            href="/dashboard"
             className="inline-flex items-center rounded-xl border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-900 hover:bg-rose-100"
           >
-            Sirket secimine don
+            Genel bakışa dön
           </Link>
         </div>
       </div>
@@ -84,3 +84,4 @@ export function CompanyContextGuard({ companyId, children }: Props) {
 
   return <>{children}</>;
 }
+

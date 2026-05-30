@@ -120,7 +120,7 @@ Future<void> _handleJoinBySrvCode(
             virtualStopLabel: input.virtualStopLabel,
           ),
         );
-      } on FirebaseFunctionsException catch (_) {
+      } catch (_) {
         if (context.mounted) {
           _showInfo(
             context,
@@ -174,17 +174,19 @@ Future<void> _handleJoinBySrvCode(
         'result': 'success',
       },
     );
-  } on FirebaseFunctionsException catch (error) {
+  } on AppException catch (error) {
     if (!context.mounted) {
       return;
     }
+    final normalizedErrorCode =
+        error.code.trim().toLowerCase().replaceAll('_', '-');
     _mobileTelemetry.track(
       eventName: MobileEventNames.routeJoin,
       category: 'join',
       addBreadcrumb: true,
       attributes: <String, Object?>{
         'result': 'error',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     _mobileTelemetry.trackPerf(
@@ -192,13 +194,13 @@ Future<void> _handleJoinBySrvCode(
       durationMs: stopwatch.elapsedMilliseconds,
       attributes: <String, Object?>{
         'result': 'error',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     final failurePlan = _planPassengerJoinFailureHandlingUseCase.execute(
       PlanPassengerJoinFailureHandlingCommand.functionsFailure(
         isQrEntry: source == _JoinEntrySource.qr,
-        errorCode: error.code,
+        errorCode: normalizedErrorCode,
         errorMessage: error.message,
       ),
     );
@@ -331,10 +333,12 @@ Future<void> _handleCreateGuestSession(
         'role': 'guest',
       },
     );
-  } on FirebaseFunctionsException catch (error) {
+  } on AppException catch (error) {
     if (!context.mounted) {
       return;
     }
+    final normalizedErrorCode =
+        error.code.trim().toLowerCase().replaceAll('_', '-');
     _mobileTelemetry.track(
       eventName: MobileEventNames.routeJoin,
       category: 'join',
@@ -342,7 +346,7 @@ Future<void> _handleCreateGuestSession(
       attributes: <String, Object?>{
         'result': 'error',
         'role': 'guest',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     _mobileTelemetry.trackPerf(
@@ -351,13 +355,13 @@ Future<void> _handleCreateGuestSession(
       attributes: <String, Object?>{
         'result': 'error',
         'role': 'guest',
-        'code': error.code,
+        'code': normalizedErrorCode,
       },
     );
     final failurePlan = _planGuestSessionCreateFailureHandlingUseCase.execute(
       PlanGuestSessionCreateFailureHandlingCommand.functionsFailure(
         isQrEntry: source == _JoinEntrySource.qr,
-        errorCode: error.code,
+        errorCode: normalizedErrorCode,
       ),
     );
     if (failurePlan.action ==
@@ -408,7 +412,7 @@ Future<bool> _ensureAnonymousSessionForGuestFlow(BuildContext context) async {
       await _authCredentialGateway.signOut();
     }
     await _authCredentialGateway.signInAnonymously();
-  } on FirebaseAuthException catch (error) {
+  } on AuthCredentialException catch (error) {
     if (context.mounted) {
       final message = _resolveAnonymousSignInFailureFeedbackMessageUseCase
           .execute(errorCode: error.code);

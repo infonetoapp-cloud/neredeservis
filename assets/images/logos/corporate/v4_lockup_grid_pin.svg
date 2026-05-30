@@ -1,0 +1,11 @@
+<svg width="1600" height="512" viewBox="0 0 1600 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="#0C2748"/>
+  <path d="M154 136H358M154 188H358M154 240H358M154 292H358M154 344H358" stroke="#2E4E77" stroke-width="8" stroke-linecap="round"/>
+  <path d="M154 136V344M206 136V344M258 136V344M310 136V344M362 136V344" stroke="#2E4E77" stroke-width="8" stroke-linecap="round"/>
+  <path d="M256 130C205.19 130 164 171.19 164 222C164 289.936 256 352 256 352C256 352 348 289.936 348 222C348 171.19 306.81 130 256 130Z" fill="#FF7A00"/>
+  <circle cx="256" cy="222" r="34" fill="#FFFFFF"/>
+  <circle cx="256" cy="222" r="14" fill="#0C2748"/>
+
+  <text x="520" y="308" fill="#0C2748" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Nerede</text>
+  <text x="1060" y="308" fill="#FF7A00" font-family="'Manrope', 'Space Grotesk', sans-serif" font-size="166" font-weight="800" letter-spacing="-2">Servis</text>
+</svg>

@@ -23,14 +23,14 @@ export function CompanyModeRouteGuard({
     return (
       <section className="space-y-4">
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {routeLabel} ekranini acmak icin aktif bir firma secimi gerekli.
+          {routeLabel} ekranını açmak için aktif bir firma seçimi gerekli.
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/select-company"
+            href="/dashboard"
             className="inline-flex items-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Firma Secimine Git
+            Genel Bakışa Git
           </Link>
           <Link
             href="/dashboard"
@@ -45,3 +45,4 @@ export function CompanyModeRouteGuard({
 
   return <>{children}</>;
 }
+

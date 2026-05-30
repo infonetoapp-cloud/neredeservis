@@ -1,7 +1,6 @@
 import BackgroundTasks
 import CoreMotion
 import Flutter
-import GoogleMaps
 import UIKit
 import workmanager
 
@@ -23,13 +22,6 @@ import workmanager
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    if let mapsApiKey = Bundle.main.object(forInfoDictionaryKey: "GMSApiKey") as? String {
-      let normalizedApiKey = mapsApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !normalizedApiKey.isEmpty && !normalizedApiKey.contains("$(") {
-        GMSServices.provideAPIKey(normalizedApiKey)
-      }
-    }
-
     GeneratedPluginRegistrant.register(with: self)
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)

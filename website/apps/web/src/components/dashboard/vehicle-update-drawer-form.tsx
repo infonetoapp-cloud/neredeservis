@@ -115,7 +115,7 @@ export function VehicleUpdateDrawerForm({
     if (!selectedVehicle || !form || !canSubmit) return;
 
     if (!hasChanges) {
-      setSuccessMessage("Degisiklik yok, kayit gonderilmedi.");
+      setSuccessMessage("Degisiklik yok, kayıt gonderilmedi.");
       setError(null);
       return;
     }
@@ -157,7 +157,7 @@ export function VehicleUpdateDrawerForm({
       if (form.status !== selectedVehicle.status) patch.status = form.status;
 
       if (Object.keys(patch).length === 0) {
-        setSuccessMessage("Degisiklik yok, kayit gonderilmedi.");
+        setSuccessMessage("Degisiklik yok, kayıt gonderilmedi.");
         return;
       }
 
@@ -167,7 +167,7 @@ export function VehicleUpdateDrawerForm({
         patch,
       });
 
-      setSuccessMessage("Arac bilgileri guncellendi.");
+      setSuccessMessage("Araç bilgileri guncellendi.");
       if (onUpdated) {
         await onUpdated();
       }
@@ -188,7 +188,7 @@ export function VehicleUpdateDrawerForm({
   if (!selectedVehicle || !form) {
     return (
       <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold text-slate-900">Arac Guncelle</div>
+        <div className="text-sm font-semibold text-slate-900">Araç Güncelle</div>
         <p className="mt-2 text-xs leading-5 text-slate-500">
           Liste bos oldugunda guncelleme formu devreye girmez.
         </p>
@@ -200,9 +200,9 @@ export function VehicleUpdateDrawerForm({
     <section className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Arac Guncelle</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Araç Güncelle</h3>
           <p className="text-xs text-slate-500">
-            `updateVehicle` patch mutasyonu ile secili arac ozet alanlari guncellenir.
+            `updateVehicle` patch mutasyonu ile secili araç ozet alanlari guncellenir.
           </p>
         </div>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
@@ -229,5 +229,6 @@ export function VehicleUpdateDrawerForm({
     </section>
   );
 }
+
 
 

@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "gate:local": "powershell -ExecutionPolicy Bypass -File ./scripts/phase5-local-gate.ps1",
@@ -74,8 +74,7 @@
     "firebase": "^12.9.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.576.0",
-    "mapbox-gl": "^3.19.0",
-    "next": "16.1.6",
+    "next": "16.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -86,8 +85,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "protobufjs": "^7.5.6"
+    }
   }
 }

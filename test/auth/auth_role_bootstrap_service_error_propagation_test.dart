@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/core/errors/error_codes.dart';
 import 'package:neredeservis/core/exceptions/app_exception.dart';
@@ -11,36 +10,51 @@ import 'package:neredeservis/features/auth/data/update_user_profile_client.dart'
 import 'package:neredeservis/features/auth/data/user_role_repository.dart';
 import 'package:neredeservis/features/auth/domain/auth_session.dart';
 import 'package:neredeservis/features/auth/domain/user_role.dart';
+import 'package:neredeservis/features/backend/data/mobile_backend_api_client.dart';
 
 void main() {
   group('AuthRoleBootstrapService error propagation', () {
     test(
-        'bootstrapCurrentUserProfile returns FAILED_PRECONDITION when unsigned',
-        () async {
-      final service = AuthRoleBootstrapService(
-        authGateway: _FakeAuthGateway(initialSession: null),
-        bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => <String, dynamic>{},
-        ),
-        updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => <String, dynamic>{},
-        ),
-        userRoleRepository: _FakeUserRoleRepository(),
-      );
-
-      await expectLater(
-        () => service.bootstrapCurrentUserProfile(displayName: 'Test'),
-        throwsA(
-          isA<AppException>().having(
-            (e) => e.code,
-            'code',
-            ErrorCodes.failedPrecondition,
+      'bootstrapCurrentUserProfile returns FAILED_PRECONDITION when unsigned',
+      () async {
+        final service = AuthRoleBootstrapService(
+          authGateway: _FakeAuthGateway(initialSession: null),
+          bootstrapClient: BootstrapUserProfileClient(
+            apiClient: _FakeMobileBackendApiClient(
+              response: <String, dynamic>{
+                'user': <String, dynamic>{
+                  'uid': 'user-1',
+                  'role': 'guest',
+                },
+                'createdOrUpdated': true,
+              },
+            ),
           ),
-        ),
-      );
-    });
+          updateUserProfileClient: UpdateUserProfileClient(
+            apiClient: _FakeMobileBackendApiClient(
+              response: <String, dynamic>{
+                'user': <String, dynamic>{'uid': 'user-1'},
+                'updatedAt': 'ts',
+              },
+            ),
+          ),
+          userRoleRepository: _FakeUserRoleRepository(),
+        );
 
-    test('maps callable permission error into AppException contract', () async {
+        await expectLater(
+          () => service.bootstrapCurrentUserProfile(displayName: 'Test'),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.code,
+              'code',
+              ErrorCodes.failedPrecondition,
+            ),
+          ),
+        );
+      },
+    );
+
+    test('maps backend permission error into AppException contract', () async {
       final service = AuthRoleBootstrapService(
         authGateway: _FakeAuthGateway(
           initialSession: const AuthSession(
@@ -50,14 +64,20 @@ void main() {
           ),
         ),
         bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => throw FirebaseException(
-            plugin: 'firebase_functions',
-            code: 'permission-denied',
-            message: 'blocked',
+          apiClient: _FakeMobileBackendApiClient(
+            error: const AppException(
+              code: ErrorCodes.permissionDenied,
+              message: 'blocked',
+            ),
           ),
         ),
         updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => <String, dynamic>{},
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{'uid': 'user-1'},
+              'updatedAt': 'ts',
+            },
+          ),
         ),
         userRoleRepository: _FakeUserRoleRepository(),
       );
@@ -81,10 +101,23 @@ void main() {
           signInError: TimeoutException('network timeout'),
         ),
         bootstrapClient: BootstrapUserProfileClient(
-          invoker: (_, __) async => <String, dynamic>{},
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{
+                'uid': 'user-1',
+                'role': 'guest',
+              },
+              'createdOrUpdated': true,
+            },
+          ),
         ),
         updateUserProfileClient: UpdateUserProfileClient(
-          invoker: (_, __) async => <String, dynamic>{},
+          apiClient: _FakeMobileBackendApiClient(
+            response: <String, dynamic>{
+              'user': <String, dynamic>{'uid': 'user-1'},
+              'updatedAt': 'ts',
+            },
+          ),
         ),
         userRoleRepository: _FakeUserRoleRepository(),
       );
@@ -145,4 +178,26 @@ class _FakeUserRoleRepository implements UserRoleRepository {
 
   @override
   Stream<UserRole?> watchRole(String uid) => const Stream<UserRole?>.empty();
+}
+
+class _FakeMobileBackendApiClient extends MobileBackendApiClient {
+  _FakeMobileBackendApiClient({
+    this.response = const <String, dynamic>{},
+    this.error,
+  });
+
+  final Map<String, dynamic> response;
+  final Object? error;
+
+  @override
+  Future<Map<String, dynamic>> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    if (error != null) {
+      throw error!;
+    }
+    return response;
+  }
 }

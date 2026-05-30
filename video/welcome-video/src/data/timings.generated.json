@@ -1,0 +1,551 @@
+{
+  "generatedAt": "2026-03-05T15:03:55.274Z",
+  "voice": {
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "modelId": "eleven_multilingual_v2"
+  },
+  "totalDurationSeconds": 54.804,
+  "sceneTimings": [
+    {
+      "id": "welcome",
+      "text": "Merhaba, NeredeServis'e hos geldiniz. Bu kisa videoda operasyon surecinizi nasil yoneteceginizi birlikte gorecegiz.",
+      "start": 0.174,
+      "end": 7.565,
+      "words": [
+        {
+          "word": "Merhaba,",
+          "start": 0.174,
+          "end": 0.639
+        },
+        {
+          "word": "NeredeServis'e",
+          "start": 0.673,
+          "end": 1.416
+        },
+        {
+          "word": "hos",
+          "start": 1.474,
+          "end": 1.625
+        },
+        {
+          "word": "geldiniz.",
+          "start": 1.695,
+          "end": 2.334
+        },
+        {
+          "word": "Bu",
+          "start": 2.508,
+          "end": 2.659
+        },
+        {
+          "word": "kisa",
+          "start": 2.694,
+          "end": 2.902
+        },
+        {
+          "word": "videoda",
+          "start": 2.949,
+          "end": 3.39
+        },
+        {
+          "word": "operasyon",
+          "start": 3.471,
+          "end": 4.063
+        },
+        {
+          "word": "surecinizi",
+          "start": 4.11,
+          "end": 4.795
+        },
+        {
+          "word": "nasil",
+          "start": 4.853,
+          "end": 5.166
+        },
+        {
+          "word": "yoneteceginizi",
+          "start": 5.236,
+          "end": 6.014
+        },
+        {
+          "word": "birlikte",
+          "start": 6.06,
+          "end": 6.455
+        },
+        {
+          "word": "gorecegiz.",
+          "start": 6.513,
+          "end": 7.245
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "text": "Ilk adimda guvenli giris ekranindan panele ulasirsiniz. Yetkili ekipler tek panelde ayni operasyon dilinde bulusur.",
+      "start": 7.525,
+      "end": 15.192,
+      "words": [
+        {
+          "word": "Ilk",
+          "start": 7.488,
+          "end": 7.732
+        },
+        {
+          "word": "adimda",
+          "start": 7.814,
+          "end": 8.255
+        },
+        {
+          "word": "guvenli",
+          "start": 8.336,
+          "end": 8.754
+        },
+        {
+          "word": "giris",
+          "start": 8.8,
+          "end": 9.056
+        },
+        {
+          "word": "ekranindan",
+          "start": 9.149,
+          "end": 9.776
+        },
+        {
+          "word": "panele",
+          "start": 9.845,
+          "end": 10.17
+        },
+        {
+          "word": "ulasirsiniz.",
+          "start": 10.228,
+          "end": 11.076
+        },
+        {
+          "word": "Yetkili",
+          "start": 11.32,
+          "end": 11.714
+        },
+        {
+          "word": "ekipler",
+          "start": 11.738,
+          "end": 12.167
+        },
+        {
+          "word": "tek",
+          "start": 12.237,
+          "end": 12.399
+        },
+        {
+          "word": "panelde",
+          "start": 12.457,
+          "end": 12.875
+        },
+        {
+          "word": "ayni",
+          "start": 12.968,
+          "end": 13.224
+        },
+        {
+          "word": "operasyon",
+          "start": 13.293,
+          "end": 13.874
+        },
+        {
+          "word": "dilinde",
+          "start": 13.909,
+          "end": 14.222
+        },
+        {
+          "word": "bulusur.",
+          "start": 14.268,
+          "end": 14.872
+        }
+      ]
+    },
+    {
+      "id": "live-ops",
+      "text": "Canli operasyon ekraninda araclarinizi harita uzerinde gercek zamanli izler, gecikmeleri aninda fark edersiniz.",
+      "start": 15.152,
+      "end": 22.785,
+      "words": [
+        {
+          "word": "Canli",
+          "start": 15.151,
+          "end": 15.452
+        },
+        {
+          "word": "operasyon",
+          "start": 15.534,
+          "end": 16.091
+        },
+        {
+          "word": "ekraninda",
+          "start": 16.137,
+          "end": 16.637
+        },
+        {
+          "word": "araclarinizi",
+          "start": 16.683,
+          "end": 17.484
+        },
+        {
+          "word": "harita",
+          "start": 17.531,
+          "end": 17.856
+        },
+        {
+          "word": "uzerinde",
+          "start": 17.891,
+          "end": 18.367
+        },
+        {
+          "word": "gercek",
+          "start": 18.459,
+          "end": 18.877
+        },
+        {
+          "word": "zamanli",
+          "start": 18.935,
+          "end": 19.4
+        },
+        {
+          "word": "izler,",
+          "start": 19.47,
+          "end": 20.073
+        },
+        {
+          "word": "gecikmeleri",
+          "start": 20.247,
+          "end": 20.886
+        },
+        {
+          "word": "aninda",
+          "start": 20.956,
+          "end": 21.408
+        },
+        {
+          "word": "fark",
+          "start": 21.466,
+          "end": 21.722
+        },
+        {
+          "word": "edersiniz.",
+          "start": 21.768,
+          "end": 22.465
+        }
+      ]
+    },
+    {
+      "id": "routes",
+      "text": "Rota yonetiminde duraklari siralar, seferleri planlar, arac ve sofor atamalarini birkac tikla tamamlarsiniz.",
+      "start": 22.745,
+      "end": 30.285,
+      "words": [
+        {
+          "word": "Rota",
+          "start": 22.744,
+          "end": 23.034
+        },
+        {
+          "word": "yonetiminde",
+          "start": 23.103,
+          "end": 23.742
+        },
+        {
+          "word": "duraklari",
+          "start": 23.8,
+          "end": 24.357
+        },
+        {
+          "word": "siralar,",
+          "start": 24.415,
+          "end": 25.089
+        },
+        {
+          "word": "seferleri",
+          "start": 25.263,
+          "end": 25.82
+        },
+        {
+          "word": "planlar,",
+          "start": 25.855,
+          "end": 26.494
+        },
+        {
+          "word": "arac",
+          "start": 26.528,
+          "end": 26.853
+        },
+        {
+          "word": "ve",
+          "start": 26.912,
+          "end": 27.016
+        },
+        {
+          "word": "sofor",
+          "start": 27.062,
+          "end": 27.388
+        },
+        {
+          "word": "atamalarini",
+          "start": 27.434,
+          "end": 28.038
+        },
+        {
+          "word": "birkac",
+          "start": 28.096,
+          "end": 28.56
+        },
+        {
+          "word": "tikla",
+          "start": 28.618,
+          "end": 28.909
+        },
+        {
+          "word": "tamamlarsiniz.",
+          "start": 28.955,
+          "end": 29.965
+        }
+      ]
+    },
+    {
+      "id": "fleet",
+      "text": "Arac filosu ve sofor belgeleri tek merkezde toplanir. Suresi yaklasan belgeler icin sistem sizi otomatik uyarir.",
+      "start": 30.29,
+      "end": 38.273,
+      "words": [
+        {
+          "word": "Arac",
+          "start": 30.29,
+          "end": 30.604
+        },
+        {
+          "word": "filosu",
+          "start": 30.662,
+          "end": 31.022
+        },
+        {
+          "word": "ve",
+          "start": 31.068,
+          "end": 31.173
+        },
+        {
+          "word": "sofor",
+          "start": 31.219,
+          "end": 31.556
+        },
+        {
+          "word": "belgeleri",
+          "start": 31.626,
+          "end": 32.113
+        },
+        {
+          "word": "tek",
+          "start": 32.148,
+          "end": 32.299
+        },
+        {
+          "word": "merkezde",
+          "start": 32.369,
+          "end": 32.787
+        },
+        {
+          "word": "toplanir.",
+          "start": 32.833,
+          "end": 33.472
+        },
+        {
+          "word": "Suresi",
+          "start": 33.75,
+          "end": 34.377
+        },
+        {
+          "word": "yaklasan",
+          "start": 34.47,
+          "end": 35.039
+        },
+        {
+          "word": "belgeler",
+          "start": 35.109,
+          "end": 35.654
+        },
+        {
+          "word": "icin",
+          "start": 35.735,
+          "end": 36.014
+        },
+        {
+          "word": "sistem",
+          "start": 36.084,
+          "end": 36.467
+        },
+        {
+          "word": "sizi",
+          "start": 36.548,
+          "end": 36.804
+        },
+        {
+          "word": "otomatik",
+          "start": 36.873,
+          "end": 37.361
+        },
+        {
+          "word": "uyarir.",
+          "start": 37.407,
+          "end": 37.953
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "text": "Raporlar ve disa aktarma ozellikleriyle operasyon verisini ekiplerle paylasir, karar sureclerini hizlandirirsiniz.",
+      "start": 38.278,
+      "end": 45.506,
+      "words": [
+        {
+          "word": "Raporlar",
+          "start": 38.278,
+          "end": 38.824
+        },
+        {
+          "word": "ve",
+          "start": 38.87,
+          "end": 38.963
+        },
+        {
+          "word": "disa",
+          "start": 39.01,
+          "end": 39.242
+        },
+        {
+          "word": "aktarma",
+          "start": 39.277,
+          "end": 39.671
+        },
+        {
+          "word": "ozellikleriyle",
+          "start": 39.718,
+          "end": 40.472
+        },
+        {
+          "word": "operasyon",
+          "start": 40.53,
+          "end": 41.099
+        },
+        {
+          "word": "verisini",
+          "start": 41.146,
+          "end": 41.54
+        },
+        {
+          "word": "ekiplerle",
+          "start": 41.587,
+          "end": 42.156
+        },
+        {
+          "word": "paylasir,",
+          "start": 42.202,
+          "end": 42.899
+        },
+        {
+          "word": "karar",
+          "start": 43.073,
+          "end": 43.398
+        },
+        {
+          "word": "sureclerini",
+          "start": 43.456,
+          "end": 44.071
+        },
+        {
+          "word": "hizlandirirsiniz.",
+          "start": 44.106,
+          "end": 45.186
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "text": "Hazirsaniz demo surecini baslatin. NeredeServis ile operasyonunuzu daha gorunur, daha hizli ve daha guvenli yonetin.",
+      "start": 45.466,
+      "end": 54.004,
+      "words": [
+        {
+          "word": "Hazirsaniz",
+          "start": 45.429,
+          "end": 46.08
+        },
+        {
+          "word": "demo",
+          "start": 46.149,
+          "end": 46.347
+        },
+        {
+          "word": "surecini",
+          "start": 46.381,
+          "end": 46.846
+        },
+        {
+          "word": "baslatin.",
+          "start": 46.881,
+          "end": 47.67
+        },
+        {
+          "word": "NeredeServis",
+          "start": 47.914,
+          "end": 48.727
+        },
+        {
+          "word": "ile",
+          "start": 48.796,
+          "end": 49.028
+        },
+        {
+          "word": "operasyonunuzu",
+          "start": 49.098,
+          "end": 50.05
+        },
+        {
+          "word": "daha",
+          "start": 50.108,
+          "end": 50.306
+        },
+        {
+          "word": "gorunur,",
+          "start": 50.352,
+          "end": 51.014
+        },
+        {
+          "word": "daha",
+          "start": 51.188,
+          "end": 51.467
+        },
+        {
+          "word": "hizli",
+          "start": 51.536,
+          "end": 51.954
+        },
+        {
+          "word": "ve",
+          "start": 52.012,
+          "end": 52.152
+        },
+        {
+          "word": "daha",
+          "start": 52.233,
+          "end": 52.477
+        },
+        {
+          "word": "guvenli",
+          "start": 52.546,
+          "end": 53.022
+        },
+        {
+          "word": "yonetin.",
+          "start": 53.08,
+          "end": 53.684
+        }
+      ]
+    }
+  ]
+}

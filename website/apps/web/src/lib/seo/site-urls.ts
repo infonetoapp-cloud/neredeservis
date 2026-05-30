@@ -29,6 +29,26 @@ const panelBaseUrl = normalizeBaseUrl(
   DEFAULT_PANEL_BASE_URL,
 );
 
+const PANEL_ROUTE_PREFIXES = [
+  "/giris",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/set-password",
+  "/verify-email",
+  "/select-company",
+  "/dashboard",
+  "/drivers",
+  "/vehicles",
+  "/routes",
+  "/live-ops",
+  "/platform",
+  "/select-mode",
+  "/mode-select",
+  "/onboarding/profile",
+  "/c/",
+] as const;
+
 export function getMarketingBaseUrl(): string {
   return marketingBaseUrl;
 }
@@ -43,4 +63,37 @@ export function toAbsoluteUrl(baseUrl: string, path: string): string {
     return baseUrl;
   }
   return `${baseUrl}${normalizedPath}`;
+}
+
+function isPanelPath(pathname: string): boolean {
+  return PANEL_ROUTE_PREFIXES.some((prefix) =>
+    prefix.endsWith("/")
+      ? pathname.startsWith(prefix)
+      : pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+export function resolveMarketingHref(rawHref: string): string {
+  const href = rawHref.trim();
+
+  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+    return href;
+  }
+
+  try {
+    const parsed = new URL(href, marketingBaseUrl);
+
+    if (!isPanelPath(parsed.pathname)) {
+      return href;
+    }
+
+    const normalizedPath =
+      parsed.pathname === "/"
+        ? "/"
+        : `${parsed.pathname}${parsed.search}${parsed.hash}`;
+
+    return toAbsoluteUrl(panelBaseUrl, normalizedPath);
+  } catch {
+    return href;
+  }
 }

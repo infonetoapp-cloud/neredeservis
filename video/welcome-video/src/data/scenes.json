@@ -1,0 +1,44 @@
+[
+  {
+    "id": "welcome",
+    "title": "Hos geldiniz",
+    "voiceover": "Merhaba, NeredeServis'e hos geldiniz. Bu kisa videoda operasyon surecinizi nasil yoneteceginizi birlikte gorecegiz.",
+    "points": ["Kurumsal servis yonetimi", "Hizli baslangic", "Net operasyon akisi"]
+  },
+  {
+    "id": "login",
+    "title": "Guvenli giris",
+    "voiceover": "Ilk adimda guvenli giris ekranindan panele ulasirsiniz. Yetkili ekipler tek panelde ayni operasyon dilinde bulusur.",
+    "points": ["Kurumsal erisim", "Rate-limit ve captcha", "Tek giris katmani"]
+  },
+  {
+    "id": "live-ops",
+    "title": "Canli operasyon",
+    "voiceover": "Canli operasyon ekraninda araclarinizi harita uzerinde gercek zamanli izler, gecikmeleri aninda fark edersiniz.",
+    "points": ["Gercek zamanli izleme", "Anlik gecikme gorunumu", "Hizli operasyon tepkisi"]
+  },
+  {
+    "id": "routes",
+    "title": "Rota yonetimi",
+    "voiceover": "Rota yonetiminde duraklari siralar, seferleri planlar, arac ve sofor atamalarini birkac tikla tamamlarsiniz.",
+    "points": ["Durak planlama", "Sefer akisi", "Atama kolayligi"]
+  },
+  {
+    "id": "fleet",
+    "title": "Filo ve belgeler",
+    "voiceover": "Arac filosu ve sofor belgeleri tek merkezde toplanir. Suresi yaklasan belgeler icin sistem sizi otomatik uyarir.",
+    "points": ["Filo kontrolu", "Belge takibi", "Otomatik uyari"]
+  },
+  {
+    "id": "reports",
+    "title": "Raporlama",
+    "voiceover": "Raporlar ve disa aktarma ozellikleriyle operasyon verisini ekiplerle paylasir, karar sureclerini hizlandirirsiniz.",
+    "points": ["CSV disa aktarma", "Operasyon raporlari", "Veriye dayali karar"]
+  },
+  {
+    "id": "cta",
+    "title": "Baslayalim",
+    "voiceover": "Hazirsaniz demo surecini baslatin. NeredeServis ile operasyonunuzu daha gorunur, daha hizli ve daha guvenli yonetin.",
+    "points": ["Demo ile basla", "Kurumsal olcekte yonetim", "Sade ve guclu deneyim"]
+  }
+]

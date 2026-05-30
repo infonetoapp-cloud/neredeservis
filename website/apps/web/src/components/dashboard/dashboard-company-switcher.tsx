@@ -44,7 +44,7 @@ export function DashboardCompanySwitcher() {
                 Company Context
               </div>
               <div className="text-[11px] text-muted">
-                Aktif firmayi sec. Drivers/Routes/Live Ops gorunumu buna gore calisir.
+                Aktif firmayi sec. Drivers/Routes/Live Ops gorunumu buna göre çalışır.
               </div>
             </div>
             <button
@@ -70,7 +70,7 @@ export function DashboardCompanySwitcher() {
             </div>
           ) : !hasCompanies ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Bu hesapta firma uyeligi bulunamadi. Firma secim ekranindan firma olustur.
+              Bu hesapta firma uyeligi bulunamadi. Firma secim ekranindan firma oluştur.
             </div>
           ) : (
             <div className="max-h-72 space-y-2 overflow-auto pr-1">
@@ -115,7 +115,7 @@ export function DashboardCompanySwitcher() {
 
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
             <a
-              href="/select-company"
+              href="/dashboard"
               className="text-xs font-semibold text-blue-700 hover:text-blue-800"
             >
               Firma secim ekranina git
@@ -133,3 +133,4 @@ export function DashboardCompanySwitcher() {
     </div>
   );
 }
+

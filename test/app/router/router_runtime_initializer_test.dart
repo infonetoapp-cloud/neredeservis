@@ -33,12 +33,9 @@ void main() {
         sentryDsn: 'dsn',
         analyticsCollectionEnabled: false,
         appCheckDebugProviderEnabled: true,
-        googleSignInServerClientId: null,
+        firebaseWebApiKey: 'AIzaSyDGX_QJV5dCQVII6k13A3FZ-gUb8GkDTX4', //gitleaks:allow
         adaptyEnabled: false,
         adaptyApiKey: null,
-        mapboxPublicToken: null,
-        mapboxTileCacheMb: 128,
-        mapboxStylePreloadEnabled: true,
       ),
     );
 

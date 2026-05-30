@@ -60,7 +60,7 @@ export function RouteStopsFormSection({
     <form className="space-y-3 rounded-xl border border-line bg-white p-3" onSubmit={onSubmit}>
       <div className="flex items-center justify-between gap-2">
         <div className="text-xs font-semibold text-slate-800">
-          {form.stopId ? "Durak Guncelle" : "Yeni Durak Ekle"}
+          {form.stopId ? "Durak Güncelle" : "Yeni Durak Ekle"}
         </div>
         {form.stopId ? (
           <button
@@ -195,16 +195,17 @@ export function RouteStopsFormSection({
         <p className="text-xs text-slate-500">
           {isLockedEditMode
             ? "Aktif seferde yalnizca durak adi guncellenebilir."
-            : "Siralama icin Basa/Yukari/Asagi/Sona ve surukle-birak aksiyonlari aktif."}
+            : "Siralama için Basa/Yukari/Asagi/Sona ve surukle-birak aksiyonlari aktif."}
         </p>
         <button
           type="submit"
           disabled={!canSubmit}
           className="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {pending ? "Kaydediliyor..." : form.stopId ? "Durak Guncelle" : "Durak Ekle"}
+          {pending ? "Kaydediliyor..." : form.stopId ? "Durak Güncelle" : "Durak Ekle"}
         </button>
       </div>
     </form>
   );
 }
+

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import {
   LayoutDashboard,
   Users,
-  Truck,
   Bus,
   MapPin,
   RadioTower,
@@ -16,8 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { ActiveCompanySidebarCard } from "@/components/dashboard/active-company-sidebar-card";
-import { EnvBadge } from "@/components/shared/env-badge";
+import { NsLogo } from "@/components/brand/ns-logo";
 import { useActiveCompanyMembership } from "@/features/company/use-active-company-membership";
 import { useActiveCompanyPreference } from "@/features/company/use-active-company-preference";
 
@@ -115,6 +114,18 @@ function isItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function parseCompanyIdFromPathname(pathname: string): string | null {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length < 2 || segments[0] !== "c") {
+    return null;
+  }
+  try {
+    return decodeURIComponent(segments[1]);
+  } catch {
+    return segments[1];
+  }
+}
+
 function buildSections(companyId: string | null, role: string | null): NavSection[] {
   if (!companyId) {
     return [];
@@ -174,23 +185,20 @@ export function DashboardShellSidebar() {
   const activeCompany = useActiveCompanyPreference();
   const membership = useActiveCompanyMembership();
 
-  const companyId = activeCompany?.companyId ?? null;
+  const pathnameCompanyId = useMemo(() => parseCompanyIdFromPathname(pathname), [pathname]);
+  const companyId = activeCompany?.companyId ?? pathnameCompanyId ?? "internal";
   const sections = buildSections(companyId, membership.role);
 
   return (
     <aside className="flex h-screen flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0">
       {/* Logo */}
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#F67366] to-[#E85D50] shadow-sm">
-            <RadioTower className="h-4 w-4 text-white" />
+        <div>
+          <div className="flex items-center">
+            <NsLogo iconSize={24} wordmarkClass="text-[18px] font-extrabold tracking-tight leading-none" />
           </div>
-          <div>
-            <div className="text-[13px] font-bold tracking-tight text-slate-800">NeredeServis</div>
-            <div className="text-[10px] text-slate-400">Yönetim Paneli</div>
-          </div>
+          <div className="pl-9 text-[11px] text-slate-400">Yönetim Paneli</div>
         </div>
-        <EnvBadge />
       </div>
 
       {/* Nav */}
@@ -246,10 +254,7 @@ export function DashboardShellSidebar() {
         )}
       </nav>
 
-      {/* Active Company Card */}
-      <div className="border-t border-slate-100 px-3 py-3">
-        <ActiveCompanySidebarCard />
-      </div>
     </aside>
   );
 }
+

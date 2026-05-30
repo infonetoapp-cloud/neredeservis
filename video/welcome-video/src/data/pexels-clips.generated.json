@@ -1,0 +1,84 @@
+{
+  "generatedAt": "2026-03-05T17:08:31.879Z",
+  "provider": "Pexels",
+  "clips": [
+    {
+      "sceneId": "hook",
+      "query": "sunrise sky calm nature",
+      "provider": "Pexels",
+      "videoId": "11403720",
+      "durationSeconds": 18,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/hook-pexels-11403720.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/sunrise-over-sea-11403720/",
+      "photographer": "Julio  Agreda",
+      "photographerUrl": "https://www.pexels.com/@julio-agreda-5105"
+    },
+    {
+      "sceneId": "sukur",
+      "query": "morning light nature peaceful",
+      "provider": "Pexels",
+      "videoId": "35079967",
+      "durationSeconds": 7,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/sukur-pexels-35079967.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/serene-sunlit-forest-park-scene-with-trees-35079967/",
+      "photographer": "Orkun Uzunsaç",
+      "photographerUrl": "https://www.pexels.com/@orkun-uzunsac-1764951442"
+    },
+    {
+      "sceneId": "namaz",
+      "query": "mosque prayer silhouette",
+      "provider": "Pexels",
+      "videoId": "34632954",
+      "durationSeconds": 18,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/namaz-pexels-34632954.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/buyuk-camlica-mosque-interior-with-worshippers-34632954/",
+      "photographer": "Sururi Ballıdağ Director",
+      "photographerUrl": "https://www.pexels.com/@drector"
+    },
+    {
+      "sceneId": "sabir",
+      "query": "rain window hope light",
+      "provider": "Pexels",
+      "videoId": "35729574",
+      "durationSeconds": 14,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/sabir-pexels-35729574.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/rainfall-window-view-with-water-droplets-35729574/",
+      "photographer": "peri ✨",
+      "photographerUrl": "https://www.pexels.com/@peri-2149976252"
+    },
+    {
+      "sceneId": "dua",
+      "query": "hands prayer closeup faith",
+      "provider": "Pexels",
+      "videoId": "8165167",
+      "durationSeconds": 8,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/dua-pexels-8165167.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/a-person-holding-prayer-beads-8165167/",
+      "photographer": "Alena Darmel",
+      "photographerUrl": "https://www.pexels.com/@a-darmel"
+    },
+    {
+      "sceneId": "paylas",
+      "query": "friends support kindness sunset",
+      "provider": "Pexels",
+      "videoId": "6382089",
+      "durationSeconds": 10,
+      "width": 1080,
+      "height": 1920,
+      "localFile": "media/pexels/paylas-pexels-6382089.mp4",
+      "pexelsVideoUrl": "https://www.pexels.com/video/two-friends-going-through-a-hard-time-6382089/",
+      "photographer": "Liza Summer",
+      "photographerUrl": "https://www.pexels.com/@liza-summer"
+    }
+  ]
+}

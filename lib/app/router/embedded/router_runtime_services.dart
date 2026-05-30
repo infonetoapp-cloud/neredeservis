@@ -25,8 +25,9 @@ final LocalQueueRepository _localQueueRepository = LocalQueueRepository(
   database: _offlineQueueDatabase,
 );
 final LocationPublishService _locationPublishService = LocationPublishService(
-  liveLocationRepository: RtdbLiveLocationRepository(),
+  liveLocationRepository: BackendLiveLocationRepository(),
   localQueueRepository: _localQueueRepository,
+  historyWriter: buildBackendLocationHistoryWriter(),
   metricListener: _recordLocationPublishMetric,
 );
 final TripActionSyncService _tripActionSyncService = TripActionSyncService(
@@ -47,20 +48,16 @@ final PassengerNotificationUiService _passengerNotificationUiService =
     PassengerNotificationUiService();
 final RouteTopicSubscriptionService _routeTopicSubscriptionService =
     RouteTopicSubscriptionService();
-final FirebaseDriverDeviceRegistrationInvoker _driverDeviceRegistrationInvoker =
-    FirebaseDriverDeviceRegistrationInvoker();
-const RouterFirebaseRuntimeGateway _routerFirebaseRuntimeGateway =
-    routerFirebaseRuntimeGateway;
+final BackendDriverDeviceRegistrationInvoker _driverDeviceRegistrationInvoker =
+    BackendDriverDeviceRegistrationInvoker();
+const RouterRuntimeGateway _routerRuntimeGateway = routerRuntimeGateway;
 final DriverPushTokenRegistrationService _driverPushTokenRegistrationService =
     DriverPushTokenRegistrationService(
   registerInvoker: _driverDeviceRegistrationInvoker.invoke,
-  tokenFetcher: _routerFirebaseRuntimeGateway.fetchMessagingToken,
+  tokenFetcher: _routerRuntimeGateway.fetchMessagingToken,
   tokenRefreshStreamProvider: () =>
-      _routerFirebaseRuntimeGateway.messagingTokenRefreshStream,
+      _routerRuntimeGateway.messagingTokenRefreshStream,
   devicePlatformKey: _devicePlatformKey(),
 );
-final FirebaseFirestore _firestore = _routerFirebaseRuntimeGateway.firestore;
-final FirebaseFunctions _firebaseFunctions =
-    _routerFirebaseRuntimeGateway.functions;
 final AuthCredentialGateway _authCredentialGateway =
-    FirebaseAuthCredentialGateway();
+    IdentityToolkitAuthCredentialGateway();

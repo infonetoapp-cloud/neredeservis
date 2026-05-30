@@ -197,7 +197,7 @@ export function DashboardCommandPalette() {
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <span>Komut</span>
+        <span>Komutlar</span>
         <span className="hidden rounded-md border border-line bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-muted sm:inline-flex">
           Ctrl/Cmd + K
         </span>

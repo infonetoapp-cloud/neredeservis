@@ -1,6 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:neredeservis/config/firebase_regions.dart';
-
+import '../../backend/data/mobile_backend_api_client.dart';
 import '../domain/user_role.dart';
 import 'profile_callable_exception.dart';
 
@@ -42,27 +40,24 @@ class BootstrapUserProfileResult {
 
 class BootstrapUserProfileClient {
   BootstrapUserProfileClient({
-    FirebaseFunctions? functions,
-    CallableInvoker? invoker,
-  })  : _functions = functions,
-        _invoker = invoker;
+    MobileBackendApiClient? apiClient,
+  }) : _apiClient = apiClient ?? MobileBackendApiClient();
 
-  FirebaseFunctions? _functions;
-  final CallableInvoker? _invoker;
-
-  FirebaseFunctions get _resolvedFunctions => _functions ??=
-      FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
+  final MobileBackendApiClient _apiClient;
 
   Future<BootstrapUserProfileResult> bootstrap(
     BootstrapUserProfileInput input,
   ) async {
-    const callableName = 'bootstrapUserProfile';
+    const callableName = 'PATCH /api/auth/profile';
     try {
-      final rawResponse = await _call(callableName, input.toJson());
-      final payload = _extractData(rawResponse);
+      final payload = await _apiClient.patchJson(
+        '/api/auth/profile',
+        body: input.toJson(),
+      );
+      final userPayload = _extractUser(payload);
       return BootstrapUserProfileResult(
-        uid: payload['uid'] as String? ?? '',
-        role: userRoleFromRaw(payload['role'] as String?),
+        uid: userPayload['uid'] as String? ?? '',
+        role: userRoleFromRaw(userPayload['role'] as String?),
         createdOrUpdated: payload['createdOrUpdated'] as bool? ?? false,
       );
     } catch (error) {
@@ -73,25 +68,14 @@ class BootstrapUserProfileClient {
     }
   }
 
-  Future<dynamic> _call(String callableName, Map<String, dynamic> input) async {
-    if (_invoker != null) {
-      return _invoker.call(callableName, input);
+  static Map<String, dynamic> _extractUser(Map<String, dynamic> payload) {
+    final user = payload['user'];
+    if (user is Map<String, dynamic>) {
+      return user;
     }
-    final callable = _resolvedFunctions.httpsCallable(callableName);
-    final response = await callable.call(input);
-    return response.data;
-  }
-
-  static Map<String, dynamic> _extractData(dynamic raw) {
-    if (raw is! Map) {
-      throw StateError('bootstrapUserProfile returned non-map payload.');
+    if (user is Map<Object?, Object?>) {
+      return Map<String, dynamic>.from(user);
     }
-
-    final payload = Map<String, dynamic>.from(raw);
-    final wrappedData = payload['data'];
-    if (wrappedData is Map) {
-      return Map<String, dynamic>.from(wrappedData);
-    }
-    return payload;
+    throw StateError('/api/auth/profile returned invalid user payload.');
   }
 }
