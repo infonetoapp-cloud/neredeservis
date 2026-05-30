@@ -7,21 +7,21 @@ import { DashboardHeaderActions } from "@/components/auth/dashboard-header-actio
 const PLATFORM_HEADER_META: Record<string, { title: string; subtitle: string }> = {
   "/platform/companies": {
     title: "Sirketler",
-    subtitle: "Kayitli tum sirketleri goruntule ve yonet",
+    subtitle: "Kayitli tüm sirketleri goruntule ve yönet",
   },
   "/platform/companies/new": {
-    title: "Yeni Sirket Olustur",
-    subtitle: "Sirket adi ve yetkili e-postasi ile yeni firma kaydi",
+    title: "Yeni Şirket Oluştur",
+    subtitle: "Şirket adi ve yetkili e-postasi ile yeni firma kaydi",
   },
   "/platform/landing": {
-    title: "Ana Sayfa Yonetimi",
+    title: "Ana Sayfa Yönetimi",
     subtitle: "Landing page iceriklerini duzenle ve yayinla",
   },
 };
 
 const DEFAULT_META = {
-  title: "Platform Yonetimi",
-  subtitle: "SaaS yonetim paneli",
+  title: "Platform Yönetimi",
+  subtitle: "SaaS yönetim paneli",
 };
 
 export function PlatformShellHeader() {
@@ -30,7 +30,7 @@ export function PlatformShellHeader() {
   const meta =
     PLATFORM_HEADER_META[pathname] ??
     (pathname.startsWith("/platform/companies/")
-      ? { title: "Sirket Detayi", subtitle: "Sirket bilgileri, uyeler, araclar ve rotalar" }
+      ? { title: "Şirket Detayi", subtitle: "Şirket bilgileri, uyeler, araclar ve rotalar" }
       : DEFAULT_META);
 
   return (
@@ -51,3 +51,4 @@ export function PlatformShellHeader() {
     </header>
   );
 }
+

@@ -68,15 +68,14 @@ PassengerDriverSnapshotInfo? _toPassengerDriverSnapshotFromDriverData(
 }
 
 List<PassengerStopInfo> _resolvePassengerStops(
-  QuerySnapshot<Map<String, dynamic>>? snapshot,
+  List<Map<String, dynamic>>? items,
 ) {
-  if (snapshot == null || snapshot.docs.isEmpty) {
+  if (items == null || items.isEmpty) {
     return const <PassengerStopInfo>[];
   }
 
   final stops = <PassengerStopInfo>[];
-  for (final doc in snapshot.docs) {
-    final data = doc.data();
+  for (final data in items) {
     final nameRaw = (data['name'] as String?)?.trim();
     final name = (nameRaw == null || nameRaw.isEmpty) ? 'Durak' : nameRaw;
     final isPassed = data['isPassed'] == true;

@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/domain/application/domain_use_cases.dart';
+import '../../features/domain/data/backend_live_location_repository.dart';
 import '../../features/domain/data/local_drift_database.dart';
 import '../../features/domain/data/local_queue_repository.dart';
-import '../../features/domain/data/rtdb_domain_repositories.dart';
 import '../../features/location/application/location_publish_service.dart';
+import '../../features/location/data/backend_location_history_writer.dart';
 import '../../features/location/infrastructure/android_location_background_service.dart';
 import '../../services/repository_interfaces.dart';
 
@@ -26,7 +27,7 @@ final localQueueRepositoryProvider = Provider<LocalQueueRepository>((ref) {
 });
 
 final liveLocationRepositoryProvider = Provider<LiveLocationRepository>((_) {
-  return RtdbLiveLocationRepository();
+  return BackendLiveLocationRepository();
 });
 
 final locationPublishServiceProvider = Provider<LocationPublishService>((ref) {
@@ -35,6 +36,7 @@ final locationPublishServiceProvider = Provider<LocationPublishService>((ref) {
   return LocationPublishService(
     liveLocationRepository: liveLocationRepository,
     localQueueRepository: localQueueRepository,
+    historyWriter: buildBackendLocationHistoryWriter(),
   );
 });
 

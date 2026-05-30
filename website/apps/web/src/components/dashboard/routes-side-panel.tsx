@@ -139,9 +139,9 @@ export function RoutesSidePanel({
         {membersLoadStatus === "loading" || routePermissionsLoadStatus === "loading" ? (
           <p className="text-xs text-slate-500">Uye ve yetki listesi yukleniyor...</p>
         ) : !selectedRoute ? (
-          <p className="text-xs text-slate-500">Yetki listesi icin rota sec.</p>
+          <p className="text-xs text-slate-500">Yetki listesi için rota sec.</p>
         ) : selectedRouteAuthorizedMembers.length === 0 ? (
-          <p className="text-xs text-slate-500">Bu rota icin tanimli uye bulunamadi.</p>
+          <p className="text-xs text-slate-500">Bu rota için tanimli uye bulunamadi.</p>
         ) : (
           <div className="space-y-2">
             {selectedRouteAuthorizedMembers.slice(0, 5).map((member) => (
@@ -174,7 +174,7 @@ export function RoutesSidePanel({
             ) : null}
             {inactiveAuthorizedMembersCount > 0 ? (
               <p className="text-[11px] text-amber-700">
-                {inactiveAuthorizedMembersCount} uye aktif olmadigi icin detayli yetki editorunde
+                {inactiveAuthorizedMembersCount} uye aktif olmadigi için detayli yetki editorunde
                 duzenlenemez.
               </p>
             ) : null}
@@ -202,7 +202,7 @@ export function RoutesSidePanel({
           <DashboardStatePlaceholder
             tone="info"
             title="Rota yetkisi duzenleme kapali"
-            description="Bu panel yalnizca aktif owner/admin uyeleri icin acilir."
+            description="Bu panel yalnizca aktif owner/admin uyeleri için acilir."
           />
         )
       ) : null}
@@ -229,14 +229,14 @@ export function RoutesSidePanel({
           <DashboardStatePlaceholder
             tone="info"
             title="Rota mutasyonlari kapali"
-            description="Rota ve durak duzenlemek icin aktif owner/admin/dispatcher uyeligi gerekir."
+            description="Rota ve durak duzenlemek için aktif owner/admin/dispatcher uyeligi gerekir."
           />
         )
       ) : null}
       <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
         <div className="mb-2 text-sm font-semibold text-slate-900">Route Ops Snapshot</div>
         {!selectedRoute ? (
-          <p className="text-xs text-slate-500">Snapshot icin bir rota sec.</p>
+          <p className="text-xs text-slate-500">Snapshot için bir rota sec.</p>
         ) : (
           <dl className="space-y-1 text-xs text-slate-700">
             <div className="flex items-center justify-between gap-2">
@@ -267,3 +267,4 @@ export function RoutesSidePanel({
     </div>
   );
 }
+

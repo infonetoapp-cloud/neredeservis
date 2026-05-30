@@ -86,7 +86,6 @@ class ActiveTripScreen extends StatelessWidget {
     this.manualInterventionMessage,
     this.offlineBannerLabel,
     this.latencyIndicatorLabel,
-    this.mapboxPublicToken,
     this.onRetrySyncTap,
     this.onReportIssueTap,
     this.onTripFinished,
@@ -109,7 +108,6 @@ class ActiveTripScreen extends StatelessWidget {
   final String? manualInterventionMessage;
   final String? offlineBannerLabel;
   final String? latencyIndicatorLabel;
-  final String? mapboxPublicToken;
   final VoidCallback? onRetrySyncTap;
   final VoidCallback? onReportIssueTap;
   final VoidCallback? onTripFinished;

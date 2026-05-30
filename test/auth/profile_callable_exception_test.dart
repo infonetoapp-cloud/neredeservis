@@ -1,5 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/core/errors/error_codes.dart';
 import 'package:neredeservis/core/exceptions/app_exception.dart';
@@ -7,11 +5,10 @@ import 'package:neredeservis/features/auth/data/profile_callable_exception.dart'
 
 void main() {
   group('mapProfileCallableException', () {
-    test('maps FirebaseFunctionsException codes to domain codes', () {
-      final exception = TestFirebaseFunctionsException(
+    test('maps AppException invalid argument codes', () {
+      const exception = AppException(
+        code: ErrorCodes.invalidArgument,
         message: 'invalid display name',
-        code: 'invalid-argument',
-        details: const {'field': 'displayName'},
       );
 
       final mapped = mapProfileCallableException(
@@ -22,13 +19,12 @@ void main() {
       expect(mapped.callableName, 'bootstrapUserProfile');
       expect(mapped.code, ProfileCallableErrorCode.invalidArgument);
       expect(mapped.message, 'invalid display name');
-      expect(mapped.details, {'field': 'displayName'});
+      expect(mapped.details, isNull);
     });
 
-    test('maps firebase_functions plugin FirebaseException codes', () {
-      final exception = FirebaseException(
-        plugin: 'firebase_functions',
-        code: 'permission-denied',
+    test('maps AppException permission codes', () {
+      const exception = AppException(
+        code: ErrorCodes.permissionDenied,
         message: 'not authorized',
       );
 
@@ -72,13 +68,5 @@ void main() {
 
       expect(mapped.code, ProfileCallableErrorCode.unknown);
     });
-  });
-}
-
-class TestFirebaseFunctionsException extends FirebaseFunctionsException {
-  TestFirebaseFunctionsException({
-    required super.message,
-    required super.code,
-    super.details,
   });
 }

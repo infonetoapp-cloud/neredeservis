@@ -1,20 +1,10 @@
-import 'dart:async';
-
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
 import '../../features/location/application/kalman_location_smoother.dart';
 import '../../features/location/application/location_freshness.dart';
 import '../../features/location/application/passenger_eta_service.dart';
 import '../../ui/components/sheets/passenger_map_sheet.dart';
-import 'router_firebase_runtime_gateway.dart';
-import 'router_realtime_connection_listener_helpers.dart';
 import 'router_value_parsing_helpers.dart';
-
-typedef RouterInfoMessageHandler = void Function(
-  BuildContext context,
-  String message,
-);
 
 class RouterPassengerLocationSnapshot {
   const RouterPassengerLocationSnapshot({
@@ -52,17 +42,19 @@ class RouterPassengerLocationStreamBuilder extends StatefulWidget {
     required this.routeId,
     required this.routeData,
     required this.passengerData,
+    required this.liveLocationData,
     required this.fallbackEtaSourceLabel,
     required this.builder,
-    this.onInfoMessage,
+    this.guestSessionId,
   });
 
   final String routeId;
   final Map<String, dynamic>? routeData;
   final Map<String, dynamic>? passengerData;
+  final Map<String, dynamic>? liveLocationData;
   final String fallbackEtaSourceLabel;
+  final String? guestSessionId;
   final Widget Function(RouterPassengerLocationSnapshot snapshot) builder;
-  final RouterInfoMessageHandler? onInfoMessage;
 
   @override
   State<RouterPassengerLocationStreamBuilder> createState() =>
@@ -80,172 +72,95 @@ class _RouterPassengerLocationStreamBuilderState
       updateIntervalMs: 1000,
     ),
   );
-  StreamSubscription<DatabaseEvent>? _realtimeConnectionSubscription;
-  bool _isRealtimeConnected = true;
-  DateTime? _disconnectedAtUtc;
-  DateTime? _lastReconnectAtUtc;
-  Duration? _lastReconnectLatency;
-
-  @override
-  void initState() {
-    super.initState();
-    _startRealtimeConnectionListener();
-  }
-
-  @override
-  void dispose() {
-    _realtimeConnectionSubscription?.cancel();
-    super.dispose();
-  }
-
-  void _startRealtimeConnectionListener() {
-    _realtimeConnectionSubscription?.cancel();
-    _realtimeConnectionSubscription = startRouterRealtimeConnectionListener(
-      onConnectionChanged: _handleRealtimeConnectionChanged,
-      onError: (_) {
-        debugPrint('Passenger realtime connection listener failed.');
-      },
-    );
-  }
-
-  void _handleRealtimeConnectionChanged(bool connected) {
-    if (!mounted || connected == _isRealtimeConnected) {
-      return;
-    }
-    if (!connected) {
-      setState(() {
-        _isRealtimeConnected = false;
-        _disconnectedAtUtc = DateTime.now().toUtc();
-      });
-      return;
-    }
-    final nowUtc = DateTime.now().toUtc();
-    final disconnectedAt = _disconnectedAtUtc;
-    final reconnectLatency =
-        disconnectedAt == null ? null : nowUtc.difference(disconnectedAt);
-    setState(() {
-      _isRealtimeConnected = true;
-      _disconnectedAtUtc = null;
-      _lastReconnectLatency = reconnectLatency;
-      _lastReconnectAtUtc = nowUtc;
-    });
-    final reconnectLabel = reconnectLatency == null
-        ? 'Baglanti geri geldi.'
-        : 'Baglanti geri geldi (${_formatConnectionDurationLabel(reconnectLatency)}).';
-    widget.onInfoMessage?.call(context, reconnectLabel);
-  }
-
-  String? _resolvePassengerOfflineBannerLabel() {
-    if (_isRealtimeConnected) {
-      return null;
-    }
-    return 'Internet baglantisi kesildi. Son bilinen konum gosteriliyor.';
-  }
-
-  String? _resolvePassengerLatencyIndicatorLabel() {
-    if (!_isRealtimeConnected) {
-      return 'Kesinti';
-    }
-    final reconnectAt = _lastReconnectAtUtc;
-    final reconnectLatency = _lastReconnectLatency;
-    if (reconnectAt == null || reconnectLatency == null) {
-      return null;
-    }
-    final elapsed = DateTime.now().toUtc().difference(reconnectAt);
-    if (elapsed > const Duration(minutes: 2)) {
-      return null;
-    }
-    return 'Yeniden baglanti ${_formatConnectionDurationLabel(reconnectLatency)}';
-  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DatabaseEvent>(
-      stream: routerFirebaseRuntimeGateway.watchRouteLocationValue(
-        widget.routeId,
+    final rawMap = mapFromRouterDynamicValue(widget.liveLocationData);
+    final timestampMs = parseLiveLocationTimestampMs(
+      rawMap?['timestampMs'] ?? rawMap?['timestamp'],
+    );
+    final rawLat = parseFiniteRouterDouble(rawMap?['lat']);
+    final rawLng = parseFiniteRouterDouble(rawMap?['lng']);
+    final nowUtc = DateTime.now().toUtc();
+    final freshness = _toPassengerLocationFreshness(
+      resolveLiveSignalFreshness(
+        nowUtc: nowUtc,
+        timestampMs: timestampMs,
+        treatMissingAsLive: true,
       ),
-      builder: (context, snapshot) {
-        final rawMap = mapFromRouterDynamicValue(snapshot.data?.snapshot.value);
-        final timestampMs = parseLiveLocationTimestampMs(rawMap?['timestamp']);
-        final rawLat = parseFiniteRouterDouble(rawMap?['lat']);
-        final rawLng = parseFiniteRouterDouble(rawMap?['lng']);
-        final nowUtc = DateTime.now().toUtc();
-        final freshness = _toPassengerLocationFreshness(
-          resolveLiveSignalFreshness(
-            nowUtc: nowUtc,
-            timestampMs: timestampMs,
-            treatMissingAsLive: true,
-          ),
-        );
-        final lastSeenAgo = formatLastSeenAgo(
-          nowUtc: nowUtc,
-          timestampMs: timestampMs,
-        );
+    );
+    final lastSeenAgo = formatLastSeenAgo(
+      nowUtc: nowUtc,
+      timestampMs: timestampMs,
+    );
 
-        SmoothedLocationPoint? smoothedPoint;
-        if (timestampMs != null && rawLat != null && rawLng != null) {
-          smoothedPoint = _smoother.update(
-            lat: rawLat,
-            lng: rawLng,
-            sampledAtMs: timestampMs,
+    SmoothedLocationPoint? smoothedPoint;
+    if (timestampMs != null && rawLat != null && rawLng != null) {
+      smoothedPoint = _smoother.update(
+        lat: rawLat,
+        lng: rawLng,
+        sampledAtMs: timestampMs,
+      );
+    }
+
+    final rawVehiclePoint = (rawLat == null || rawLng == null)
+        ? null
+        : PassengerEtaPoint(lat: rawLat, lng: rawLng);
+    final filteredLat = smoothedPoint?.filteredLat;
+    final filteredLng = smoothedPoint?.filteredLng;
+    final filteredVehiclePoint = (filteredLat == null || filteredLng == null)
+        ? null
+        : PassengerEtaPoint(
+            lat: filteredLat,
+            lng: filteredLng,
           );
-        }
 
-        final rawVehiclePoint = (rawLat == null || rawLng == null)
-            ? null
-            : PassengerEtaPoint(lat: rawLat, lng: rawLng);
-        final filteredLat = smoothedPoint?.filteredLat;
-        final filteredLng = smoothedPoint?.filteredLng;
-        final filteredVehiclePoint =
-            (filteredLat == null || filteredLng == null)
-                ? null
-                : PassengerEtaPoint(
-                    lat: filteredLat,
-                    lng: filteredLng,
-                  );
+    final destinationPoint = _resolvePassengerEtaDestinationPoint(
+      routeData: widget.routeData,
+      passengerData: widget.passengerData,
+    );
+    final fallbackPath = _buildPassengerRouteFallbackPath(widget.routeData);
+    final routePolylineRaw = widget.routeData?['routePolyline'];
+    final routePolylineEncoded =
+        routePolylineRaw is String ? routePolylineRaw : null;
 
-        final destinationPoint = _resolvePassengerEtaDestinationPoint(
-          routeData: widget.routeData,
-          passengerData: widget.passengerData,
-        );
-        final fallbackPath = _buildPassengerRouteFallbackPath(widget.routeData);
-        final routePolylineRaw = widget.routeData?['routePolyline'];
-        final routePolylineEncoded =
-            routePolylineRaw is String ? routePolylineRaw : null;
+    final etaInput = PassengerEtaInput(
+      routeId: widget.routeId,
+      fallbackEtaSourceLabel: widget.fallbackEtaSourceLabel,
+      rawVehiclePoint: rawVehiclePoint,
+      filteredVehiclePoint: filteredVehiclePoint,
+      destinationPoint: destinationPoint,
+      routePolylineEncoded: routePolylineEncoded,
+      routeFallbackPath: fallbackPath,
+      guestSessionId: widget.guestSessionId,
+    );
+    final fallbackEta = _passengerEtaService.buildFallback(input: etaInput);
 
-        final etaInput = PassengerEtaInput(
-          routeId: widget.routeId,
-          fallbackEtaSourceLabel: widget.fallbackEtaSourceLabel,
-          rawVehiclePoint: rawVehiclePoint,
-          filteredVehiclePoint: filteredVehiclePoint,
-          destinationPoint: destinationPoint,
-          routePolylineEncoded: routePolylineEncoded,
-          routeFallbackPath: fallbackPath,
-        );
-        final fallbackEta = _passengerEtaService.buildFallback(input: etaInput);
-
-        return FutureBuilder<PassengerEtaResult>(
-          future: _passengerEtaService.resolve(input: etaInput),
-          initialData: fallbackEta,
-          builder: (context, etaSnapshot) {
-            final eta = etaSnapshot.data ?? fallbackEta;
-            return widget.builder(
-              RouterPassengerLocationSnapshot(
-                freshness: freshness,
-                lastSeenAgo: lastSeenAgo,
-                estimatedMinutes: eta.estimatedMinutes,
-                etaSourceLabel: eta.etaSourceLabel,
-                lastEtaSourceLabel: eta.lastEtaSourceLabel,
-                offlineBannerLabel: _resolvePassengerOfflineBannerLabel(),
-                latencyIndicatorLabel: _resolvePassengerLatencyIndicatorLabel(),
-                rawLat: rawLat,
-                rawLng: rawLng,
-                filteredLat: smoothedPoint?.filteredLat,
-                filteredLng: smoothedPoint?.filteredLng,
-                sampledAtMs: timestampMs,
-              ),
-            );
-          },
+    return FutureBuilder<PassengerEtaResult>(
+      future: _passengerEtaService.resolve(input: etaInput),
+      initialData: fallbackEta,
+      builder: (context, etaSnapshot) {
+        final eta = etaSnapshot.data ?? fallbackEta;
+        return widget.builder(
+          RouterPassengerLocationSnapshot(
+            freshness: freshness,
+            lastSeenAgo: lastSeenAgo,
+            estimatedMinutes: eta.estimatedMinutes,
+            etaSourceLabel: eta.etaSourceLabel,
+            lastEtaSourceLabel: eta.lastEtaSourceLabel,
+            offlineBannerLabel: _resolvePassengerOfflineBannerLabel(
+              freshness,
+            ),
+            latencyIndicatorLabel: _resolvePassengerLatencyIndicatorLabel(
+              freshness,
+              lastSeenAgo,
+            ),
+            rawLat: rawLat,
+            rawLng: rawLng,
+            filteredLat: smoothedPoint?.filteredLat,
+            filteredLng: smoothedPoint?.filteredLng,
+            sampledAtMs: timestampMs,
+          ),
         );
       },
     );
@@ -313,20 +228,32 @@ PassengerEtaPoint? _parsePassengerEtaPointFromRaw(Object? rawValue) {
   return PassengerEtaPoint(lat: lat, lng: lng);
 }
 
-String _formatConnectionDurationLabel(Duration duration) {
-  final totalSeconds = duration.inSeconds;
-  if (totalSeconds < 1) {
-    return '<1 sn';
+String? _resolvePassengerOfflineBannerLabel(LocationFreshness freshness) {
+  switch (freshness) {
+    case LocationFreshness.live:
+    case LocationFreshness.mild:
+      return null;
+    case LocationFreshness.stale:
+    case LocationFreshness.lost:
+      return 'Son bilinen konum gosteriliyor.';
   }
-  if (totalSeconds < 60) {
-    return '$totalSeconds sn';
+}
+
+String? _resolvePassengerLatencyIndicatorLabel(
+  LocationFreshness freshness,
+  String? lastSeenAgo,
+) {
+  if (lastSeenAgo == null) {
+    return null;
   }
-  final minutes = duration.inMinutes;
-  final remainingSeconds = totalSeconds % 60;
-  if (minutes < 60) {
-    return '$minutes dk ${remainingSeconds.toString().padLeft(2, '0')} sn';
+
+  switch (freshness) {
+    case LocationFreshness.live:
+      return null;
+    case LocationFreshness.mild:
+      return 'Guncelleme gecikmeli';
+    case LocationFreshness.stale:
+    case LocationFreshness.lost:
+      return 'Son guncelleme $lastSeenAgo';
   }
-  final hours = duration.inHours;
-  final remainingMinutes = minutes % 60;
-  return '$hours sa ${remainingMinutes.toString().padLeft(2, '0')} dk';
 }

@@ -1,19 +1,20 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final firebaseAuthStateProvider = StreamProvider<User?>((ref) {
-  if (Firebase.apps.isEmpty) {
-    return const Stream<User?>.empty();
-  }
-  return FirebaseAuth.instance.authStateChanges();
+import '../../features/auth/data/auth_gateway.dart';
+import '../../features/auth/data/identity_toolkit_auth_gateway.dart';
+import '../../features/auth/domain/auth_session.dart';
+
+final authStateGatewayProvider = Provider<AuthGateway>((ref) {
+  return IdentityToolkitAuthGateway();
+});
+
+final authSessionStateProvider = StreamProvider<AuthSession?>((ref) {
+  final gateway = ref.watch(authStateGatewayProvider);
+  return gateway.authStateChanges();
 });
 
 final isSignedInProvider = Provider<bool>((ref) {
-  if (Firebase.apps.isEmpty) {
-    return false;
-  }
-  final authState = ref.watch(firebaseAuthStateProvider);
-  return authState.valueOrNull != null ||
-      FirebaseAuth.instance.currentUser != null;
+  final authState = ref.watch(authSessionStateProvider);
+  final gateway = ref.watch(authStateGatewayProvider);
+  return authState.valueOrNull != null || gateway.currentSession != null;
 });

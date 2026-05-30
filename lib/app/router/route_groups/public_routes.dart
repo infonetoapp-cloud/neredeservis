@@ -34,7 +34,6 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
           onGoogleSignInTap: () => _handleGoogleSignIn(
             context,
             nextRole: nextRole,
-            environment: deps.environment,
           ),
           onMicrosoftSignInTap: () => _handleMicrosoftSignIn(
             context,
@@ -88,7 +87,6 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
               : () => _handleGoogleSignIn(
                     context,
                     nextRole: nextRole,
-                    environment: deps.environment,
                   ),
           onMicrosoftSignInTap: isRegister || isForgot
               ? null
@@ -159,7 +157,6 @@ List<RouteBase> _buildPublicEntryRoutes(_AppRouterRouteDeps deps) {
           onGoogleSignInTap: () => _handleGoogleSignIn(
             context,
             nextRole: nextRole,
-            environment: deps.environment,
           ),
           onMicrosoftSignInTap: () => _handleMicrosoftSignIn(
             context,

@@ -68,7 +68,6 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
                     routeName: bootstrap.routeName,
                     driverDisplayName: bootstrap.driverDisplayName,
                     driverPhotoUrl: bootstrap.driverPhotoUrl,
-                    mapboxPublicToken: deps.environment.googleMapsApiKey,
                     stops: bootstrap.stops,
                     myTrips: bootstrap.myTrips,
                     loadMyTrips: _loadDriverMyTripsItems,
@@ -176,7 +175,6 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
               );
             }
             return DriverTripDetailScreen(
-              googleMapsApiKey: deps.environment.googleMapsApiKey,
               loadData: () => _loadDriverTripDetailData(
                 routeId: query.routeId!,
                 tripId: query.tripId,
@@ -229,7 +227,7 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
         GoRoute(
           path: AppRoutePath.driverRouteCreate,
           builder: (context, state) => RouteCreateScreen(
-            googleMapsApiKey: deps.environment.googleMapsApiKey,
+            addressAutocompleteGateway: BackendMapsAddressService(),
             onCreate: (input) => _handleCreateRoute(context, input),
           ),
         ),
@@ -239,7 +237,7 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
             final query = _RouteIdOnlyRouteQuery.fromState(state);
             return RouteUpdateScreen(
               initialRouteId: query.routeId,
-              googleMapsApiKey: deps.environment.googleMapsApiKey,
+              addressAutocompleteGateway: BackendMapsAddressService(),
               onManageStopsTap: (routeId) {
                 final stopsUri = Uri(
                   path: AppRoutePath.driverRouteStops,
@@ -336,7 +334,6 @@ List<RouteBase> _buildDriverRoutes(_AppRouterRouteDeps deps) {
               tripId: query.tripId,
               routeName: query.routeName,
               initialTransitionVersion: query.transitionVersion,
-              mapboxPublicToken: deps.environment.googleMapsApiKey,
             );
           },
         ),

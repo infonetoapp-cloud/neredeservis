@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { MarketingContentPage } from "@/components/marketing/marketing-content-page";
-import { getMarketingBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
+import { getMarketingBaseUrl, resolveMarketingHref, toAbsoluteUrl } from "@/lib/seo/site-urls";
 
 const marketingBaseUrl = getMarketingBaseUrl();
 const openGraphImageUrl = toAbsoluteUrl(marketingBaseUrl, "/opengraph-image");
@@ -122,7 +122,7 @@ export default function GizlilikPage() {
       quickLinks={[
         { label: "KVKK Aydınlatma Özeti", href: "/kvkk" },
         { label: "İletişim", href: "/iletisim" },
-        { label: "Panel Girişi", href: "/giris" },
+        { label: "Panel Girişi", href: resolveMarketingHref("/giris") },
       ]}
       noteTitle="Yürürlük ve Kapsam"
       note="Bu içerik ürün seviyesinde kurumsal bilgilendirme özetidir. Nihai hukuki metinler ve sözleşmesel dokümanlar yayımlandığında sayfa resmi referanslarla güncellenir."

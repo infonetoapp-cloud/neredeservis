@@ -28,7 +28,7 @@ export function ActiveCompanySidebarCard() {
 
   return (
     <Link
-      href="/select-company"
+      href="/dashboard"
       className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-all hover:bg-slate-50"
     >
       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 transition-colors group-hover:bg-slate-200">

@@ -6,6 +6,7 @@ import { LandingProductPreview } from "./sections/landing-product-preview";
 import { LandingFeatures } from "./sections/landing-features";
 import { LandingHowItWorks } from "./sections/landing-how-it-works";
 import { LandingPricing } from "./sections/landing-pricing";
+import { LandingFaq } from "./sections/landing-faq";
 import { LandingBottomCta } from "./sections/landing-bottom-cta";
 import { LandingFooter } from "./sections/landing-footer";
 
@@ -27,8 +28,10 @@ export function LandingPageRenderer({ config }: Props) {
       <LandingFeatures features={config.features} />
       <LandingHowItWorks howItWorks={config.howItWorks} />
       <LandingPricing pricing={config.pricing} />
+      <LandingFaq />
       <LandingBottomCta bottomCta={config.bottomCta} />
       <LandingFooter footer={config.footer} />
     </main>
   );
 }
+

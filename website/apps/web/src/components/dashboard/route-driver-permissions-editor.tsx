@@ -34,7 +34,7 @@ const DEFAULT_ROUTE_DRIVER_PERMISSIONS: RouteDriverPermissionFlags = {
 };
 
 const PERMISSION_ROWS: Array<{ key: keyof RouteDriverPermissionFlags; label: string }> = [
-  { key: "canStartFinishTrip", label: "Sefer Baslat / Bitir" },
+  { key: "canStartFinishTrip", label: "Sefer Başlat / Bitir" },
   { key: "canSendAnnouncements", label: "Duyuru Gonderebilir" },
   { key: "canViewPassengerList", label: "Yolcu Listesi Gorebilir" },
   { key: "canEditAssignedRouteMeta", label: "Rota Metasi Duzenleyebilir" },
@@ -141,7 +141,7 @@ export function RouteDriverPermissionsEditor({
   const handleSubmit = async () => {
     if (!companyId || !routeId || !selectedDriverUid || !form || !canSubmit) return;
     if (!hasChanges) {
-      setSuccessMessage("Degisiklik yok, kayit gonderilmedi.");
+      setSuccessMessage("Degisiklik yok, kayıt gonderilmedi.");
       setError(null);
       return;
     }
@@ -178,7 +178,7 @@ export function RouteDriverPermissionsEditor({
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Detayli Rota Yetkileri</h3>
           <p className="text-xs text-slate-500">
-            Secili uye icin permission flag&apos;leri `grantDriverRoutePermissions` ile kaydedilir.
+            Secili uye için permission flag&apos;leri `grantDriverRoutePermissions` ile kaydedilir.
           </p>
         </div>
         <span className="rounded-full border border-line bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600">
@@ -232,13 +232,13 @@ export function RouteDriverPermissionsEditor({
           </div>
         ) : (
           <p className="text-xs text-slate-500">
-            Yetki duzenlemek icin aktif uye sec. Aktif uye yoksa once uye durumunu active yap.
+            Yetki duzenlemek için aktif uye sec. Aktif uye yoksa once uye durumunu active yap.
           </p>
         )}
 
         {routePermissionsLoadStatus === "error" ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            Yetki listesi yuklenmeden duzenleme acilmaz. Tekrar denemek icin route panelini yenile.
+            Yetki listesi yuklenmeden duzenleme acilmaz. Tekrar denemek için route panelini yenile.
           </div>
         ) : null}
         {error ? (
@@ -264,3 +264,4 @@ export function RouteDriverPermissionsEditor({
     </section>
   );
 }
+

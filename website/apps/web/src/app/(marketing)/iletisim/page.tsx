@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NsLogo } from "@/components/brand/ns-logo";
-import { getMarketingBaseUrl, toAbsoluteUrl } from "@/lib/seo/site-urls";
+import { getMarketingBaseUrl, resolveMarketingHref, toAbsoluteUrl } from "@/lib/seo/site-urls";
 
 const marketingBaseUrl = getMarketingBaseUrl();
 const openGraphImageUrl = toAbsoluteUrl(marketingBaseUrl, "/opengraph-image");
@@ -102,7 +102,7 @@ export default function IletisimPage() {
               Ana Sayfa
             </Link>
             <Link
-              href="/giris"
+              href={resolveMarketingHref("/giris")}
               className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-strong"
             >
               Panel Girişi

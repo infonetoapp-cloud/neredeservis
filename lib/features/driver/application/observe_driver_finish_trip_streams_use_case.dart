@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../domain/driver_finish_trip_stream_repository.dart';
 
 class ObserveDriverFinishTripStreamsUseCase {
@@ -9,35 +7,27 @@ class ObserveDriverFinishTripStreamsUseCase {
 
   final DriverFinishTripStreamRepository _repository;
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>> watchRouteDocument(
-    String routeId,
-  ) {
-    return _repository.watchRouteDocument(routeId);
-  }
-
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRouteStops(String routeId) {
-    return _repository.watchRouteStops(routeId);
-  }
-
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRoutePassengers(
-    String routeId,
-  ) {
-    return _repository.watchRoutePassengers(routeId);
-  }
-
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRouteSkipRequestsByDate({
+  Stream<DriverFinishTripSnapshotData?> watchSnapshot({
     required String routeId,
     required String dateKey,
+    String? tripId,
   }) {
-    return _repository.watchRouteSkipRequestsByDate(
+    return _repository.watchSnapshot(
       routeId: routeId,
       dateKey: dateKey,
+      tripId: tripId,
     );
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveGuestSessionsByRoute(
-    String routeId,
-  ) {
-    return _repository.watchActiveGuestSessionsByRoute(routeId);
+  Future<DriverFinishTripSnapshotData?> readSnapshot({
+    required String routeId,
+    required String dateKey,
+    String? tripId,
+  }) {
+    return _repository.readSnapshot(
+      routeId: routeId,
+      dateKey: dateKey,
+      tripId: tripId,
+    );
   }
 }

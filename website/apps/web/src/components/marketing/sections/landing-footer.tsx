@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NsLogo } from "@/components/brand/ns-logo";
+import { resolveMarketingHref } from "@/lib/seo/site-urls";
 import type { LandingFooterConfig } from "../landing-config-types";
 
 interface Props {
@@ -31,7 +32,7 @@ export function LandingFooter({ footer }: Props) {
                 {col.links.map((link) => (
                   <li key={link.href}>
                     <Link
-                      href={link.href}
+                      href={resolveMarketingHref(link.href)}
                       className="text-sm text-slate-400 transition hover:text-slate-200"
                     >
                       {link.label}

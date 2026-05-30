@@ -1,0 +1,10 @@
+{$ROUTING_DOMAIN} {
+  encode zstd gzip
+
+  @health path /healthz
+  respond @health 200 {
+    body "ok"
+  }
+
+  reverse_proxy osrm-router:5000
+}

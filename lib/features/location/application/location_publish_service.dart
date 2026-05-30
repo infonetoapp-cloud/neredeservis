@@ -1,5 +1,3 @@
-import 'package:firebase_database/firebase_database.dart';
-
 import '../../../services/repository_interfaces.dart';
 import '../../domain/data/local_drift_database.dart';
 import '../../domain/data/local_queue_repository.dart';
@@ -126,15 +124,13 @@ class LocationPublishService {
   LocationPublishService({
     required LiveLocationRepository liveLocationRepository,
     required LocalQueueRepository localQueueRepository,
-    LocationHistoryWriter? historyWriter,
-    FirebaseDatabase? database,
+    required LocationHistoryWriter historyWriter,
     DateTime Function()? nowUtc,
     LocationPublishMetricListener? metricListener,
     this.staleReplayThresholdMs = LocalQueueRepository.staleReplayThresholdMs,
   })  : _liveLocationRepository = liveLocationRepository,
         _localQueueRepository = localQueueRepository,
-        _historyWriter = historyWriter ??
-            _buildDefaultHistoryWriter(database ?? FirebaseDatabase.instance),
+        _historyWriter = historyWriter,
         _nowUtc = nowUtc ?? (() => DateTime.now().toUtc()),
         _metricListener = metricListener;
 
@@ -390,17 +386,6 @@ class LocationPublishService {
         queueId: queueId,
       );
     }
-  }
-
-  static LocationHistoryWriter _buildDefaultHistoryWriter(
-    FirebaseDatabase database,
-  ) {
-    return (sample) async {
-      await database
-          .ref('location_history/${sample.routeId}')
-          .push()
-          .set(sample.toMap());
-    };
   }
 
   void _emitPublishMetric({

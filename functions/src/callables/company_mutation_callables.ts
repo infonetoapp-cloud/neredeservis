@@ -5,10 +5,15 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import type { ZodType } from 'zod';
 
 import { apiOk } from '../common/api_response.js';
+import { readRouteTimeSlot } from '../common/route_preview_helpers.js';
 import type {
   CreateCompanyRouteOutput,
   CreateVehicleOutput,
+  DeleteVehicleOutput,
+  DeleteCompanyRouteOutput,
   DeleteCompanyRouteStopOutput,
+  ListCompanyRoutesItem,
+  ListCompanyVehiclesItem,
   ReorderCompanyRouteStopsOutput,
   UpdateRouteOutput,
   UpdateVehicleOutput,
@@ -58,6 +63,7 @@ interface UpdateVehicleInput {
 interface CreateCompanyRouteInput {
   companyId: string;
   name: string;
+  driverId?: string | null;
   startPoint: LatLngInput;
   startAddress: string;
   endPoint: LatLngInput;
@@ -78,8 +84,19 @@ interface UpdateCompanyRouteInput {
     timeSlot?: 'morning' | 'evening' | 'midday' | 'custom';
     allowGuestTracking?: boolean;
     isArchived?: boolean;
+    vehicleId?: string | null;
     authorizedDriverIds?: string[];
   };
+}
+
+interface DeleteVehicleInput {
+  companyId: string;
+  vehicleId: string;
+}
+
+interface DeleteCompanyRouteInput {
+  companyId: string;
+  routeId: string;
 }
 
 interface UpsertCompanyRouteStopInput {
@@ -109,11 +126,63 @@ interface ReorderCompanyRouteStopsInput {
 
 type CompanyMemberRole = 'owner' | 'admin' | 'dispatcher' | 'viewer';
 
+function buildRouteListItem(routeId: string, routeData: Record<string, unknown>): ListCompanyRoutesItem {
+  return {
+    routeId,
+    companyId: pickString(routeData, 'companyId') ?? '',
+    name: pickString(routeData, 'name') ?? `Route (${routeId.slice(0, 6)})`,
+    srvCode: pickString(routeData, 'srvCode'),
+    driverId: pickString(routeData, 'driverId'),
+    authorizedDriverIds: pickStringArray(routeData, 'authorizedDriverIds'),
+    scheduledTime: pickString(routeData, 'scheduledTime'),
+    timeSlot: readRouteTimeSlot(routeData.timeSlot),
+    isArchived: routeData.isArchived === true,
+    allowGuestTracking: routeData.allowGuestTracking === true,
+    startAddress: pickString(routeData, 'startAddress'),
+    endAddress: pickString(routeData, 'endAddress'),
+    vehicleId: pickString(routeData, 'vehicleId'),
+    vehiclePlate: pickString(routeData, 'vehiclePlate'),
+    passengerCount:
+      typeof routeData.passengerCount === 'number' && Number.isFinite(routeData.passengerCount)
+        ? routeData.passengerCount
+        : 0,
+    updatedAt: pickString(routeData, 'updatedAt'),
+  };
+}
+
+function buildVehicleListItem(vehicleId: string, vehicleData: Record<string, unknown>): ListCompanyVehiclesItem {
+  return {
+    vehicleId,
+    companyId: pickString(vehicleData, 'companyId') ?? '',
+    plate: pickString(vehicleData, 'plate') ?? '',
+    status:
+      pickString(vehicleData, 'status') === 'maintenance'
+        ? 'maintenance'
+        : pickString(vehicleData, 'status') === 'inactive'
+          ? 'inactive'
+          : 'active',
+    brand: pickString(vehicleData, 'brand'),
+    model: pickString(vehicleData, 'model'),
+    year:
+      typeof vehicleData.year === 'number' && Number.isFinite(vehicleData.year)
+        ? Math.trunc(vehicleData.year)
+        : null,
+    capacity:
+      typeof vehicleData.capacity === 'number' && Number.isFinite(vehicleData.capacity)
+        ? Math.trunc(vehicleData.capacity)
+        : null,
+    createdAt: pickString(vehicleData, 'createdAt'),
+    updatedAt: pickString(vehicleData, 'updatedAt'),
+  };
+}
+
 export function createCompanyMutationCallables({
   db,
   createVehicleInputSchema,
   createCompanyRouteInputSchema,
   updateCompanyRouteInputSchema,
+  deleteCompanyRouteInputSchema,
+  deleteVehicleInputSchema,
   upsertCompanyRouteStopInputSchema,
   deleteCompanyRouteStopInputSchema,
   reorderCompanyRouteStopsInputSchema,
@@ -131,6 +200,8 @@ export function createCompanyMutationCallables({
   createVehicleInputSchema: ZodType<unknown>;
   createCompanyRouteInputSchema: ZodType<unknown>;
   updateCompanyRouteInputSchema: ZodType<unknown>;
+  deleteCompanyRouteInputSchema: ZodType<unknown>;
+  deleteVehicleInputSchema: ZodType<unknown>;
   upsertCompanyRouteStopInputSchema: ZodType<unknown>;
   deleteCompanyRouteStopInputSchema: ZodType<unknown>;
   reorderCompanyRouteStopsInputSchema: ZodType<unknown>;
@@ -141,15 +212,15 @@ export function createCompanyMutationCallables({
   normalizeVehiclePlate: (rawPlate: string) => { plate: string; plateNormalized: string };
   normalizeVehicleTextNullable: (rawValue: string | null | undefined) => string | null;
   assertCompanyMembersExistAndActive: (companyId: string, memberUids: string[]) => Promise<void>;
-  createRouteWithSrvCode: (input: {
-    db: Firestore;
-    ownerUid: string;
-    createdAtIso: string;
-    routeData: {
-      name: string;
-      driverId: string;
-      authorizedDriverIds: string[];
-      memberIds: string[];
+    createRouteWithSrvCode: (input: {
+      db: Firestore;
+      ownerUid: string;
+      createdAtIso: string;
+      routeData: {
+        name: string;
+        driverId: string | null;
+        authorizedDriverIds: string[];
+        memberIds: string[];
       companyId: string;
       visibility: 'company';
       allowGuestTracking: boolean;
@@ -191,8 +262,8 @@ export function createCompanyMutationCallables({
     requireCompanyVehicleWriteRole(memberRole);
 
     const { plate, plateNormalized } = normalizeVehiclePlate(input.plate);
-    if (plateNormalized.length < 2) {
-      throw new HttpsError('invalid-argument', 'Plate bilgisi gecersiz.');
+    if (plateNormalized.length < 4) {
+      throw new HttpsError('invalid-argument', 'plate minimum 4 karakter olmalidir.');
     }
 
     const brand = normalizeVehicleTextNullable(input.brand);
@@ -254,9 +325,22 @@ export function createCompanyMutationCallables({
         createdAt: nowIso,
       });
 
+      const vehicle = buildVehicleListItem(vehicleRef.id, {
+        companyId: input.companyId,
+        plate,
+        status,
+        brand,
+        model,
+        year: input.year ?? null,
+        capacity: input.capacity ?? null,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+
       return {
         vehicleId: vehicleRef.id,
         createdAt: nowIso,
+        vehicle,
       } satisfies CreateVehicleOutput;
     });
 
@@ -274,6 +358,20 @@ export function createCompanyMutationCallables({
     const nowIso = new Date().toISOString();
     const authorizedDriverIds = normalizeAuthorizedDriverIds(input.authorizedDriverIds ?? [], auth.uid);
     await assertCompanyMembersExistAndActive(input.companyId, authorizedDriverIds);
+    const primaryDriverId = input.driverId?.trim() || null;
+    if (primaryDriverId) {
+      const driverSnap = await db.collection('drivers').doc(primaryDriverId).get();
+      if (!driverSnap.exists) {
+        throw new HttpsError('not-found', 'Sofor bulunamadi.');
+      }
+      const driverData = asRecord(driverSnap.data()) ?? {};
+      if (pickString(driverData, 'companyId') !== input.companyId) {
+        throw new HttpsError('permission-denied', 'Sofor bu sirkete ait degil.');
+      }
+      if (pickString(driverData, 'status') === 'passive') {
+        throw new HttpsError('failed-precondition', 'Pasif sofor rotaya atanamaz.');
+      }
+    }
 
     const memberIds = Array.from(new Set<string>([auth.uid, ...authorizedDriverIds]));
 
@@ -283,7 +381,7 @@ export function createCompanyMutationCallables({
       createdAtIso: nowIso,
       routeData: {
         name: input.name,
-        driverId: auth.uid,
+        driverId: primaryDriverId,
         authorizedDriverIds,
         memberIds,
         companyId: input.companyId,
@@ -310,9 +408,29 @@ export function createCompanyMutationCallables({
       },
     });
 
+    const route: ListCompanyRoutesItem = buildRouteListItem(created.routeId, {
+      routeId: created.routeId,
+      companyId: input.companyId,
+      name: input.name,
+      srvCode: created.srvCode,
+      driverId: primaryDriverId,
+      authorizedDriverIds,
+      scheduledTime: input.scheduledTime,
+      timeSlot: input.timeSlot,
+      isArchived: false,
+      allowGuestTracking: input.allowGuestTracking,
+      startAddress: input.startAddress,
+      endAddress: input.endAddress,
+      vehicleId: null,
+      vehiclePlate: null,
+      passengerCount: 0,
+      updatedAt: nowIso,
+    });
+
     return apiOk<CreateCompanyRouteOutput>({
       routeId: created.routeId,
       srvCode: created.srvCode,
+      route,
     });
   });
 
@@ -393,6 +511,22 @@ export function createCompanyMutationCallables({
         patchPayload.isArchived = input.patch.isArchived;
         changedFields.push('isArchived');
       }
+      if ('vehicleId' in input.patch) {
+        if (input.patch.vehicleId) {
+          const vehicleRef = companyRef.collection('vehicles').doc(input.patch.vehicleId);
+          const vehicleSnap = await tx.get(vehicleRef);
+          if (!vehicleSnap.exists) {
+            throw new HttpsError('not-found', 'Arac bulunamadi.');
+          }
+          const vehicleData = asRecord(vehicleSnap.data()) ?? {};
+          patchPayload.vehicleId = input.patch.vehicleId;
+          patchPayload.vehiclePlate = pickString(vehicleData, 'plate');
+        } else {
+          patchPayload.vehicleId = null;
+          patchPayload.vehiclePlate = null;
+        }
+        changedFields.push('vehicleId');
+      }
       if ('authorizedDriverIds' in input.patch) {
         const nextAuthorizedDriverIds = normalizedAuthorizedDriverIdsForPatch ?? [auth.uid];
         const existingAuthorized = pickStringArray(routeData, 'authorizedDriverIds');
@@ -415,11 +549,17 @@ export function createCompanyMutationCallables({
 
       tx.update(routeRef, patchPayload);
 
+      const nextRouteData = {
+        ...routeData,
+        ...patchPayload,
+      };
+
       return {
         routeId: input.routeId,
         updatedAt: nowIso,
         changedFields,
         srvCode: pickString(routeData, 'srvCode'),
+        route: buildRouteListItem(input.routeId, nextRouteData),
       };
     });
 
@@ -439,6 +579,111 @@ export function createCompanyMutationCallables({
     return apiOk<UpdateRouteOutput>({
       routeId: updated.routeId,
       updatedAt: updated.updatedAt,
+      route: updated.route,
+    });
+  });
+
+  const deleteCompanyRoute = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    const input = validateInput(deleteCompanyRouteInputSchema, request.data) as DeleteCompanyRouteInput;
+
+    const memberRole = await requireActiveCompanyMemberRole(input.companyId, auth.uid);
+    requireCompanyRouteWriteRole(memberRole);
+
+    const companyRef = db.collection('companies').doc(input.companyId);
+    const routeRef = db.collection('routes').doc(input.routeId);
+    const activeTripQuery = db
+      .collection('trips')
+      .where('routeId', '==', input.routeId)
+      .where('status', '==', 'active')
+      .limit(1);
+    const anyTripQuery = db.collection('trips').where('routeId', '==', input.routeId).limit(1);
+
+    const [companySnap, routeSnap, activeTripSnap, anyTripSnap] = await Promise.all([
+      companyRef.get(),
+      routeRef.get(),
+      activeTripQuery.get(),
+      anyTripQuery.get(),
+    ]);
+
+    if (!companySnap.exists) {
+      throw new HttpsError('not-found', 'Firma bulunamadi.');
+    }
+    if (!routeSnap.exists) {
+      throw new HttpsError('not-found', 'Route bulunamadi.');
+    }
+    if (!activeTripSnap.empty) {
+      throw new HttpsError('failed-precondition', 'ACTIVE_TRIP_ROUTE_STRUCTURE_LOCKED');
+    }
+    if (!anyTripSnap.empty) {
+      throw new HttpsError('failed-precondition', 'ROUTE_HAS_TRIP_HISTORY_DELETE_FORBIDDEN');
+    }
+
+    const routeData = asRecord(routeSnap.data()) ?? {};
+    const routeCompanyId = pickString(routeData, 'companyId');
+    if (!routeCompanyId || routeCompanyId !== input.companyId) {
+      throw new HttpsError('failed-precondition', 'ROUTE_TENANT_MISMATCH');
+    }
+    const visibility = pickString(routeData, 'visibility');
+    if (visibility && visibility !== 'company') {
+      throw new HttpsError('failed-precondition', 'ROUTE_NOT_COMPANY_SCOPED');
+    }
+
+    const [stopsSnap, passengersSnap, skipRequestsSnap, driverPermissionsSnap, announcementsSnap, guestSessionsSnap, conversationsSnap] =
+      await Promise.all([
+        routeRef.collection('stops').get(),
+        routeRef.collection('passengers').get(),
+        routeRef.collection('skip_requests').get(),
+        routeRef.collection('driver_permissions').get(),
+        db.collection('announcements').where('routeId', '==', input.routeId).get(),
+        db.collection('guest_sessions').where('routeId', '==', input.routeId).get(),
+        db.collection('trip_conversations').where('routeId', '==', input.routeId).get(),
+      ]);
+
+    const conversationMessageSnaps = await Promise.all(
+      conversationsSnap.docs.map((doc) => doc.ref.collection('messages').get()),
+    );
+
+    const refsToDelete = [
+      ...stopsSnap.docs.map((doc) => doc.ref),
+      ...passengersSnap.docs.map((doc) => doc.ref),
+      ...skipRequestsSnap.docs.map((doc) => doc.ref),
+      ...driverPermissionsSnap.docs.map((doc) => doc.ref),
+      ...announcementsSnap.docs.map((doc) => doc.ref),
+      ...guestSessionsSnap.docs.map((doc) => doc.ref),
+      ...conversationsSnap.docs.map((doc) => doc.ref),
+      ...conversationMessageSnaps.flatMap((snap) => snap.docs.map((doc) => doc.ref)),
+      ...(pickString(routeData, 'srvCode')
+        ? [db.collection('_srv_codes').doc(pickString(routeData, 'srvCode') as string)]
+        : []),
+      routeRef,
+    ];
+
+    for (let index = 0; index < refsToDelete.length; index += 400) {
+      const batch = db.batch();
+      for (const ref of refsToDelete.slice(index, index + 400)) {
+        batch.delete(ref);
+      }
+      await batch.commit();
+    }
+
+    await writeRouteAuditEventSafe({
+      eventType: 'route_deleted',
+      actorUid: auth.uid,
+      routeId: input.routeId,
+      srvCode: pickString(routeData, 'srvCode'),
+      metadata: {
+        companyId: input.companyId,
+        role: memberRole,
+        routeMutationScope: 'company_route_delete',
+      },
+    });
+
+    return apiOk<DeleteCompanyRouteOutput>({
+      routeId: input.routeId,
+      deleted: true,
+      deletedAt: new Date().toISOString(),
     });
   });
 
@@ -852,8 +1097,8 @@ export function createCompanyMutationCallables({
           throw new HttpsError('invalid-argument', 'Plate bilgisi gecersiz.');
         }
         const normalizedPlate = normalizeVehiclePlate(input.patch.plate);
-        if (normalizedPlate.plateNormalized.length < 2) {
-          throw new HttpsError('invalid-argument', 'Plate bilgisi gecersiz.');
+        if (normalizedPlate.plateNormalized.length < 4) {
+          throw new HttpsError('invalid-argument', 'plate minimum 4 karakter olmalidir.');
         }
 
         if (normalizedPlate.plateNormalized !== currentPlateNormalized) {
@@ -926,22 +1171,99 @@ export function createCompanyMutationCallables({
         createdAt: nowIso,
       });
 
+      const vehicle = buildVehicleListItem(input.vehicleId, {
+        ...current,
+        ...patchPayload,
+      });
+
       return {
         vehicleId: input.vehicleId,
         updatedAt: nowIso,
+        vehicle,
       } satisfies UpdateVehicleOutput;
     });
 
     return apiOk<UpdateVehicleOutput>(updated);
   });
 
+  const deleteVehicle = onCall(async (request: CallableRequest<unknown>) => {
+    const auth = requireAuth(request);
+    requireNonAnonymous(auth);
+    const input = validateInput(deleteVehicleInputSchema, request.data) as DeleteVehicleInput;
+
+    const memberRole = await requireActiveCompanyMemberRole(input.companyId, auth.uid);
+    requireCompanyVehicleWriteRole(memberRole);
+
+    const companyRef = db.collection('companies').doc(input.companyId);
+    const vehicleRef = companyRef.collection('vehicles').doc(input.vehicleId);
+    const nowIso = new Date().toISOString();
+
+    const deleted = await runTransactionWithResult(db, async (tx) => {
+      const companySnap = await tx.get(companyRef);
+      if (!companySnap.exists) {
+        throw new HttpsError('not-found', 'Firma bulunamadi.');
+      }
+
+      const vehicleSnap = await tx.get(vehicleRef);
+      if (!vehicleSnap.exists) {
+        throw new HttpsError('not-found', 'Arac bulunamadi.');
+      }
+
+      const linkedRoutesSnap = await tx.get(
+        companyRef.collection('routes').where('vehicleId', '==', input.vehicleId).limit(5),
+      );
+      const linkedActiveRoutes = linkedRoutesSnap.docs.filter((doc) => {
+        const routeData = asRecord(doc.data()) ?? {};
+        return routeData.isArchived !== true;
+      });
+      if (linkedActiveRoutes.length > 0) {
+        throw new HttpsError(
+          'failed-precondition',
+          'COMPANY_VEHICLE_ROUTE_LINKED_DELETE_FORBIDDEN',
+        );
+      }
+
+      tx.delete(vehicleRef);
+
+      const auditRef = db.collection('audit_logs').doc();
+      tx.set(auditRef, {
+        companyId: input.companyId,
+        actorUid: auth.uid,
+        actorType: 'company_member',
+        eventType: 'vehicle_deleted',
+        targetType: 'vehicle',
+        targetId: input.vehicleId,
+        status: 'success',
+        reason: null,
+        metadata: {
+          role: memberRole,
+        },
+        requestId: createHash('sha256')
+          .update(`deleteVehicle:${auth.uid}:${input.companyId}:${input.vehicleId}:${nowIso}`)
+          .digest('hex')
+          .slice(0, 24),
+        createdAt: nowIso,
+      });
+
+      return {
+        vehicleId: input.vehicleId,
+        deleted: true,
+        deletedAt: nowIso,
+      } satisfies DeleteVehicleOutput;
+    });
+
+    return apiOk<DeleteVehicleOutput>(deleted);
+  });
+
   return {
     createVehicle,
     createCompanyRoute,
     updateCompanyRoute,
+    deleteCompanyRoute,
     upsertCompanyRouteStop,
     deleteCompanyRouteStop,
     reorderCompanyRouteStops,
     updateVehicle,
+    deleteVehicle,
   };
 }

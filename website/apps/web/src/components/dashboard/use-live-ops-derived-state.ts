@@ -45,7 +45,7 @@ export function useLiveOpsDerivedState({
       searchText,
       sortOption,
     });
-    // React purity kuralina uymak icin render fazinda impure timer cagirmiyoruz.
+    // React purity kuralina uymak için render fazinda impure timer cagirmiyoruz.
     const duration = Math.max(0, Math.round(trips.length / 10 + next.length / 6));
     const tripCount = trips.length;
     const level: ReadModelPressure["level"] =
@@ -115,3 +115,4 @@ export function useLiveOpsDerivedState({
     readModelPressure,
   };
 }
+

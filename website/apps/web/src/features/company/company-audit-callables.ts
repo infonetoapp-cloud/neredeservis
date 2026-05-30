@@ -1,6 +1,7 @@
 "use client";
 
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 
 export type CompanyAuditLogSummary = {
   auditId: string;
@@ -185,30 +186,37 @@ function ensureUpdateCompanyAdminTenantStateResponse(
 export async function listCompanyAuditLogsCallable(input: {
   companyId: string;
 }): Promise<CompanyAuditLogSummary[]> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listCompanyAuditLogs",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/audit-logs`,
+  });
   return ensureListCompanyAuditLogsResponse(envelope.data, "listCompanyAuditLogs").items;
 }
 
 export async function getCompanyAdminTenantStateCallable(input: {
   companyId: string;
 }): Promise<CompanyAdminTenantState> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "getCompanyAdminTenantState",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/admin-tenant-state`,
+  });
   return ensureCompanyAdminTenantState(envelope.data, "getCompanyAdminTenantState");
 }
 
 export async function updateCompanyAdminTenantStateCallable(
   input: UpdateCompanyAdminTenantStateInput,
 ): Promise<UpdateCompanyAdminTenantStateResponse> {
-  const envelope = await callFirebaseCallable<UpdateCompanyAdminTenantStateInput, unknown>(
-    "updateCompanyAdminTenantState",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/admin-tenant-state`,
+    method: "PATCH",
+    body: {
+      patch: input.patch,
+    },
+  });
   return ensureUpdateCompanyAdminTenantStateResponse(
     envelope.data,
     "updateCompanyAdminTenantState",

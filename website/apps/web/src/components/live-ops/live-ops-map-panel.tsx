@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { type CompanyLiveOpsItem, type CompanyLiveOpsStatus } from "@/features/company/company-client";
-import { getMapboxToken } from "@/lib/env/public-env";
+import {
+  getPublicMapTileAttribution,
+  getPublicMapTileMaxZoom,
+  getPublicMapTileUrl,
+} from "@/lib/env/public-env";
 
 type MappableLiveOpsItem = CompanyLiveOpsItem & { lat: number; lng: number };
 type MarkerCluster = {
@@ -24,19 +28,6 @@ type Props = {
 
 const GEBZE_CENTER: [number, number] = [40.8026, 29.4305];
 const DEFAULT_ZOOM = 13;
-const mapboxToken = getMapboxToken();
-
-/* ---------- Leaflet CSS injector (runs once) ---------- */
-let leafletCssLoaded = false;
-function ensureLeafletCss() {
-  if (leafletCssLoaded || typeof document === "undefined") return;
-  leafletCssLoaded = true;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-  link.crossOrigin = "";
-  document.head.appendChild(link);
-}
 
 /* ---------- helpers ---------- */
 
@@ -48,7 +39,7 @@ function toMarkerColor(status: CompanyLiveOpsStatus): string {
 }
 
 function toStatusLabel(status: CompanyLiveOpsStatus): string {
-  if (status === "live") return "Canli";
+  if (status === "live") return "Canlı";
   if (status === "stale") return "Konum gecikmeli";
   if (status === "no_signal") return "Baglanti kesildi";
   return "Sefer bekliyor";
@@ -109,6 +100,9 @@ export function LiveOpsMapPanel({
   className,
   allowFullscreen = false,
 }: Props) {
+  const tileUrl = getPublicMapTileUrl();
+  const tileAttribution = getPublicMapTileAttribution();
+  const tileMaxZoom = getPublicMapTileMaxZoom();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
@@ -213,7 +207,6 @@ export function LiveOpsMapPanel({
 
   /* ---- Initialize Leaflet map ---- */
   useEffect(() => {
-    ensureLeafletCss();
     let cancelled = false;
 
     const init = async () => {
@@ -231,23 +224,10 @@ export function LiveOpsMapPanel({
       // Add zoom control to bottom-right
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
-      // Use colorful streets style instead of grayscale light-v11
-      if (mapboxToken) {
-        L.tileLayer(
-          `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${mapboxToken}`,
-          {
-            tileSize: 512,
-            zoomOffset: -1,
-            maxZoom: 18,
-            attribution: "&copy; Mapbox &copy; OpenStreetMap contributors",
-          },
-        ).addTo(map);
-      } else {
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: "&copy; OpenStreetMap contributors",
-        }).addTo(map);
-      }
+      L.tileLayer(tileUrl, {
+        maxZoom: tileMaxZoom,
+        attribution: tileAttribution,
+      }).addTo(map);
       map.setView(GEBZE_CENTER, DEFAULT_ZOOM);
 
       markerLayerRef.current = L.layerGroup().addTo(map);
@@ -291,7 +271,7 @@ export function LiveOpsMapPanel({
       leafletRef.current = null;
       initialFrameDone.current = false;
     };
-  }, []);
+  }, [tileAttribution, tileMaxZoom, tileUrl]);
 
   /* ---- Sync markers ---- */
   useEffect(() => {
@@ -397,7 +377,7 @@ export function LiveOpsMapPanel({
       {/* Fullscreen top bar — shrinks to its own height */}
       {isFullscreen && (
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
-          <h3 className="text-sm font-semibold text-slate-800">Canli Harita — Tam Ekran</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Canlı Harita — Tam Ekran</h3>
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -469,7 +449,7 @@ export function LiveOpsMapPanel({
           <div className="mb-1 font-semibold text-slate-900">Durum Ozeti</div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span>Canli: {liveCount}</span>
+            <span>Canlı: {liveCount}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -498,3 +478,4 @@ export function LiveOpsMapPanel({
     </div>
   );
 }
+

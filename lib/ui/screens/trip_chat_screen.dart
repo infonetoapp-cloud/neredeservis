@@ -1,11 +1,10 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../config/firebase_regions.dart';
+import '../../core/exceptions/app_exception.dart';
+import '../../features/auth/data/identity_toolkit_auth_credential_gateway.dart';
+import '../../features/chat/data/backend_trip_chat_client.dart';
 
 class TripChatScreen extends StatefulWidget {
   const TripChatScreen({
@@ -38,16 +37,26 @@ class _TripChatScreenState extends State<TripChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
+  final BackendTripChatClient _chatClient = BackendTripChatClient();
+  final IdentityToolkitAuthCredentialGateway _authCredentialGateway =
+      IdentityToolkitAuthCredentialGateway();
 
   bool _isSending = false;
+  bool _isLoadingMessages = true;
   String? _currentUid;
-  int _lastMessageCount = 0;
+  Timer? _pollTimer;
+  List<_TripChatMessage> _messages = const <_TripChatMessage>[];
   DateTime? _lastReadMarkedAt;
 
   @override
   void initState() {
     super.initState();
-    _currentUid = FirebaseAuth.instance.currentUser?.uid;
+    _currentUid = _authCredentialGateway.currentUser?.uid;
+    unawaited(_refreshMessages(showLoading: true));
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => unawaited(_refreshMessages()),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_markConversationRead());
     });
@@ -55,6 +64,7 @@ class _TripChatScreenState extends State<TripChatScreen> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     _messageFocusNode.dispose();
@@ -72,28 +82,31 @@ class _TripChatScreenState extends State<TripChatScreen> {
     });
 
     try {
-      final callable =
-          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-              .httpsCallable('sendTripMessage');
-      await callable.call(<String, dynamic>{
-        'routeId': widget.routeId,
-        'conversationId': widget.conversationId,
-        'text': text,
-        'clientMessageId': _buildClientMessageId(),
-      });
+      await _chatClient.sendMessage(
+        routeId: widget.routeId,
+        conversationId: widget.conversationId,
+        text: text,
+        clientMessageId: _buildClientMessageId(),
+      );
       if (!mounted) {
         return;
       }
       if (quickReply == null) {
         _messageController.clear();
       }
+      await _refreshMessages();
       _scheduleScrollToBottom(animated: true);
       unawaited(_markConversationRead());
-    } on FirebaseFunctionsException catch (_) {
+    } on AppException {
       if (!mounted) {
         return;
       }
-      _showSnack('Mesaj gönderilemedi. Lütfen tekrar dene.');
+      _showSnack('Mesaj gonderilemedi. Lutfen tekrar dene.');
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      _showSnack('Mesaj gonderilemedi. Lutfen tekrar dene.');
     } finally {
       if (mounted) {
         setState(() {
@@ -121,16 +134,75 @@ class _TripChatScreenState extends State<TripChatScreen> {
     _lastReadMarkedAt = now;
 
     try {
-      final callable =
-          FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-              .httpsCallable('markTripConversationRead');
-      await callable.call(<String, dynamic>{
-        'routeId': widget.routeId,
-        'conversationId': widget.conversationId,
-      });
-    } on FirebaseFunctionsException {
-      // Read acknowledgment best-effort; no-op on failure.
+      await _chatClient.markConversationRead(
+        routeId: widget.routeId,
+        conversationId: widget.conversationId,
+      );
+    } on Object {
+      // Best effort.
     }
+  }
+
+  Future<void> _refreshMessages({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoadingMessages = true;
+      });
+    }
+
+    try {
+      final nextMessages = await _chatClient.listMessages(
+        routeId: widget.routeId,
+        conversationId: widget.conversationId,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      final mappedMessages = nextMessages
+          .map(
+            (message) => _TripChatMessage(
+              messageId: message.messageId,
+              senderUid: message.senderUid,
+              text: message.text,
+              createdAt: message.createdAt,
+            ),
+          )
+          .toList(growable: false);
+      final didChange = _didMessagesChange(mappedMessages);
+
+      setState(() {
+        _messages = mappedMessages;
+        _isLoadingMessages = false;
+      });
+
+      if (didChange) {
+        _scheduleScrollToBottom(animated: false);
+        unawaited(_markConversationRead());
+      }
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoadingMessages = false;
+      });
+    }
+  }
+
+  bool _didMessagesChange(List<_TripChatMessage> nextMessages) {
+    if (_messages.length != nextMessages.length) {
+      return true;
+    }
+    if (_messages.isEmpty && nextMessages.isEmpty) {
+      return false;
+    }
+
+    final currentLast = _messages.isEmpty ? null : _messages.last;
+    final nextLast = nextMessages.isEmpty ? null : nextMessages.last;
+    return currentLast?.messageId != nextLast?.messageId ||
+        currentLast?.createdAt != nextLast?.createdAt ||
+        currentLast?.text != nextLast?.text;
   }
 
   void _showSnack(String message) {
@@ -194,103 +266,89 @@ class _TripChatScreenState extends State<TripChatScreen> {
               onBackTap: widget.onBackTap,
             ),
             Expanded(
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection('trip_conversations')
-                    .doc(widget.conversationId)
-                    .collection('messages')
-                    .orderBy('createdAt')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  final docs = snapshot.data?.docs ?? const [];
-                  final messages = docs
-                      .map(_TripChatMessage.fromDoc)
-                      .where((message) => message.text.isNotEmpty)
-                      .toList(growable: false);
-
-                  if (messages.length != _lastMessageCount) {
-                    _lastMessageCount = messages.length;
-                    _scheduleScrollToBottom(animated: false);
-                    unawaited(_markConversationRead());
-                  }
-
-                  if (messages.isEmpty) {
-                    return const _TripChatEmptyState();
-                  }
-
-                  return ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                    itemCount: messages.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      final isMine = _currentUid != null &&
-                          message.senderUid == _currentUid;
-                      return Align(
-                        alignment: isMine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.78,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: isMine
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: <Widget>[
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: isMine
-                                      ? const Color(0xFF0E0E0E)
-                                      : const Color(0xFFE7E9E6),
-                                  borderRadius: BorderRadius.circular(18),
-                                  boxShadow: isMine
-                                      ? const <BoxShadow>[
-                                          BoxShadow(
-                                            color: Color(0x22000000),
-                                            blurRadius: 12,
-                                            offset: Offset(0, 6),
+              child: _isLoadingMessages && _messages.isEmpty
+                  ? const Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2.2),
+                      ),
+                    )
+                  : _messages.isEmpty
+                      ? const _TripChatEmptyState()
+                      : ListView.separated(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                          itemCount: _messages.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isMine = _currentUid != null &&
+                                message.senderUid == _currentUid;
+                            return Align(
+                              alignment: isMine
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.78,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: isMine
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: isMine
+                                            ? const Color(0xFF0E0E0E)
+                                            : const Color(0xFFE7E9E6),
+                                        borderRadius: BorderRadius.circular(18),
+                                        boxShadow: isMine
+                                            ? const <BoxShadow>[
+                                                BoxShadow(
+                                                  color: Color(0x22000000),
+                                                  blurRadius: 12,
+                                                  offset: Offset(0, 6),
+                                                ),
+                                              ]
+                                            : const <BoxShadow>[],
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 11,
+                                        ),
+                                        child: Text(
+                                          message.text,
+                                          style: TextStyle(
+                                            color: isMine
+                                                ? Colors.white
+                                                : const Color(0xFF1B1E1D),
+                                            fontSize: 17,
+                                            height: 1.35,
+                                            fontWeight: FontWeight.w500,
                                           ),
-                                        ]
-                                      : const <BoxShadow>[],
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 11,
-                                  ),
-                                  child: Text(
-                                    message.text,
-                                    style: TextStyle(
-                                      color: isMine
-                                          ? Colors.white
-                                          : const Color(0xFF1B1E1D),
-                                      fontSize: 17,
-                                      height: 1.35,
-                                      fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatClockLabel(message.createdAt),
+                                      style: const TextStyle(
+                                        color: Color(0xFF8B918D),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatClockLabel(message.createdAt),
-                                style: const TextStyle(
-                                  color: Color(0xFF8B918D),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
             if (!keyboardVisible)
               _QuickRepliesRow(
@@ -583,7 +641,7 @@ class _TripChatEmptyState extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 24),
         child: Text(
-          'Mesajlaşma başladı. Hızlı bilgi için kısa bir mesaj gönderebilirsin.',
+          'Mesajlasma basladi. Hizli bilgi icin kisa bir mesaj gonderebilirsin.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 16,
@@ -599,25 +657,13 @@ class _TripChatEmptyState extends StatelessWidget {
 
 class _TripChatMessage {
   const _TripChatMessage({
+    required this.messageId,
     required this.senderUid,
     required this.text,
     required this.createdAt,
   });
 
-  factory _TripChatMessage.fromDoc(
-    QueryDocumentSnapshot<Map<String, dynamic>> doc,
-  ) {
-    final data = doc.data();
-    final senderUid = (data['senderUid'] as String?)?.trim() ?? '';
-    final text = (data['text'] as String?)?.trim() ?? '';
-    final createdAt = (data['createdAt'] as String?)?.trim();
-    return _TripChatMessage(
-      senderUid: senderUid,
-      text: text,
-      createdAt: createdAt,
-    );
-  }
-
+  final String messageId;
   final String senderUid;
   final String text;
   final String? createdAt;

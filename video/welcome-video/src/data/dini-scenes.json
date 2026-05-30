@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hook",
+    "title": "Bir Dakika Dur",
+    "voiceover": "Bu videoyu sonuna kadar izle. Belki de bugün kalbine en çok gereken cümle burada.",
+    "caption": "Nefes al, kalbini sakinleştir.",
+    "cta": "Kaydet, zor anlarda tekrar aç.",
+    "visualQuery": "sunrise sky calm nature"
+  },
+  {
+    "id": "sukur",
+    "title": "Şükür Bereketi Çağırır",
+    "voiceover": "Sabah gözünü açtıysan Allah sana yeni bir sayfa verdi. Şükür, bereketin kapısını açan ilk anahtardır.",
+    "caption": "Az görünen nimetler de nimettir.",
+    "cta": "Bugün 3 şeye şükür yaz.",
+    "visualQuery": "morning light nature peaceful"
+  },
+  {
+    "id": "namaz",
+    "title": "Namaz Ruhun Mola Noktası",
+    "voiceover": "Yorgunken bile iki rekat, ruhuna nefes olur. Namaz sadece görev değil, dağılan kalbi toplayan bir sığınaktır.",
+    "caption": "Kalbin yorulduğunda secdeye in.",
+    "cta": "Bir vakti bugün daha dikkatli kıl.",
+    "visualQuery": "mosque prayer silhouette"
+  },
+  {
+    "id": "sabir",
+    "title": "Sabır Kayıp Değildir",
+    "voiceover": "Geciken her şey kayıp değildir. Sabır, dua ile birleşince yol açılır ve gönül ferahlar.",
+    "caption": "Beklediğin kapılar bir gün açılır.",
+    "cta": "Pes etmek yerine dua et.",
+    "visualQuery": "rain window hope light"
+  },
+  {
+    "id": "dua",
+    "title": "Dua Boşlukta Kalmaz",
+    "voiceover": "İnsanlar anlamasa da Allah duanı duyar. Kalpten edilen samimi bir amin, yönünü değiştirebilir.",
+    "caption": "Sessizce edilen dua da duyulur.",
+    "cta": "Kalbinden geçeni bugün açıkça iste.",
+    "visualQuery": "hands prayer closeup faith"
+  },
+  {
+    "id": "paylas",
+    "title": "Bir Kalbe Dokun",
+    "voiceover": "Bu video sana iyi geldiyse bir kişiye gönder. Bir kalbi ferahlatmak da güzel bir ibadettir.",
+    "caption": "İyiliği paylaş, sevabı çoğalt.",
+    "cta": "Göndereceğin kişiyi şimdi seç.",
+    "visualQuery": "friends support kindness sunset"
+  }
+]

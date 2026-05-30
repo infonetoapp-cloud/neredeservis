@@ -6,15 +6,16 @@ export default function ProfileOnboardingPage() {
     <AuthPageShell
       scopeLabel="Profile Onboarding"
       title="Complete your profile"
-      description="Sirket panelinde gorunecek temel profil bilgisini tamamla"
+      description="Şirket panelinde gorunecek temel profil bilgisini tamamla"
       topPrompt="Zaten tamamladin mi?"
-      topLinkLabel="Giris Yap"
+      topLinkLabel="Giriş Yap"
       topLinkHref="/giris"
       sideImageSrc="/figma/sign-up-reference.png"
       sideImageAlt="Role based CRM profile setup reference"
-      footerHint="Bu bilgi tum sirket modullerinde gorunur."
+      footerHint="Bu bilgi tüm şirket modullerinde görünür."
     >
       <ProfileOnboardingForm />
     </AuthPageShell>
   );
 }
+

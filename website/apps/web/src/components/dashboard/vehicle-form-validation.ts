@@ -4,6 +4,7 @@ const VEHICLE_YEAR_MIN = 1980;
 const VEHICLE_YEAR_MAX_OFFSET = 1;
 const VEHICLE_CAPACITY_MIN = 1;
 const VEHICLE_CAPACITY_MAX = 200;
+const VEHICLE_PLATE_MIN_LENGTH = 4;
 const INTEGER_PATTERN = /^\d+$/;
 
 export function normalizeVehiclePlateInput(value: string): string {
@@ -11,7 +12,7 @@ export function normalizeVehiclePlateInput(value: string): string {
 }
 
 export function isVehiclePlateInputValid(value: string): boolean {
-  return normalizeVehiclePlateInput(value).replace(/\s+/g, "").length >= 2;
+  return normalizeVehiclePlateInput(value).replace(/\s+/g, "").length >= VEHICLE_PLATE_MIN_LENGTH;
 }
 
 export function parseOptionalVehicleIntegerInput(

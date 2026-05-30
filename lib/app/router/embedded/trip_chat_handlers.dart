@@ -58,14 +58,17 @@ Future<void> _handleOpenTripChat(
         counterpartSubtitle: resolvedCounterpartSubtitle,
       ),
     );
-  } on FirebaseFunctionsException catch (error) {
+  } catch (error) {
     if (!context.mounted) {
       return;
     }
+    final normalizedErrorCode = error is AppException
+        ? error.code.trim().toLowerCase().replaceAll('_', '-')
+        : 'unknown';
     _showInfo(
       context,
       _resolveTripChatOpenFailureFeedbackMessageUseCase.execute(
-        errorCode: error.code,
+        errorCode: normalizedErrorCode,
       ),
     );
   }

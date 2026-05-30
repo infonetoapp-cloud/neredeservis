@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function LoginPage() {
-  redirect("/giris");
-}
+export { metadata, default } from "../../(marketing)/giris/page";

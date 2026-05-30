@@ -20,7 +20,7 @@ export function AdminRiskSummaryChips({
   onClear,
 }: AdminRiskSummaryChipsProps) {
   const selectedLabel =
-    selected === "all" ? "Tum seviyeler" : selected === "warning" ? "Kritik" : selected === "attention" ? "Uyari" : "Bilgi";
+    selected === "all" ? "Tüm seviyeler" : selected === "warning" ? "Kritik" : selected === "attention" ? "Uyarı" : "Bilgi";
   const selectedCount =
     selected === "all" ? warning + attention + info : selected === "warning" ? warning : selected === "attention" ? attention : info;
 
@@ -50,14 +50,14 @@ export function AdminRiskSummaryChips({
           type="button"
           onClick={() => onToggle("attention")}
           disabled={attention === 0}
-          title={attention === 0 ? "Uyari seviyesinde risk kaydi bulunmuyor." : undefined}
+          title={attention === 0 ? "Uyarı seviyesinde risk kaydi bulunmuyor." : undefined}
           className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
             selected === "attention"
               ? "border-amber-300 bg-amber-100 text-amber-800"
               : "border-amber-200 bg-amber-50 text-amber-700"
           } disabled:cursor-not-allowed disabled:opacity-50`}
         >
-          Uyari {attention}
+          Uyarı {attention}
         </button>
         <button
           type="button"
@@ -85,3 +85,4 @@ export function AdminRiskSummaryChips({
     </div>
   );
 }
+

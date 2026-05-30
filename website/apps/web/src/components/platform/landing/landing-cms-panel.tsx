@@ -70,7 +70,7 @@ export function LandingCmsPanel() {
   }, []);
 
   useEffect(() => {
-    load();
+    Promise.resolve().then(load);
   }, [load]);
 
   // ─── Save ───────────────────────────────────────────────────────────────────

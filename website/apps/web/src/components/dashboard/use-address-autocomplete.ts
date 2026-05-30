@@ -2,13 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getMapboxToken } from "@/lib/env/public-env";
-
-/**
- * Mapbox Geocoding API based address autocomplete.
- * Uses proximity bias toward Gebze/Istanbul for relevant Turkish results.
- * Debounced at 350ms to avoid rate-limit issues.
- */
+import { searchMapPlaces } from "@/lib/backend-api/maps";
 
 export type AddressSuggestion = {
   placeId: string;
@@ -18,105 +12,88 @@ export type AddressSuggestion = {
   lng: number;
 };
 
-// Gebze center as default proximity bias
 const GEBZE_LNG = 29.43;
 const GEBZE_LAT = 40.79;
-const MAPBOX_BASE = "https://api.mapbox.com/geocoding/v5/mapbox.places";
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LENGTH = 3;
-
-const QUERY_CACHE = new Map<string, { expiresAtMs: number; items: AddressSuggestion[] }>();
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 const SESSION_PROXIMITY_KEY = "nsv.routes.session_proximity.v1";
 
+const QUERY_CACHE = new Map<string, { expiresAtMs: number; items: AddressSuggestion[] }>();
+
 function readSessionProximity(): { lng: number; lat: number } {
-  if (typeof window === "undefined") return { lng: GEBZE_LNG, lat: GEBZE_LAT };
-  try {
-    const raw = window.sessionStorage.getItem(SESSION_PROXIMITY_KEY);
-    if (!raw) return { lng: GEBZE_LNG, lat: GEBZE_LAT };
-    const { lng, lat } = JSON.parse(raw) as { lng: number; lat: number };
-    if (typeof lng === "number" && typeof lat === "number") return { lng, lat };
-  } catch {
-    // ignore
+  if (typeof window === "undefined") {
+    return { lng: GEBZE_LNG, lat: GEBZE_LAT };
   }
+
+  try {
+    const rawValue = window.sessionStorage.getItem(SESSION_PROXIMITY_KEY);
+    if (!rawValue) {
+      return { lng: GEBZE_LNG, lat: GEBZE_LAT };
+    }
+
+    const parsed = JSON.parse(rawValue) as { lng?: number; lat?: number };
+    if (typeof parsed.lng === "number" && typeof parsed.lat === "number") {
+      return { lng: parsed.lng, lat: parsed.lat };
+    }
+  } catch {
+    // Ignore malformed session data.
+  }
+
   return { lng: GEBZE_LNG, lat: GEBZE_LAT };
 }
 
 export function saveSessionProximity(lat: number, lng: number): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    return;
+  }
+
   try {
     window.sessionStorage.setItem(SESSION_PROXIMITY_KEY, JSON.stringify({ lat, lng }));
     QUERY_CACHE.clear();
   } catch {
-    // ignore
+    // Ignore storage failures.
   }
 }
 
-type MapboxFeature = {
-  id: string;
-  place_name: string;
-  text: string;
-  center: [number, number];
-  context?: Array<{ id: string; text: string }>;
-};
-
-function buildShortName(feature: MapboxFeature): string {
-  const text = feature.text ?? "";
-  // Extract city/district from context (place / locality / district)
-  const context = feature.context ?? [];
-  const cityCtx = context.find(
-    (c) =>
-      c.id.startsWith("place.") ||
-      c.id.startsWith("locality.") ||
-      c.id.startsWith("district."),
-  );
-  const city = cityCtx?.text ?? "";
-  const parts = [text, city].filter(Boolean);
-  if (parts.length === 0) {
-    return feature.place_name.split(",").slice(0, 2).join(", ");
+async function searchBackendAddresses(
+  query: string,
+  signal: AbortSignal,
+): Promise<AddressSuggestion[]> {
+  if (query.trim().length < MIN_QUERY_LENGTH) {
+    return [];
   }
-  return parts.join(", ");
-}
-
-async function searchMapbox(query: string, signal: AbortSignal): Promise<AddressSuggestion[]> {
-  const token = getMapboxToken();
-  if (!token || query.trim().length < MIN_QUERY_LENGTH) return [];
 
   const { lng, lat } = readSessionProximity();
-  const proximityStr = `${lng.toFixed(5)},${lat.toFixed(5)}`;
-  const cacheKey = `${query.trim().toLocaleLowerCase("tr")}|${proximityStr}`;
+  const proximityKey = `${lng.toFixed(5)},${lat.toFixed(5)}`;
+  const cacheKey = `${query.trim().toLocaleLowerCase("tr")}|${proximityKey}`;
   const cached = QUERY_CACHE.get(cacheKey);
-  if (cached && cached.expiresAtMs > Date.now()) return cached.items;
+  if (cached && cached.expiresAtMs > Date.now()) {
+    return cached.items;
+  }
 
-  const params = new URLSearchParams({
-    access_token: token,
-    autocomplete: "true",
-    country: "tr",
-    language: "tr",
-    limit: "6",
-    types: "address,poi,place,locality,neighborhood",
-    proximity: proximityStr,
+  const backendItems = await searchMapPlaces({
+    query: query.trim(),
+    limit: 6,
+    proximity: { lat, lng },
   });
 
-  const url = `${MAPBOX_BASE}/${encodeURIComponent(query.trim())}.json?${params.toString()}`;
-  const response = await fetch(url, { signal });
-  if (!response.ok) return [];
+  if (signal.aborted) {
+    return [];
+  }
 
-  const json = (await response.json()) as { features?: MapboxFeature[] };
-  const features = json.features ?? [];
+  const items = backendItems.map((item) => ({
+    placeId: item.id,
+    displayName: item.displayName || item.label,
+    shortName: item.shortName || item.label,
+    lat: item.lat,
+    lng: item.lng,
+  }));
 
-  const items: AddressSuggestion[] = features
-    .filter((f) => f.center && f.center.length >= 2)
-    .map((f) => ({
-      placeId: f.id,
-      displayName: f.place_name,
-      shortName: buildShortName(f),
-      lat: f.center[1],
-      lng: f.center[0],
-    }))
-    .slice(0, 6);
-
-  QUERY_CACHE.set(cacheKey, { expiresAtMs: Date.now() + CACHE_TTL_MS, items });
+  QUERY_CACHE.set(cacheKey, {
+    expiresAtMs: Date.now() + CACHE_TTL_MS,
+    items,
+  });
   return items;
 }
 
@@ -134,8 +111,12 @@ export function useAddressAutocomplete() {
   }, []);
 
   useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (abortRef.current) abortRef.current.abort();
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
     abortRef.current = null;
 
     if (query.trim().length < MIN_QUERY_LENGTH) {
@@ -152,7 +133,7 @@ export function useAddressAutocomplete() {
       abortRef.current = controller;
 
       try {
-        const results = await searchMapbox(query.trim(), controller.signal);
+        const results = await searchBackendAddresses(query.trim(), controller.signal);
         if (!controller.signal.aborted) {
           setSuggestions(results);
           setIsOpen(results.length > 0);
@@ -167,14 +148,20 @@ export function useAddressAutocomplete() {
     }, DEBOUNCE_MS);
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, [query, clearSuggestions]);
 
   useEffect(() => {
     return () => {
-      if (abortRef.current) abortRef.current.abort();
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, []);
 

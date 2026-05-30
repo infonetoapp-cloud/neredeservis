@@ -1,27 +1,37 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/application/auth_role_bootstrap_service.dart';
 import '../../features/auth/data/auth_gateway.dart';
+import '../../features/auth/data/backend_user_role_repository.dart';
 import '../../features/auth/data/bootstrap_user_profile_client.dart';
-import '../../features/auth/data/firebase_auth_gateway.dart';
-import '../../features/auth/data/firestore_user_role_repository.dart';
+import '../../features/auth/data/current_auth_profile_snapshot_client.dart';
+import '../../features/auth/data/identity_toolkit_auth_gateway.dart';
 import '../../features/auth/data/update_user_profile_client.dart';
 import '../../features/auth/data/user_role_repository.dart';
+import '../../features/auth/domain/auth_session.dart';
 import '../../features/auth/domain/user_role.dart';
 import 'auth_state_provider.dart';
 
 final authGatewayProvider = Provider<AuthGateway>((ref) {
-  return FirebaseAuthGateway();
+  return IdentityToolkitAuthGateway();
 });
 
 final userRoleRepositoryProvider = Provider<UserRoleRepository>((ref) {
-  return FirestoreUserRoleRepository();
+  return BackendUserRoleRepository(
+    snapshotClient: ref.watch(currentAuthProfileSnapshotClientProvider),
+  );
 });
 
 final bootstrapUserProfileClientProvider =
     Provider<BootstrapUserProfileClient>((ref) {
   return BootstrapUserProfileClient();
+});
+
+final currentAuthProfileSnapshotClientProvider =
+    Provider<CurrentAuthProfileSnapshotClient>((ref) {
+  return CurrentAuthProfileSnapshotClient();
 });
 
 final updateUserProfileClientProvider =
@@ -50,20 +60,33 @@ final currentUserRoleProvider = StreamProvider<UserRole>((ref) {
 });
 
 final currentUserConsentGrantedProvider = StreamProvider<bool>((ref) {
-  final user = ref.watch(firebaseAuthStateProvider).valueOrNull;
-  if (user == null) {
+  final session = ref.watch(authSessionStateProvider).valueOrNull;
+  if (session == null || session.isAnonymous) {
     return Stream<bool>.value(true);
   }
-
-  return FirebaseFirestore.instance
-      .collection('consents')
-      .doc(user.uid)
-      .snapshots()
-      .map((snapshot) {
-    final data = snapshot.data();
-    if (data == null) {
-      return false;
-    }
-    return data['locationConsent'] == true;
-  });
+  final snapshotClient = ref.watch(currentAuthProfileSnapshotClientProvider);
+  return _watchCurrentUserConsentGranted(session, snapshotClient);
 });
+
+Stream<bool> _watchCurrentUserConsentGranted(
+  AuthSession user,
+  CurrentAuthProfileSnapshotClient snapshotClient,
+) async* {
+  bool? lastValue;
+  while (true) {
+    var nextValue = false;
+    try {
+      final snapshot = await snapshotClient.readCurrent();
+      nextValue =
+          snapshot.uid == user.uid && snapshot.consent?.locationConsent == true;
+    } catch (_) {
+      nextValue = false;
+    }
+
+    if (lastValue != nextValue) {
+      lastValue = nextValue;
+      yield nextValue;
+    }
+    await Future<void>.delayed(const Duration(seconds: 30));
+  }
+}

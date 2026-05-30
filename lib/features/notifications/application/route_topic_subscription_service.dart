@@ -1,13 +1,10 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 class RouteTopicSubscriptionService {
   RouteTopicSubscriptionService({
     TopicSubscribeInvoker? subscribeInvoker,
     TopicUnsubscribeInvoker? unsubscribeInvoker,
   })  : _subscribeInvoker =
-            subscribeInvoker ?? FirebaseMessaging.instance.subscribeToTopic,
-        _unsubscribeInvoker = unsubscribeInvoker ??
-            FirebaseMessaging.instance.unsubscribeFromTopic;
+            subscribeInvoker ?? _noopTopicSubscription,
+        _unsubscribeInvoker = unsubscribeInvoker ?? _noopTopicSubscription;
 
   final TopicSubscribeInvoker _subscribeInvoker;
   final TopicUnsubscribeInvoker _unsubscribeInvoker;
@@ -25,6 +22,8 @@ class RouteTopicSubscriptionService {
 
 typedef TopicSubscribeInvoker = Future<void> Function(String topic);
 typedef TopicUnsubscribeInvoker = Future<void> Function(String topic);
+
+Future<void> _noopTopicSubscription(String topic) async {}
 
 String buildRouteTopicName(String routeId) {
   final trimmed = routeId.trim().toLowerCase();

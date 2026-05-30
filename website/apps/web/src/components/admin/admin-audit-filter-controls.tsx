@@ -48,7 +48,7 @@ export function AdminAuditFilterControls({
           }}
           className="rounded-lg border border-line bg-white px-2 py-1.5 text-xs text-slate-900 outline-none ring-blue-200 focus:border-blue-300 focus:ring-2"
         >
-          <option value="all">Tum Eventler</option>
+          <option value="all">Tüm Eventler</option>
           {eventOptions.map((eventType) => (
             <option key={eventType} value={eventType}>
               {toAuditEventLabel(eventType)}
@@ -66,7 +66,7 @@ export function AdminAuditFilterControls({
           }}
           className="rounded-lg border border-line bg-white px-2 py-1.5 text-xs text-slate-900 outline-none ring-blue-200 focus:border-blue-300 focus:ring-2"
         >
-          <option value="all">Tum Targetlar</option>
+          <option value="all">Tüm Targetlar</option>
           {targetOptions.map((targetType) => (
             <option key={targetType} value={targetType}>
               {toAuditTargetLabel(targetType)}
@@ -124,3 +124,4 @@ export function AdminAuditFilterControls({
     </div>
   );
 }
+

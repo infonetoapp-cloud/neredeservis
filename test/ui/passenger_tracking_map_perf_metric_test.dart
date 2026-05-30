@@ -32,9 +32,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: PassengerTrackingScreen(
-            mapboxPublicToken: null,
-          ),
+          home: PassengerTrackingScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));

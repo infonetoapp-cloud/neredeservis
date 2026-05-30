@@ -74,7 +74,7 @@ export function CompanyLiveOpsSnapshotProvider({
           status: "error",
           generatedAt: null,
           items: [],
-          errorMessage: "Canli operasyon verisi su an alinamiyor. Lutfen birazdan tekrar deneyin.",
+          errorMessage: "Canlı operasyon verisi su an alinamiyor. Lutfen birazdan tekrar deneyin.",
         });
       }
     };
@@ -111,3 +111,4 @@ export function useCompanyLiveOpsSnapshot(): CompanyLiveOpsSnapshotContextValue 
   }
   return context;
 }
+

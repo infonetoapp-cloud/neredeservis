@@ -7,8 +7,17 @@ DateTime? _resolveTripHistoryReferenceAtUtc(Map<String, dynamic> tripData) {
 }
 
 DateTime? _parseTripHistoryDate(Object? raw) {
-  if (raw is Timestamp) {
-    return raw.toDate().toUtc();
+  if (raw is DateTime) {
+    return raw.toUtc();
+  }
+  final dynamic dynamicRaw = raw;
+  if (dynamicRaw != null) {
+    try {
+      final converted = dynamicRaw.toDate();
+      if (converted is DateTime) {
+        return converted.toUtc();
+      }
+    } catch (_) {}
   }
   if (raw is String) {
     final normalized = raw.trim();

@@ -1,13 +1,12 @@
 "use client";
 
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import type {
   PlatformCompanySummary,
   PlatformCompanyDetail,
   CreateCompanyInput,
 } from "@/features/platform/platform-types";
-
-// ─── Response types (Firestore backend'den dönen yapıya hizalı) ──────────────
 
 interface BackendCompanyListItem {
   companyId: string;
@@ -50,6 +49,7 @@ interface BackendCompanyDetail {
     routeId: string;
     name: string;
     stopCount: number;
+    passengerCount?: number;
     isArchived: boolean;
   }[];
 }
@@ -74,15 +74,13 @@ interface BackendSetCompanyStatusResult {
   updatedAt: string;
 }
 
-// ─── Callable wrappers ──────────────────────────────────────────────────────
-
 export async function platformListCompanies(): Promise<PlatformCompanySummary[]> {
-  const result = await callFirebaseCallable<
-    Record<string, never>,
-    { items: BackendCompanyListItem[] }
-  >("platformListCompanies", {});
+  const result = await callBackendApi<{ items: BackendCompanyListItem[] }>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: "api/platform/companies",
+  });
 
-  return result.data.items.map((item) => ({
+  return (result.data?.items ?? []).map((item) => ({
     id: item.companyId,
     name: item.name,
     ownerEmail: item.ownerEmail ?? "",
@@ -100,46 +98,49 @@ export async function platformGetCompanyDetail(
   companyId: string,
 ): Promise<PlatformCompanyDetail | null> {
   try {
-    const result = await callFirebaseCallable<
-      { companyId: string },
-      BackendCompanyDetail
-    >("platformGetCompanyDetail", { companyId });
+    const result = await callBackendApi<BackendCompanyDetail>({
+      baseUrl: requireBackendApiBaseUrl(),
+      path: `api/platform/companies/${encodeURIComponent(companyId)}`,
+    });
 
-    const d = result.data;
+    const detail = result.data;
+    if (!detail) {
+      return null;
+    }
 
     return {
-      id: d.companyId,
-      name: d.name,
-      ownerEmail: d.ownerEmail ?? "",
-      ownerUid: d.ownerUid,
-      status: d.status,
-      vehicleLimit: d.vehicleLimit,
-      vehicleCount: d.vehicles.length,
-      memberCount: d.members.length,
-      routeCount: d.routes.length,
-      createdAt: d.createdAt,
-      members: d.members.map((m) => ({
-        uid: m.uid,
-        email: m.email ?? "",
-        displayName: m.displayName,
-        role: m.role,
-        status: m.status,
-        joinedAt: m.joinedAt,
+      id: detail.companyId,
+      name: detail.name,
+      ownerEmail: detail.ownerEmail ?? "",
+      ownerUid: detail.ownerUid,
+      status: detail.status,
+      vehicleLimit: detail.vehicleLimit,
+      vehicleCount: detail.vehicles.length,
+      memberCount: detail.members.length,
+      routeCount: detail.routes.length,
+      createdAt: detail.createdAt,
+      members: detail.members.map((member) => ({
+        uid: member.uid,
+        email: member.email ?? "",
+        displayName: member.displayName,
+        role: member.role,
+        status: member.status,
+        joinedAt: member.joinedAt,
       })),
-      vehicles: d.vehicles.map((v) => ({
-        id: v.vehicleId,
-        plate: v.plate,
-        brand: v.brand,
-        model: v.model,
-        capacity: v.capacity,
-        status: (v.status === "active" ? "active" : "inactive") as "active" | "inactive",
+      vehicles: detail.vehicles.map((vehicle) => ({
+        id: vehicle.vehicleId,
+        plate: vehicle.plate,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        capacity: vehicle.capacity,
+        status: (vehicle.status === "active" ? "active" : "inactive") as "active" | "inactive",
       })),
-      routes: d.routes.map((r) => ({
-        id: r.routeId,
-        name: r.name,
-        stopCount: r.stopCount,
-        passengerCount: 0, // Backend henüz döndürmüyor
-        status: r.isArchived ? ("draft" as const) : ("active" as const),
+      routes: detail.routes.map((route) => ({
+        id: route.routeId,
+        name: route.name,
+        stopCount: route.stopCount,
+        passengerCount: route.passengerCount ?? 0,
+        status: route.isArchived ? ("draft" as const) : ("active" as const),
       })),
     };
   } catch {
@@ -150,18 +151,20 @@ export async function platformGetCompanyDetail(
 export async function platformCreateCompany(
   input: CreateCompanyInput,
 ): Promise<{ companyId: string; passwordResetLink: string }> {
-  const result = await callFirebaseCallable<
-    { companyName: string; ownerEmail: string; vehicleLimit: number },
-    BackendCreateCompanyResult
-  >("platformCreateCompany", {
-    companyName: input.companyName,
-    ownerEmail: input.ownerEmail,
-    vehicleLimit: input.vehicleLimit,
+  const result = await callBackendApi<BackendCreateCompanyResult>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: "api/platform/companies",
+    method: "POST",
+    body: {
+      companyName: input.companyName,
+      ownerEmail: input.ownerEmail,
+      vehicleLimit: input.vehicleLimit,
+    },
   });
 
   return {
-    companyId: result.data.companyId,
-    passwordResetLink: result.data.passwordResetLink,
+    companyId: result.data?.companyId ?? "",
+    passwordResetLink: result.data?.passwordResetLink ?? "",
   };
 }
 
@@ -169,35 +172,41 @@ export async function platformSetVehicleLimit(
   companyId: string,
   vehicleLimit: number,
 ): Promise<void> {
-  await callFirebaseCallable<
-    { companyId: string; vehicleLimit: number },
-    BackendSetVehicleLimitResult
-  >("platformSetVehicleLimit", { companyId, vehicleLimit });
+  await callBackendApi<BackendSetVehicleLimitResult>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `api/platform/companies/${encodeURIComponent(companyId)}/vehicle-limit`,
+    method: "PATCH",
+    body: { vehicleLimit },
+  });
 }
 
 export async function platformSetCompanyStatus(
   companyId: string,
   status: "active" | "suspended",
 ): Promise<void> {
-  await callFirebaseCallable<
-    { companyId: string; status: string },
-    BackendSetCompanyStatusResult
-  >("platformSetCompanyStatus", { companyId, status });
+  await callBackendApi<BackendSetCompanyStatusResult>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `api/platform/companies/${encodeURIComponent(companyId)}/status`,
+    method: "PATCH",
+    body: { status },
+  });
 }
 
 export async function platformResetOwnerPassword(
   companyId: string,
 ): Promise<{ loginLink: string }> {
-  const result = await callFirebaseCallable<
-    { companyId: string },
-    { loginLink: string }
-  >("platformResetOwnerPassword", { companyId });
-  return { loginLink: result.data.loginLink };
+  const result = await callBackendApi<{ loginLink: string }>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `api/platform/companies/${encodeURIComponent(companyId)}/reset-owner-password`,
+    method: "POST",
+  });
+  return { loginLink: result.data?.loginLink ?? "" };
 }
 
 export async function platformDeleteCompany(companyId: string): Promise<void> {
-  await callFirebaseCallable<
-    { companyId: string },
-    { companyId: string; deletedAt: string }
-  >("platformDeleteCompany", { companyId });
+  await callBackendApi<{ companyId: string; deletedAt: string }>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `api/platform/companies/${encodeURIComponent(companyId)}`,
+    method: "DELETE",
+  });
 }

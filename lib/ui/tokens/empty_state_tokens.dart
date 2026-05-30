@@ -2,14 +2,6 @@ import '../../l10n/tr_localization_keys.dart';
 import '../../l10n/tr_localizations.dart';
 
 abstract final class CoreEmptyStateTokens {
-  static const mapboxUnsupportedPlatformKey =
-      TrLocalizationKeys.emptyMapboxUnsupportedPlatform;
-  static const mapboxUnsupportedPlatform =
-      TrLocalizations.emptyMapboxUnsupportedPlatform;
-  static const mapboxTokenMissingKey =
-      TrLocalizationKeys.emptyMapboxTokenMissing;
-  static const mapboxTokenMissing = TrLocalizations.emptyMapboxTokenMissing;
-
   static const passengerStopsTitleKey =
       TrLocalizationKeys.emptyPassengerStopsTitle;
   static const passengerStopsTitle = TrLocalizations.emptyPassengerStopsTitle;

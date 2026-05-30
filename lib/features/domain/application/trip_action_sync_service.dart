@@ -1,8 +1,7 @@
 import 'dart:convert';
 
-import 'package:cloud_functions/cloud_functions.dart';
-
-import '../../../config/firebase_regions.dart';
+import '../../../core/exceptions/app_exception.dart';
+import '../../backend/data/mobile_backend_api_client.dart';
 import '../data/local_queue_repository.dart';
 import '../data/trip_action_queue_state_machine.dart';
 
@@ -248,23 +247,56 @@ class TripActionSyncService {
     String callableName,
     Map<String, dynamic> payload,
   ) async {
-    final callable =
-        FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion)
-            .httpsCallable(callableName);
-    final response = await callable.call(payload);
-    return _extractCallableData(response.data);
-  }
+    if (callableName == 'startTrip') {
+      final backendClient = MobileBackendApiClient();
+      return backendClient.postJson(
+        '/api/driver/trips/start',
+        body: payload,
+      );
+    }
+    if (callableName == 'finishTrip') {
+      final backendClient = MobileBackendApiClient();
+      final tripId = (payload['tripId'] as String?)?.trim() ?? '';
+      if (tripId.isEmpty) {
+        throw const AppException(
+          code: 'invalid-argument',
+          message: 'finishTrip icin tripId zorunludur.',
+        );
+      }
+      final requestBody = Map<String, dynamic>.from(payload)..remove('tripId');
+      return backendClient.postJson(
+        '/api/driver/trips/$tripId/finish',
+        body: requestBody,
+      );
+    }
+    if (callableName == 'submitSupportReport') {
+      final backendClient = MobileBackendApiClient();
+      return backendClient.postJson(
+        '/api/support/report',
+        body: payload,
+      );
+    }
+    if (callableName == 'sendDriverAnnouncement') {
+      final backendClient = MobileBackendApiClient();
+      final routeId = (payload['routeId'] as String?)?.trim() ?? '';
+      if (routeId.isEmpty) {
+        throw const AppException(
+          code: 'invalid-argument',
+          message: 'sendDriverAnnouncement icin routeId zorunludur.',
+        );
+      }
+      final requestBody = Map<String, dynamic>.from(payload)..remove('routeId');
+      return backendClient.postJson(
+        '/api/driver/routes/$routeId/announcement',
+        body: requestBody,
+      );
+    }
 
-  static Map<String, dynamic> _extractCallableData(dynamic raw) {
-    if (raw is! Map) {
-      return <String, dynamic>{};
-    }
-    final payload = Map<String, dynamic>.from(raw);
-    final nested = payload['data'];
-    if (nested is Map) {
-      return Map<String, dynamic>.from(nested);
-    }
-    return payload;
+    throw AppException(
+      code: 'operation-not-supported',
+      message:
+          'Bu islem yeni backend modunda desteklenmiyor: $callableName',
+    );
   }
 
   static bool _isRetryableError(String? errorCode) {
@@ -276,7 +308,7 @@ class TripActionSyncService {
   }
 
   static String? _resolveErrorCode(Object error) {
-    if (error is FirebaseFunctionsException) {
+    if (error is AppException) {
       final code = error.code.trim();
       return code.isEmpty ? null : code;
     }
@@ -284,12 +316,9 @@ class TripActionSyncService {
   }
 
   static String? _resolveErrorMessage(Object error) {
-    if (error is FirebaseFunctionsException) {
-      final message = error.message?.trim();
-      if (message == null || message.isEmpty) {
-        return null;
-      }
-      return message;
+    if (error is AppException) {
+      final message = error.message.trim();
+      return message.isEmpty ? null : message;
     }
     final message = error.toString().trim();
     return message.isEmpty ? null : message;

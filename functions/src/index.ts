@@ -31,7 +31,7 @@ import { createAccountSupportCallables } from './callables/account_support_calla
 import { createDriverRouteCallables } from './callables/driver_route_callables.js';
 import { createDriverRouteCreationCallables } from './callables/driver_route_creation_callables.js';
 import { createLoginSecurityCallables } from './callables/login_security_callables.js';
-import { createMapboxPreviewCallables } from './callables/mapbox_preview_callables.js';
+import { createRoutePreviewCallables } from './callables/route_preview_callables.js';
 import { createPassengerMembershipCallables } from './callables/passenger_membership_callables.js';
 import { createPassengerOpsCallables } from './callables/passenger_ops_callables.js';
 import { createProfileDriverCallables } from './callables/profile_driver_callables.js';
@@ -42,7 +42,7 @@ import { createOperationalTriggers } from './common/operational_triggers.js';
 import {
   readJoinRouteRateMaxCalls,
   readJoinRouteRateWindowMs,
-} from './common/mapbox_route_preview_helpers.js';
+} from './common/route_preview_helpers.js';
 import type { HealthCheckOutput } from './common/output_contract_types.js';
 
 setGlobalOptions({
@@ -94,11 +94,6 @@ const DEVICE_SWITCH_NOTICE_DEDUPE_TTL_DAYS = 3;
 const ANNOUNCEMENT_DISPATCH_DEDUPE_TTL_DAYS = 7;
 const JOIN_ROUTE_RATE_WINDOW_MS = 5 * 60_000;
 const JOIN_ROUTE_RATE_MAX_CALLS = 8;
-const MAPBOX_DIRECTIONS_RATE_WINDOW_MS = 60_000;
-const MAPBOX_DIRECTIONS_RATE_MAX_CALLS = 20;
-const MAPBOX_DIRECTIONS_DEFAULT_MONTHLY_MAX = 20_000;
-const MAPBOX_DIRECTIONS_DEFAULT_TIMEOUT_MS = 3_000;
-const MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS = 10;
 const ROUTE_PREVIEW_RATE_WINDOW_MS = 60_000;
 const ROUTE_PREVIEW_RATE_MAX_CALLS = 60;
 const ROUTE_PREVIEW_TOKEN_DEFAULT_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -153,6 +148,7 @@ const {
   deleteDriverDocumentInputSchema,
   createCompanyRouteInputSchema,
   updateCompanyRouteInputSchema,
+  deleteCompanyRouteInputSchema,
   upsertCompanyRouteStopInputSchema,
   deleteCompanyRouteStopInputSchema,
   reorderCompanyRouteStopsInputSchema,
@@ -161,11 +157,10 @@ const {
   listRouteDriverPermissionsInputSchema,
   createVehicleInputSchema,
   updateVehicleInputSchema,
+  deleteVehicleInputSchema,
   createRouteInputSchema,
   updateRouteInputSchema,
   createRouteFromGhostDriveInputSchema,
-  mapboxDirectionsProxyInputSchema,
-  mapboxMapMatchingProxyInputSchema,
   generateRouteShareLinkInputSchema,
   deleteUserDataInputSchema,
   dynamicRoutePreviewInputSchema,
@@ -189,7 +184,6 @@ const {
   updateCompanyProfileInputSchema,
 } = createInputSchemas({
   driverSearchMaxLimit: DRIVER_SEARCH_MAX_LIMIT,
-  mapboxDirectionsDefaultMaxWaypoints: MAPBOX_DIRECTIONS_DEFAULT_MAX_WAYPOINTS,
   supportReportMaxNoteLength: SUPPORT_REPORT_MAX_NOTE_LENGTH,
 });
 const cleanupScheduledTriggers = createCleanupScheduledTriggers({
@@ -325,16 +319,10 @@ const driverRouteCreationCallables = createDriverRouteCreationCallables({
 });
 export const createRoute = driverRouteCreationCallables.createRoute;
 export const createRouteFromGhostDrive = driverRouteCreationCallables.createRouteFromGhostDrive;
-const mapboxPreviewCallables = createMapboxPreviewCallables({
+const routePreviewCallables = createRoutePreviewCallables({
   db,
-  mapboxDirectionsProxyInputSchema,
-  mapboxMapMatchingProxyInputSchema,
   generateRouteShareLinkInputSchema,
   dynamicRoutePreviewInputSchema,
-  mapboxDirectionsDefaultMonthlyMax: MAPBOX_DIRECTIONS_DEFAULT_MONTHLY_MAX,
-  mapboxDirectionsDefaultTimeoutMs: MAPBOX_DIRECTIONS_DEFAULT_TIMEOUT_MS,
-  mapboxDirectionsRateWindowMs: MAPBOX_DIRECTIONS_RATE_WINDOW_MS,
-  mapboxDirectionsRateMaxCalls: MAPBOX_DIRECTIONS_RATE_MAX_CALLS,
   routePreviewRateWindowMs: ROUTE_PREVIEW_RATE_WINDOW_MS,
   routePreviewRateMaxCalls: ROUTE_PREVIEW_RATE_MAX_CALLS,
   routePreviewTokenDefaultTtlSeconds: ROUTE_PREVIEW_TOKEN_DEFAULT_TTL_SECONDS,
@@ -342,10 +330,8 @@ const mapboxPreviewCallables = createMapboxPreviewCallables({
   writeRouteAuditEvent,
   writeRouteAuditEventSafe,
 });
-export const mapboxDirectionsProxy = mapboxPreviewCallables.mapboxDirectionsProxy;
-export const mapboxMapMatchingProxy = mapboxPreviewCallables.mapboxMapMatchingProxy;
-export const generateRouteShareLink = mapboxPreviewCallables.generateRouteShareLink;
-export const getDynamicRoutePreview = mapboxPreviewCallables.getDynamicRoutePreview;
+export const generateRouteShareLink = routePreviewCallables.generateRouteShareLink;
+export const getDynamicRoutePreview = routePreviewCallables.getDynamicRoutePreview;
 const companyQueryCallables = createCompanyQueryCallables({
   db,
   rtdb,
@@ -410,6 +396,8 @@ const companyMutationCallables = createCompanyMutationCallables({
   createVehicleInputSchema,
   createCompanyRouteInputSchema,
   updateCompanyRouteInputSchema,
+  deleteCompanyRouteInputSchema,
+  deleteVehicleInputSchema,
   upsertCompanyRouteStopInputSchema,
   deleteCompanyRouteStopInputSchema,
   reorderCompanyRouteStopsInputSchema,
@@ -424,12 +412,17 @@ const companyMutationCallables = createCompanyMutationCallables({
   writeRouteAuditEventSafe,
 });
 export const createVehicle = companyMutationCallables.createVehicle;
+export const createCompanyVehicle = companyMutationCallables.createVehicle;
 export const createCompanyRoute = companyMutationCallables.createCompanyRoute;
 export const updateCompanyRoute = companyMutationCallables.updateCompanyRoute;
+export const deleteCompanyRoute = companyMutationCallables.deleteCompanyRoute;
 export const upsertCompanyRouteStop = companyMutationCallables.upsertCompanyRouteStop;
 export const deleteCompanyRouteStop = companyMutationCallables.deleteCompanyRouteStop;
 export const reorderCompanyRouteStops = companyMutationCallables.reorderCompanyRouteStops;
 export const updateVehicle = companyMutationCallables.updateVehicle;
+export const updateCompanyVehicle = companyMutationCallables.updateVehicle;
+export const deleteVehicle = companyMutationCallables.deleteVehicle;
+export const deleteCompanyVehicle = companyMutationCallables.deleteVehicle;
 const companyDriverCallables = createCompanyDriverCallables({
   db,
   createCompanyDriverAccountInputSchema,

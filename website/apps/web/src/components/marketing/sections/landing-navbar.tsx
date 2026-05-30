@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { NsLogo } from "@/components/brand/ns-logo";
+import { resolveMarketingHref } from "@/lib/seo/site-urls";
 import type { LandingNavbarConfig } from "../landing-config-types";
 
 interface Props {
@@ -26,7 +27,7 @@ export function LandingNavbar({ navbar }: Props) {
           {navbar.links.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={resolveMarketingHref(link.href)}
               className="text-sm font-medium text-slate-600 transition hover:text-brand"
             >
               {link.label}
@@ -37,13 +38,13 @@ export function LandingNavbar({ navbar }: Props) {
         {/* Desktop CTA */}
         <div className="hidden items-center gap-3 sm:flex">
           <Link
-            href="/giris"
+            href={resolveMarketingHref("/giris")}
             className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
           >
             Giriş Yap
           </Link>
           <Link
-            href={navbar.ctaLink}
+            href={resolveMarketingHref(navbar.ctaLink)}
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:bg-brand-strong hover:shadow-brand/30"
           >
             {navbar.ctaText}
@@ -67,7 +68,7 @@ export function LandingNavbar({ navbar }: Props) {
             {navbar.links.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={resolveMarketingHref(link.href)}
                 onClick={() => setMobileOpen(false)}
                 className="text-sm font-medium text-slate-600"
               >
@@ -75,11 +76,11 @@ export function LandingNavbar({ navbar }: Props) {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3">
-              <Link href="/giris" className="text-sm font-medium text-slate-600">
+              <Link href={resolveMarketingHref("/giris")} className="text-sm font-medium text-slate-600">
                 Giriş Yap
               </Link>
               <Link
-                href={navbar.ctaLink}
+                href={resolveMarketingHref(navbar.ctaLink)}
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-strong"
               >
                 {navbar.ctaText}

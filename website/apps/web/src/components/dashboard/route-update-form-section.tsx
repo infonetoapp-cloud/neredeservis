@@ -171,7 +171,7 @@ export function RouteUpdateFormSection({
       <div className="flex items-center justify-between gap-3 pt-1">
         <p className="text-xs text-slate-500">
           {hasChanges
-            ? "Durak yapisini duzenlemek icin Duraklar panelini kullan."
+            ? "Durak yapisini duzenlemek için Duraklar panelini kullan."
             : "Degisiklik yapmadan guncelleme gonderilmez."}
         </p>
         <button
@@ -179,9 +179,10 @@ export function RouteUpdateFormSection({
           disabled={!canSubmit}
           className="inline-flex items-center justify-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {pending ? "Kaydediliyor..." : "Guncelle"}
+          {pending ? "Kaydediliyor..." : "Güncelle"}
         </button>
       </div>
     </form>
   );
 }
+

@@ -89,14 +89,14 @@ export function buildCompanyQuickActionItems(companySummary: CompanySummary | nu
   const items: CompanyQuickActionItem[] = [
     {
       href: "/drivers",
-      label: "Sofor/Uye yonetimi",
+      label: "Şoför/Uye yönetimi",
       meta: `${companySummary?.members ?? 0} uye`,
       tone: "default",
     },
     {
       href: "/vehicles",
-      label: "Arac listesi",
-      meta: `${companySummary?.activeVehicles ?? 0} aktif arac`,
+      label: "Araç listesi",
+      meta: `${companySummary?.activeVehicles ?? 0} aktif araç`,
       tone: "default",
     },
     {
@@ -107,14 +107,14 @@ export function buildCompanyQuickActionItems(companySummary: CompanySummary | nu
     },
     {
       href: "/live-ops?sort=signal_desc",
-      label: "Canli operasyon merkezi",
+      label: "Canlı operasyon merkezi",
       meta: `${companySummary?.activeTrips ?? 0} aktif sefer`,
       tone: "default",
     },
     {
       href: "/live-ops?sort=state",
       label: "Stale kontrol sirasi",
-      meta: "Canli -> stale sirali liste",
+      meta: "Canlı -> stale sirali liste",
       tone: "default",
     },
   ];
@@ -145,3 +145,4 @@ export function buildCompanyQuickActionItems(companySummary: CompanySummary | nu
 
   return [...items].sort((left, right) => priority(left.tone) - priority(right.tone));
 }
+

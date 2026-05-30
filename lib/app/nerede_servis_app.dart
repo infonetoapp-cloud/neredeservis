@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -88,12 +87,10 @@ class _NeredeServisAppState extends ConsumerState<NeredeServisApp> {
   @override
   Widget build(BuildContext context) {
     final isSignedIn = ref.watch(isSignedInProvider);
-    final currentRole = Firebase.apps.isEmpty
-        ? UserRole.unknown
-        : (ref.watch(currentUserRoleProvider).valueOrNull ?? UserRole.unknown);
-    final hasLocationConsent = Firebase.apps.isEmpty
-        ? true
-        : (ref.watch(currentUserConsentGrantedProvider).valueOrNull ?? false);
+    final currentRole =
+        ref.watch(currentUserRoleProvider).valueOrNull ?? UserRole.unknown;
+    final hasLocationConsent =
+        ref.watch(currentUserConsentGrantedProvider).valueOrNull ?? false;
     _routerGuardRefreshState.update(
       isSignedIn: isSignedIn,
       currentRole: currentRole,

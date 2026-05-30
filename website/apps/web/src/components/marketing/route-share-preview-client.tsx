@@ -9,6 +9,7 @@ import {
   mapCompanyCallableErrorToMessage,
 } from "@/features/company/company-callables";
 import type { DynamicRoutePreviewResponse } from "@/features/company/company-types";
+import { resolveMarketingHref } from "@/lib/seo/site-urls";
 
 type Props = {
   srvCode: string;
@@ -83,7 +84,7 @@ export function RouteSharePreviewClient({ srvCode, token }: Props) {
             <NsLogo iconSize={24} wordmarkClass="text-base font-bold tracking-tight" />
           </Link>
           <Link
-            href="/giris"
+            href={resolveMarketingHref("/giris")}
             className="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-strong"
           >
             Panele Giriş
@@ -171,7 +172,7 @@ export function RouteSharePreviewClient({ srvCode, token }: Props) {
             Kurumsal panelde canlı sefer ve durak detaylarını görüntülemek için giriş yapın.
           </p>
           <Link
-            href="/giris"
+            href={resolveMarketingHref("/giris")}
             className="mt-3 inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-strong"
           >
             Panele Git

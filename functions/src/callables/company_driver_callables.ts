@@ -70,31 +70,35 @@ export function createCompanyDriverCallables({
     throw new HttpsError('permission-denied', 'Bu islem icin sofor yazma yetkisi gerekli.');
   }
 
-  /* ---------- helper: generate safe password ---------- */
-  function generateSecurePassword(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghkmnpqrstuvwxyz23456789';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-  }
-
-  /* ---------- helper: generate login email ---------- */
-  function generateLoginEmail(name: string, companyId: string): string {
-    const slug = name
+  function normalizeNameForCredential(name: string): string {
+    return name
       .trim()
-      .toLowerCase()
+      .toLocaleLowerCase('tr-TR')
       .replace(/ç/g, 'c')
       .replace(/ğ/g, 'g')
       .replace(/ı/g, 'i')
       .replace(/ö/g, 'o')
       .replace(/ş/g, 's')
-      .replace(/ü/g, 'u')
-      .replace(/[^a-z0-9]/g, '')
-      .slice(0, 16);
+      .replace(/ü/g, 'u');
+  }
+
+  /* ---------- helper: generate simple password ---------- */
+  function generateSimplePassword(name: string): string {
+    const base = normalizeNameForCredential(name).replace(/[^a-z0-9]/g, '').slice(0, 6) || 'sofor';
     const suffix = Math.floor(1000 + Math.random() * 9000);
-    return `${slug}${suffix}@driver.neredeservis.app`;
+    return `${base}${suffix}`;
+  }
+
+  /* ---------- helper: generate login email ---------- */
+  function generateLoginEmail(name: string): string {
+    const slug =
+      normalizeNameForCredential(name)
+        .replace(/[^a-z0-9]+/g, '.')
+        .replace(/^\.+|\.+$/g, '')
+        .replace(/\.+/g, '.')
+        .slice(0, 24) || 'sofor';
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    return `${slug}.${suffix}@neredeservis.app`;
   }
 
   /* ─── createCompanyDriverAccount ─── */
@@ -112,8 +116,8 @@ export function createCompanyDriverCallables({
     const name = input.name.trim();
     const phone = input.phone?.trim() || null;
     const plate = input.plate?.trim().toUpperCase().replace(/\s+/g, '') || null;
-    const loginEmail = input.loginEmail?.trim() || generateLoginEmail(name, input.companyId);
-    const temporaryPassword = input.temporaryPassword?.trim() || generateSecurePassword();
+    const loginEmail = generateLoginEmail(name);
+    const temporaryPassword = generateSimplePassword(name);
 
     // 1. Create Firebase Auth user
     let uid: string;
@@ -136,6 +140,9 @@ export function createCompanyDriverCallables({
       name,
       companyId: input.companyId,
       status: 'active',
+      loginEmail,
+      temporaryPassword,
+      mobileOnly: true,
       createdAt: now,
       updatedAt: now,
       createdBy: auth.uid,
@@ -143,11 +150,32 @@ export function createCompanyDriverCallables({
     if (phone) driverData.phone = phone;
     if (plate) driverData.plate = plate;
 
-    await db.collection('drivers').doc(uid).set(driverData);
+    await Promise.all([
+      db.collection('drivers').doc(uid).set(driverData),
+      db
+        .collection('users')
+        .doc(uid)
+        .set(
+          {
+            role: 'driver',
+            preferredRole: 'driver',
+            displayName: name,
+            email: loginEmail,
+            phone,
+            companyId: input.companyId,
+            mobileOnlyAuth: true,
+            webPanelAccess: false,
+            createdAt: now,
+            updatedAt: now,
+            deletedAt: null,
+          },
+          { merge: true },
+        ),
+    ]);
 
     // 3. Set custom claims for mobile-only driver
     try {
-      await getAuth().setCustomUserClaims(uid, { mobileDriver: true });
+      await getAuth().setCustomUserClaims(uid, { role: 'driver', mobileDriver: true });
     } catch {
       // Non-critical — silently continue
     }

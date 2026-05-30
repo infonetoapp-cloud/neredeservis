@@ -5,7 +5,6 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../config/app_environment.dart';
 import '../config/app_flavor.dart';
-import '../core/telemetry/firebase_telemetry_sink.dart';
 import '../core/telemetry/mobile_event_names.dart';
 import '../core/telemetry/mobile_telemetry.dart';
 import 'app_bootstrap.dart';
@@ -20,9 +19,6 @@ Future<void> runFlavorEntrypoint(AppFlavor entrypointFlavor) async {
     analyticsEnabled: environment.analyticsCollectionEnabled,
     breadcrumbEnabled: environment.sentryEnabled,
     environment: environment.name,
-  );
-  MobileTelemetry.instance.configureRuntimeSinks(
-    recordSink: FirebaseTelemetrySink.instance.handleRecord,
   );
 
   FlutterError.onError = (FlutterErrorDetails details) {

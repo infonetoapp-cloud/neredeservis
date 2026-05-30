@@ -12,7 +12,7 @@ export function AdminAuditPinnedWarning({ visible, onClearPinned }: AdminAuditPi
 
   return (
     <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-      <span>Secili auditId mevcut filtrede gorunmuyor. Filtreyi genislet veya kayit vurgusunu kaldir.</span>
+      <span>Secili auditId mevcut filtrede gorunmuyor. Filtreyi genislet veya kayıt vurgusunu kaldir.</span>
       <button
         type="button"
         onClick={onClearPinned}
@@ -23,3 +23,4 @@ export function AdminAuditPinnedWarning({ visible, onClearPinned }: AdminAuditPi
     </div>
   );
 }
+

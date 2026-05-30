@@ -34,7 +34,7 @@ export function CmsIconPicker({ value, onChange }: CmsIconPickerProps) {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 hover:border-teal-300 transition-colors"
       >
-        <SelectedIcon className="h-5 w-5 text-teal-600" />
+        {SelectedIcon({ className: "h-5 w-5 text-teal-600" })}
         <span>{value || "Seç…"}</span>
       </button>
 

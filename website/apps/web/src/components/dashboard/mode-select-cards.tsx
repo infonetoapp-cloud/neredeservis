@@ -95,7 +95,7 @@ export function ModeSelectCards() {
   const handleCreateCompany = async () => {
     const name = newCompanyName.trim();
     if (!name) {
-      setCreateError("Sirket adi gerekli.");
+      setCreateError("Şirket adı gerekli.");
       return;
     }
 
@@ -170,3 +170,4 @@ export function ModeSelectCards() {
     </div>
   );
 }
+

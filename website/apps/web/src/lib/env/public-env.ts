@@ -2,6 +2,40 @@ export function getPublicAppEnv(): string {
   return (process.env.NEXT_PUBLIC_APP_ENV ?? "dev").trim().toLowerCase();
 }
 
+const PROD_BACKEND_API_FALLBACK = "https://api.neredeservis.app";
+
+export function getBackendApiBaseUrl(): string | null {
+  const value = (process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ?? "").trim();
+  if (value) {
+    return value;
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname.trim().toLowerCase();
+    if (
+      hostname === "app.neredeservis.app" ||
+      hostname === "neredeservis.app" ||
+      hostname.endsWith(".neredeservis.app")
+    ) {
+      return PROD_BACKEND_API_FALLBACK;
+    }
+  }
+
+  if (getPublicAppEnv() === "prod") {
+    return PROD_BACKEND_API_FALLBACK;
+  }
+
+  return null;
+}
+
+export function requireBackendApiBaseUrl(): string {
+  const value = getBackendApiBaseUrl();
+  if (!value) {
+    throw new Error("BACKEND_API_BASE_URL_MISSING");
+  }
+  return value;
+}
+
 export function isDevAppEnv(): boolean {
   return getPublicAppEnv() === "dev";
 }
@@ -67,19 +101,27 @@ export function getFirebaseFunctionsRegion(): string {
   return functionsRegion || "europe-west3";
 }
 
-export function getMapboxToken(): string | null {
-  const mapboxToken = (process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "").trim();
-  return mapboxToken || null;
+export function getPublicMapTileUrl(): string {
+  const tileUrl = (process.env.NEXT_PUBLIC_MAP_TILE_URL ?? "").trim();
+  return tileUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+}
+
+export function getPublicMapTileAttribution(): string {
+  const attribution = (process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION ?? "").trim();
+  return attribution || "&copy; OpenStreetMap contributors";
+}
+
+export function getPublicMapTileMaxZoom(): number {
+  const raw = Number.parseInt(String(process.env.NEXT_PUBLIC_MAP_TILE_MAX_ZOOM ?? ""), 10);
+  if (!Number.isFinite(raw)) {
+    return 19;
+  }
+  return Math.max(1, Math.min(raw, 22));
 }
 
 export function getTurnstileSiteKey(): string | null {
   const siteKey = (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "").trim();
   return siteKey || null;
-}
-
-// Backward-compatible alias used by legacy dashboard components.
-export function getPublicMapboxToken(): string | null {
-  return getMapboxToken();
 }
 
 export function isAdminSurfaceEnabled(): boolean {

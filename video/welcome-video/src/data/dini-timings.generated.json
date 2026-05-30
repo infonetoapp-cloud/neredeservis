@@ -1,0 +1,493 @@
+{
+  "generatedAt": "2026-03-05T17:08:41.038Z",
+  "voice": {
+    "voiceId": "pNInz6obpgDQGcFmaJgB",
+    "modelId": "eleven_multilingual_v2"
+  },
+  "totalDurationSeconds": 46.4,
+  "sceneTimings": [
+    {
+      "id": "hook",
+      "text": "Bu videoyu sonuna kadar izle. Belki de bugün kalbine en çok gereken cümle burada.",
+      "start": 0.035,
+      "end": 5.989,
+      "words": [
+        {
+          "word": "Bu",
+          "start": 0.035,
+          "end": 0.174
+        },
+        {
+          "word": "videoyu",
+          "start": 0.221,
+          "end": 0.662
+        },
+        {
+          "word": "sonuna",
+          "start": 0.708,
+          "end": 1.091
+        },
+        {
+          "word": "kadar",
+          "start": 1.138,
+          "end": 1.44
+        },
+        {
+          "word": "izle.",
+          "start": 1.509,
+          "end": 2.043
+        },
+        {
+          "word": "Belki",
+          "start": 2.426,
+          "end": 2.786
+        },
+        {
+          "word": "de",
+          "start": 2.833,
+          "end": 2.891
+        },
+        {
+          "word": "bugün",
+          "start": 2.926,
+          "end": 3.228
+        },
+        {
+          "word": "kalbine",
+          "start": 3.297,
+          "end": 3.738
+        },
+        {
+          "word": "en",
+          "start": 3.796,
+          "end": 3.971
+        },
+        {
+          "word": "çok",
+          "start": 4.029,
+          "end": 4.238
+        },
+        {
+          "word": "gereken",
+          "start": 4.272,
+          "end": 4.725
+        },
+        {
+          "word": "cümle",
+          "start": 4.783,
+          "end": 5.05
+        },
+        {
+          "word": "burada.",
+          "start": 5.12,
+          "end": 5.689
+        }
+      ]
+    },
+    {
+      "id": "sukur",
+      "text": "Sabah gözünü açtıysan Allah sana yeni bir sayfa verdi. Şükür, bereketin kapısını açan ilk anahtardır.",
+      "start": 6.072,
+      "end": 14.418,
+      "words": [
+        {
+          "word": "Sabah",
+          "start": 6.072,
+          "end": 6.455
+        },
+        {
+          "word": "gözünü",
+          "start": 6.525,
+          "end": 6.908
+        },
+        {
+          "word": "açtıysan",
+          "start": 6.966,
+          "end": 7.825
+        },
+        {
+          "word": "Allah",
+          "start": 8.104,
+          "end": 8.522
+        },
+        {
+          "word": "sana",
+          "start": 8.568,
+          "end": 8.8
+        },
+        {
+          "word": "yeni",
+          "start": 8.882,
+          "end": 9.067
+        },
+        {
+          "word": "bir",
+          "start": 9.102,
+          "end": 9.195
+        },
+        {
+          "word": "sayfa",
+          "start": 9.218,
+          "end": 9.59
+        },
+        {
+          "word": "verdi.",
+          "start": 9.625,
+          "end": 10.24
+        },
+        {
+          "word": "Şükür,",
+          "start": 10.565,
+          "end": 11.227
+        },
+        {
+          "word": "bereketin",
+          "start": 11.552,
+          "end": 12.063
+        },
+        {
+          "word": "kapısını",
+          "start": 12.121,
+          "end": 12.539
+        },
+        {
+          "word": "açan",
+          "start": 12.585,
+          "end": 12.875
+        },
+        {
+          "word": "ilk",
+          "start": 12.968,
+          "end": 13.142
+        },
+        {
+          "word": "anahtardır.",
+          "start": 13.224,
+          "end": 14.118
+        }
+      ]
+    },
+    {
+      "id": "namaz",
+      "text": "Yorgunken bile iki rekat, ruhuna nefes olur. Namaz sadece görev değil, dağılan kalbi toplayan bir sığınaktır.",
+      "start": 14.559,
+      "end": 23.647,
+      "words": [
+        {
+          "word": "Yorgunken",
+          "start": 14.559,
+          "end": 15.325
+        },
+        {
+          "word": "bile",
+          "start": 15.406,
+          "end": 15.697
+        },
+        {
+          "word": "iki",
+          "start": 15.813,
+          "end": 16.057
+        },
+        {
+          "word": "rekat,",
+          "start": 16.115,
+          "end": 16.765
+        },
+        {
+          "word": "ruhuna",
+          "start": 16.939,
+          "end": 17.403
+        },
+        {
+          "word": "nefes",
+          "start": 17.461,
+          "end": 17.74
+        },
+        {
+          "word": "olur.",
+          "start": 17.821,
+          "end": 18.332
+        },
+        {
+          "word": "Namaz",
+          "start": 18.715,
+          "end": 19.063
+        },
+        {
+          "word": "sadece",
+          "start": 19.11,
+          "end": 19.551
+        },
+        {
+          "word": "görev",
+          "start": 19.609,
+          "end": 19.911
+        },
+        {
+          "word": "değil,",
+          "start": 19.969,
+          "end": 20.573
+        },
+        {
+          "word": "dağılan",
+          "start": 20.782,
+          "end": 21.351
+        },
+        {
+          "word": "kalbi",
+          "start": 21.443,
+          "end": 21.861
+        },
+        {
+          "word": "toplayan",
+          "start": 21.896,
+          "end": 22.361
+        },
+        {
+          "word": "bir",
+          "start": 22.419,
+          "end": 22.523
+        },
+        {
+          "word": "sığınaktır.",
+          "start": 22.546,
+          "end": 23.347
+        }
+      ]
+    },
+    {
+      "id": "sabir",
+      "text": "Geciken her şey kayıp değildir. Sabır, dua ile birleşince yol açılır ve gönül ferahlar.",
+      "start": 23.673,
+      "end": 30.3,
+      "words": [
+        {
+          "word": "Geciken",
+          "start": 23.673,
+          "end": 24.125
+        },
+        {
+          "word": "her",
+          "start": 24.207,
+          "end": 24.346
+        },
+        {
+          "word": "şey",
+          "start": 24.416,
+          "end": 24.59
+        },
+        {
+          "word": "kayıp",
+          "start": 24.648,
+          "end": 24.938
+        },
+        {
+          "word": "değildir.",
+          "start": 25.019,
+          "end": 25.646
+        },
+        {
+          "word": "Sabır,",
+          "start": 25.925,
+          "end": 26.354
+        },
+        {
+          "word": "dua",
+          "start": 26.378,
+          "end": 26.703
+        },
+        {
+          "word": "ile",
+          "start": 26.772,
+          "end": 26.923
+        },
+        {
+          "word": "birleşince",
+          "start": 26.981,
+          "end": 27.608
+        },
+        {
+          "word": "yol",
+          "start": 27.69,
+          "end": 27.864
+        },
+        {
+          "word": "açılır",
+          "start": 27.91,
+          "end": 28.317
+        },
+        {
+          "word": "ve",
+          "start": 28.642,
+          "end": 28.781
+        },
+        {
+          "word": "gönül",
+          "start": 28.851,
+          "end": 29.152
+        },
+        {
+          "word": "ferahlar.",
+          "start": 29.222,
+          "end": 30
+        }
+      ]
+    },
+    {
+      "id": "dua",
+      "text": "İnsanlar anlamasa da Allah duanı duyar. Kalpten edilen samimi bir amin, yönünü değiştirebilir.",
+      "start": 30.383,
+      "end": 37.858,
+      "words": [
+        {
+          "word": "İnsanlar",
+          "start": 30.383,
+          "end": 30.952
+        },
+        {
+          "word": "anlamasa",
+          "start": 31.022,
+          "end": 31.474
+        },
+        {
+          "word": "da",
+          "start": 31.532,
+          "end": 31.66
+        },
+        {
+          "word": "Allah",
+          "start": 31.695,
+          "end": 31.985
+        },
+        {
+          "word": "duanı",
+          "start": 32.032,
+          "end": 32.473
+        },
+        {
+          "word": "duyar.",
+          "start": 32.508,
+          "end": 33.065
+        },
+        {
+          "word": "Kalpten",
+          "start": 33.344,
+          "end": 33.82
+        },
+        {
+          "word": "edilen",
+          "start": 33.878,
+          "end": 34.238
+        },
+        {
+          "word": "samimi",
+          "start": 34.33,
+          "end": 34.899
+        },
+        {
+          "word": "bir",
+          "start": 34.981,
+          "end": 35.12
+        },
+        {
+          "word": "amin,",
+          "start": 35.201,
+          "end": 35.851
+        },
+        {
+          "word": "yönünü",
+          "start": 36.06,
+          "end": 36.478
+        },
+        {
+          "word": "değiştirebilir.",
+          "start": 36.536,
+          "end": 37.558
+        }
+      ]
+    },
+    {
+      "id": "paylas",
+      "text": "Bu video sana iyi geldiyse bir kişiye gönder. Bir kalbi ferahlatmak da güzel bir ibadettir.",
+      "start": 37.818,
+      "end": 45.3,
+      "words": [
+        {
+          "word": "Bu",
+          "start": 37.801,
+          "end": 37.964
+        },
+        {
+          "word": "video",
+          "start": 38.01,
+          "end": 38.301
+        },
+        {
+          "word": "sana",
+          "start": 38.359,
+          "end": 38.603
+        },
+        {
+          "word": "iyi",
+          "start": 38.684,
+          "end": 38.858
+        },
+        {
+          "word": "geldiyse",
+          "start": 38.939,
+          "end": 39.659
+        },
+        {
+          "word": "bir",
+          "start": 39.868,
+          "end": 40.112
+        },
+        {
+          "word": "kişiye",
+          "start": 40.182,
+          "end": 40.576
+        },
+        {
+          "word": "gönder.",
+          "start": 40.634,
+          "end": 41.25
+        },
+        {
+          "word": "Bir",
+          "start": 41.493,
+          "end": 41.726
+        },
+        {
+          "word": "kalbi",
+          "start": 41.795,
+          "end": 42.132
+        },
+        {
+          "word": "ferahlatmak",
+          "start": 42.178,
+          "end": 42.91
+        },
+        {
+          "word": "da",
+          "start": 42.98,
+          "end": 43.165
+        },
+        {
+          "word": "güzel",
+          "start": 43.339,
+          "end": 43.827
+        },
+        {
+          "word": "bir",
+          "start": 43.897,
+          "end": 44.048
+        },
+        {
+          "word": "ibadettir.",
+          "start": 44.106,
+          "end": 45
+        }
+      ]
+    }
+  ]
+}

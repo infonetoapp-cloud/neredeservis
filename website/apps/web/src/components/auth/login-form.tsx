@@ -45,6 +45,10 @@ function readErrorCode(error: unknown): string | null {
   return null;
 }
 
+function matchesErrorCode(code: string | null, ...expectedCodes: string[]): boolean {
+  return Boolean(code && expectedCodes.includes(code));
+}
+
 function shouldReportFailedLogin(error: unknown): boolean {
   const code = readErrorCode(error);
   if (!code) {
@@ -56,11 +60,11 @@ function shouldReportFailedLogin(error: unknown): boolean {
 function toFriendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     if (error.message === "FIREBASE_CONFIG_MISSING") {
-      return "Firebase yapilandirmasi eksik. Giris baslatilamadi.";
+      return "Firebase yapilandirmasi eksik. Giriş baslatilamadi.";
     }
     const code = readErrorCode(error);
     if (code === "auth/invalid-credential") {
-      return "E-posta veya sifre hatali.";
+      return "E-posta veya şifre hatali.";
     }
     if (code === "auth/too-many-requests") {
       return "Cok fazla deneme yapildi. Lutfen biraz sonra tekrar deneyin.";
@@ -69,18 +73,18 @@ function toFriendlyErrorMessage(error: unknown): string {
       return "Ag hatasi. Baglantinizi kontrol edip tekrar deneyin.";
     }
     if (code === "auth/missing-email") {
-      return "Sifre sifirlama icin once e-posta girin.";
+      return "Şifre sifirlama için once e-posta girin.";
     }
-    if (code === "functions/failed-precondition") {
-      return "Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.";
+    if (matchesErrorCode(code, "functions/failed-precondition", "failed-precondition")) {
+      return "Güvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.";
     }
-    if (code === "functions/permission-denied") {
+    if (matchesErrorCode(code, "functions/permission-denied", "permission-denied")) {
       return "Captcha dogrulamasi basarisiz. Tekrar deneyin.";
     }
-    if (code === "functions/resource-exhausted") {
+    if (matchesErrorCode(code, "functions/resource-exhausted", "resource-exhausted")) {
       return error.message || "Cok fazla basarisiz deneme. Lutfen biraz sonra tekrar deneyin.";
     }
-    return code ? `Giris hatasi (${code})` : error.message;
+    return code ? `Giriş hatasi (${code})` : error.message;
   }
   return "Beklenmeyen bir hata olustu.";
 }
@@ -169,7 +173,7 @@ export function LoginForm() {
   const submitEmailPassword = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !password.trim()) {
-      setErrorMessage("E-posta ve sifre alanlari zorunludur.");
+      setErrorMessage("E-posta ve şifre alanlari zorunludur.");
       return;
     }
 
@@ -186,7 +190,7 @@ export function LoginForm() {
       setLockSecondsRemaining(guard.lockSecondsRemaining);
 
       if (guard.captchaRequired && !captchaToken) {
-        setErrorMessage("Guvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.");
+        setErrorMessage("Güvenlik dogrulamasi gerekli. Captcha adimini tamamlayin.");
         return;
       }
 
@@ -197,7 +201,15 @@ export function LoginForm() {
       setLockSecondsRemaining(0);
     } catch (error) {
       const errorCode = readErrorCode(error);
-      if (errorCode === "functions/failed-precondition" || errorCode === "functions/permission-denied") {
+      if (
+        matchesErrorCode(
+          errorCode,
+          "functions/failed-precondition",
+          "functions/permission-denied",
+          "failed-precondition",
+          "permission-denied",
+        )
+      ) {
         setCaptchaRequired(true);
       }
       if (shouldReportFailedLogin(error)) {
@@ -247,7 +259,7 @@ export function LoginForm() {
 
       {lockSecondsRemaining > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Guvenlik bekleme suresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
+          Güvenlik bekleme suresi aktif. {lockSecondsRemaining} sn sonra tekrar deneyin.
         </div>
       ) : null}
 
@@ -260,14 +272,14 @@ export function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="ornek@sirket.com"
+            placeholder="ornek@şirket.com"
             className="w-full rounded-xl border border-[#cfd4df] bg-white py-2.5 pl-10 pr-4 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-2 block text-[15px] font-semibold text-slate-800">Sifre</label>
+        <label className="mb-2 block text-[15px] font-semibold text-slate-800">Şifre</label>
         <div className="relative">
           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
           <input
@@ -282,7 +294,7 @@ export function LoginForm() {
             type="button"
             onClick={() => setShowPassword((value) => !value)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            aria-label={showPassword ? "Sifreyi gizle" : "Sifreyi goster"}
+            aria-label={showPassword ? "Sifreyi gizle" : "Sifreyi göster"}
           >
             {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
           </button>
@@ -293,7 +305,7 @@ export function LoginForm() {
         turnstileSiteKey ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
             <p className="mb-2 text-xs font-medium text-slate-700">
-              Coklu basarisiz giris algilandi. Lutfen captcha dogrulamasini tamamlayin.
+              Coklu basarisiz giriş algilandi. Lutfen captcha dogrulamasini tamamlayin.
             </p>
             <TurnstileWidget siteKey={turnstileSiteKey} onTokenChange={handleCaptchaTokenChange} />
           </div>
@@ -310,7 +322,7 @@ export function LoginForm() {
         onClick={submitEmailPassword}
         className="w-full rounded-xl bg-[#1f5ef0] px-4 py-2.5 text-base font-semibold text-white transition hover:bg-[#1a4ed2] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {pendingAction === "email" ? "Giris yapiliyor..." : "Giris yap"}
+        {pendingAction === "email" ? "Giriş yapiliyor..." : "Giriş yap"}
       </button>
 
       <div className="flex items-center justify-between text-sm">
@@ -343,9 +355,10 @@ export function LoginForm() {
 
       {!emailEnabled ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          Kurumsal e-posta ile giris su an kapali.
+          Kurumsal e-posta ile giriş su an kapali.
         </div>
       ) : null}
     </div>
   );
 }
+

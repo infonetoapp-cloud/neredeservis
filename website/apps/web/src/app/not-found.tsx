@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NsLogo } from "@/components/brand/ns-logo";
+import { resolveMarketingHref } from "@/lib/seo/site-urls";
 
 export default function NotFoundPage() {
   return (
@@ -27,7 +28,7 @@ export default function NotFoundPage() {
 
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
-              href="/giris"
+              href={resolveMarketingHref("/giris")}
               className="rounded-2xl bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-strong"
             >
               Panele Giriş

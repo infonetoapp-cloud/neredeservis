@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type {
   CompanyActiveTripSummary,
@@ -134,9 +134,9 @@ export function buildAdminRiskItems(snapshot: AdminKpiSnapshot): AdminRiskItem[]
       id: "maintenance-vehicles",
       severity: "attention",
       title: "Bakimdaki araclar var",
-      description: `${snapshot.vehiclesMaintenance} arac bakim durumunda.`,
+      description: `${snapshot.vehiclesMaintenance} araç bakim durumunda.`,
       href: "/vehicles?status=maintenance",
-      ctaLabel: "Arac Durumlarini Incele",
+      ctaLabel: "Araç Durumlarini Incele",
     });
   }
 
@@ -145,7 +145,7 @@ export function buildAdminRiskItems(snapshot: AdminKpiSnapshot): AdminRiskItem[]
       id: "unassigned-routes",
       severity: "attention",
       title: "Atanmamis rota var",
-      description: `${snapshot.unassignedRoutes} rota icin sorumlu sofor tanimlanmamis.`,
+      description: `${snapshot.unassignedRoutes} rota için sorumlu şoför tanimlanmamis.`,
       href: "/routes",
       ctaLabel: "Rota Atamalarini Duzenle",
     });
@@ -177,9 +177,9 @@ export const ADMIN_QUICK_ACTIONS: AdminQuickAction[] = [
     hint: "Rota yetkileri, durak akisi ve operasyon kurallarini gozden gecir.",
   },
   {
-    label: "Canli Operasyon",
+    label: "Canlı Operasyon",
     href: "/live-ops",
-    hint: "Canli seferlerde stale/offline sinyallerini takip et.",
+    hint: "Canlı seferlerde stale/offline sinyallerini takip et.",
   },
   {
     label: "Denied Audit",
@@ -207,7 +207,7 @@ export const ADMIN_QUICK_ACTIONS: AdminQuickAction[] = [
     hint: "Staging smoke ve release gate checklistlerini gozden gecir.",
   },
   {
-    label: "Arac Yonetimi",
+    label: "Araç Yönetimi",
     href: "/vehicles",
     hint: "Filo durumunu, bakim ve atama ozetlerini kontrol et.",
   },
@@ -280,3 +280,4 @@ export function formatLoadTime(timestamp: string | null): string {
     month: "2-digit",
   });
 }
+

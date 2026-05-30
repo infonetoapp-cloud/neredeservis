@@ -20,8 +20,7 @@ $requiredPublic = @(
   "NEXT_PUBLIC_FIREBASE_API_KEY",
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-  "NEXT_PUBLIC_FIREBASE_DATABASE_URL",
-  "NEXT_PUBLIC_MAPBOX_TOKEN"
+  "NEXT_PUBLIC_FIREBASE_DATABASE_URL"
 )
 
 $optionalPublic = @(
@@ -86,7 +85,7 @@ function Get-Missing {
 
 $devMissing = Get-Missing -Required $requiredPublic -Actual $dev.Names
 $prodMissing = Get-Missing -Required $requiredPublic -Actual $prod.Names
-$previewRequired = if ($RequireFullPreview) { $requiredPublic } else { @("NEXT_PUBLIC_MAPBOX_TOKEN") }
+$previewRequired = if ($RequireFullPreview) { $requiredPublic } else { @() }
 $previewMissing = Get-Missing -Required $previewRequired -Actual $preview.Names
 
 $status =

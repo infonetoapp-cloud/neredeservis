@@ -32,7 +32,7 @@ export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   if (status === "signed_out") {
     return (
       <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted shadow-sm">
-        Giris sayfasina yonlendiriliyor...
+        Giriş sayfasına yönlendiriliyor...
       </div>
     );
   }
@@ -40,10 +40,11 @@ export function PlatformOwnerGuard({ children }: { children: ReactNode }) {
   if (status === "disabled") {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        Firebase public env eksik oldugu icin platform guard pasif.
+        Firebase public env eksik oldugu için platform guard pasif.
       </div>
     );
   }
 
   return <>{children}</>;
 }
+

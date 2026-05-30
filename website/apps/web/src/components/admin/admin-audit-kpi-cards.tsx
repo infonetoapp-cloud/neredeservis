@@ -24,7 +24,7 @@ export function AdminAuditKpiCards({
   return (
     <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
       <div className="rounded-xl border border-line bg-white px-3 py-2">
-        <div className="text-[11px] text-muted">Toplam Kayit</div>
+        <div className="text-[11px] text-muted">Toplam Kayıt</div>
         <div className="mt-0.5 text-sm font-semibold text-slate-900">{total}</div>
         <button
           type="button"
@@ -40,7 +40,7 @@ export function AdminAuditKpiCards({
         <button
           type="button"
           disabled={success === 0}
-          title={success === 0 ? "Bu durumda kayit bulunmuyor." : undefined}
+          title={success === 0 ? "Bu durumda kayıt bulunmuyor." : undefined}
           onClick={() => onSelectFilter("success")}
           className="mt-1 rounded-md border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -53,7 +53,7 @@ export function AdminAuditKpiCards({
         <button
           type="button"
           disabled={denied === 0}
-          title={denied === 0 ? "Bu durumda kayit bulunmuyor." : undefined}
+          title={denied === 0 ? "Bu durumda kayıt bulunmuyor." : undefined}
           onClick={() => onSelectFilter("denied")}
           className="mt-1 rounded-md border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -66,7 +66,7 @@ export function AdminAuditKpiCards({
         <button
           type="button"
           disabled={error === 0}
-          title={error === 0 ? "Bu durumda kayit bulunmuyor." : undefined}
+          title={error === 0 ? "Bu durumda kayıt bulunmuyor." : undefined}
           onClick={() => onSelectFilter("error")}
           className="mt-1 rounded-md border border-rose-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -79,7 +79,7 @@ export function AdminAuditKpiCards({
         <button
           type="button"
           disabled={actionableCount === 0}
-          title={actionableCount === 0 ? "Aksiyonlanabilir kayit bulunmuyor." : undefined}
+          title={actionableCount === 0 ? "Aksiyonlanabilir kayıt bulunmuyor." : undefined}
           onClick={onSelectActionable}
           className="mt-1 rounded-md border border-blue-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -89,3 +89,4 @@ export function AdminAuditKpiCards({
     </div>
   );
 }
+

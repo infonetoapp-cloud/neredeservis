@@ -120,8 +120,9 @@ export function TurnstileWidget({ siteKey, onTokenChange }: TurnstileWidgetProps
       {loadError ? (
         <p className="text-xs text-rose-700">{loadError}</p>
       ) : (
-        <p className="text-xs text-muted">Guvenlik dogrulamasi gereklidir.</p>
+        <p className="text-xs text-muted">Güvenlik dogrulamasi gereklidir.</p>
       )}
     </div>
   );
 }
+

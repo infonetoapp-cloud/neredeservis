@@ -116,7 +116,7 @@ export function VehiclesListSection({
                 onClick={() => onStatusFilterChange("all")}
                 className="rounded-full border border-line bg-white px-2 py-0.5 font-semibold text-slate-700 hover:bg-slate-50"
               >
-                Tumunu Goster
+                Tumunu Göster
               </button>
             ) : null}
           </div>
@@ -130,7 +130,7 @@ export function VehiclesListSection({
         <input
           value={searchText}
           onChange={(event) => onSearchTextChange(event.target.value)}
-          aria-label="Arac arama"
+          aria-label="Araç arama"
           placeholder="Plaka, marka, model ara..."
           className="flex-1 rounded-lg border border-line bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-300"
         />
@@ -143,7 +143,7 @@ export function VehiclesListSection({
           <option value="plate_asc">Plaka (A-Z)</option>
           <option value="plate_desc">Plaka (Z-A)</option>
           <option value="updated_desc">Son guncellenen</option>
-          <option value="status">Duruma gore</option>
+          <option value="status">Duruma göre</option>
         </select>
         {filtersDirty ? (
           <button
@@ -159,7 +159,7 @@ export function VehiclesListSection({
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         {visibleVehicles.length === 0 ? (
           <div className="col-span-full py-8 text-center text-xs text-muted">
-            Filtrelere uygun arac bulunamadi.
+            Filtrelere uygun araç bulunamadi.
           </div>
         ) : (
           visibleVehicles.map((item) => {
@@ -186,7 +186,7 @@ export function VehiclesListSection({
                   </div>
                   <div className="mt-0.5 truncate text-xs text-muted">
                     {[item.brand, item.model].filter(Boolean).join(" ") || vehicleStatusLabel(item.status)}
-                    {item.capacity ? ` · ${item.capacity} kisi` : ""}
+                    {item.capacity ? ` · ${item.capacity} kişi` : ""}
                   </div>
                 </div>
               </button>
@@ -220,3 +220,4 @@ export function VehiclesListSection({
     </section>
   );
 }
+

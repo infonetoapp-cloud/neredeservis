@@ -10,7 +10,7 @@ const ITEMS: ScopeItem[] = [
   { id: "security", label: "Security hardening checklist" },
   { id: "quality", label: "Staging smoke runbook + release gate" },
   { id: "cost", label: "Cost/budget alerts gorunurlugu" },
-  { id: "cors", label: "CORS / origin allow-list dogrulama" },
+  { id: "cors", label: "CORS / origin allow-list doğrulama" },
   { id: "secrets", label: "Env/secret hygiene checklist" },
 ];
 
@@ -34,3 +34,4 @@ export function AdminPhase5ScopeCard() {
     </section>
   );
 }
+

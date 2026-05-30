@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const RTDB_RULES = readFileSync(resolve(__dirname, "../../database.rules.json"), "utf8");
 
-const PROJECT_ID = "demo-neredeservis-phase6-acceptance";
+const PROJECT_ID = "demo-neredeservis-functions-it";
 process.env.GCLOUD_PROJECT = PROJECT_ID;
 process.env.FIREBASE_CONFIG = JSON.stringify({
   projectId: PROJECT_ID,

@@ -216,7 +216,7 @@ export function AdminPhase5SummaryCard({
             </div>
           </>
         ) : (
-          <div className="font-semibold text-emerald-700">Tum Faz 5 gate adimlari tamamlandi.</div>
+          <div className="font-semibold text-emerald-700">Tüm Faz 5 gate adimlari tamamlandi.</div>
         )}
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -240,3 +240,4 @@ export function AdminPhase5SummaryCard({
     </section>
   );
 }
+

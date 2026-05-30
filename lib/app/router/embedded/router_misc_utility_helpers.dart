@@ -40,7 +40,7 @@ String _randomIdempotencyToken(int length) {
   return buffer.toString();
 }
 
-String _resolveDisplayName(User? user) {
+String _resolveDisplayName(AuthUser? user) {
   return _resolveAuthUserDisplayNameUseCase.execute(
     ResolveAuthUserDisplayNameCommand(
       displayName: user?.displayName,

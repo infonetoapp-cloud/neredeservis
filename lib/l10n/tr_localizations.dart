@@ -1,10 +1,6 @@
 import 'tr_localization_keys.dart';
 
 abstract final class TrLocalizations {
-  static const emptyMapboxUnsupportedPlatform =
-      'Harita bu platformda desteklenmiyor. Android veya iOS cihazda deneyin.';
-  static const emptyMapboxTokenMissing =
-      'Harita anahtarı eksik. GOOGLE_MAPS_API_KEY ayarını kontrol edin.';
   static const emptyPassengerStopsTitle = 'Durak listesi henüz hazır değil.';
   static const emptyPassengerStopsDescription =
       'Şoför rota duraklarını paylaştığında burada otomatik görünecek.';
@@ -116,9 +112,6 @@ abstract final class TrLocalizations {
   static const utf8Sentinel = 'ı ş ğ ü ö ç İ Ş Ğ Ü Ö Ç';
 
   static const Map<String, String> valuesByKey = <String, String>{
-    TrLocalizationKeys.emptyMapboxUnsupportedPlatform:
-        emptyMapboxUnsupportedPlatform,
-    TrLocalizationKeys.emptyMapboxTokenMissing: emptyMapboxTokenMissing,
     TrLocalizationKeys.emptyPassengerStopsTitle: emptyPassengerStopsTitle,
     TrLocalizationKeys.emptyPassengerStopsDescription:
         emptyPassengerStopsDescription,

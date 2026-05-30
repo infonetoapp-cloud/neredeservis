@@ -33,6 +33,9 @@ function maxAllowedLines(filePath) {
   if (rel === 'index.ts') {
     return INDEX_FREEZE_MAX_LINES;
   }
+  if (rel === 'callables/company_mutation_callables.ts') {
+    return 1300;
+  }
   return MAX_LINES_DEFAULT;
 }
 

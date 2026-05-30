@@ -1,7 +1,4 @@
 abstract final class TrLocalizationKeys {
-  static const emptyMapboxUnsupportedPlatform =
-      'empty_mapbox_unsupported_platform';
-  static const emptyMapboxTokenMissing = 'empty_mapbox_token_missing';
   static const emptyPassengerStopsTitle = 'empty_passenger_stops_title';
   static const emptyPassengerStopsDescription =
       'empty_passenger_stops_description';

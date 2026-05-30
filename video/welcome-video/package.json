@@ -1,0 +1,21 @@
+{
+  "name": "neredeservis-welcome-video",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "voice": "node scripts/generate-voice.mjs",
+    "voice:dini": "node scripts/generate-dini-voice.mjs",
+    "pexels:fetch": "node scripts/fetch-pexels-clips.mjs",
+    "render": "remotion render src/index.ts NeredeServisWelcome out/neredeservis-welcome.mp4 --codec=h264 --audio-codec=aac --pixel-format=yuv420p --crf=18",
+    "render:dini": "remotion render src/index.ts DiniTikTok1080 out/dini-tiktok-1080x1920.mp4 --codec=h264 --audio-codec=aac --pixel-format=yuv420p --crf=18",
+    "build:dini": "npm run pexels:fetch && npm run voice:dini && npm run render:dini"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.366",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "remotion": "^4.0.366"
+  }
+}

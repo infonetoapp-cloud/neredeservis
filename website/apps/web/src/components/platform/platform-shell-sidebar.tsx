@@ -4,18 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { NsLogo } from "@/components/brand/ns-logo";
-import { EnvBadge } from "@/components/shared/env-badge";
 
 type PlatformNavItem = {
   label: string;
   href: string;
-  section: "yonetim" | "icerik" | "izleme";
+  section: "yönetim" | "içerik" | "izleme";
 };
 
 const PLATFORM_NAV_ITEMS: readonly PlatformNavItem[] = [
-  { label: "Sirketler", href: "/platform/companies", section: "yonetim" },
-  { label: "Sirket Olustur", href: "/platform/companies/new", section: "yonetim" },
-  { label: "Ana Sayfa CMS", href: "/platform/landing", section: "icerik" },
+  { label: "Sirketler", href: "/platform/companies", section: "yönetim" },
+  { label: "Şirket Oluştur", href: "/platform/companies/new", section: "yönetim" },
+  { label: "Ana Sayfa CMS", href: "/platform/landing", section: "içerik" },
   { label: "Dashboard'a Don", href: "/dashboard", section: "izleme" },
 ];
 
@@ -71,8 +70,8 @@ function PlatformNavSection({
 export function PlatformShellSidebar() {
   const pathname = usePathname() ?? "/platform/companies";
 
-  const yonetimItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "yonetim");
-  const icerikItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "icerik");
+  const yonetimItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "yönetim");
+  const icerikItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "içerik");
   const izlemeItems = PLATFORM_NAV_ITEMS.filter((item) => item.section === "izleme");
 
   return (
@@ -82,14 +81,13 @@ export function PlatformShellSidebar() {
           <div className="flex items-center">
             <NsLogo iconSize={20} wordmarkClass="text-sm font-bold tracking-tight" />
           </div>
-          <div className="text-xs text-indigo-600 font-medium">Platform Yonetimi</div>
+          <div className="text-xs text-indigo-600 font-medium">Platform Yönetimi</div>
         </div>
-        <EnvBadge />
       </div>
 
       <div className="space-y-5">
-        <PlatformNavSection title="Yonetim" items={yonetimItems} pathname={pathname} />
-        <PlatformNavSection title="Icerik" items={icerikItems} pathname={pathname} />
+        <PlatformNavSection title="Yönetim" items={yonetimItems} pathname={pathname} />
+        <PlatformNavSection title="İçerik" items={icerikItems} pathname={pathname} />
         <PlatformNavSection title="Gezinme" items={izlemeItems} pathname={pathname} />
       </div>
 
@@ -98,12 +96,13 @@ export function PlatformShellSidebar() {
           Platform Owner
         </div>
         <div className="mt-1 text-sm font-medium text-slate-900">
-          SaaS Yonetim Paneli
+          SaaS Yönetim Paneli
         </div>
         <div className="mt-2 text-xs leading-5 text-muted">
-          Sirket olusturma, arac limiti belirleme ve firma yonetimi islemleri.
+          Şirket olusturma, araç limiti belirleme ve firma yönetimi islemleri.
         </div>
       </div>
     </aside>
   );
 }
+

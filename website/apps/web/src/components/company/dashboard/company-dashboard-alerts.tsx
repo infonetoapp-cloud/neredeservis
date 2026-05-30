@@ -12,7 +12,7 @@ type Props = {
 
 type AlertRow = {
   key: string;
-  level: "P0" | "P1" | "P2";
+  badge: string;
   title: string;
   detail: string;
   tone: string;
@@ -24,47 +24,62 @@ export function CompanyDashboardAlerts({ snapshotStatus, errorMessage, items }: 
     const noSignal = items.filter((item) => item.status === "no_signal");
     const stale = items.filter((item) => item.status === "stale");
     const idle = items.filter((item) => item.status === "idle");
+    const hasItems = items.length > 0;
+
+    if (snapshotStatus === "loading" && !hasItems) {
+      alerts.push({
+        key: "snapshot-loading",
+        badge: "Bilgi",
+        title: "Canlı operasyon hazırlanıyor",
+        detail: "İlk veri senkronizasyonu sürüyor. Birkaç saniye içinde bu alanda güncel durum görünecek.",
+        tone: "border-sky-200 bg-sky-50 text-sky-900",
+      });
+    }
 
     if (snapshotStatus === "error") {
       alerts.push({
         key: "snapshot-error",
-        level: "P0",
-        title: "Canli veri alinmadi",
-        detail: errorMessage ?? "Canli operasyon verisi alinirken baglanti sorunu olustu.",
-        tone: "border-rose-200 bg-rose-50 text-rose-800",
+        badge: hasItems ? "Uyarı" : "Bilgi",
+        title: hasItems ? "Canlı akışta geçici kesinti" : "Canlı bağlantı henüz kurulamıyor",
+        detail:
+          errorMessage ??
+          "Canlı operasyon verisi şu an alınamıyor. Sistem hazır olduğunda akış otomatik olarak güncellenecek.",
+        tone: hasItems
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : "border-slate-200 bg-slate-50 text-slate-800",
       });
     }
 
     if (noSignal.length > 0) {
       alerts.push({
         key: "no-signal",
-        level: "P1",
-        title: "Baglantisi kopan hatlar",
-        detail: `${noSignal.length} hatta canli konum verisi alinmiyor.`,
-        tone: "border-orange-200 bg-orange-50 text-orange-800",
+        badge: "Uyarı",
+        title: "Bağlantısı kopan hatlar",
+        detail: `${noSignal.length} hatta canlı konum verisi alınamıyor.`,
+        tone: "border-orange-200 bg-orange-50 text-orange-900",
       });
     }
 
     if (stale.length > 0) {
       alerts.push({
         key: "stale",
-        level: "P2",
+        badge: "Takip",
         title: "Konumu geciken hatlar",
-        detail: `${stale.length} hattin konum bilgisi gec guncelleniyor.`,
-        tone: "border-amber-200 bg-amber-50 text-amber-800",
+        detail: `${stale.length} hattın konum bilgisi geç güncelleniyor.`,
+        tone: "border-amber-200 bg-amber-50 text-amber-900",
       });
     }
 
     if (alerts.length === 0) {
       alerts.push({
         key: "healthy",
-        level: "P2",
-        title: "Sistem stabil",
+        badge: "İyi",
+        title: "Operasyon dengede",
         detail:
           idle.length > 0
-            ? `${idle.length} rota su an beklemede. Kritik uyari yok.`
-            : "Kritik veya orta seviye uyari bulunmuyor.",
-        tone: "border-emerald-200 bg-emerald-50 text-emerald-800",
+            ? `${idle.length} rota şu an beklemede. Anlık risk görünmüyor.`
+            : "Kritik veya orta seviye uyarı bulunmuyor.",
+        tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
       });
     }
 
@@ -73,15 +88,15 @@ export function CompanyDashboardAlerts({ snapshotStatus, errorMessage, items }: 
 
   return (
     <section className="rounded-2xl border border-line bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-      <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Risk Merkezi</p>
-      <h2 className="mt-1 text-lg font-semibold text-slate-950">Kritik aciklar ve uyarilar</h2>
+      <p className="text-xs font-semibold tracking-[0.14em] text-[#7d8693] uppercase">Operasyon Durumu</p>
+      <h2 className="mt-1 text-lg font-semibold text-slate-950">Anlık risk özeti</h2>
       <div className="mt-4 space-y-2.5">
         {rows.map((row) => (
           <article key={row.key} className={`rounded-2xl border px-3 py-2.5 ${row.tone}`}>
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-semibold">{row.title}</div>
               <span className="rounded-full border border-current/20 bg-white/70 px-2 py-0.5 text-[11px] font-semibold">
-                {row.level}
+                {row.badge}
               </span>
             </div>
             <div className="mt-1 text-xs">{row.detail}</div>

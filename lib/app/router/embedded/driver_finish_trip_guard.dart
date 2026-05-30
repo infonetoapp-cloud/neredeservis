@@ -6,14 +6,12 @@ class _DriverFinishTripGuard extends StatefulWidget {
     this.routeId,
     this.tripId,
     this.initialTransitionVersion,
-    this.mapboxPublicToken,
   });
 
   final String routeName;
   final String? routeId;
   final String? tripId;
   final int? initialTransitionVersion;
-  final String? mapboxPublicToken;
 
   @override
   State<_DriverFinishTripGuard> createState() => _DriverFinishTripGuardState();
@@ -34,7 +32,7 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
   Timer? _heartbeatUiTicker;
   Timer? _watchdogHeartbeatTimer;
   Timer? _queueFlushTicker;
-  StreamSubscription<DatabaseEvent>? _realtimeConnectionSubscription;
+  StreamSubscription<bool>? _realtimeConnectionSubscription;
   StreamSubscription<AccelerometerEvent>? _shakeToReportSubscription;
   bool _shakeToReportFlowInProgress = false;
   bool _isRealtimeConnected = true;
@@ -686,10 +684,10 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
 
     return RouterDriverFinishTripStreamBuilder(
       routeId: normalizedRouteId,
+      tripId: widget.tripId,
       todayIstanbulDateKey: todayIstanbulDateKey,
       observeStreamsUseCase: _observeDriverFinishTripStreamsUseCase,
       batteryDegradeModeEnabled: _batteryDegradeMode,
-      firebaseRuntimeGateway: _routerFirebaseRuntimeGateway,
       builder: (streamSnapshot) {
         final locationUiSnapshot = streamSnapshot.locationSnapshot;
         return _buildActiveTripScreen(
@@ -742,7 +740,6 @@ class _DriverFinishTripGuardState extends State<_DriverFinishTripGuard>
           : null,
       offlineBannerLabel: _resolveDriverOfflineBannerLabel(),
       latencyIndicatorLabel: _resolveDriverLatencyIndicatorLabel(),
-      mapboxPublicToken: widget.mapboxPublicToken,
       onPassengerMessageTap: !canOpenPassengerChat
           ? null
           : (entry) => unawaited(

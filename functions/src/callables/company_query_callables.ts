@@ -26,7 +26,7 @@ import type {
   ListMyCompaniesOutput,
   VehicleStatus,
 } from '../common/output_contract_types.js';
-import { readRouteTimeSlot } from '../common/mapbox_route_preview_helpers.js';
+import { readRouteTimeSlot } from '../common/route_preview_helpers.js';
 import { parseIsoToMs, pickFiniteNumber, pickString, pickStringArray } from '../common/runtime_value_helpers.js';
 import { runTransactionWithResult } from '../common/transaction_helpers.js';
 import { asRecord } from '../common/type_guards.js';
@@ -405,6 +405,10 @@ export function createCompanyQueryCallables({
           isArchived: typeof isArchivedRaw === 'boolean' ? isArchivedRaw : false,
           allowGuestTracking:
             typeof allowGuestTrackingRaw === 'boolean' ? allowGuestTrackingRaw : false,
+          startAddress: pickString(data, 'startAddress'),
+          endAddress: pickString(data, 'endAddress'),
+          vehicleId: pickString(data, 'vehicleId'),
+          vehiclePlate: pickString(data, 'vehiclePlate'),
           passengerCount:
             typeof passengerCountRaw === 'number' && Number.isFinite(passengerCountRaw)
               ? passengerCountRaw
@@ -769,8 +773,10 @@ export function createCompanyQueryCallables({
 
       const plate = pickString(data, 'plate') ?? '';
       const phoneFull = pickString(data, 'phone');
-      const plateMasked = maskString(plate, 4) ?? plate;
-      const phoneMasked = phoneFull ? maskString(phoneFull, 4) : null;
+      const plateMasked = plate;
+      const phoneMasked = phoneFull ?? null;
+      const loginEmail = pickString(data, 'loginEmail');
+      const temporaryPassword = pickString(data, 'temporaryPassword');
       const driverId = doc.id;
       const rawRoutes = assignedRoutesMap.get(driverId) ?? [];
       const assignedRoutes: Array<{ routeId: string; routeName: string; scheduledTime: string | null }> = rawRoutes;
@@ -783,6 +789,8 @@ export function createCompanyQueryCallables({
         name,
         plateMasked,
         phoneMasked,
+        loginEmail,
+        temporaryPassword,
         status,
         assignmentStatus: (assignedRoutes.length > 0 ? 'assigned' : 'unassigned') as 'assigned' | 'unassigned',
         lastSeenAt: pickString(data, 'updatedAt') ?? null,

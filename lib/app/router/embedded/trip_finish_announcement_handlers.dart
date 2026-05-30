@@ -31,7 +31,7 @@ Future<bool> _showFinishTripUndoWindow(BuildContext context) async {
 
 Future<DriverFinishTripCommitResultState> _commitFinishTrip(
   BuildContext context,
-  User user,
+  AuthUser user,
   _DriverActiveTripContext tripContext,
 ) async {
   final stopwatch = Stopwatch()..start();

@@ -1,6 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
-
-import '../../../config/firebase_regions.dart';
+import '../../backend/data/mobile_backend_api_client.dart';
 import 'bootstrap_user_profile_client.dart';
 
 class UpsertConsentInput {
@@ -26,24 +24,23 @@ class UpsertConsentInput {
 
 class UpsertConsentClient {
   UpsertConsentClient({
-    FirebaseFunctions? functions,
+    MobileBackendApiClient? apiClient,
     CallableInvoker? invoker,
-  })  : _functions = functions,
+  })  : _apiClient = apiClient,
         _invoker = invoker;
 
-  FirebaseFunctions? _functions;
+  MobileBackendApiClient? _apiClient;
   final CallableInvoker? _invoker;
 
-  FirebaseFunctions get _resolvedFunctions => _functions ??=
-      FirebaseFunctions.instanceFor(region: firebaseFunctionsRegion);
-
   Future<void> upsert(UpsertConsentInput input) async {
-    const callableName = 'upsertConsent';
     if (_invoker != null) {
-      await _invoker.call(callableName, input.toJson());
+      await _invoker.call('upsertConsent', input.toJson());
       return;
     }
-    final callable = _resolvedFunctions.httpsCallable(callableName);
-    await callable.call(input.toJson());
+    final apiClient = _apiClient ??= MobileBackendApiClient();
+    await apiClient.patchJson(
+      '/api/auth/consent',
+      body: input.toJson(),
+    );
   }
 }

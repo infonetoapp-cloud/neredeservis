@@ -8,7 +8,7 @@ import { readActiveCompanyPreference } from "@/features/company/company-preferen
 
 /**
  * Client-side redirect for legacy flat routes (e.g. /drivers → /c/{id}/drivers).
- * Reads active company from localStorage. Falls back to /select-company.
+ * Reads active company from localStorage. Falls back to internal workspace.
  */
 export function LegacyRouteRedirect({ segment }: { segment: string }) {
   const router = useRouter();
@@ -18,7 +18,7 @@ export function LegacyRouteRedirect({ segment }: { segment: string }) {
     if (pref?.companyId) {
       router.replace(`/c/${encodeURIComponent(pref.companyId)}/${segment}`);
     } else {
-      router.replace("/select-company");
+      router.replace(`/c/internal/${segment}`);
     }
   }, [router, segment]);
 

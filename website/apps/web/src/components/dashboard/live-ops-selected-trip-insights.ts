@@ -75,7 +75,7 @@ function resolveRisk(params: {
   if (rtdbConnectionStatus === "offline" || rtdbConnectionStatus === "error") {
     return {
       riskTone: "critical",
-      riskReason: "RTDB baglantisi kesik, konum akisi guvenilir degil.",
+      riskReason: "RTDB baglantisi kesik, konum akisi güvenilir degil.",
     };
   }
   if (streamStatus === "error") {
@@ -98,7 +98,7 @@ function resolveRisk(params: {
   }
   return {
     riskTone: "ok",
-    riskReason: "Canli konum akisi stabil.",
+    riskReason: "Canlı konum akisi stabil.",
   };
 }
 
@@ -174,4 +174,5 @@ export function buildLiveOpsTripInsight(params: {
     tripElapsedLabel: formatElapsedLabel(params.trip.startedAt),
   };
 }
+
 

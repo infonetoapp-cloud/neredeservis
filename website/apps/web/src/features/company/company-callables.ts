@@ -1,6 +1,7 @@
 "use client";
 
-import { callFirebaseCallable } from "@/lib/firebase/callable";
+import { callBackendApi } from "@/lib/backend-api/client";
+import { requireBackendApiBaseUrl } from "@/lib/env/public-env";
 import {
   ensureAcceptCompanyInviteResponse,
   ensureCreateCompanyResponse,
@@ -53,10 +54,10 @@ import type {
 } from "@/features/company/company-types";
 
 export async function listMyCompaniesCallable(): Promise<CompanyMembershipSummary[]> {
-  const envelope = await callFirebaseCallable<Record<string, never>, unknown>(
-    "listMyCompanies",
-    {},
-  );
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: "/api/my/companies",
+  });
   return ensureListMyCompaniesResponse(envelope.data, "listMyCompanies").items;
 }
 
@@ -65,20 +66,27 @@ export async function createCompanyCallable(input: {
   contactEmail?: string | null;
   contactPhone?: string | null;
 }): Promise<CreateCompanyResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "createCompany",
-    input,
-  );
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: "/api/my/companies",
+    method: "POST",
+    body: {
+      name: input.name,
+      ...(input.contactEmail !== undefined ? { contactEmail: input.contactEmail } : {}),
+      ...(input.contactPhone !== undefined ? { contactPhone: input.contactPhone } : {}),
+    },
+  });
   return ensureCreateCompanyResponse(envelope.data, "createCompany");
 }
 
 export async function listCompanyMembersCallable(input: {
   companyId: string;
 }): Promise<CompanyMemberSummary[]> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "listCompanyMembers",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/members`,
+  });
   return ensureListCompanyMembersResponse(envelope.data, "listCompanyMembers").items;
 }
 
@@ -87,30 +95,40 @@ export async function inviteCompanyMemberCallable(input: {
   email: string;
   role: InviteCompanyMemberRole;
 }): Promise<InviteCompanyMemberResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "inviteCompanyMember",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/members`,
+    method: "POST",
+    body: {
+      email: input.email,
+      role: input.role,
+    },
+  });
   return ensureInviteCompanyMemberResponse(envelope.data, "inviteCompanyMember");
 }
 
 export async function acceptCompanyInviteCallable(input: {
   companyId: string;
 }): Promise<AcceptCompanyInviteResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "acceptCompanyInvite",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/my/company-invites/${encodeURIComponent(companyId)}/accept`,
+    method: "POST",
+  });
   return ensureAcceptCompanyInviteResponse(envelope.data, "acceptCompanyInvite");
 }
 
 export async function declineCompanyInviteCallable(input: {
   companyId: string;
 }): Promise<DeclineCompanyInviteResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "declineCompanyInvite",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/my/company-invites/${encodeURIComponent(companyId)}/decline`,
+    method: "POST",
+  });
   return ensureDeclineCompanyInviteResponse(envelope.data, "declineCompanyInvite");
 }
 
@@ -122,10 +140,16 @@ export async function updateCompanyMemberCallable(input: {
     memberStatus?: CompanyMemberStatus;
   };
 }): Promise<UpdateCompanyMemberResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "updateCompanyMember",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const memberUid = input.memberUid.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberUid)}`,
+    method: "PATCH",
+    body: {
+      patch: input.patch,
+    },
+  });
   return ensureUpdateCompanyMemberResponse(envelope.data, "updateCompanyMember");
 }
 
@@ -133,9 +157,12 @@ export async function removeCompanyMemberCallable(input: {
   companyId: string;
   memberUid: string;
 }): Promise<RemoveCompanyMemberResponse> {
-  const envelope = await callFirebaseCallable<typeof input, unknown>(
-    "removeCompanyMember",
-    input,
-  );
+  const companyId = input.companyId.trim();
+  const memberUid = input.memberUid.trim();
+  const envelope = await callBackendApi<unknown>({
+    baseUrl: requireBackendApiBaseUrl(),
+    path: `/api/companies/${encodeURIComponent(companyId)}/members/${encodeURIComponent(memberUid)}`,
+    method: "DELETE",
+  });
   return ensureRemoveCompanyMemberResponse(envelope.data, "removeCompanyMember");
 }

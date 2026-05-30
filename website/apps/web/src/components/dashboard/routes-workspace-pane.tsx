@@ -36,7 +36,7 @@ export function RoutesWorkspacePane({
       <DashboardStatePlaceholder
         tone="info"
         title="Oturum bekleniyor"
-        description="Route listesi icin aktif oturum gerekiyor."
+        description="Route listesi için aktif oturum gerekiyor."
       />
     );
   }
@@ -85,8 +85,8 @@ export function RoutesWorkspacePane({
       <div className="space-y-4">
         <DashboardStatePlaceholder
           tone="empty"
-          title="Bu firma icin route bulunamadi"
-          description="Ilk company route olusturuldugunda liste burada gorunur."
+          title="Bu firma için route bulunamadi"
+          description="Ilk company route olusturuldugunda liste burada görünür."
         />
         {canMutateRoutes ? (
           <RouteCreateWizardForm companyId={companyId} onCreated={onRouteCreated} />
@@ -94,7 +94,7 @@ export function RoutesWorkspacePane({
           <DashboardStatePlaceholder
             tone="info"
             title="Rota olusturma yetkisi yok"
-            description="Rota olusturmak icin aktif owner/admin/dispatcher uyeligi gerekir."
+            description="Rota olusturmak için aktif owner/admin/dispatcher uyeligi gerekir."
           />
         )}
       </div>
@@ -109,10 +109,11 @@ export function RoutesWorkspacePane({
         <DashboardStatePlaceholder
           tone="info"
           title="Bu hesap salt-okuma modunda"
-          description="Rota mutasyonlari icin aktif owner/admin/dispatcher uyeligi gerekir."
+          description="Rota mutasyonlari için aktif owner/admin/dispatcher uyeligi gerekir."
         />
       )}
       <RoutesListSection {...routesListProps} />
     </div>
   );
 }
+

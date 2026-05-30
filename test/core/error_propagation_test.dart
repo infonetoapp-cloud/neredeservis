@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neredeservis/core/errors/error_codes.dart';
 import 'package:neredeservis/core/errors/error_propagation.dart';
@@ -43,19 +42,21 @@ void main() {
       expect(identical(propagated, original), isTrue);
     });
 
-    test('maps FirebaseException to canonical code', () {
+    test('keeps AppException instance as-is', () {
+      const original = AppException(
+        code: ErrorCodes.permissionDenied,
+        message: 'not allowed',
+      );
+
       final propagated = propagateAppException(
-        error: FirebaseException(
-          plugin: 'firebase_functions',
-          code: 'permission-denied',
-          message: 'not allowed',
-        ),
+        error: original,
         fallbackCode: ErrorCodes.unknown,
         fallbackMessage: 'fallback',
       );
 
       expect(propagated.code, ErrorCodes.permissionDenied);
       expect(propagated.message, 'not allowed');
+      expect(identical(propagated, original), isTrue);
     });
 
     test('maps TimeoutException to UNAVAILABLE', () {

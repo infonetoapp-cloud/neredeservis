@@ -1,4 +1,3 @@
-import 'package:firebase_database/firebase_database.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/logging/runtime_log_buffer.dart';
@@ -149,20 +148,10 @@ class SupportReportService {
   }
 
   static Future<Map<String, Object?>> _defaultConnectionProvider() async {
-    try {
-      final snapshot =
-          await FirebaseDatabase.instance.ref('.info/connected').get();
-      final connected = snapshot.value == true;
-      return <String, Object?>{
-        'connectionType': connected ? 'online' : 'offline',
-        'rtdbConnected': connected,
-      };
-    } catch (_) {
-      return <String, Object?>{
-        'connectionType': 'unknown',
-        'rtdbConnected': null,
-      };
-    }
+    return const <String, Object?>{
+      'connectionType': 'unknown',
+      'rtdbConnected': null,
+    };
   }
 
   static Future<Map<String, Object?>> _defaultBatteryProvider() async {

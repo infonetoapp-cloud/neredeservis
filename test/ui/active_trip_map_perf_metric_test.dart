@@ -35,9 +35,7 @@ void main() {
       (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: ActiveTripScreen(
-            mapboxPublicToken: null,
-          ),
+          home: ActiveTripScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 200));

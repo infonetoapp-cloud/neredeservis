@@ -21,7 +21,6 @@ class RouterDriverFinishTripActiveTripScreenWrapper extends StatelessWidget {
     required this.stopsRemaining,
     required this.passengerEntries,
     required this.hasPendingCriticalSync,
-    required this.mapboxPublicToken,
     required this.onBlockedPopAttempt,
     this.syncStateLabel,
     this.manualInterventionMessage,
@@ -47,7 +46,6 @@ class RouterDriverFinishTripActiveTripScreenWrapper extends StatelessWidget {
   final int? stopsRemaining;
   final List<ActiveTripPassengerEntry> passengerEntries;
   final bool hasPendingCriticalSync;
-  final String? mapboxPublicToken;
   final String? syncStateLabel;
   final String? manualInterventionMessage;
   final String? offlineBannerLabel;
@@ -80,7 +78,6 @@ class RouterDriverFinishTripActiveTripScreenWrapper extends StatelessWidget {
       manualInterventionMessage: manualInterventionMessage,
       offlineBannerLabel: offlineBannerLabel,
       latencyIndicatorLabel: latencyIndicatorLabel,
-      mapboxPublicToken: mapboxPublicToken,
       onPassengerMessageTap: onPassengerMessageTap,
       onRetrySyncTap: onRetrySyncTap,
       onReportIssueTap: onReportIssueTap,

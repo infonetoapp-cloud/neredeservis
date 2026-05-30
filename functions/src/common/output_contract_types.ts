@@ -16,8 +16,6 @@ export interface SearchDriverDirectoryOutput {
   results: DriverDirectoryResult[];
 }
 
-export type MapboxDirectionsProfile = 'driving' | 'driving-traffic';
-
 export interface BootstrapUserProfileOutput {
   uid: string;
   role: WritableRole;
@@ -95,6 +93,7 @@ export interface DeleteDriverDocumentOutput {
 export interface CreateCompanyRouteOutput {
   routeId: string;
   srvCode: string;
+  route: ListCompanyRoutesItem;
 }
 
 export interface CreateCompanyOutput {
@@ -172,6 +171,10 @@ export interface ListCompanyRoutesItem {
   timeSlot: 'morning' | 'evening' | 'midday' | 'custom' | null;
   isArchived: boolean;
   allowGuestTracking: boolean;
+  startAddress: string | null;
+  endAddress: string | null;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
   passengerCount: number;
   updatedAt: string | null;
 }
@@ -248,6 +251,8 @@ export interface ListCompanyDriversItem {
   name: string;
   plateMasked: string;
   phoneMasked: string | null;
+  loginEmail: string | null;
+  temporaryPassword: string | null;
   status: 'active' | 'passive';
   assignmentStatus: 'assigned' | 'unassigned';
   lastSeenAt: string | null;
@@ -265,11 +270,19 @@ export interface ListCompanyDriversOutput {
 export interface CreateVehicleOutput {
   vehicleId: string;
   createdAt: string;
+  vehicle: ListCompanyVehiclesItem;
 }
 
 export interface UpdateVehicleOutput {
   vehicleId: string;
   updatedAt: string;
+  vehicle: ListCompanyVehiclesItem;
+}
+
+export interface DeleteVehicleOutput {
+  vehicleId: string;
+  deleted: true;
+  deletedAt: string;
 }
 
 export interface UpdateCompanyMemberOutput {
@@ -329,6 +342,7 @@ export interface UpdateCompanyAdminTenantStateOutput {
 export interface UpdateRouteOutput {
   routeId: string;
   updatedAt: string;
+  route?: ListCompanyRoutesItem;
 }
 
 export interface RouteDriverPermissionFlags {
@@ -370,28 +384,6 @@ export interface CreateRouteFromGhostDriveOutput {
   inferredStops: InferredStopOutput[];
 }
 
-export interface MapboxDirectionsProxyOutput {
-  routeId: string;
-  profile: MapboxDirectionsProfile;
-  geometry: string;
-  distanceMeters: number;
-  durationSeconds: number;
-  source: 'mapbox';
-  requestSignature: string | null;
-}
-
-export interface MapboxMapMatchingProxyOutput {
-  tracePoints: {
-    lat: number;
-    lng: number;
-    accuracy: number;
-    sampledAtMs: number;
-  }[];
-  fallbackUsed: boolean;
-  source: 'map_matching' | 'fallback';
-  confidence: number;
-}
-
 export interface UpsertStopOutput {
   routeId: string;
   stopId: string;
@@ -403,6 +395,12 @@ export interface UpsertCompanyRouteStopOutput {
   routeId: string;
   stopId: string;
   updatedAt: string;
+}
+
+export interface DeleteCompanyRouteOutput {
+  routeId: string;
+  deleted: true;
+  deletedAt: string;
 }
 
 export interface DeleteCompanyRouteStopOutput {

@@ -2,7 +2,7 @@ part of '../app_router.dart';
 
 Future<bool> _ensureStartTripLocationPermission(
   BuildContext context,
-  User user,
+  AuthUser user,
 ) async {
   return _ensureDriverLocationPermissionForTrigger(
     context,
@@ -46,7 +46,7 @@ Future<void> _ensureDriverHomeLocationPermissionPrompt(
 
 Future<bool> _ensureDriverLocationPermissionForTrigger(
   BuildContext context,
-  User user, {
+  AuthUser user, {
   required LocationPermissionPromptTrigger trigger,
   required String deniedMessage,
   required String readFailureMessage,
